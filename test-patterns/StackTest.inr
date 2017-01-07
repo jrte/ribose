@@ -1,0 +1,4 @@
+StackTest = (nil, start[`@StackTestSub`]) (Bsig, start[`@StackTestSub`])*  (eos, stop);
+StackTest :save `StackTest.dfa`;
+StackTestSub = (a, paste)* ((b, clear stop in[`!Bsig`]) | (eos, clear stop));
+StackTestSub :save `StackTestSub.dfa`;

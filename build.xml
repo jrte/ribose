@@ -1,0 +1,217 @@
+<project name="jrte" default="all" basedir=".">
+	<property name="jrte.version" value="0.0.0" />
+	<property name="java.source.dir" value="src" />
+	<property name="pattern.source.dir" value="test-patterns" />
+	<property name="java.test.dir" value="test" />
+	<property name="test.jars.dir" value="jars/test" />
+	<property name="build.java" value="build/java" />
+	<property name="build.java.classes" value="${build.java}/classes" />
+	<property name="build.java.test" value="${build.java}/test" />
+	<property name="build.deploy" value="build/deploy" />
+	<property name="build.patterns" value="build/patterns" />
+	<property name="build.patterns.automata" value="build/patterns/automata" />
+	<property name="jrte.source.tz" value="jrte-source.tar.gz" />
+	<property name="jrte.deploy.tz" value="jrte-deploy.tar.gz" />
+	<property name="jrte.project.tz" value="jrte-project.tar.gz" />
+	<property name="javadoc.dir" value="doc" />
+	<property name="jars" value="jars" />
+	<property name="svn.root" value="svn://localhost/jrte" />
+
+	<condition property="archive" value="${user.home}/archive">
+		<available type="dir" file="${user.home}/archive" />
+	</condition>
+
+	<condition property="jrte.version.revision" value="${jrte.version}.${env.SVN_REVISION}" else="HEAD">
+		<isset property="env.SVN_REVISION" />
+	</condition>
+
+	<path id="java.classpath">
+		<pathelement location="${build.java.classes}"/>
+	</path>
+
+	<path id="test.classpath">
+		<pathelement location="${build.java.classes}"/>
+		<pathelement location="${jars}/test/junit-4.8.2.jar"/>
+	</path>
+
+	<path id="jrte.classpath">
+		<pathelement location="${build.java}/${ant.project.name}-${jrte.version.revision}.jar"/>
+	</path>
+
+	<target name="clean-java">
+		<delete dir="${build.java}" quiet="true" />
+		<delete dir="${javadoc.dir}" quiet="true" />
+	</target>
+
+	<target name="clean-patterns">
+		<delete dir="${build.patterns}" quiet="true" />
+	</target>
+
+	<target name="clean-deploy" depends="clean-java,clean-patterns">
+		<delete dir="${build.deploy}" quiet="true" />
+		<delete file="${jrte.source.tz}" quiet="true" />
+		<delete file="${jrte.deploy.tz}" quiet="true" />
+	</target>
+
+	<target name="clean" depends="clean-java,clean-patterns" />
+
+	<target name="init">
+		<tstamp />
+		<mkdir dir="${build.java.classes}" />
+		<mkdir dir="${build.java.test}" />
+		<mkdir dir="${build.patterns.automata}" />
+		<mkdir dir="${build.deploy}" />
+	</target>
+	
+	<target name="properties" depends="init">
+		<echoproperties />
+	</target>
+		
+	<target name="compile-java" depends="init">
+		<javac srcdir="${java.source.dir}" destdir="${build.java.classes}" debug="true" debuglevel="lines,vars,source">
+			<classpath refid="java.classpath" />
+		</javac>
+	</target>
+
+	<target name="compile-test" depends="compile-java">
+		<javac srcdir="${java.test.dir}" destdir="${build.java.test}" debug="true" debuglevel="lines,vars,source">
+			<classpath refid="test.classpath" />
+		</javac>
+	</target>
+
+	<target name="compile-patterns" depends="init">
+		<concat destfile="${build.patterns.automata}/_all.inr" eol="lf" force="true">
+			<fileset dir="${pattern.source.dir}">
+				<include name="!prologue" />
+			</fileset>
+			<fileset dir="${pattern.source.dir}">
+				<include name="*.inr" />
+			</fileset>
+			<fileset dir="${pattern.source.dir}">
+				<include name="!epilogue" />
+			</fileset>
+		</concat>
+		<fixcrlf file="${build.patterns.automata}/_all.inr" eol="lf" />
+		<exec failonerror="true" dir="${build.patterns.automata}" executable="ginr" input="${build.patterns.automata}/_all.inr" outputproperty="ginr.output"/>
+		<echo message="${ginr.output}" />
+		<condition property="ginr.fail">
+			<or>
+				<matches string="${ginr.output}" pattern="^\*\*\*" multiline="true" />
+				<matches string="${ginr.output}" pattern="^Error detected at state [0-9]*:" multiline="true" />
+				<matches string="${ginr.output}" pattern="^Reserved character:" multiline="true" />
+				<matches string="${ginr.output}" pattern="^Warning:" multiline="true" />
+			</or>
+		</condition>
+		<fail if="ginr.fail" message="There were ginr compilation errors" />
+	</target>
+
+	<target name="package-java" depends="compile-java">
+		<copy file="LICENSE" todir="${build.java.classes}" />
+		<copy file="LICENSE-gpl-3.0" todir="${build.java.classes}" />
+		<copy file="LICENSE-lgpl-3.0" todir="${build.java.classes}" />
+		<echo file="${build.java.classes}/VERSION" message="${ant.project.name}-${jrte.version.revision}" append="false" />
+		<jar basedir="${build.java.classes}" destfile="${build.java}/${ant.project.name}-${jrte.version.revision}.jar" />
+	</target>
+
+	<target name="package-patterns" depends="compile-patterns,package-java">
+		<java fork="true" dir ="." classname="com.characterforming.jrte.compile.GearboxCompiler" classpathref="jrte.classpath" failonerror="true">
+			<arg line="--target com.characterforming.jrte.base.BaseTarget ${build.patterns.automata} ${build.patterns}/Jrte.gears" />
+		</java>
+	</target>
+
+	<target name="package-test" depends="compile-test,package-patterns">
+		<jar basedir="${build.java.test}" destfile="${build.java}/${ant.project.name}-${jrte.version.revision}-test.jar" />
+	</target>
+
+	<target name="package-source" depends="compile-java">
+		<jar basedir="${java.source.dir}" destfile="${build.java}/${ant.project.name}-${jrte.version.revision}-source.jar" />
+	</target>
+
+	<target name="javadoc">
+		<javadoc stylesheetfile="etc/javadoc/api/stylesheet.css" overview="overview.html" access="protected" author="true" destdir="${javadoc.dir}" nodeprecated="false" nodeprecatedlist="false" noindex="false" nonavbar="false" notree="false" source="1.6" sourcepath="src" splitindex="true" use="true" version="true">
+			<doctitle>
+				&lt;center&gt;The General Idea&lt;/center&gt;
+			</doctitle>
+			<header>
+				Copyright (c) 2011, Kim T Briggs, Hampton, NB
+			</header>
+			<link href="http://download.oracle.com/javase/6/docs/api/" />
+			<package name="com.characterforming.jrte" />
+			<package name="com.characterforming.jrte.base" />
+			<excludepackage name="com.characterforming.jrte.compile" />
+			<excludepackage name="com.characterforming.jrte.engine" />
+		</javadoc>
+		<copy todir="doc/resources">
+			<fileset dir="etc/javadoc/api/resources">
+				<include name="*" />
+			</fileset>
+		</copy>
+		<copy todir="doc">
+			<fileset dir="etc/javadoc">
+				<include name="*.png" />
+			</fileset>
+		</copy>
+		<jar basedir="doc" destfile="${build.java}/${ant.project.name}-${jrte.version.revision}-javadoc.jar" />
+	</target>
+
+	<target name="tar-source" depends="package-patterns,package-test">
+		<tar destfile="${jrte.source.tz}" compression="gzip">
+			<fileset dir=".">
+				<include name="**/*" />
+				<exclude name="bin/**" />
+				<exclude name="build/**" />
+				<exclude name="doc/**" />
+				<exclude name="*.tar.gz" />
+			</fileset>
+		</tar>
+	</target>
+
+	<target name="tar-deploy" depends="package-patterns,package-test,javadoc">
+		<tar destfile="${jrte.deploy.tz}" compression="gzip">
+			<fileset dir="etc/sh">
+				<include name="*.sh" />
+			</fileset>
+			<fileset dir="${build.java}">
+				<include name="*.jar" />
+			</fileset>
+			<fileset dir="${test.jars.dir}">
+				<include name="*.jar" />
+			</fileset>
+			<fileset dir="${build.patterns}">
+				<include name="*.gears" />
+			</fileset>
+			<fileset dir="test-patterns">
+				<include name="inputs/*" />
+			</fileset>
+		</tar>
+	</target>
+
+	<target name="tar-project" depends="clean">
+		<tar basedir="." destfile="${jrte.project.tz}" compression="gzip" defaultexcludes="false" excludes="*.tar.gz"/>
+	</target>
+
+	<target name="all" depends="package-patterns" description="Incremental build for java and patterns" />
+
+	<target name="all-clean" depends="clean,package-patterns,package-source,javadoc" description="Full build for java and patterns" />
+
+	<target name="all-deploy" depends="clean-deploy,tar-source,tar-deploy" description="Full build and deployment for java and patterns" />
+
+	<target name="all-archive" depends="all-deploy,tar-project" if="archive">
+		<delete quiet="true" file="${archive}/jrte-svn-${DSTAMP}.dump" />
+		<exec failonerror="true" executable="svnadmin" output="${archive}/jrte-svn-${DSTAMP}.dump">
+			<arg line="dump /home/kb/Development/svn/repo/jrte/" />
+		</exec>
+		<delete quiet="true" file="${archive}/jrte-svn-${DSTAMP}.info" />
+		<exec failonerror="true" executable="svn" output="${archive}/jrte-svn-${DSTAMP}.info">
+			<arg line="info ${svn.root}"/>
+		</exec>
+		<exec failonerror="true" executable="svn" output="${archive}/jrte-svn-${DSTAMP}.info" append="true">
+			<arg line="-Rv list ${svn.root}" />
+		</exec>
+		<copy todir="${archive}">
+			<fileset dir=".">
+				<include name="*.tar.gz" />
+			</fileset>
+		</copy>
+	</target>
+</project>

@@ -1,0 +1,2 @@
+SelectPasteTest = (nil, select[`~buffer`]) ((a, paste)* (b, clear[`~buffer`] select[`~buffer`]))* (`eos`, stop);
+SelectPasteTest :save `SelectPasteTest.dfa`;

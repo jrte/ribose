@@ -1,0 +1,2 @@
+NilSpeedTest = (a*b)* (`eos`, stop);
+NilSpeedTest :save `NilSpeedTest.dfa`;

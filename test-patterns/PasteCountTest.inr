@@ -1,0 +1,2 @@
+PasteCountTest = (nil, counter[`!zero` 9]) ((a, paste count)* (zero b, clear counter[`!zero` 9]))* (eos, stop);
+PasteCountTest :save `PasteCountTest.dfa`;

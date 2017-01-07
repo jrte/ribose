@@ -1,0 +1,32 @@
+<html>
+<body>
+Jrte is about inversion of control for high-volume text analysis and data extraction. The input 
+source stream selects, via a finite-state transducer, a sequence of Java operations (effectors) 
+to be performed against a bound Java object (target). It relies on ginr to produce transducers 
+(gears), which it packages into a gearbox for runtime operation.
+<p>
+Input symbols include characters (Java char) represented as Unicode ordinal values up to a declared
+maximal Unicode ordinal M and signals (Java char[N], N>1) represented as Unicode ordinal values >M. 
+Signals include base control signals nul (nothing), nil (something), eol (end of line), and eos 
+(end of stream), counters (end of countdown), and tags (matched character sequence in input stream).
+Client applications may select the maximal Unicode character ordinal and define additional signals
+as required.
+<p>
+Jrte includes a gearbox compiler for ginr transducers and a runtime transduction engine. Gears 
+are pushed onto a runtime stack to drive information from a stack of input sources onto effector 
+methods expressed by a bound target. The Jrte transduction class expresses effectors that control 
+the transduction gear and input stacks, copy input symbols (characters) and set named values from 
+copied input sequences, manage countdown counters, and scan input for tags. Client applications 
+can define their own target classes to express additional effectors to suit application-specific 
+needs. 
+<p>
+Typical client applications will use the built-in transduction effectors to extract named values 
+from the input and define a specialized target class with additional effectors that assemble domain
+objects from the extracted named values. 
+<p>
+Please refer to the {@link com.characterforming.jrte} package documentation for basic instructions
+and examples.
+<p>
+<img src="Jrte.png" border="2"/>
+</body>
+</html>

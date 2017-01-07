@@ -1,0 +1,88 @@
+/**
+ * 
+ */
+package com.characterforming.jrte.engine;
+
+import com.characterforming.jrte.INamedValue;
+
+/**
+ * Wrapper for named value snapshots.
+ * 
+ * @author kb
+ */
+public class NamedValue implements INamedValue {
+	private final String name;
+	private final int index;
+
+	private char[] value;
+	private int length;
+
+	private String string;
+
+	/**
+	 * Constructor
+	 */
+	public NamedValue(final String name, final int index, final char[] value, final int length) {
+		this.name = name;
+		this.index = index;
+		this.value = value;
+		this.length = length;
+		this.string = null;
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * @see com.characterforming.jrte.INamedValue#getName()
+	 */
+	@Override
+	public String getName() {
+		return this.name;
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * @see com.characterforming.jrte.INamedValue#getIndex()
+	 */
+	@Override
+	public int getIndex() {
+		return this.index;
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * @see com.characterforming.jrte.INamedValue#getValue()
+	 */
+	@Override
+	public char[] getValue() {
+		return this.value;
+	}
+
+	void setValue(final char[] value) {
+		this.value = value;
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * @see com.characterforming.jrte.INamedValue#getLength()
+	 */
+	@Override
+	public int getLength() {
+		return this.length;
+	}
+
+	void setLength(final int length) {
+		this.length = length;
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * @see java.lang.Object#toString()
+	 */
+	@Override
+	public String toString() {
+		if (this.string == null && this.value != null) {
+			this.string = new String(this.value, 0, this.length);
+		}
+		return this.string != null ? this.string : "null";
+	}
+}

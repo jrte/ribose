@@ -1,0 +1,4 @@
+HelloWorld = (
+		(nil, clear paste[`(-: `]) ('hello world' @@ PasteAny) (eos, paste[` :-)`] out[`~` `\n`] clear)
+);
+HelloWorld :save `HelloWorld.dfa`;
