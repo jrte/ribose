@@ -50,7 +50,7 @@ public final class Stack<T> {
 	}
 
 	/**
-	 * Push a empty item onto the stack ansd return it.
+	 * Push a empty item onto the stack and return it.
 	 * 
 	 * @param item The item to push
 	 */
@@ -89,13 +89,13 @@ public final class Stack<T> {
 	/**
 	 * Get the item on the top of the stack
 	 * 
-	 * @return The item on the top of the stack
+	 * @return The item on the top of the stack, or null if empty
 	 */
 	public T peek() {
 		if (this.tos >= 0) {
 			return this.stack[this.tos];
 		} else {
-			throw new EmptyStackException();
+			return null;
 		}
 	}
 
@@ -125,10 +125,8 @@ public final class Stack<T> {
 	public T get(final int index) {
 		if (index >= 0 && index <= this.tos) {
 			return this.stack[index];
-		} else if (this.tos < 0) {
-			throw new EmptyStackException();
 		} else {
-			throw new ArrayIndexOutOfBoundsException();
+			return null;
 		}
 	}
 

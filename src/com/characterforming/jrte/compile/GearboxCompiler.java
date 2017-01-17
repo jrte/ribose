@@ -7,6 +7,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.logging.FileHandler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -145,6 +146,7 @@ public final class GearboxCompiler {
 
 	public void compile() throws GearboxException, TargetNotFoundException, TargetBindingException {
 		boolean fail = false;
+		HashMap<String, Long> transducerOffsetMap = new HashMap<String, Long>(256);
 		for (final String filename : this.inrAutomataDirectory.list()) {
 			if (!filename.endsWith(GearboxCompiler.AUTOMATON_FILE_SUFFIX)) {
 				continue;
@@ -165,7 +167,7 @@ public final class GearboxCompiler {
 			}
 		}
 		try {
-			final int counts[] = this.compileTarget();
+			final int counts[] = this.compileTarget(transducerOffsetMap);
 			System.out.println(String.format("Target class %1$s: %2$d text ordinals, %3$d signal ordinals, %4$d simple effectors, %5$d parameterized effectors",
 					this.targetCompiler.getTarget().getName(), this.gearbox.getSignalBase(), this.gearbox.getSignalCount(), counts[0], counts[1]));
 			System.out.println(String.format("Target package %1$s", this.targetCompiler.getTarget().getClass().getPackage().getName()));
@@ -183,9 +185,10 @@ public final class GearboxCompiler {
 		}
 	}
 
-	private int[] compileTarget() throws GearboxException, TargetNotFoundException, TargetBindingException {
+	private int[] compileTarget(HashMap<String, Long> transducerOffsetMap) throws GearboxException, TargetNotFoundException, TargetBindingException {
 		this.gearbox.setEffectorOrdinalMap(this.targetCompiler.getEffectorOrdinalMap());
 		this.gearbox.setEffectorParametersIndex(this.targetCompiler.getEffectorParameters());
+		this.gearbox.addTransducer(this.targetCompiler.getTarget().getName(), this.gearbox.seek(-1));
 		final Transduction testTransduction = new Transduction(this.gearbox, this.targetCompiler.getTarget(), true);
 		return this.targetCompiler.save(this.gearbox, testTransduction.getEffectors());
 	}
@@ -194,7 +197,7 @@ public final class GearboxCompiler {
 		final TransducerCompiler transducerCompiler = new TransducerCompiler(transducerName, this.charset, this.gearbox, this.targetCompiler);
 		try {
 			transducerCompiler.load(inrAutomatonFile);
-			this.gearbox.getOffsetNameMap().put(transducerName, this.gearbox.seek(-1));
+			this.gearbox.addTransducer(transducerName, this.gearbox.seek(-1));
 			transducerCompiler.save(this.gearbox, this.targetCompiler.getTarget().getName());
 		} catch (final CompilationException e) {
 			return transducerCompiler.getErrors();

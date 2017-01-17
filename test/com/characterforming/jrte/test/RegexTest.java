@@ -21,14 +21,17 @@ public class RegexTest {
 		for (int i = 9; i < achars.length; i += 10) {
 			achars[i] = 'b';
 		}
-		for (int i = 0; i < 10; i++) {
+		int count = 0;
+		long t0 = 0, t1 = 0;
+		for (int i = 0; i < 20; i++) {
 			Matcher matcher = regex.matcher(CharBuffer.wrap(achars));
-			long t0 = System.currentTimeMillis();
+			t0 = System.currentTimeMillis();
 			while (matcher.find()) {
+				count++;
 			}
-			long t1 = System.currentTimeMillis() - t0;
-			System.out.print(String.format("%1$6d", t1));
+			t1 = System.currentTimeMillis() - t0;
+			System.out.print(String.format("%6d", t1));
 		}
-		System.out.println();
+		System.out.println(t1 > 0 ? String.format(" : %,12d bytes/s (%d)", (long)10000000*2000 / t1, count) : "");
 	}
 }

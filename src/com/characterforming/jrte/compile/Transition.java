@@ -43,8 +43,9 @@ final class Transition {
 		this.outS = f.readShort();
 		final byte[] buf = new byte[64 << 10];
 		if (f.read(buf, 0, 2) != 2) {
-			this.errors.add("Unexpected end of file in INR automaton");
 			this.isValid = false;
+			this.errors.add("Unexpected end of file in INR automaton");
+			throw new CompilationException("Unexpected end of file in INR automaton");
 		}
 		final String tape = this.charset.decode(ByteBuffer.wrap(buf, 0, 1)).toString();
 		final String dot = this.charset.decode(ByteBuffer.wrap(buf, 1, 1)).toString();
@@ -61,6 +62,8 @@ final class Transition {
 			do {
 				escapenl = false;
 				if (f.read(buf, i, 1) != 1) {
+					this.isValid = false;
+					this.errors.add("Unexpected end of file in INR automaton");
 					throw new CompilationException("Unexpected end of file in INR automaton");
 				}
 				if (escape) {
@@ -80,6 +83,7 @@ final class Transition {
 							buf[i] = '\\';
 							break;
 						default:
+							this.isValid = false;
 							this.errors.add(String.format("Invalid escape sequence '\\%1$c' in transition symbol in INR automaton", buf[i]));
 							break;
 					}
@@ -104,9 +108,13 @@ final class Transition {
 			this.string = null;
 			this.isFinal = true;
 			if (f.read(buf, 0, 1) != 1) {
+				this.isValid = false;
+				this.errors.add("Unexpected end of file in INR automaton");
 				throw new CompilationException("Unexpected end of file in INR automaton");
 			} else if (buf[0] != 10) {
-				throw new CompilationException("Missing end of line in final in INR automaton");
+				this.isValid = false;
+				this.errors.add("Missing end of line in final transition in INR automaton");
+				throw new CompilationException("Missing end of line in final transition in INR automaton");
 			}
 		} else {
 			this.errors.add(String.format("Missing or malformed tape delimiter '%1$s' in transition in INR automaton", dot));

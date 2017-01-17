@@ -163,3 +163,7 @@ em.comment {
   font-weight: bold;
 }
 
+img.displayed {
+    display: block;
+    margin-left: auto;
+    margin-right: auto }

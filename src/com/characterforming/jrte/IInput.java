@@ -39,7 +39,8 @@ public interface IInput {
 	 * Reset stream input at a previously marked position and clear the mark.
 	 * 
 	 * @throws InputException If no previous mark is set
+	 * @return The new position at the mark
 	 * @throws MarkLimitExceededException If the mark limit has been exceeded
 	 */
-	public void reset() throws InputException, MarkLimitExceededException;
+	public int reset() throws InputException, MarkLimitExceededException;
 }

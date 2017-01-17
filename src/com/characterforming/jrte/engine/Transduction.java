@@ -99,7 +99,6 @@ public final class Transduction implements ITransduction {
 	private int selectionPosition;
 	private char[][] namedValue;
 	private int[] valueLength;
-	private int status;
 
 	private final IEffector<?>[] base = {
 			new InlineEffector(this, "0"),
@@ -188,7 +187,6 @@ public final class Transduction implements ITransduction {
 		} catch (final InputException e) {
 			throw new GearboxException("Internal error creating transduction SignalInput array", e);
 		}
-		this.status = BaseEffector.RTE_TRANSDUCTION_PAUSE;
 		this.valueLength = new int[Transduction.INITIAL_NAMED_VALUE_BUFFERS];
 		this.namedValue = new char[Transduction.INITIAL_NAMED_VALUE_BUFFERS][];
 		this.valueNameIndexMap = new HashMap<String, Integer>(this.valueLength.length);
@@ -214,7 +212,7 @@ public final class Transduction implements ITransduction {
 		}
 		this.inputStack = null;
 		final TransducerState[] state = new TransducerState[] {
-				new TransducerState(0, this.gearbox.loadTransducer(transducerName))
+				new TransducerState(0, this.gearbox.loadTransducer(this.gearbox.getTransducerOrdinal(transducerName)))
 		};
 		this.transducerStack = new Stack<TransducerState>(state, false);
 		this.selectionIndex = this.getNamedValueReference(Transduction.ANONYMOUS_VALUE_REFERENCE, false);
@@ -241,29 +239,40 @@ public final class Transduction implements ITransduction {
 	 * @see com.characterforming.jrte.engine.ITransduction#run()
 	 */
 	@Override
-	public void run() throws RteException {
-		int status = this.status = this.status() == ITransduction.RUNNABLE ? BaseEffector.RTE_TRANSDUCTION_RUN : BaseEffector.RTE_TRANSDUCTION_PAUSE;
-		int position = 0, limit = 0, state = 0;
+	public int run() throws RteException {
 		CharBuffer inputBuffer = null;
+		int position = 0, limit = 0;
+		for (IInput input = this.inputStack.peek(); input != null; input = this.inputStack.pop()) {
+			inputBuffer = input.get();
+			if (inputBuffer != null && inputBuffer.hasRemaining()) {
+				position = inputBuffer.position();
+				limit = inputBuffer.limit();
+				break;
+			}
+		}
+		int status = this.status();
+		if (status != ITransduction.RUNNABLE) {
+			return status; 
+		}
+		String debug = null;
+		int state = 0;
 		try {
-			char[] inputArray = null;
-			int currentInput = 0;
-			while (status == 0) {
+			char[] inputArray = inputBuffer.array();
+T:			while (status == ITransduction.RUNNABLE) {
 				final TransducerState transducerState = this.transducerStack.peek();
 				final Transducer transducer = transducerState.transducer;
 				final int[] inputFilter = transducer.getInputFilter();
 				final int[][] transitionMatrix = transducer.getTransitionMatrix();
 				final int[] effectorVector = transducer.getEffectorVector();
 				state = transducerState.state;
-				while (status == 0) {
+				int currentInput = 0;
+				while (status == ITransduction.RUNNABLE) {
 					if (position < limit) {
 						currentInput = inputArray[position++];
 					} else if (currentInput != this.eosSignal) {
 						currentInput = this.eosSignal;
-						if (inputBuffer != null && position == limit) {
-							inputBuffer.position(position);
-						}
-						for (IInput input = this.inputStack.peek(); input != null; input = !this.inputStack.isEmpty() ? this.inputStack.pop() : null) {
+						inputBuffer.position(position);
+						for (IInput input = this.inputStack.peek(); input != null; input = this.inputStack.pop()) {
 							inputBuffer = input.get();
 							if (inputBuffer != null && inputBuffer.hasRemaining()) {
 								inputArray = inputBuffer.array();
@@ -273,19 +282,26 @@ public final class Transduction implements ITransduction {
 								break;
 							}
 						}
+						if (currentInput == this.eosSignal) {
+							status = status();
+							break;
+						}
 					} else {
-						status = BaseEffector.RTE_TRANSDUCTION_PAUSE;
+						this.inputStack.pop();
+						status = status();
 						break;
 					}
 					final int transition[] = transitionMatrix[state + inputFilter[currentInput]];
 					state = transition[0];
-					int effect = transition[1];
-					switch (effect) {
+					int action = transition[1];
+					int effect = BaseEffector.RTE_TRANSDUCTION_RUN;
+					switch (action) {
 						case Transduction.RTE_EFFECTOR_NUL:
 							if (currentInput == this.nulSignal) {
-								throw new DomainErrorException(String.format("Domain error in %1$s [state=%2$d]: %3$s", transducer.getName(), state, this.getErrorInput(inputArray, position, limit)));
+								debug = this.getErrorInput(inputArray, position, state);
+								throw new DomainErrorException(String.format("Domain error in %1$s %2$s", transducer.getName(), debug));
 							} else if (currentInput != this.eosSignal) {
-								status |= this.in(this.nulSignal);
+								effect |= this.in(this.nulSignal);
 							}
 							break;
 						case Transduction.RTE_EFFECTOR_NIL:
@@ -298,7 +314,7 @@ public final class Transduction implements ITransduction {
 							break;
 						case Transduction.RTE_EFFECTOR_COUNT:
 							if (--transducerState.countdown[1] <= 0) {
-								status |= this.in(transducerState.countdown[0]);
+								effect |= this.in(transducerState.countdown[0]);
 								transducerState.countdown[1] = 0;
 							}
 							break;
@@ -307,16 +323,15 @@ public final class Transduction implements ITransduction {
 							limit = -1;
 							break;
 						case Transduction.RTE_EFFECTOR_RESET:
-							this.reset(inputBuffer, position);
-							limit = -1;
+							position = this.reset(inputBuffer, position);
 							break;
 						default:
-							if (effect > 0) {
-								status |= this.effectors[effect].invoke();
+							if (action > 0) {
+								effect |= this.effectors[action].invoke();
 							} else {
-								int index = -1 * effect;
-								for (effect = effectorVector[index]; effect != Transduction.RTE_EFFECTOR_NUL; effect = effectorVector[++index]) {
-									switch (effect) {
+								int index = -1 * action;
+								for (action = effectorVector[index]; action != Transduction.RTE_EFFECTOR_NUL; action = effectorVector[++index]) {
+									switch (action) {
 										case Transduction.RTE_EFFECTOR_NIL:
 											break;
 										case Transduction.RTE_EFFECTOR_PASTE:
@@ -327,7 +342,7 @@ public final class Transduction implements ITransduction {
 											break;
 										case Transduction.RTE_EFFECTOR_COUNT:
 											if (--transducerState.countdown[1] <= 0) {
-												status |= this.in(transducerState.countdown[0]);
+												effect |= this.in(transducerState.countdown[0]);
 												transducerState.countdown[1] = 0;
 											}
 											break;
@@ -336,45 +351,44 @@ public final class Transduction implements ITransduction {
 											limit = -1;
 											break;
 										case Transduction.RTE_EFFECTOR_RESET:
-											this.reset(inputBuffer, position);
-											limit = -1;
+											position = this.reset(inputBuffer, position);
 											break;
 										default:
-											status |= effect > 0 ? this.effectors[effect].invoke() : ((IParameterizedEffector<?, ?>) this.effectors[-effect]).invoke(effectorVector[++index]);
+											effect |= action > 0 ? this.effectors[action].invoke() : ((IParameterizedEffector<?, ?>) this.effectors[-action]).invoke(effectorVector[++index]);
 											break;
 									}
 								}
 							}
 					}
-					if (status != BaseEffector.RTE_TRANSDUCTION_RUN) {
-						final int breakOut = status & (BaseEffector.RTE_TRANSDUCTION_PAUSE | BaseEffector.RTE_TRANSDUCTION_START | BaseEffector.RTE_TRANSDUCTION_STOP | BaseEffector.RTE_TRANSDUCTION_SHIFT);
-						for (int mask = 1; mask < BaseEffector.RTE_TRANSDUCTION_PAUSE && status != BaseEffector.RTE_TRANSDUCTION_RUN; mask <<= 1) {
-							if ((mask & status) != 0) {
-								status &= ~mask;
-								switch (mask) {
-									case BaseEffector.RTE_TRANSDUCTION_START:
-										this.transducerStack.get(this.transducerStack.size() - 2).state = state;
-										break;
-									case BaseEffector.RTE_TRANSDUCTION_STOP:
-										if (this.transducerStack.isEmpty()) {
-											status |= BaseEffector.RTE_TRANSDUCTION_PAUSE;
-										}
-										break;
-									case BaseEffector.RTE_TRANSDUCTION_PUSH:
-										if (position <= limit) {
-											inputBuffer.position(position);
-										}
-										limit = -1;
-										break;
-									case BaseEffector.RTE_TRANSDUCTION_POP:
-										limit = -1;
-										break;
-									default:
-										break;
+					if (effect != BaseEffector.RTE_TRANSDUCTION_RUN) {
+						final int clutch = effect & (BaseEffector.RTE_TRANSDUCTION_START | BaseEffector.RTE_TRANSDUCTION_STOP | BaseEffector.RTE_TRANSDUCTION_SHIFT);
+						if (0 != (effect & (BaseEffector.RTE_TRANSDUCTION_START | BaseEffector.RTE_TRANSDUCTION_STOP | BaseEffector.RTE_TRANSDUCTION_PUSH | BaseEffector.RTE_TRANSDUCTION_POP))) {
+							for (int mask = 1; mask < BaseEffector.RTE_TRANSDUCTION_PAUSE; mask <<= 1) {
+								if ((mask & effect) != 0) {
+									switch (mask) {
+										case BaseEffector.RTE_TRANSDUCTION_START:
+											this.transducerStack.get(this.transducerStack.size() - 2).state = state;
+											break;
+										case BaseEffector.RTE_TRANSDUCTION_STOP:
+											break;
+										case BaseEffector.RTE_TRANSDUCTION_PUSH:
+											if (position <= limit) {
+												inputBuffer.position(limit);
+											}
+											limit = -1;
+											break;
+										case BaseEffector.RTE_TRANSDUCTION_POP:
+											limit = -1;
+											break;
+										default:
+											break;
+									}
 								}
-							}
+							} 
 						}
-						if (breakOut != 0) {
+						if (effect >= BaseEffector.RTE_TRANSDUCTION_PAUSE) {
+							break T;
+						} else if (clutch != BaseEffector.RTE_TRANSDUCTION_RUN) {
 							break;
 						}
 					}
@@ -388,8 +402,8 @@ public final class Transduction implements ITransduction {
 				inputBuffer.position(position);
 			}
 			this.updateSelectedNamedValue();
-			this.status = BaseEffector.RTE_TRANSDUCTION_PAUSE;
 		}
+		return this.status();
 	}
 
 	/*
@@ -398,10 +412,11 @@ public final class Transduction implements ITransduction {
 	 */
 	@Override
 	public int status() {
-		int status = this.inputStack != null && !this.inputStack.isEmpty() ? ITransduction.INPUT : 0;
-		status |= this.transducerStack != null && !this.transducerStack.isEmpty() ? ITransduction.TRANSDUCER : 0;
-		status |= this.status == BaseEffector.RTE_TRANSDUCTION_PAUSE ? ITransduction.PAUSED : 0;
-		return status;
+		if (this.transducerStack != null && !this.transducerStack.isEmpty()) {
+			return this.inputStack != null && !this.inputStack.isEmpty() ? ITransduction.RUNNABLE : ITransduction.PAUSED;
+		} else {
+			return ITransduction.END;
+		}
 	}
 
 	/*
@@ -497,20 +512,10 @@ public final class Transduction implements ITransduction {
 		return this.effectors;
 	}
 
-	private String getErrorInput(final char[] inputArray, final int position, final int limit) {
-		final StringBuilder sb = new StringBuilder();
-		if (position > 1) {
-			sb.append(inputArray, 0, position - 1);
-		}
-		sb.append(" ] '");
-		sb.append(inputArray[position - 1]);
-		sb.append("' (");
-		sb.append(Integer.toHexString(inputArray[position - 1]));
-		sb.append(") [ ");
-		if (position < limit) {
-			sb.append(inputArray, position, limit - position);
-		}
-		return sb.toString();
+	private String getErrorInput(final char[] inputArray, final int position, final int state) {
+		int start = (position < 16) ? 0 : position - 16;
+		String in = String.copyValueOf(inputArray, start, position - start);
+		return String.format("[state=%1$d; char=%2$d; pos=%3$d; <%4$s>]", state, (int)inputArray[position - 1], position, in);
 	}
 
 	private SignalInput[] getSignalInputs() throws InputException {
@@ -642,10 +647,10 @@ public final class Transduction implements ITransduction {
 		}
 	}
 
-	private void reset(final CharBuffer inputBuffer, final int position) throws EffectorException {
+	private int reset(final CharBuffer inputBuffer, final int position) throws EffectorException {
 		inputBuffer.position(position);
 		try {
-			this.inputStack.peek().reset();
+			return this.inputStack.peek().reset();
 		} catch (final MarkLimitExceededException e) {
 			throw new EffectorException("Unable to reset input", e);
 		} catch (final InputException e) {
@@ -677,32 +682,32 @@ public final class Transduction implements ITransduction {
 		}
 	}
 
-	int pushTransducer(final String transducerName) throws EffectorException {
+	int pushTransducer(final Integer transducerOrdinal) throws EffectorException {
 		try {
 			final TransducerState transducerState = this.transducerStack.next();
-			if (transducerState == null) {
-				this.transducerStack.push(new TransducerState(0, this.gearbox.loadTransducer(transducerName)));
+				if (transducerState == null) {
+				this.transducerStack.push(new TransducerState(0, this.gearbox.loadTransducer(transducerOrdinal)));
 			} else {
-				transducerState.reset(0, this.gearbox.loadTransducer(transducerName));
+				transducerState.reset(0, this.gearbox.loadTransducer(transducerOrdinal));
 			}
 			return BaseEffector.RTE_TRANSDUCTION_START;
 		} catch (final TransducerNotFoundException e) {
-			throw new EffectorException(String.format("The start effector failed to load %1$s", transducerName), e);
+			throw new EffectorException(String.format("The start effector failed to load %1$s", this.gearbox.getTransducerName(transducerOrdinal)), e);
 		} catch (final GearboxException e) {
-			throw new EffectorException(String.format("The start effector failed to load %1$s", transducerName), e);
+			throw new EffectorException(String.format("The start effector failed to load %1$s", this.gearbox.getTransducerName(transducerOrdinal)), e);
 		}
 	}
 
-	int shiftTransducer(final String transducerName) throws EffectorException {
+	int shiftTransducer(final int transducerOrdinal) throws EffectorException {
 		final TransducerState transducerState = this.transducerStack.peek();
 		try {
 			transducerState.state = 0;
-			transducerState.transducer = this.gearbox.loadTransducer(transducerName);
+			transducerState.transducer = this.gearbox.loadTransducer(transducerOrdinal);
 			return BaseEffector.RTE_TRANSDUCTION_SHIFT;
 		} catch (final TransducerNotFoundException e) {
-			throw new EffectorException(String.format("The shift effector failed to load %1$s", transducerName), e);
+			throw new EffectorException(String.format("The shift effector failed to load %1$s", this.gearbox.getTransducerName(transducerOrdinal)), e);
 		} catch (final GearboxException e) {
-			throw new EffectorException(String.format("The shift effector failed to load %1$s", transducerName), e);
+			throw new EffectorException(String.format("The shift effector failed to load %1$s", this.gearbox.getTransducerName(transducerOrdinal)), e);
 		}
 	}
 
@@ -710,10 +715,13 @@ public final class Transduction implements ITransduction {
 		try {
 			this.transducerStack.peek().reset(0, null);
 			final TransducerState popped = this.transducerStack.pop();
-			if (popped != null && popped.nameIndex != null) {
-				popped.restore(this.namedValue, this.valueLength);
+			if (popped != null) {
+				if (popped.nameIndex != null) {
+					popped.restore(this.namedValue, this.valueLength);
+				}
+				return BaseEffector.RTE_TRANSDUCTION_STOP;
 			}
-			return BaseEffector.RTE_TRANSDUCTION_STOP;
+			return BaseEffector.RTE_TRANSDUCTION_END;
 		} catch (final Exception e) {
 			throw new EffectorException("The stop effector failed", e);
 		}
@@ -1002,14 +1010,14 @@ public final class Transduction implements ITransduction {
 		}
 	}
 
-	private final static class StartEffector extends BaseParameterizedEffector<Transduction, String> {
+	private final static class StartEffector extends BaseParameterizedEffector<Transduction, Integer> {
 		private StartEffector(final Transduction transduction) {
 			super(transduction, "start");
 		}
 
 		@Override
 		public void newParameters(final int parameterCount) {
-			super.setParameters(new String[parameterCount]);
+			super.setParameters(new Integer[parameterCount]);
 		}
 
 		@Override
@@ -1022,15 +1030,18 @@ public final class Transduction implements ITransduction {
 			if (parameterList.length != 1) {
 				throw new TargetBindingException("The start effector accepts at most one parameter");
 			}
-			final String transducerName = super.getTarget().getGearbox().getTransducerReference(super.decodeParameter(parameterList[0]));
+			char[] parameter = super.decodeParameter(parameterList[0]);
+			String parameterString = new String(parameter);
 			if (parameterList[0][0] == Transduction.TYPE_REFERENCE_TRANSDUCER) {
-				if (transducerName != null) {
-					super.setParameter(parameterIndex, transducerName);
+				final String transducerName = super.getTarget().getGearbox().getTransducerReference(parameter);
+				final Integer transducerOrdinal = (null != transducerName) ? super.getTarget().getGearbox().getTransducerOrdinal(transducerName) : null;
+				if (transducerOrdinal != null) {
+					super.setParameter(parameterIndex, transducerOrdinal);
 				} else {
-					throw new TargetBindingException("Null transducer reference for start effector");
+					throw new TargetBindingException(String.format("Null transducer reference for start effector: %s", parameterString));
 				}
 			} else {
-				throw new TargetBindingException(String.format("Invalid transducer reference `%1$s` for start effector, requires type indicator ('%2$c') before the transducer name", transducerName, Transduction.TYPE_REFERENCE_TRANSDUCER));
+				throw new TargetBindingException(String.format("Invalid transducer reference `$s` for start effector, requires type indicator ('$c') before the transducer name", parameterString, Transduction.TYPE_REFERENCE_TRANSDUCER));
 			}
 		}
 
@@ -1040,14 +1051,14 @@ public final class Transduction implements ITransduction {
 		}
 	}
 
-	private final static class ShiftEffector extends BaseParameterizedEffector<Transduction, String> {
+	private final static class ShiftEffector extends BaseParameterizedEffector<Transduction, Integer> {
 		private ShiftEffector(final Transduction transduction) {
 			super(transduction, "shift");
 		}
 
 		@Override
 		public void newParameters(final int parameterCount) {
-			super.setParameters(new String[parameterCount]);
+			super.setParameters(new Integer[parameterCount]);
 		}
 
 		@Override
@@ -1060,15 +1071,18 @@ public final class Transduction implements ITransduction {
 			if (parameterList.length != 1) {
 				throw new TargetBindingException("The shift effector accepts at most one parameter");
 			}
-			final String transducerName = super.getTarget().getGearbox().getTransducerReference(super.decodeParameter(parameterList[0]));
+			char[] parameter = super.decodeParameter(parameterList[0]);
+			String parameterString = new String(parameter);
 			if (parameterList[0][0] == Transduction.TYPE_REFERENCE_TRANSDUCER) {
-				if (transducerName != null) {
-					super.setParameter(parameterIndex, transducerName);
+				final String transducerName = super.getTarget().getGearbox().getTransducerReference(parameter);
+				final Integer transducerOrdinal = (null != transducerName) ? super.getTarget().getGearbox().getTransducerOrdinal(transducerName) : null;
+				if (transducerOrdinal != null) {
+					super.setParameter(parameterIndex, transducerOrdinal);
 				} else {
-					throw new TargetBindingException("Null transducer reference for shift effector");
+					throw new TargetBindingException(String.format("Null transducer reference for shift effector: %s", parameterString));
 				}
 			} else {
-				throw new TargetBindingException(String.format("Invalid transducer reference `%1$s` for shift effector, requires type indicator ('%2$c') before the transducer name", transducerName, Transduction.TYPE_REFERENCE_TRANSDUCER));
+				throw new TargetBindingException(String.format("Invalid transducer reference `$s` for shift effector, requires type indicator ('$c') before the transducer name", parameterString, Transduction.TYPE_REFERENCE_TRANSDUCER));
 			}
 		}
 

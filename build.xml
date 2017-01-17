@@ -92,11 +92,11 @@
 			</fileset>
 		</concat>
 		<fixcrlf file="${build.patterns.automata}/_all.inr" eol="lf" />
-		<exec failonerror="true" dir="${build.patterns.automata}" executable="ginr" input="${build.patterns.automata}/_all.inr" outputproperty="ginr.output"/>
+		<exec failonerror="false" dir="${build.patterns.automata}" executable="ginr" input="${build.patterns.automata}/_all.inr" outputproperty="ginr.output"/>
 		<echo message="${ginr.output}" />
 		<condition property="ginr.fail">
 			<or>
-				<matches string="${ginr.output}" pattern="^\*\*\*" multiline="true" />
+				<matches string="${ginr.output}" pattern="^[ ]*\*\*\*" multiline="true" />
 				<matches string="${ginr.output}" pattern="^Error detected at state [0-9]*:" multiline="true" />
 				<matches string="${ginr.output}" pattern="^Reserved character:" multiline="true" />
 				<matches string="${ginr.output}" pattern="^Warning:" multiline="true" />
@@ -113,13 +113,13 @@
 		<jar basedir="${build.java.classes}" destfile="${build.java}/${ant.project.name}-${jrte.version.revision}.jar" />
 	</target>
 
-	<target name="package-patterns" depends="compile-patterns,package-java">
+	<target name="package-patterns" depends="compile-patterns,package-java" unless="ginr.fail" >
 		<java fork="true" dir ="." classname="com.characterforming.jrte.compile.GearboxCompiler" classpathref="jrte.classpath" failonerror="true">
-			<arg line="--target com.characterforming.jrte.base.BaseTarget ${build.patterns.automata} ${build.patterns}/Jrte.gears" />
+			<arg line="--maxchar 128 --target com.characterforming.jrte.base.BaseTarget ${build.patterns.automata} ${build.patterns}/Jrte.gears" />
 		</java>
 	</target>
 
-	<target name="package-test" depends="compile-test,package-patterns">
+	<target name="package-test" depends="compile-test,package-java,package-patterns" unless="ginr.fail" >
 		<jar basedir="${build.java.test}" destfile="${build.java}/${ant.project.name}-${jrte.version.revision}-test.jar" />
 	</target>
 
@@ -154,7 +154,7 @@
 		<jar basedir="doc" destfile="${build.java}/${ant.project.name}-${jrte.version.revision}-javadoc.jar" />
 	</target>
 
-	<target name="tar-source" depends="package-patterns,package-test">
+	<target name="tar-source" depends="package-patterns,package-test" unless="ginr.fail" >
 		<tar destfile="${jrte.source.tz}" compression="gzip">
 			<fileset dir=".">
 				<include name="**/*" />
@@ -166,7 +166,7 @@
 		</tar>
 	</target>
 
-	<target name="tar-deploy" depends="package-patterns,package-test,javadoc">
+	<target name="tar-deploy" depends="package-patterns,package-test,javadoc" unless="ginr.fail" >
 		<tar destfile="${jrte.deploy.tz}" compression="gzip">
 			<fileset dir="etc/sh">
 				<include name="*.sh" />
@@ -192,11 +192,11 @@
 
 	<target name="all" depends="package-patterns" description="Incremental build for java and patterns" />
 
-	<target name="all-clean" depends="clean,package-patterns,package-source,javadoc" description="Full build for java and patterns" />
+	<target name="all-clean" depends="clean,package-test,package-patterns,package-source,javadoc" description="Full build for java and patterns" />
 
 	<target name="all-deploy" depends="clean-deploy,tar-source,tar-deploy" description="Full build and deployment for java and patterns" />
 
-	<target name="all-archive" depends="all-deploy,tar-project" if="archive">
+	<target name="all-archive" depends="all-deploy,tar-project" if="archive" unless="ginr.fail" >
 		<delete quiet="true" file="${archive}/jrte-svn-${DSTAMP}.dump" />
 		<exec failonerror="true" executable="svnadmin" output="${archive}/jrte-svn-${DSTAMP}.dump">
 			<arg line="dump /home/kb/Development/svn/repo/jrte/" />

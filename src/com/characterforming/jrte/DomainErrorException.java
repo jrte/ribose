@@ -4,7 +4,8 @@
 package com.characterforming.jrte;
 
 /**
- * Thrown by the runtime engine when not transition defined for current input ordinal
+ * Thrown by the runtime engine when no transition is defined for nul signal injected 
+ * after receiving an input ordinal not recognized for current state. 
  * 
  * @author kb
  */

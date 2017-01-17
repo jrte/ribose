@@ -22,18 +22,19 @@ public class RegexGroupTest {
 			achars[i] = 'b';
 		}
 		int count = 0;
-		for (int i = 0; i < 10; i++) {
+		long t0 = 0, t1 = 0;
+		for (int i = 0; i < 20; i++) {
 			Matcher matcher = regex.matcher(CharBuffer.wrap(achars));
-			long t0 = System.currentTimeMillis();
+			t0 = System.currentTimeMillis();
 			while (matcher.find()) {
 				if (matcher.group().length() > 0) {
 					count++;
 				}
 			}
-			long t1 = System.currentTimeMillis() - t0;
+			t1 = System.currentTimeMillis() - t0;
 			System.out.print(String.format("%1$6d", t1));
 		}
-		System.out.println(String.format(" : %1$10d", count));
+		System.out.println(t1 > 0 ? String.format(" : %1$6d bytes/s (%d)", (long)10000000*2000 / t1, count) : "");
 	}
 
 }

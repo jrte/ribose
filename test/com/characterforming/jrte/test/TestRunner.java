@@ -10,6 +10,7 @@ import com.characterforming.jrte.IInput;
 import com.characterforming.jrte.ITransduction;
 import com.characterforming.jrte.Jrte;
 import com.characterforming.jrte.RteException;
+import com.characterforming.jrte.base.BaseEffector;
 import com.characterforming.jrte.base.BaseTarget;
 import com.characterforming.jrte.engine.input.SignalInput;
 
@@ -30,10 +31,10 @@ public class TestRunner {
 		Thread.sleep(arg);
 		if (arg == 1) {
 			final RegexTest regex = new RegexTest();
-			System.out.print("RegexTest       : ");
+			System.out.printf("%16s: ", "RegexTest");
 			regex.testRun();
 			final RegexGroupTest regexGroup = new RegexGroupTest();
-			System.out.print("RegexGroupTest  : ");
+			System.out.printf("%16s: ", "RegexGroupTest");
 			regexGroup.testRun();
 		}
 		final char[] achars = new char[10000000];
@@ -43,54 +44,29 @@ public class TestRunner {
 		}
 		final Jrte jrte = new Jrte(new File(gearboxPath), "com.characterforming.jrte.base.BaseTarget");
 		final ITransduction t = jrte.transduction(new BaseTarget());
-		final SignalInput input = (SignalInput) jrte.input(new char[][] {
-				achars
-		});
-		final SignalInput nilinput = (SignalInput) jrte.input(new char[][] {
-				new char[] { '!', 'n', 'i', 'l' }, achars
-		});
+		final SignalInput input = (SignalInput) jrte.input(new char[][] {achars});
+		final SignalInput nilinput = (SignalInput) jrte.input(new char[][] {new String("!nil").toCharArray(), achars});
 		SignalInput[] inputs = new SignalInput[] {
-				input, input, input, nilinput, nilinput, nilinput, nilinput
+			nilinput, input, input, input, input, input, nilinput, nilinput, nilinput
 		};
 		String[] tests = new String[] {
-				"NilSpeedTest", "PasteSpeedTest", "PasteCutTest", "SelectPasteTest", "CounterTest", "PasteCountTest", "StackTest"
+				"StackTest", "NilSpeedTest", "PasteSpeedTest", "NilPauseTest", "PastePauseTest", "PasteCutTest", "SelectPasteTest", "CounterTest", "PasteCountTest"
 		};
 		int n = 0;
 		for (final String test : tests) {
-			long ts = 0;
-			System.out.format("%1$-16s: ", test);
-			for (int i = 0; i < 10; i++) {
-				final long t0 = System.currentTimeMillis();
+			long t1 = 0, t2 = 0;
+			System.out.format("%16s: ", test);
+			for (int i = 0; i < 20; i++) {
 				t.start(test);
 				t.input(new IInput[] { inputs[n].rewind() });
-				final long t1 = System.currentTimeMillis();
-				t.run();
-				final long t2 = System.currentTimeMillis() - t1;
-				System.out.print(String.format("%1$6d", t2));
-				ts += (t1 - t0);
-			}
-			System.out.println(String.format(" : %1$6d", ts));
-			n++;
-		}
-		n = 0;
-		inputs = new SignalInput[] { input, input };
-		tests = new String[] { "NilPauseTest", "PastePauseTest" };
-		for (final String test : tests) {
-			long ts = 0;
-			System.out.format("%1$-16s: ", test);
-			for (int i = 0; i < 10; i++) {
-				final long t0 = System.currentTimeMillis();
-				t.start(test);
-				t.input(new IInput[] { inputs[n].rewind() });
-				final long t1 = System.currentTimeMillis();
+				t1 = System.currentTimeMillis();
 				while (t.status() == ITransduction.RUNNABLE) {
 					t.run();
 				}
-				final long t2 = System.currentTimeMillis() - t1;
-				System.out.print(String.format("%1$6d", t2));
-				ts += (t1 - t0);
+				t2 = System.currentTimeMillis() - t1;
+				System.out.print(String.format("%6d", t2));
 			}
-			System.out.println(String.format(" : %1$6d", ts));
+			System.out.println(t2 > 0 ? String.format(" : %,12d bytes/s", (long)10000000*2000 / t2) : "");
 			n++;
 		}
 	}

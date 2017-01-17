@@ -1,7 +1,7 @@
 /**
  * Main package provides the transduction factory class Jrte and the interfaces that 
  * define the application integration points.
- * <p>
+ * &gt;p>
  * Client applications use the {@link com.characterforming.jrte.Jrte#Jrte(File, String)} 
  * constructor to load a Gearbox compiled from ginr automata. The Gearbox instantiates 
  * a proxy instance of an {@link com.characterforming.jrte.ITarget} implementation 
@@ -31,10 +31,11 @@
  * For example, it is sometimes useful to provide an initial nil signal to a 
  * transduction to provide a starting transition that sets up the transduction:
  * <pre class="code">
+ * 
  * Jrte jrte = new Jrte(new File(".\jrte.gears", "com.characterforming.jrte.base.BaseTarget");
  * IInput[] inputs = new IInput[] {
- *    jrte.input(new InputStreamReader(System.in)),
- *    jrte.input(new char[][] { { 'n','i','l' } })
+ *    jrte.input(new char[][] { new String("!nil").toCharArray() }),
+ *    jrte.input(new InputStreamReader(System.in))
  * };
  * </pre>
  * In the code example above, the Jrte BaseTarget class is selected as the target. 
@@ -46,6 +47,7 @@
  * <p>
  * To continue the example above:
  * <pre class="code">
+ * 
  * ITarget target = new BaseTarget();
  * ITransduction transduction = jrte.bind(target);
  * transduction.start("HelloWorld");
@@ -61,6 +63,7 @@
  * parameterised effectors. It is compiled from a regular expression by ginr and 
  * saved to a .dfa file for input to the Jrte gearbox compiler.
  * <pre class="code">
+ * 
  * HelloWorld = (
  *    (nil, clear paste[`(-: `]) ('hello world' @@ PasteAny) (eos, paste[` :-)`] out outln clear)
  * );
@@ -71,6 +74,7 @@
  * the BaseTarget paste effector for any input. It is defined in a prologue that is 
  * compiled before HelloWorld.
  * <pre class="code">
+ * 
  * space = ' ';
  * nl = '\x0a';
  * cr = '\x0d';
@@ -85,15 +89,83 @@
  *
  * PasteAny = (any, paste)*;
  * </pre>
+ * 
  * Note that the PasteAny transducer is not saved to a .dfa file -- it is compiled directly 
  * into the HelloWorld automaton. When it is applied to a specific input pattern using ginr's 
  * join operator (@@) its domain is restricted to the input pattern, so the application in 
  * HelloWorld is equivalent to:
  * <pre class="code">
+ * 
  * (h,paste)(e,paste)(l,paste)...(r,paste)(l,paste)(d,paste)
  * </pre>
- * Please refer to the ginr documentation at the <a href="http://code.google.com/p/ginr/downloads/list">ginr</a>
+ * A synopsis of the operators provided by ginr follows. Please refer to the ginr documentation at the <a href="https://code.google.com/archive/p/ginr/downloads">ginr</a>
  * downloads page for full ginr documentation.
+ * <pre class="code">
+ * 
+ * II  N     N  RRRRRR    I N R     Version 2.0.2 (Mar 25, 1988)
+ * II  N N   N  R    RR             Copyright (C) 1988 J Howard Johnson
+ * II  N  N  N  RRRRRR    modified  August 3, 2010
+ * II  N   N N  R    R
+ * II  N    NN  R     R                              (For help type   `:help;')
+ * This program comes with ABSOLUTELY NO WARRANTY; for details type `:help w;'.
+ * This is free software, and you are welcome to redistribute it under certain
+ * conditions; type `:help c;' for details.
+ * 
+ * 
+ * Operations by priority (highest to lowest):
+ * 
+ * +   *   ?               postfix operators for 1 or more, 0 or more, 0 or 1
+ * &lt;concatenation&gt;         no explicit operator
+ * \   /                   left factor, right factor
+ * &   -                   intersection, set difference
+ * |   !   ||  !!          union, exclusive or, elseor, shuffle
+ * $                       project
+ * &#64;   &#64;&#64;                  composition, join
+ * &lt;all colon operators&gt;   see :help colonops; for details
+ * ,                       Cartesian product within (), union within {}
+ * 
+ * All operators associate from left to right.
+ * Parentheses may be used to indicate a specific order of evaluation.
+ * {,,,} is a set constructor.
+ * (,,,) is a tuple construtor.
+ * [   ] is the tape-shifting operator
+ * '   ' is a string of single letter tokens.
+ * `   ` is a token containing arbitrary symbols.
+ * ^     indicates the empty word (or an explicit concatenation operator).
+ * 
+ * 
+ * Colon operations (postfix operators at lowest priority)
+ * 
+ * Transformation Operators               Displaying Operators
+ * :acomp      Active complement          :card       Print cardinality
+ * :alph       Active alphabet            :enum       Enumerate language
+ * :clsseq     Subsequential closure      :length     Display min word length
+ * :comp       Complement w.r.t. SIGMA*   :pr         Display automaton
+ * :lenmin     Words of min length        :prsseq     Subsequential display
+ * :pref       Set of prefixes            :report     Display report line
+ * :rev        Reverse                    :stems #    Print tape # stems
+ * :sseq       Subsequential transducer
+ * :LMsseq     LM Subsequential transducer
+ * :GMsseq     GM Subsequential transducer
+ * :suff       Set of suffixes            Coercing operators
+ * :&lt;number&gt;   Concatenation power        :update :nfa :trim :lameq
+ * :(&lt;number&gt;) Composition power          :lamcm :closed :dfa :dfamin
+ * 
+ * :enum may take an optional argument to specify the quantity of output.
+ * 
+ * 
+ * IO operations
+ * 
+ * :pr &lt;filename&gt;        Postfix operator to display automaton into a file
+ * :save &lt;filename&gt;      Postfix operator to save automaton in compressed form
+ * :load &lt;filename&gt;      Operator without left argument to get value from a file
+ * :readwords &lt;filename&gt; Operator with no argument to load a word file
+ * 
+ * :get &lt;variable&gt;       Operator with no arguments to get value from a variable
+ * 
+ * &lt;var&gt; = :load;        Short for &lt;var&gt; = :load &lt;var&gt;;
+ * :save &lt;var&gt;;          Short for &lt;var&gt; :save &lt;var&gt;;
+ * </code>
  */
 package com.characterforming.jrte;
 

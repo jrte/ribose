@@ -56,6 +56,12 @@ public abstract class BaseInput implements IInput {
 	 * @throws InputException
 	 */
 	protected abstract CharBuffer next(CharBuffer empty) throws InputException;
+	
+	private void next() throws InputException {
+		this.position = 0;
+		this.buffer[0] = this.next(this.empty());
+		this.state = this.buffer[0] != null ? BaseInput.NORMAL : BaseInput.EOF;
+	}
 
 	/*
 	 * (non-Javadoc)
@@ -66,9 +72,7 @@ public abstract class BaseInput implements IInput {
 		switch (this.state) {
 			case BaseInput.EMPTY:
 			case BaseInput.NORMAL:
-				this.position = 0;
-				this.buffer[this.position] = this.next(this.empty());
-				this.state = this.buffer[this.position] != null ? BaseInput.NORMAL : BaseInput.EOF;
+				this.next();
 				break;
 			case BaseInput.MARKED:
 				if (!this.buffer[this.position].hasRemaining()) {
@@ -84,9 +88,7 @@ public abstract class BaseInput implements IInput {
 							this.limit = this.position = -1;
 						}
 					} else {
-						this.position = 0;
-						this.buffer[this.position] = this.next(this.empty());
-						this.state = this.buffer[this.position] != null ? BaseInput.NORMAL : BaseInput.EOF;
+						this.next();
 						this.overflow = true;
 					}
 				}
@@ -98,9 +100,7 @@ public abstract class BaseInput implements IInput {
 					} while (this.position < this.limit && !this.buffer[this.position].reset().hasRemaining());
 					if (this.position >= this.limit) {
 						this.limit = -1;
-						this.position = 0;
-						this.buffer[this.position] = this.next(this.empty());
-						this.state = this.buffer[this.position] != null ? BaseInput.NORMAL : BaseInput.EOF;
+						this.next();
 					}
 				}
 				break;
@@ -139,7 +139,7 @@ public abstract class BaseInput implements IInput {
 			}
 			this.position = 0;
 			this.limit = -1;
-			this.buffer[this.position].mark();
+			this.buffer[0].mark();
 			this.overflow = false;
 		} else if (this.state != BaseInput.EOF) {
 			throw new InputException(String.format("Invalid state %1$s for mark()", BaseInput.STATES[this.state]));
@@ -151,12 +151,13 @@ public abstract class BaseInput implements IInput {
 	 * @see com.characterforming.jrte.IInput#reset()
 	 */
 	@Override
-	public void reset() throws InputException, MarkLimitExceededException {
+	public int reset() throws InputException, MarkLimitExceededException {
 		if (this.state == BaseInput.MARKED) {
 			this.state = BaseInput.RESET;
 			this.limit = this.position + 1;
 			this.position = 0;
-			this.buffer[this.position].reset();
+			this.buffer[0].reset();
+			return this.buffer[0].position();
 		} else if (this.overflow) {
 			this.overflow = false;
 			throw new MarkLimitExceededException("Input marked list overflowed since last limit()");

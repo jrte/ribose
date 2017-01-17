@@ -103,7 +103,6 @@ public class TargetCompiler {
 	}
 
 	int[] save(final Gearbox gearbox, final IEffector<?>[] effectors) throws GearboxException {
-		gearbox.getOffsetNameMap().put(this.getTarget().getName(), gearbox.seek(-1));
 		gearbox.putString(this.getTarget().getName());
 		final String[] effectorNames = this.enumerateEffectorNames();
 		gearbox.putStringArray(effectorNames);

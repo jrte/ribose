@@ -1,2 +1,3 @@
-PastePauseTest = ((a, paste)* (b, clear pause))* (`eos`, stop);
+PastePauseTest = ((a, paste)* (b, clear pause))* (eos, stop);
 PastePauseTest :save `PastePauseTest.dfa`;
+PastePauseTest :pr `PastePauseTest.pr`;

@@ -58,14 +58,15 @@ public final class Jrte {
 	}
 
 	/**
-	 * Bind an unbound target instance to a new transduction. Use the {@link ITransduction#start(String)} and {@link ITransduction#run()} methods to set up and run the transduction.
+	 * Bind an unbound target instance to a new transduction. Use the {@link ITransduction#start(String)}
+	 * and {@link ITransduction#run()} methods to set up and run the transduction.
 	 * 
 	 * @param target The ITarget instance to bind to the transduction
 	 * @return The bound Transduction instance
 	 * @throws TargetBindingException If the target effectors cannot be bound
 	 * @throws TargetNotFoundException If the target class is not known to the gearbox
 	 * @throws GearboxException If the gearbox is invalid or corrupt
-	 * @throws RteException If the specified target is already bound to a transduction
+	 * @throws TargetNotFoundException If the specified target class does not match gearbox target class
 	 */
 	public ITransduction transduction(final ITarget target) throws TargetBindingException, TargetNotFoundException, GearboxException, RteException {
 		if (target.getClass().equals(this.gearbox.getTarget().getClass())) {

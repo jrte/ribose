@@ -10,7 +10,7 @@ import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.IllegalCharsetNameException;
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -34,13 +34,15 @@ public final class Gearbox {
 	private final File gearboxPath;
 	private final ITarget target;
 	private final RandomAccessFile in;
+	private final HashMap<String, Integer> transducerOrdinalMap;
 	private final HashMap<String, Integer> signalOrdinalMap;
-	private final HashMap<String, Transducer> transducerNameMap;
-	private final HashMap<String, Long> offsetNameMap;
 	private final int signalBase;
 	private final Charset charset;
 	private final String ioMode;
 
+	private String transducerNameIndex[];
+	private Transducer transducerObjectIndex[];
+	private long transducerOffsetIndex[];
 	private Map<String, Integer> effectorOrdinalMap;
 	private byte[][][][] effectorParameterIndex;
 
@@ -74,8 +76,10 @@ public final class Gearbox {
 				final Integer ordinal = this.signalBase + this.signalOrdinalMap.size();
 				this.signalOrdinalMap.put(signal, ordinal);
 			}
-			this.transducerNameMap = new HashMap<String, Transducer>(100);
-			this.offsetNameMap = new HashMap<String, Long>(100);
+			this.transducerOrdinalMap = new HashMap<String, Integer>(256);
+			this.transducerNameIndex = new String[256];
+			this.transducerObjectIndex = new Transducer[256];
+			this.transducerOffsetIndex = new long[256];
 			abort = false;
 		} finally {
 			if (abort && this.in != null) {
@@ -133,11 +137,20 @@ public final class Gearbox {
 			try {
 				this.in.seek(indexPosition);
 				final int indexSize = this.getInt();
-				this.offsetNameMap = new HashMap<String, Long>(indexSize);
-				this.transducerNameMap = new HashMap<String, Transducer>(indexSize);
-				for (int i = 0; i < indexSize; i++) {
-					this.offsetNameMap.put(this.getString(), this.getLong());
+				this.transducerOrdinalMap = new HashMap<String, Integer>(indexSize);
+				this.transducerNameIndex = new String[indexSize];
+				this.transducerObjectIndex = new Transducer[indexSize];
+				this.transducerOffsetIndex = new long[indexSize];
+				
+				for (int transducerOrdinal = 0; transducerOrdinal < indexSize; transducerOrdinal++) {
+					String name = this.getString();
+					long offset = this.getLong();
+					this.transducerOrdinalMap.put(name, transducerOrdinal);
+					this.transducerNameIndex[transducerOrdinal] = name;
+					this.transducerOffsetIndex[transducerOrdinal] = offset;
+					this.transducerObjectIndex[transducerOrdinal] = null;
 				}
+
 				final int signalsSize = this.getInt();
 				this.signalOrdinalMap = new HashMap<String, Integer>(signalsSize);
 				for (int i = 0; i < signalsSize; i++) {
@@ -149,10 +162,10 @@ public final class Gearbox {
 				throw new GearboxException(String.format("Gearbox caught an IOException attempting to seek to file position %1$d in gearbox file '%2$s'",
 						indexPosition, this.gearboxPath.getPath()), e);
 			}
-			if (!this.offsetNameMap.containsKey(this.target.getName())) {
+			if (!this.transducerOrdinalMap.containsKey(this.target.getName())) {
 				throw new GearboxException(String.format("Target name '%1$s' not found in name offset map for gearbox file '%2$s'", this.target.getName(), this.gearboxPath.getPath()));
 			}
-			indexPosition = this.offsetNameMap.get(this.target.getName());
+			indexPosition = this.transducerOffsetIndex[this.transducerOrdinalMap.get(this.target.getName())];
 			try {
 				this.in.seek(indexPosition);
 				final String targetName = this.getString();
@@ -191,12 +204,11 @@ public final class Gearbox {
 				if (commit && this.ioMode.equals("rw")) {
 					commit = false;
 					final long indexPosition = this.in.length();
-					final ArrayList<String> objectNames = new ArrayList<String>(this.offsetNameMap.keySet());
-					Collections.sort(objectNames);
-					this.putInt(objectNames.size());
-					for (final String objectName : objectNames) {
-						this.putString(objectName);
-						this.putLong(this.offsetNameMap.get(objectName));
+					this.putInt(this.transducerOrdinalMap.size());
+					int targetNameIndex = this.transducerOrdinalMap.size() - 1;
+					for (int transducerNameIndex = 0; transducerNameIndex <= targetNameIndex; transducerNameIndex++) {
+						this.putString(this.transducerNameIndex[transducerNameIndex]);
+						this.putLong(this.transducerOffsetIndex[transducerNameIndex]);
 					}
 					this.putInt(this.signalOrdinalMap.size());
 					for (final String signal : this.signalOrdinalMap.keySet()) {
@@ -221,7 +233,7 @@ public final class Gearbox {
 			Gearbox.logger.warning(String.format("Unable to delete invalid gearbox file %1$s", this.gearboxPath.getPath()));
 		}
 	}
-
+	
 	public Map<String, Integer> getEffectorOrdinalMap() {
 		return Collections.unmodifiableMap(this.effectorOrdinalMap);
 	}
@@ -291,8 +303,9 @@ public final class Gearbox {
 
 	public char[] getSignalReference(final char[] chars) {
 		if (chars != null && chars.length > 1 && chars[0] == Transduction.TYPE_REFERENCE_SIGNAL) {
-			final Integer signal = this.signalOrdinalMap.get(new String(chars, 1, chars.length - 1));
-			return signal != null ? new char[] { (char) signal.intValue() } : null;
+			String name = new String(chars, 1, chars.length - 1);
+			Integer signal = this.putSignalOrdinal(name);
+			return new char[] { (char) signal.intValue() };
 		}
 		return null;
 	}
@@ -308,32 +321,60 @@ public final class Gearbox {
 		return this.target;
 	}
 
-	public HashMap<String, Long> getOffsetNameMap() {
-		return this.offsetNameMap;
+	public int addTransducer(String transducerName, long offset) {
+		Integer ordinal = transducerOrdinalMap.size();
+		if (null == this.transducerOrdinalMap.put(transducerName, ordinal)) {
+			if (ordinal >= this.transducerNameIndex.length) {
+				int length = ordinal + (ordinal << 1);
+				this.transducerNameIndex = Arrays.copyOf(this.transducerNameIndex, length);
+				this.transducerOffsetIndex = Arrays.copyOf(this.transducerOffsetIndex, length);
+				this.transducerObjectIndex = Arrays.copyOf(this.transducerObjectIndex, length);
+			}
+			this.transducerNameIndex[ordinal] = transducerName;
+			this.transducerOffsetIndex[ordinal] = Long.valueOf(offset);
+			this.transducerObjectIndex[ordinal] = null;
+		}
+		return ordinal.intValue();
+	}
+	
+	public int getTransducerOrdinal(String transducerName) {
+		Integer ordinal = this.transducerOrdinalMap.get(transducerName);
+		return (null != ordinal) ? ordinal.intValue() : -1;
+	}
+	
+	public String getTransducerName(int transducerOrdinal) {
+		return (transducerOrdinal < this.transducerOrdinalMap.size()) ? this.transducerNameIndex[transducerOrdinal] : null;
 	}
 
-	public Transducer loadTransducer(final String transducerName) throws TransducerNotFoundException, GearboxException {
-		try {
+	public long getTransducerOffset(int transducerOrdinal) {
+		return (transducerOrdinal < this.transducerOrdinalMap.size()) ? this.transducerOffsetIndex[transducerOrdinal] : null;
+	}
+
+	public Transducer getTransducer(int transducerOrdinal) {
+		return (transducerOrdinal < this.transducerOrdinalMap.size()) ? this.transducerObjectIndex[transducerOrdinal] : null;
+	}
+
+	public Transducer loadTransducer(final Integer transducerOrdinal) throws TransducerNotFoundException, GearboxException {
+		if (transducerOrdinal < this.transducerOrdinalMap.size()) {
 			synchronized (this) {
-				Transducer transducer = this.transducerNameMap.get(transducerName);
-				if (transducer == null) {
-					if (this.offsetNameMap.containsKey(transducerName)) {
-						this.in.seek(this.offsetNameMap.get(transducerName));
+				if (this.transducerObjectIndex[transducerOrdinal] == null) {
+					try {
+						this.in.seek(transducerOffsetIndex[transducerOrdinal]);
 						final String name = this.getString();
 						final String targetName = this.getString();
 						final int[] inputFilter = this.getIntArray();
 						final int[][] transitionMatrix = this.getTransitionMatrix();
 						final int[] effectorVector = this.getIntArray();
-						transducer = new Transducer(name, targetName, inputFilter, transitionMatrix, effectorVector);
-						this.transducerNameMap.put(transducerName, transducer);
-					} else {
-						throw new TransducerNotFoundException(transducerName);
-					}
+						this.transducerObjectIndex[transducerOrdinal] = new Transducer(name, targetName, inputFilter, transitionMatrix, effectorVector);
+					} catch (final IOException e) {
+						throw new GearboxException(
+								String.format("Gearbox.loadTransducer(%d) caught an IOException after seek to %d", transducerOrdinal, transducerOffsetIndex[transducerOrdinal]), e);
+					} 
 				}
-				return transducer;
+				return this.transducerObjectIndex[transducerOrdinal];
 			}
-		} catch (final IOException e) {
-			throw new GearboxException(String.format("Gearbox.loadTransducer caught an IOException loading %1$s", transducerName), e);
+		} else {
+			return null;
 		}
 	}
 
