@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2011, Kim T Briggs, Hampton, NB.
+ * Copyright (c) 2011,2017, Kim T Briggs, Hampton, NB.
  */
 package com.characterforming.jrte.engine.input;
 
@@ -28,7 +28,7 @@ public final class ReaderInput extends BaseInput {
 	public ReaderInput(final Reader input) throws InputException {
 		super(4, 4096);
 		this.reader = input;
-		this.eof = this.reader != null;
+		this.eof = this.reader == null;
 	}
 
 	/*

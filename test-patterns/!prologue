@@ -39,7 +39,7 @@ notnl = any - nl;
 # Restrict PasteAny to any pattern P (T = P @@ PasteAny); T will paste P-matching input into current selection
 PasteAny = (any, paste)*;
 
-# Extend any transducer T to accept nul in any state using (AnyOrNul @@ T) ((nil, out[..] end) | (nul notnl* nl, end))
+# Extend any transducer T to accept nul in any state using (N = AnyOrNul @@ T)
 AnyOrNul = {
 	(nul|'\x00','\x00'), (nul|'\x01','\x01'), (nul|'\x02','\x02'), (nul|'\x03','\x03'), 
 	(nul|'\x04','\x04'), (nul|'\x05','\x05'), (nul|'\x06','\x06'), (nul|'\x07','\x07'),
@@ -66,7 +66,7 @@ AnyOrNul = {
 	(nul|'T','T'), (nul|'U','U'), (nul|'V','V'), (nul|'W','W'),
 	(nul|'X','X'), (nul|'Y','Y'), (nul|'Z','Z'), (nul|'!','!'),
 	(nul|'"','"'), (nul|'#','#'), (nul|'$','$'), (nul|'%','%'),
-	(nul|'&','&'), ({nul,'\''},'\''), (nul|'(','('), (nul|')',')'),
+	(nul|'&','&'), ((nul|'\''),'\''), (nul|'(','('), (nul|')',')'),
 	(nul|'*','*'), (nul|'+','+'), (nul|',',','), (nul|'-','-'),
 	(nul|'.','.'), (nul|'/','/'), (nul|':',':'), (nul|';',';'),
 	(nul|'<','<'), (nul|'=','='), (nul|'>','>'), (nul|'?','?'),
@@ -75,8 +75,47 @@ AnyOrNul = {
 	(nul|'|','|'), (nul|'}','}'), (nul|'~','~'), (nul|'\x7f','\x7f')
 };
 
-# Restrict AnyOrNul to exclude nul extension for nl, eg (AnyButNlOrNul @@ T) ((nl, out[..] end) | (nul notnl* nl, end))
-AnyButNlOrNul = AnyOrNul @@ (any - nl);
+# Restrict AnyOrNul to exclude nul extension for nl, eg (NotNlOrNul @@ T) ((nl, out[..] end) | (nul notnl* nl, end))
+NotNlOrNul = AnyOrNul @@ notnl;
+
+# This is death to Perl. Extend any transducer T to accept x? for x in any state using (N = AnyOrNil @@ T)
+AnyOrNil = {
+	('\x00'?,'\x00'), ('\x01'?,'\x01'), ('\x02'?,'\x02'), ('\x03'?,'\x03'), 
+	('\x04'?,'\x04'), ('\x05'?,'\x05'), ('\x06'?,'\x06'), ('\x07'?,'\x07'),
+	('\x08'?,'\x08'), ('\x09'?,'\x09'), ('\x0a'?,'\x0a'), ('\x0b'?,'\x0b'),
+	('\x0c'?,'\x0c'), ('\x0d'?,'\x0d'), ('\x0e'?,'\x0e'), ('\x0f'?,'\x0f'),
+	('\x10'?,'\x10'), ('\x11'?,'\x11'), ('\x12'?,'\x12'), ('\x13'?,'\x13'),
+	('\x14'?,'\x14'), ('\x15'?,'\x15'), ('\x16'?,'\x16'), ('\x17'?,'\x17'),
+	('\x18'?,'\x18'), ('\x19'?,'\x19'), ('\x1a'?,'\x1a'), ('\x1b'?,'\x1b'),
+	('\x1c'?,'\x1c'), ('\x1d'?,'\x1d'), ('\x1e'?,'\x1e'), ('\x1f'?,'\x1f'),
+	(' '?,' '), ('0'?,'0'), ('1'?,'1'), ('2'?,'2'),
+	('3'?,'3'), ('4'?,'4'), ('5'?,'5'), ('6'?,'6'),
+	('7'?,'7'), ('8'?,'8'), ('9'?,'9'), ('a'?,'a'),
+	('b'?,'b'), ('c'?,'c'), ('d'?,'d'), ('e'?,'e'),
+	('f'?,'f'), ('g'?,'g'), ('h'?,'h'), ('i'?,'i'),
+	('j'?,'j'), ('k'?,'k'), ('l'?,'l'), ('m'?,'m'),
+	('n'?,'n'), ('o'?,'o'), ('p'?,'p'), ('q'?,'q'),
+	('r'?,'r'), ('s'?,'s'), ('t'?,'t'), ('u'?,'u'),
+	('v'?,'v'), ('w'?,'w'), ('x'?,'x'), ('y'?,'y'),
+	('z'?,'z'), ('A'?,'A'), ('B'?,'B'), ('C'?,'C'),
+	('D'?,'D'), ('E'?,'E'), ('F'?,'F'), ('G'?,'G'),
+	('H'?,'H'), ('I'?,'I'), ('J'?,'J'), ('K'?,'K'),
+	('L'?,'L'), ('M'?,'M'), ('N'?,'N'), ('O'?,'O'),
+	('P'?,'P'), ('Q'?,'Q'), ('R'?,'R'), ('S'?,'S'),
+	('T'?,'T'), ('U'?,'U'), ('V'?,'V'), ('W'?,'W'),
+	('X'?,'X'), ('Y'?,'Y'), ('Z'?,'Z'), ('!'?,'!'),
+	('"'?,'"'), ('#'?,'#'), ('$'?,'$'), ('%'?,'%'),
+	('&'?,'&'), ('\''?,'\''), ('('?,'('), (')'?,')'),
+	('*'?,'*'), ('+'?,'+'), (','?,','), ('-'?,'-'),
+	('.'?,'.'), ('/'?,'/'), (':'?,':'), (';'?,';'),
+	('<'?,'<'), ('='?,'='), ('>'?,'>'), ('?'?,'?'),
+	('@'?,'@'), ('['?,'['), ('\\'?,'\\'), (']'?,']'),
+	('^'?,'^'), ('_'?,'_'), ('`'?,'`'), ('{'?,'{'),
+	('|'?,'|'), ('}'?,'}'), ('~'?,'~'), ('\x7f'?,'\x7f')
+};
+
+# Restrict AnyOrNil to exclude extension for nl, eg (NotNlOrNil @@ T) ((nl, out[..] end) | (nul notnl* nl, end))
+NotNlOrNil = AnyOrNil @@ notnl;
 
 #entity = {
 #	(`&quot;`, 34),

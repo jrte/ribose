@@ -1,0 +1,26 @@
+#! /bin/bash
+argc=$#
+nil=""
+gearbox="build/patterns/Jrte.gears"
+if (($#>0)) && [[ "$1" == "--nil" ]]; then
+	((--argc))
+	nil=$1
+	shift
+fi
+if (($#>0)); then
+	transducer=$1
+	shift
+fi
+if (($#>0)) && [[ "$1" =~ gears$ ]]; then
+	gearbox=$1
+	shift
+fi
+if (($argc>0)); then
+	if (($#==0)); then
+		java -Djrte.out.enabled=true -cp build/java/jrte-HEAD.jar com.characterforming.jrte.Jrte $nil $transducer $gearbox <&0
+	else
+		cat $@ | java -Djrte.out.enabled=true -cp build/java/jrte-HEAD.jar com.characterforming.jrte.Jrte $nil $transducer $gearbox
+	fi
+else
+	echo -e "Usage:\tribase [--nil] <transducer-name> [<gearbox-path>] [<input-path> ...]\n\tDefault gearbox is build/patterns/Jrte.gears; stdin is default input path"
+fi

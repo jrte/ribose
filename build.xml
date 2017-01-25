@@ -128,13 +128,13 @@
 	</target>
 
 	<target name="javadoc">
-		<javadoc stylesheetfile="etc/javadoc/api/stylesheet.css" overview="overview.html" access="protected" author="true" destdir="${javadoc.dir}" nodeprecated="false" nodeprecatedlist="false" noindex="false" nonavbar="false" notree="false" source="1.6" sourcepath="src" splitindex="true" use="true" version="true">
+		<javadoc stylesheetfile="etc/javadoc/api/stylesheet.css" overview="overview.html" windowtitle="The ribASE Manifesto" nonavbar="true" access="protected" author="true" destdir="${javadoc.dir}" nodeprecated="false" nodeprecatedlist="false" noindex="false" notree="false" source="1.6" sourcepath="src" splitindex="true" use="true" version="true">
 			<doctitle>
-				&lt;center&gt;The General Idea&lt;/center&gt;
+				&lt;img src="resources/a-b-gears-white.gif" class="TextWrap"&gt;&lt;center&gt;The General Idea&lt;/center&gt;
 			</doctitle>
-			<header>
-				Copyright (c) 2011, Kim T Briggs, Hampton, NB
-			</header>
+			<bottom>
+				&lt;b&gt;Copyright (c) 2011,2017 Kim T Briggs, Hampton, NB&lt;/b&gt;
+			</bottom>
 			<link href="http://download.oracle.com/javase/6/docs/api/" />
 			<package name="com.characterforming.jrte" />
 			<package name="com.characterforming.jrte.base" />
@@ -145,8 +145,6 @@
 			<fileset dir="etc/javadoc/api/resources">
 				<include name="*" />
 			</fileset>
-		</copy>
-		<copy todir="doc">
 			<fileset dir="etc/javadoc">
 				<include name="*.png" />
 			</fileset>

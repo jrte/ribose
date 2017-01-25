@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2011, Kim T Briggs, Hampton, NB.
+ * Copyright (c) 2011,2017, Kim T Briggs, Hampton, NB.
  */
 package com.characterforming.jrte.compile;
 
@@ -185,6 +185,9 @@ public final class TransducerCompiler extends Automaton {
 					break;
 			}
 			outT = super.getInrTransitions(t.getOutS());
+		}
+		if ((effectorPos + 2) >= effectorVector.length) {
+			effectorVector = Arrays.copyOf(effectorVector, effectorPos + 2);
 		}
 		if (parameterPos > 0) {
 			final int parameterizedEffectorOrdinal = effectorVector[effectorPos - 1];

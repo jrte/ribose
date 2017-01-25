@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2011, Kim T Briggs, Hampton, NB.
+ * Copyright (c) 2011,2017, Kim T Briggs, Hampton, NB.
  */
 package com.characterforming.jrte.engine;
 
@@ -355,7 +355,7 @@ public final class Gearbox {
 	}
 
 	public Transducer loadTransducer(final Integer transducerOrdinal) throws TransducerNotFoundException, GearboxException {
-		if (transducerOrdinal < this.transducerOrdinalMap.size()) {
+		if ((0 <= transducerOrdinal) && (transducerOrdinal < this.transducerOrdinalMap.size())) {
 			synchronized (this) {
 				if (this.transducerObjectIndex[transducerOrdinal] == null) {
 					try {

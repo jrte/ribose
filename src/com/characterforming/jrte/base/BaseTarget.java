@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2011, Kim T Briggs, Hampton, NB.
+ * Copyright (c) 2011,2017, Kim T Briggs, Hampton, NB.
  */
 package com.characterforming.jrte.base;
 
@@ -8,9 +8,18 @@ import com.characterforming.jrte.ITarget;
 import com.characterforming.jrte.ITransduction;
 
 /**
- * Base {@link ITarget} implementation class can be subclassed to define other
- * effectors to suit application-specific needs. BaseTarget subclasses express
- * these effectors by overriding the {@link #bind(ITransduction)} method.
+ * Base {@link ITarget} implementation class exports no effectors. It serves only 
+ * as a public proxy for the core transduction target that provides the built-in 
+ * effectors. It can be subclassed by specialized targets that implement 
+ * {@link ITarget} to define additional effectors.
+ * 
+ * Specialized targets present their effectors by overriding the 
+ * {@link #bind(ITransduction)} method, and these may serve as subclasses for 
+ * additional extensions. Each subclass override must call super.bind() and
+ * include the superclass effectors as predecessors of its own in the returned
+ * list. In that context you should consider using a List<IEffector<?>> to 
+ * accumulate subclass effectors and call List<..>.toArray() to obtain 
+ * top-level bindings to return.
  * 
  * @author kb
  */

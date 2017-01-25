@@ -1,3 +1,6 @@
+<html>
+<body>
+<pre class="code">
 #May 15 07:58:52 kb-ubuntu kernel: [ 1794.599801] DROPPED IN=eth0 OUT= MAC=01:00:5e:00:00:fb:00:13:20:c0:36:32:08:00 SRC=192.168.144.101 DST=224.0.0.251 LEN=32 TOS=0x00 PREC=0x00 TTL=1 ID=8596 OPT (94040000) PROTO=2 
 
 value = {alpha, digit, punct};
@@ -66,8 +69,8 @@ LinuxKernel = (
 `NOT~ The image of matched lines on the range of LinuxKernel is contained in (clear (select paste*)* out)* clear select):\n` 
 		((nil ((line$0) nl)* @ (LinuxKernel$(0,1))) - (clear (select paste*)* out)* clear select):enum 3;
 
-`NOT~ The image of unmatched lines on the range of LinuxKernel is (clear select (clear (select paste*)*)* clear select):\n` 
-		((((AnyButNulOrNl* @ (line$(0,0))) - any* (line$0) nl any*)* @ (LinuxKernel$(0,1))) ! clear select (clear (select paste*)*)* clear select):enum;
+`NOT~ The domain image of unmatched lines on the range of LinuxKernel is (clear select (clear (select paste*)*)* clear select):\n` 
+		((((AnyButNulOrNl* @ (line$(0,0))) - any* (line$0) nl any*)* @ (LinuxKernel$(0,1))) ! (clear (select paste*)*)* clear select):enum;
 
 `NOT~ The matching lines in domain image of effector sequences in the range of LinuxKernel that do not invoke the out effector is empty:\n` 
 		(line$(0,1)) @ ((nil (line$0) nl @ (LinuxKernel$(0,1))) - (l1* out clear select)):enum:3;
@@ -144,3 +147,6 @@ LinuxKernelCapture:save		`LinuxKernelCapture.dfa`;
 LinuxKernelCapture:pr		`LinuxKernelCapture.pr`;
 LinuxKernel:save				`LinuxKernel.dfa`;
 LinuxKernel:pr					`LinuxKernel.pr`;
+</pre>
+</body>
+</html>

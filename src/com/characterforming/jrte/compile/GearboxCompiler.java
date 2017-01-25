@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2011, Kim T Briggs, Hampton, NB.
+ * Copyright (c) 2011,2017, Kim T Briggs, Hampton, NB.
  */
 package com.characterforming.jrte.compile;
 
@@ -124,7 +124,7 @@ public final class GearboxCompiler {
 		boolean commit = false;
 		GearboxCompiler gearboxCompiler = null;
 		try {
-			System.out.println(String.format("Jrte gearbox compiler version %1$s%2$sCopyright (C) 2011 Kim T Briggs%2$sDistributed under LGPLv3 (http://www.gnu.org/licenses/lgpl-3.0.txt)", Gearbox.VERSION, System.getProperty("line.separator")));
+			System.out.println(String.format("Jrte gearbox compiler version %1$s%2$sCopyright (C) 2011,2017 Kim T Briggs%2$sDistributed under LGPLv3 (http://www.gnu.org/licenses/lgpl-3.0.txt)", Gearbox.VERSION, System.getProperty("line.separator")));
 			System.out.println(String.format("Compiling %1$s%2$s*.dfa to gearbox %3$s", inrAutomataPath.getPath(), System.getProperty("file.separator"), gearboxOutputPath.getPath()));
 			gearboxCompiler = new GearboxCompiler(inrAutomataPath, gearboxOutputPath, charset, maxchar, target);
 			gearboxCompiler.compile();

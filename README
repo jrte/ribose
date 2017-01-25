@@ -1,13 +1,14 @@
-You will need ginr v2.0.2 from googlecode to build jrte. Ginr can be downloaded from:
-	http://code.google.com/p/ginr/downloads/detail?name=ginr-2.0.2.tgz&can=2&q=
+You will need ginr v2.0.2 from googlecode to build jrte. Ginr can be downloaded
+from http://code.google.com/p/ginr
 After unpacking the tarball,
 	mkdir -p ~/bin 
-	cd ginr-2.0.2/src
+	cd .../ginr-2.0.2/src
 	make -f Makefile install
-This will install the ginr executable in ~/bin. If this directory is not on your search
-PATH it must be added to the PATH before building jrte.
+This will install the ginr executable in ~/bin. ginr must be on your search
+PATH before building jrte.
 
 To build jrte, 
 	cd .../jrte
-	ant -f Build.xml all-clean
-See .../jrte/etc/sh/*.sh for examples showing how to run simple transductions.
+	ant -f build.xml all-clean
+See Javadoc at .../jrte/doc/index.html and .../jrte/etc/sh/*.sh for examples 
+showing how to run simple transductions.

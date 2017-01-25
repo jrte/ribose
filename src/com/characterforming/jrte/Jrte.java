@@ -1,13 +1,16 @@
 /**
- * Copyright (c) 2011, Kim T Briggs, Hampton, NB.
+ * Copyright (c) 2011,2017, Kim T Briggs, Hampton, NB.
  */
 package com.characterforming.jrte;
 
 import java.io.File;
+import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.Reader;
 import java.nio.charset.Charset;
 
+import com.characterforming.jrte.base.BaseTarget;
 import com.characterforming.jrte.engine.Gearbox;
 import com.characterforming.jrte.engine.Transduction;
 import com.characterforming.jrte.engine.input.ReaderInput;
@@ -29,6 +32,52 @@ import com.characterforming.jrte.engine.input.StreamInput;
  */
 public final class Jrte {
 	private final Gearbox gearbox;
+	
+	/**
+	 * Default Jrte runtime transduces System.in to System.out, with an optional nil signal as input prefix. 
+	 * <p>
+	 * <pre class="code">Usage: java -cp Jrte.jar com.characterforming.jrte.Jrte [--nil] <transducer-name> <gearbox-path></pre>
+	 * <p>
+	 * @param args
+	 * @throws SecurityException
+	 * @throws IOException
+	 */
+	public static void main(final String[] args) 
+			throws SecurityException, IOException, RteException, GearboxException, TargetBindingException, InputException {
+		int argIndex = 0;
+		final boolean startWithNil = args[argIndex].equals("--nil");
+		if (startWithNil) {
+			++argIndex;
+		}
+		final String transducerName = args[argIndex++];
+		final String gearboxPath = args[argIndex++];
+		
+		try {
+			Jrte jrte = new Jrte(new File(gearboxPath), "com.characterforming.jrte.base.BaseTarget");
+//			System.out.format("Opened %s\n", gearboxPath);
+			IInput[] inputs = startWithNil
+					? new IInput[] { jrte.input(new InputStreamReader(System.in)),
+							jrte.input(new char[][] { new String("!nil").toCharArray() }) }
+					: new IInput[] { jrte.input(new InputStreamReader(System.in)) };
+//			System.out.format("Inputs.length %d\n", inputs.length);
+			ITarget baseTarget = new BaseTarget();
+//			System.out.format("Target %s\n", baseTarget.getClass().getName());
+			ITransduction transduction = jrte.transduction(baseTarget);
+//			System.out.format("Transduction %s\n", transduction.getClass().getName());
+			transduction.start(transducerName);
+//			System.out.format("Transducer %s\n", transducerName);
+			transduction.input(inputs);
+//			for (int i = 0; i < inputs.length; i++) {
+//				System.out.format("Inputs[$d] %s\n", i, inputs[i].getClass().getName());
+//			}
+			while (transduction.status() == ITransduction.RUNNABLE) {
+//				System.out.format("Running...\n");
+				transduction.run();
+			} 
+		} catch (Exception e) {
+			System.out.print(e);
+		}
+	}
 
 	/**
 	 * Constructor sets up the gearbox as an ITransduction factory. This will instantiate a proxy instance of the

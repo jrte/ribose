@@ -10,6 +10,7 @@ if (($#>0)) && [[ "$1" == "--regex-out" ]]; then
 	rout="-Dregex.out.enabled=true"
 	shift
 fi
+set -x
 if (($#==3)); then
 	java $jout $rout -cp build/java/jrte-HEAD.jar:build/java/jrte-HEAD-test.jar:jars/test/junit-4.8.2.jar com.characterforming.jrte.test.FileRunner $*
 else

@@ -80,9 +80,6 @@ public class NamedValue implements INamedValue {
 	 */
 	@Override
 	public String toString() {
-		if (this.string == null && this.value != null) {
-			this.string = new String(this.value, 0, this.length);
-		}
-		return this.string != null ? this.string : "null";
+		return String.format("%s:%s", this.name, this.value != null ? this.value : "null");
 	}
 }

@@ -32,7 +32,7 @@ public abstract class BaseInputOutputEffector extends BaseParameterizedEffector<
 	 * @see com.characterforming.jrte.engine.IParameterizedEffector#invoke()
 	 */
 	@Override
-	public final int invoke() throws EffectorException {
+	public int invoke() throws EffectorException {
 		throw new EffectorException(String.format("The %1$s effector requires at least one parameter", super.getName()));
 	}
 

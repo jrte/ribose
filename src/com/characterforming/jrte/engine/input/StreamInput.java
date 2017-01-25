@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2011, Kim T Briggs, Hampton, NB.
+ * Copyright (c) 2011,2017, Kim T Briggs, Hampton, NB.
  */
 package com.characterforming.jrte.engine.input;
 
@@ -45,22 +45,25 @@ public class StreamInput extends BaseInput {
 		if (!this.eof) {
 			try {
 				final byte[] buffer = this.bytes.array();
-				final int count = this.stream.read(buffer, this.bytes.limit(), this.bytes.capacity() - this.bytes.limit());
-				if (count >= 0) {
+				int count = this.bytes.capacity() - this.bytes.limit();
+				if (0 < count) {
+					count = this.stream.read(buffer, this.bytes.limit(), count);
 					this.bytes.limit(this.bytes.limit() + count);
+				}
+				if (this.bytes.position() < this.bytes.limit()) {
 					this.decoder.decode(this.bytes, empty, false);
-					if (this.bytes.remaining() > 0) {
-						System.arraycopy(buffer, this.bytes.position(), buffer, 0, this.bytes.remaining());
+					if (this.bytes.remaining() == 0) {
+						this.bytes.position(0);
+						this.bytes.limit(0);
 					}
-					this.bytes.limit(this.bytes.remaining());
-					this.bytes.position(0);
 					return (CharBuffer) empty.flip();
 				} else if (this.bytes.remaining() == 0) {
+					this.bytes.position(0);
 					this.bytes.limit(0);
 					this.eof = true;
 					return null;
 				} else {
-					throw new InputException(String.format("%1$d undecoded bytes remaining in at eond of stream", this.bytes.remaining()));
+					throw new InputException(String.format("%1$d undecoded bytes remaining in at end of stream", this.bytes.remaining()));
 				}
 			} catch (final IOException e) {
 				throw new InputException("Caught an IOException reading from InputStream", e);

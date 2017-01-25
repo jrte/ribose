@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2011, Kim T Briggs, Hampton, NB.
+ * Copyright (c) 2011,2017, Kim T Briggs, Hampton, NB.
  */
 package com.characterforming.jrte.engine;
 
@@ -142,14 +142,14 @@ public final class Transduction implements ITransduction {
 		void save(final int[] nameIndex, final char[][] namedValues, final int[] valueLengths) {
 			this.nameIndex = nameIndex;
 			if (this.namedValues == null) {
-				this.namedValues = new char[namedValues.length][];
-				this.valueLengths = new int[valueLengths.length];
+				this.namedValues = new char[nameIndex.length][];
+				this.valueLengths = new int[nameIndex.length];
 			}
 			for (int i = 0; i < nameIndex.length; i++) {
 				final int v = nameIndex[i];
 				this.namedValues[i] = namedValues[v];
-				namedValues[v] = null;
 				this.valueLengths[i] = valueLengths[v];
+				namedValues[v] = null;
 				valueLengths[v] = 0;
 			}
 		}
@@ -159,6 +159,8 @@ public final class Transduction implements ITransduction {
 				final int v = this.nameIndex[i];
 				namedValues[v] = this.namedValues[i];
 				valueLengths[v] = this.valueLengths[i];
+				this.namedValues[i] = null;
+				this.valueLengths[i] = 0;
 			}
 			this.nameIndex = null;
 		}
@@ -167,7 +169,8 @@ public final class Transduction implements ITransduction {
 			this.state = state;
 			this.transducer = transducer;
 			this.nameIndex = null;
-			Arrays.fill(this.countdown, 0);
+			this.countdown[0] = 0;
+			this.countdown[1] = 0;
 		}
 
 		@Override
@@ -210,15 +213,18 @@ public final class Transduction implements ITransduction {
 		if (this.target == null) {
 			throw new RteException(String.format("Transduction not bound, cannot start %1$s", transducerName));
 		}
-		this.inputStack = null;
-		final TransducerState[] state = new TransducerState[] {
-				new TransducerState(0, this.gearbox.loadTransducer(this.gearbox.getTransducerOrdinal(transducerName)))
-		};
-		this.transducerStack = new Stack<TransducerState>(state, false);
-		this.selectionIndex = this.getNamedValueReference(Transduction.ANONYMOUS_VALUE_REFERENCE, false);
-		this.selectionValue = this.namedValue[this.selectionIndex] = new char[Transduction.INITIAL_NAMED_VALUE_CHARS];
-		this.selectionPosition = 0;
-		this.clear();
+		Transducer transducer = this.gearbox.loadTransducer(this.gearbox.getTransducerOrdinal(transducerName));
+		if (transducer != null) {
+			this.inputStack = null;
+			final TransducerState[] state = new TransducerState[] { new TransducerState(0, transducer) };
+			this.transducerStack = new Stack<TransducerState>(state, false);
+			this.selectionIndex = this.getNamedValueReference(Transduction.ANONYMOUS_VALUE_REFERENCE, false);
+			this.selectionValue = this.namedValue[this.selectionIndex] = new char[Transduction.INITIAL_NAMED_VALUE_CHARS];
+			this.selectionPosition = 0;
+			this.clear();
+		} else {
+			throw new GearboxException(String.format("Unknown transducer (%s)", transducerName));
+		}
 	}
 
 	/*
@@ -588,25 +594,21 @@ T:			while (status == ITransduction.RUNNABLE) {
 	}
 
 	int copy(final int nameIndex) {
-		char[] value = this.namedValue[nameIndex];
-		if (value != null) {
-			final int position = this.valueLength[nameIndex];
-			final int end = position + this.selectionPosition;
-			if (end > value.length) {
-				this.namedValue[nameIndex] = value = Arrays.copyOf(value, (end * 3) >> 1);
+		int length = this.valueLength[nameIndex];
+		if (length != 0) {
+			if ((this.selectionPosition + length) > this.selectionValue.length) {
+				this.selectionValue = Arrays.copyOf(this.selectionValue, length + ((this.selectionValue.length * 3) >> 1));
+				this.namedValue[this.selectionIndex] = this.selectionValue;
 			}
-			System.arraycopy(this.selectionValue, 0, value, position, this.selectionPosition);
-			this.valueLength[nameIndex] += this.selectionPosition;
-		} else {
-			this.namedValue[nameIndex] = value = Arrays.copyOf(this.selectionValue, (this.selectionPosition * 3) >> 1);
-			this.valueLength[nameIndex] = this.selectionPosition;
+			System.arraycopy(this.namedValue[nameIndex], 0, this.selectionValue, this.selectionPosition, length);
+			this.selectionPosition += length;
 		}
 		return BaseEffector.RTE_TRANSDUCTION_RUN;
 	}
 
 	int cut(final int nameIndex) {
 		this.copy(nameIndex);
-		this.selectionPosition = 0;
+		this.valueLength[nameIndex] = 0;
 		return BaseEffector.RTE_TRANSDUCTION_RUN;
 	}
 
@@ -685,7 +687,7 @@ T:			while (status == ITransduction.RUNNABLE) {
 	int pushTransducer(final Integer transducerOrdinal) throws EffectorException {
 		try {
 			final TransducerState transducerState = this.transducerStack.next();
-				if (transducerState == null) {
+			if (transducerState == null) {
 				this.transducerStack.push(new TransducerState(0, this.gearbox.loadTransducer(transducerOrdinal)));
 			} else {
 				transducerState.reset(0, this.gearbox.loadTransducer(transducerOrdinal));
@@ -743,6 +745,7 @@ T:			while (status == ITransduction.RUNNABLE) {
 							if (effectorParameters != null) {
 								final IParameterizedEffector<?, ?> parameterizedEffector = (IParameterizedEffector<?, ?>) effector;
 								parameterizedEffector.newParameters(effectorParameters.length);
+								// TODO: provide named parameter for anonymous->0 and shift loop i = 1; i <= length
 								for (int i = 0; i < effectorParameters.length; i++) {
 									try {
 										parameterizedEffector.setParameter(i, effectorParameters[i]);
@@ -753,18 +756,19 @@ T:			while (status == ITransduction.RUNNABLE) {
 									}
 								}
 							} else if (warn) {
-								Transduction.logger.warning(String.format("%1$s.%2$s: effector requires parameters", target.getName(), effector.getName()));
+								// TODO: provide named parameter for anonymous->0 and remove this warning
+								Transduction.logger.warning(String.format("%1$s.%2$s: effector requires parameters\n", target.getName(), effector.getName()));
 							}
 						} else if (effectorParameters != null) {
-							final String message = String.format("%1$s.%2$s: effector does not accept parameters", target.getName(), effector.getName());
+							final String message = String.format("%1$s.%2$s: effector does not accept parameters\n", target.getName(), effector.getName());
 							Transduction.logger.severe(message);
 							unbound.add(message);
 						}
 					} else if (warn) {
-						Transduction.logger.info(String.format("%1$s.%2$s: effector overridden", target.getName(), effector.getName()));
+						Transduction.logger.info(String.format("%1$s.%2$s: effector cannot be overridden\n", target.getName(), effector.getName()));
 					}
 				} else if (warn) {
-					Transduction.logger.info(String.format("%1$s.%2$s: effector not referenced in gearbox", target.getName(), effector.getName()));
+					Transduction.logger.info(String.format("%1$s.%2$s: effector not referenced in gearbox\n", target.getName(), effector.getName()));
 				}
 			}
 		}
@@ -844,7 +848,7 @@ T:			while (status == ITransduction.RUNNABLE) {
 
 		@Override
 		public final int invoke() throws EffectorException {
-			throw new EffectorException("The copy effector requires exactly one parameter");
+			return super.getTarget().copy(super.getParameter(0));
 		}
 
 		@Override
@@ -860,7 +864,7 @@ T:			while (status == ITransduction.RUNNABLE) {
 
 		@Override
 		public final int invoke() throws EffectorException {
-			throw new EffectorException("The cut effector requires exactly one parameter");
+			return super.getTarget().copy(super.getParameter(0));
 		}
 
 		@Override
@@ -917,6 +921,12 @@ T:			while (status == ITransduction.RUNNABLE) {
 
 		private OutEffector(final Transduction transduction) {
 			super(transduction, "out");
+		}
+
+		@Override
+		public final int invoke() throws EffectorException {
+			System.out.print(super.getTarget().copyNamedValue(0));
+			return BaseEffector.RTE_TRANSDUCTION_RUN;
 		}
 
 		@Override

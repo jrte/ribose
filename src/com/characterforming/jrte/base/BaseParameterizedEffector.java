@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2011, Kim T Briggs, Hampton, NB.
+ * Copyright (c) 2011,2017, Kim T Briggs, Hampton, NB.
  */
 package com.characterforming.jrte.base;
 
@@ -53,6 +53,7 @@ public abstract class BaseParameterizedEffector<T extends ITarget, P> extends Ba
 	 */
 	@Override
 	public abstract void setParameter(int parameterIndex, byte[][] parameterList) throws TargetBindingException;
+	// TODO add P[] getParameters(), void setParameters(P[]) and maintain array[effector] of ?[] in gearbox
 
 	/*
 	 * (non-Javadoc)

@@ -29,8 +29,6 @@ a:hover { color:#6699cc; }
 /* Headings */
 h1, h2 {
 	font-size: 145%;
-	background-image:url(resources/h1_hdr.png);
-	background-repeat:no-repeat;
 	border-top:1px dotted #CCCCCC;
 	line-height:1.2em;
 	color:#182737;
