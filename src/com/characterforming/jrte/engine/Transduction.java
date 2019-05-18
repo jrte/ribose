@@ -475,6 +475,23 @@ T:			while (status == ITransduction.RUNNABLE) {
 
 	/*
 	 * (non-Javadoc)
+	 * @see com.characterforming.jrte.engine.ITransduction#getSelectedValue()
+	 */
+	@Override
+	public final INamedValue getSelectedValue() {
+		this.updateSelectedNamedValue();
+		if (this.selectionIndex < this.namedValueHandles.length && this.namedValueHandles[this.selectionIndex] != null) {
+			final NamedValue namedValueHandle = this.namedValueHandles[this.selectionIndex];
+			namedValueHandle.setValue(this.namedValue[this.selectionIndex]);
+			namedValueHandle.setLength(this.valueLength[this.selectionIndex]);
+			return namedValueHandle;
+		} else {
+			return null;
+		}
+	}
+
+	/*
+	 * (non-Javadoc)
 	 * @see com.characterforming.jrte.engine.ITarget#getName()
 	 */
 	@Override
@@ -907,6 +924,15 @@ T:			while (status == ITransduction.RUNNABLE) {
 		}
 
 		@Override
+		public final int invoke() throws EffectorException {
+			try {
+				return super.getTarget().in(new char[][] { super.getTarget().getSelectedValue().getValue() });
+			} catch (InputException e) {
+				throw new EffectorException("The in effector failed", e);
+			}
+		}
+
+		@Override
 		public final int invoke(final int parameterIndex) throws EffectorException {
 			try {
 				return super.getTarget().in(super.getParameter(parameterIndex));
@@ -925,7 +951,7 @@ T:			while (status == ITransduction.RUNNABLE) {
 
 		@Override
 		public final int invoke() throws EffectorException {
-			System.out.print(super.getTarget().copyNamedValue(0));
+			System.out.print(super.getTarget().getSelectedValue().getValue());
 			return BaseEffector.RTE_TRANSDUCTION_RUN;
 		}
 

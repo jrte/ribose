@@ -67,7 +67,7 @@ LinuxKernel = (
 		((nil ((line$0) nl)* @ (LinuxKernel$(0,1))) - (clear (select paste*)* out)* clear select):enum 3;
 
 `NOT~ The image of unmatched lines on the range of LinuxKernel is (clear select (clear (select paste*)*)* clear select):\n` 
-		((((AnyButNulOrNl* @ (line$(0,0))) - any* (line$0) nl any*)* @ (LinuxKernel$(0,1))) ! clear select (clear (select paste*)*)* clear select):enum;
+		((nil ((linenul$0) nl)* @ (LinuxKernel$(0,1))) - clear select (clear (select paste*)*)* clear select):enum;
 
 `NOT~ The matching lines in domain image of effector sequences in the range of LinuxKernel that do not invoke the out effector is empty:\n` 
 		(line$(0,1)) @ ((nil (line$0) nl @ (LinuxKernel$(0,1))) - (l1* out clear select)):enum:3;

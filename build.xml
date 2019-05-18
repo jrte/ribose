@@ -128,7 +128,7 @@
 	</target>
 
 	<target name="javadoc">
-		<javadoc stylesheetfile="etc/javadoc/api/stylesheet.css" overview="overview.html" windowtitle="The ribASE Manifesto" nonavbar="true" access="protected" author="true" destdir="${javadoc.dir}" nodeprecated="false" nodeprecatedlist="false" noindex="false" notree="false" source="1.6" sourcepath="src" splitindex="true" use="true" version="true">
+		<javadoc stylesheetfile="etc/javadoc/api/stylesheet.css" overview="overview.html" windowtitle="The General Idea" nonavbar="true" access="protected" author="true" destdir="${javadoc.dir}" nodeprecated="false" nodeprecatedlist="false" noindex="false" notree="false" source="1.6" sourcepath="src" splitindex="true" use="true" version="true">
 			<doctitle>
 				&lt;img src="resources/a-b-gears-white.gif" class="TextWrap"&gt;&lt;center&gt;The General Idea&lt;/center&gt;
 			</doctitle>

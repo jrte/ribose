@@ -7,7 +7,7 @@ sequences have a coherent pattern that can be described in terms of catenation, 
 then that description determines a unique regular set. This input pattern description can then be 
 extended to interleave at each input ordinal a sequence of output ordinals, which Jrte associates
 with effector methods expressed by a target class bound to the transduction. This input/output 
-pattern description is compiled by ginr to build a state-minimized finite state automaton (DFA). 
+pattern description is compiled by ginr to build a state-minimized finite state automaton (DFA).<sup>1</sup> 
 <p>
 The Jrte compiler performs a transition-minimizing transformation on automata compiled by ginr to build 
 transducers that it packages in a gearbox library for runtime use. The Jrte runtime loads
@@ -104,12 +104,13 @@ transduction, in one left-right pass, of the entire corpus of the Oxford English
 proprietary format to SGML. It is essentially a library for computing automata wrapped in an elementary 
 parser that makes operations on automata accessible as an interpreter or compiler for extended regular 
 expressions. It allows multi-tape automata to be defined in algebraic (semiring) terms that can manipulated 
-to produce subsequential (unabiguous) transducers. 
+to produce subsequential (unambiguous) transducers. 
 <p>
 Jrte documentation sometimes uses semiring and tape interchangeably; for ginr automaton T the set of  
 tape n symbols T<sub>n</sub> = ((T$n):alph) is a semiring with catenation and (^) alternation subsuming all 
-regular sets over T<sub>n</sub>*. A summary of the operations supported by ginr can be seen <a href="{@docRoot}/resources/ginr.html">
-here</a>. Please refer to the <a href="https://code.google.com/archive/p/ginr/downloads">ginr</a>
+regular sets over T<sub>n</sub>*. A summary of the operations supported by ginr can be seen 
+<a href="{@docRoot}/resources/ginr.html" target="_blank">
+here</a>. Please refer to the <a href="https://code.google.com/archive/p/ginr/downloads" target="_blank">ginr</a>
 downloads page for full ginr documentation.
 <p>
 Jrte relies on ginr to produce subsequential automata, each automaton T having 3 tapes (semirings):
@@ -161,7 +162,7 @@ thrown. For most transducers, domain errors can be avoided entirely by transduci
 the transducer. For example, with line-oriented text, all possible interleavings
 of domain errors in the input can be modeled by replacing each non-nl input (x)
 with (x|nul) in the original transducer. The resulting transducer can then 
-be pruned to produce a transducer that accepts ((any - nl)<b>*</b> nl)<b>*</b>,
+be pruned to produce a transducer that accepts ((any&nbsp;-&nbsp;nl)<b>*</b> nl)<b>*</b>,
 switching on nul input to a free running pattern that involves no effectors but seeks 
 to synchronize with the input stream at the beginning of the innermost containing loop. 
 For simple line-oriented input this can be effected by adding a term after receiving nul 
@@ -203,9 +204,17 @@ from copied from input sequences, and manage countdown counters.
 transducer</td>
 </tr>
 <tr>
-<td><b>in[(`!signal`|`~name`|`text`)+]</b></td>
+<td><b>in</b></td>
+<td>Push current selection onto the input stack</td>
+</tr>
+<tr>
+<td><b>in[(`!signal`|`~name`|`text`)+]</b></td>domain
 <td>Push a sequence of mixed text, named values, and signal ordinals onto the
 input stack</td>
+</tr>
+<tr>
+<td><b>out</b></td>
+<td>Write value of current selection to System.out</td>
 </tr>
 <tr>
 <td><b>out[(`!signal`|`~name`|`text`)+]</b></td>
@@ -348,8 +357,8 @@ This is set up by the <b>counter[..]</b> effector with countdown value and a
 counter signal. The counter signal is raised when the <b>count</b> effector
 decrements the countdown to zero. This may be extended at some point to 
 include named counters as well as counters that count up.
-<h4>Application Effectors</h4> Application-defined ITarget classes can
-implement additional {@link com.characterforming.jrte.IEffector} classes to assemble domain objects
+<h4>Application Effectors</h4> Domain-specific applications can implement custom ITarget classes with 
+specialized {@link com.characterforming.jrte.IEffector} classes to assemble domain objects
 in the application target class. When the application target is bound to 
 a transduction with {@link com.characterforming.jrte.Jrte#transduction(ITarget)}, it can control 
 the transduction and access transduction products (eg, named values) 
@@ -407,11 +416,11 @@ May 16 07:01:49 kb-ubuntu kernel: imklog 4.2.0, log source = /proc/kmsg started.
 <pre class="code">
 ([JFMASOND][a-z]+ [0-9]+ ([0-9]+:)+[0-9]+) ([-A-Za-z_0-9]<b>*</b>) kernel: \\[[ ]<b>*</b>[0-9]+\\.[0-9]+\\] (DROPPED|ABORTED|LIMITED) IN=([-A-Za-z_0-9]<b>*</b>) OUT=([-A-Za-z_0-9]<b>*</b>) (MAC=([A-Fa-f:0-9]<b>*</b>) )?SRC=([.0-9]<b>*</b>) DST=([.0-9]<b>*</b>).<b>*</b> PROTO=([A-Z0-9]<b>*</b>)(.<b>*</b> SPT=([0-9]<b>*</b>) DPT=([0-9]<b>*</b>))?.<b>*</b>\n
 </pre>
-Three different ways to transduce this input using ginr and Jrte are shown <a href="{@docRoot}/resources/kern.html">here</a>.
-Definitions for the simple terms of these transducers are expressed in a <a href="{@docRoot}/resources/prologue.html">prologue</a>
+Three different ways to transduce this input using ginr and Jrte are shown <a href="{@docRoot}/resources/kern.html" target="_blank">here</a>.
+Definitions for the simple terms of these transducers are expressed in a <a href="{@docRoot}/resources/prologue.html" target="_blank">prologue</a>
 that is compiled first so that these terms are available to all transducers.
 <h3>LinuxKernel</h3>
-The LinuxKernel transducer is hardened against domain errors and will accept ((any - nl)<b>*</b> nl)<b>*</b>, modulo signal 
+The LinuxKernel transducer is hardened against domain errors and will accept ((any&nbsp;-&nbsp;nl)<b>*</b> nl)<b>*</b>, modulo signal 
 inputs. It is the most performant of the Jrte transducers presented here, but it invokes mutator effectors (select, paste) 
 on the target while scanning the prefix of each line. In this case the prefix effect on the target is reversed if a nul 
 is raised in response to a domain error by invoking the clear[`~<b>*</b>`] effector after consuming the remainder of the 
@@ -441,23 +450,23 @@ This approach is preferred if there is any chance of the transducer forcing the 
 inconsistent state. This is the safest and least performant of the 3 Jrte alternatives presented, but its 
 throughput is still >1.5X higher than Java regex.
 <p>
-This example shows how to use lookahead to recognize and classify patterns in the incoming input. This can also be used to
+This example shows how to use lookahead to recognize and classify patterns in the input. This can also be used to
 resolve ambiguous cases where choice of transduction path depends on upstream information. 
 <h3>LinuxKernelLoose</h3>
 This transducer presupposes that if the (header tag) prefix of (line) can be matched on a lookahead search, the rest of 
 the line will match without domain errors. This strategy will work only insofar as the transducer input pattern 
 describes completely the range of the input source. If the prefix matches, any domain error occurring in the 
 unverified (capture) suffix of (line) will result in a DomainErrorException, leaving the transduction and 
-target in incomplete states.
+target in incomplete states. This transducer avoids this by hitting the clutch on nul signal and coasting to end of line.
 <h3>Results</h3>
-Because this was a performance benchmark, no fields were
-printed. On each run Jrte processed the entire file in one call to {@link com.characterforming.jrte.ITransduction#run()},
-invoking the disabled out[..] effector for each matched line; regex ran a series of Matcher.find() calls, 
-each returning without output the next matched line. Subsequent runs with output enabled verified that the matches were
-correct in all cases but regex. Jrte and regex both identified the same lines as matching (about 60% of lines matched) and captured
-the same fields from each matched line. Java regex had trouble with the DPT and SPT tag match group and printed null for these fields
-where Jrte captured the respective port number. This occurred for more than half of the lines matched by regex. There were no 
-exceptions thrown, with or without output enabled.
+Because this was a performance benchmark, the entire input stream was preloaded into RAM and no fields were
+printed. On each run Jrte processed the input in one call to {@link com.characterforming.jrte.ITransduction#run()},
+invoking the disabled out[..] effector for each matched line; regex consumed input in a series of Matcher.find() calls, 
+each returning and discarding the next matched line. Subsequent runs with output enabled verified that the matches were
+correct in all cases but regex. Jrte and regex both recognized the same lines as matching (about 60% of lines matched) 
+and captured most of the same fields from each matched line. Java regex had trouble with the DPT and SPT tag match 
+group and printed null for these fields where Jrte captured the respective port number. This occurred for more than 
+half of the lines matched by regex. There were no exceptions thrown, with or without output enabled.
 <hr>
 <img src="resources/LinuxKernelLog.png"/>
 <hr>
@@ -480,36 +489,37 @@ $ for n in '' 0 00 000 0000 00000 000000 0000000 00000000 000000000; do echo $n 
 That was easy...
 <pre class="code">
 Fibonacci = (
-   <i># ~r, ~q, ~p are sequences of 0s preset to empty string 0<sup>0</sup> (0 in <b>N</b>)</i>
+   <i># ~r, ~q, ~p are sequences of 0s preset to empty string ^</i>
    (
-      <i># F<sub>1</sub>: ~r <- 0<sup>1</sup> (1 in <b>N</b>)</i>
-      ('0', select[`~r`] paste)
-      <i># fib(n>1): cycle (~p) <- (~q) <- (~r) <- (~p)(~q), (~p) <- 0<sup>0</sup></i>
-      ('0', select[`~p`] cut[`~q`] select[`~q`] cut[`~r`] select[`~r`] cut[`~p`] copy[`~q`])<b>*</b>
-   )<b>?</b>
-   <i># (~r) holds the result, so append nl and print 0<sup>F<sub>n</sub></sup>nl</i>
-   (nl, select[`~r`] paste out[`~r`] stop)
+      <i># F1: ~q <- 0</i>
+      ('0', select[`~q`] paste)
+      <i># fib(n>1): cycle (~r) <- (~q) <- (~p) <- (~p)(~r), (~r) <- ^</i>
+      ('0', select[`~r`] cut[`~p`] select[`~p`] copy[`~q`] select[`~q`] cut[`~r`])*
+   )?
+   <i># (~q) is empty or selected and holds the result, so append nl and print result</i>
+   (nl, paste out stop)
 );
 
 (Fibonacci$(0,1 2)):prsseq;
 
-(START)  0 [ select[~r] paste ]                                                  1
-(START) \n [ select[~r] paste out[~r] stop ]                                     (FINAL)
-1        0 [ select[~p] cut[~q] select[~q] cut[~r] select[~r] cut[~p] copy[~q] ] 1
-1       \n [ select[~r] paste out[~r] stop ]                                     (FINAL)
+(START)  0  [ select ~q paste ]                                     1
+(START)  nl [ paste out stop ]                                      (FINAL)
+1        0  [ select ~r cut ~p select ~p copy ~q select ~q cut ~r ] 1
+1        nl [ paste out stop ]                                      (FINAL)
 </pre>
 <p>
-Easy because Fibonacci is a simple arithmetic progression, so we can use the morphism (<b>N</b>, +) &map; ({0}, catenation)
+Easy because Fibonacci is a simple arithmetic progression, so we can use the morphism (<b>&naturals;</b>, +) &map; ({0}, catenation)
 to map into Jrte's domain. Jrte can also compute Ackerman's function A(X,Y) for X in {0,1,2} because these values 
 represent a progression of arithmetic operations -- addition (X=0), multiplication (X=1), exponentiation (X=2). It 
 gets strange in the fourth and higher dimensions, but Jrte may be able to compute these, theoretically, using 
 the transducer stack. An exercise for a rainy afternoon. RAM is cheap.
 <h3>Some Serious Numbers</h3>
-Arithmetic is not exactly a key strength for Jrte, since it can only work with unary numbers (if you balked
-at counting in the example above, the inputs were the numbers 0-9 and the outputs were (0,1,1,2,3,5,8,13,21,34).
-But there are strong connections between formal finite automata and number theory that can be exploited. For 
-example, it is easy to produce a generating function for any automaton T, given an equivalence relation E that 
-maps the alphabet A of T to formal variables and a weighting function w:A&map;<b>N</b>.
+Arithmetic is not an apparent strength of Jrte. Patterns are expressed in terms of semiring operators acting on 
+ordinal numbers, and even basic counting is onerous (if you balked at counting in the example above, the inputs 
+were the numbers 0-9 and the outputs were 0,1,1,2,3,5,8,13,21,34). But there are strong connections between formal 
+finite automata and number theory that can be exploited.<sup>2</sup> For example, it is easy to produce a generating
+function for any automaton T, given an equivalence relation E that maps the alphabet A of T to formal variables and 
+a weighting function w:A&map;<b>&naturals;</b>.
 <ol>
 <li>from T generate an equivalent regular expression R that uses only semiring operations catenation, alternation, Kleene-<b>*</b>
 <li>replace each domain symbol a in R with x<sup>w(a)</sup>, where x is the variable assigned to the equivalence class E<sub>a</sub>
@@ -520,14 +530,14 @@ In the resulting series S(x), the coefficient of x<sup>n</sup> (denoted [x<sup>n
 weight n in the domain of the transducer. For example, the input pattern of any Jrte transducer has a univariate 
 length generating function L(x). This obtained by mapping all input symbols to the variable x with weighting function 
 l(a) = 1 for a in {0,nl}. The length generating function for the input domain 0<sup><b>*</b></sup>nl of Fibonacci is 
-<pre class="code">L(x) = (1 + x(1 / (1 - x)))x = x / (1 - x) = &Sigma;<sub>n&ge;0</sub>(x<sup>n+1</sup>)</pre>
+<pre class="code">L(x) = (1 + x(1 / (1 - x)))x = x / (1 - x) = &Sigma;<sub>n&ge;0</sub>x<sup>n+1</sup></pre>
 and [x<sup>0</sup>]L = 0, [x<sup>n</sup>]L = 1 for n&gt;0, because all inputs to Fibonacci include a nl character. If we
 choose a different weighting function z:{0,nl}&map;{0,1} that assigns unit weight to 0 and zero weight to nl, the 
 generating function is just <pre class="code">Z(x) = 1 + x(1 / (1 - x))x<sup>0</sup> = 1 / (1 - x) = &Sigma;<sub>n&ge;0</sub>x<sup>n</sup></pre>
 and [x<sup>n</sup>]Z = 1 for n&ge;0.
 <h3>Seriouser and Seriouser</h3>
-This can be extended to include the range of Fibonacci as well, to obtain length-work generating functions that
-relate the length of the input to some properties of interest in the effector range, by binding disjoint 
+This can be extended to include the range of a Jrte transducer as well, to obtain length-work generating functions that
+relates the length of the input to some properties of interest in the effector range, by binding disjoint 
 effector-parameter combinations as unitary symbols (as was done above for ginr's printout of the subsequential 
 Fibonacci automaton). But there is an interesting wrinkle, one that will give functional programming purists
 something to moan about. Recall my assertion that DFAs had linear performance characteristics? In Jrte contexts 
@@ -559,48 +569,112 @@ So Fibonacci has some nonlinear characteristics and these are opaque to the pure
 of Fibonacci, which is the basis for this sort of analysis. But lets stumble along and see what we can do to
 get a handle on these. Say we want to determine the number C<sub>n</sub> of 0s copied into the transduction 
 target variables ~p, ~q and ~r in the Fibonacci computation of F<sub>n</sub>. The target variables are preset
-to 0<sup>0</sup> and the first 0 input is pasted (not copied) into ~r. Copying is done for n&gt;1 input 0s, 
+to 0<sup>0</sup> and the first 0 input is pasted (not copied) into ~r. Copying is done for the last n-1 input 0s, 
 by copy/cut[..] effectors arranged in a vector within a single transition
-<pre class="code">(select[`~p`] cut[`~q`]) (select[`~q`] cut[`~r`]) (select[`~r`] cut[`~p`] copy[`~q`])</pre>
+<pre class="code">(select[`~r`] cut[`~p`]) (select[`~p`] copy[`~q`]) (select[`~q`] cut[`~r`])</pre>
 that is triggered once for each of the last m = n-1 0s in the input. I've grouped the terms in the transition
-to identify the configurations of interest. For m&gt;1, on the m<sup>th</sup> iteration, ~p receives 
-0<sup>F<sub>m-2</sub></sup>, ~q receives 0<sup>F<sub>m-1</sub></sup>, and these values are catenated
-to produce 0<sup>F<sub>m</sub></sup> in ~r. These are the configurations to be tracked in our length-work
-generating function. Labeling these configurations as p, q, r with unit weight, and labelling inputs 0 and nl
-with x with weights 1 and 0, respectively, a generating function for Fibonacci that just counts occurrences of 
-these configurations is  
+to identify the configurations of interest. For m&gt;1, on the m<sup>th</sup> iteration, ~r cuts 
+0<sup>F<sub>m-2</sub></sup> from ~p, ~p copies 0<sup>F<sub>n-1</sub></sup> from ~q, and then ~q appends 
+0<sup>F<sub>m-2</sub></sup> cut from ~r to produce 0<sup>F<sub>m</sub></sup>. These are the configurations 
+to be tracked in our length-work generating function. Labeling these configurations as p, q, r with unit weight,
+and labelling inputs 0 and nl with x with weights 1 and 0, respectively, a generating function for Fibonacci
+that just counts occurrences of these configurations is  
 <pre class="code">W(x,p,q,r) = 1 + x(1 / (1 - xpqr))x<sup>0</sup> = 1 + &Sigma;<sub>n&ge;0</sub>x<sup>n+1</sup>p<sup>n</sup>q<sup>n</sup>r<sup>n</sup></pre>
 but this tells us little about the volume of copy transferred into the ~p, ~q and ~r values in the transduction 
 Fibonacci(0<sup>n</sup>nl). We can inject that information and collapse p, q, r into a single variable y 
 that marks the transfer of a single 0 by mapping p, q, r onto y with appropriate length-dependent weights
-that sum the number of 0s copied into each of ~p, ~q, ~r on the last n-1 iterations:
+that sum the number of 0s copied into each of ~p, ~q, ~r on the last n-1 iterations:<sup>3</sup>
 <ul>
-<li>w(n,p) = 0 for n&le;1 and &Sigma;<sub>1&lt;m&lt;n</sub>F<sub>m-1</sub> for n&gt;1</li>
-<li>w(n,q) = 0 for n&le;1 and &Sigma;<sub>1&lt;m&lt;n</sub>F<sub>m</sub> for n&gt;1</li>
-<li>w(n,r) = 0 for n&le;1 and &Sigma;<sub>1&lt;m&lt;n</sub>F<sub>m+1</sub> for n&gt;1</li>
+<li>w(n,p) = 0 for n&le;1 and &Sigma;<sub>1&lt;m&le;n</sub>F<sub>m-1</sub> = F<sub>n+1</sub>&nbsp;-&nbsp;1 for n&gt;1</li>
+<li>w(n,q) = w(n,r) = 0 for n&le;1 and &Sigma;<sub>1&lt;m&le;n</sub>F<sub>m-2</sub> = F<sub>n</sub>&nbsp;-&nbsp;1 for n&gt;1</li>
 </ul>
 Then C<sub>n</sub> will be the exponent of the y cofactor of x<sup>n</sup> in the length-work generating function for Fibonacci.
 <pre class="code">W<sup>'</sup>(x,y) = 1 + x + &Sigma;<sub>n&ge;1</sub>x<sup>n+1</sup>y<sup>w(n,p) + w(n,q) + w(n,r)</sup>
-        = 1 + x + &Sigma;<sub>n&ge;1</sub>x<sup>n+1</sup>y<sup>&Sigma;<sub>1&lt;m&lt;n</sub>F<sub>n-1</sub> + &Sigma;<sub>1&lt;m&lt;n</sub>F<sub>n</sub> + &Sigma;<sub>1&lt;m&lt;n</sub>F<sub>n+1</sub></sup>
-        = 1 + x + &Sigma;<sub>n&ge;1</sub>x<sup>n+1</sup>y<sup>&Sigma;<sub>1&lt;m&lt;n</sub>2F<sub>n+1</sub></sup>
-        = 1 + x + &Sigma;<sub>n&gt;1</sub>x<sup>n</sup>y<sup>&Sigma;<sub>1&lt;m&lt;n</sub>2F<sub>n</sub></sup>
-        = 1 + x + &Sigma;<sub>n&gt;1</sub>x<sup>n</sup>y<sup>2[(F<sub>n+2</sub> - 1) - (F<sub>0</sub> + F<sub>1</sub>)]</sup>
-        = 1 + x + &Sigma;<sub>n&gt;1</sub>x<sup>n</sup>y<sup>2F<sub>n+2</sub> - 4</sup></pre>
-So C<sub>0</sub> = C<sub>1</sub> = 0 and C<sub>n</sub> = 2F<sub>n+2</sub> - 4 for n&gt;1. And that's a good thing to know. 
-Once the initial 0 has been latched into ~r after the first 0 is received, thing multiplies 
+        = 1 + x + &Sigma;<sub>n&ge;1</sub>x<sup>n+1</sup>y<sup>(F<sub>n+1</sub> - 1) + (F<sub>n</sub> - 1) + (F<sub>n</sub> - 1)</sup>
+        = 1 + x + &Sigma;<sub>n&ge;1</sub>x<sup>n+1</sup>y<sup>F<sub>n+2</sub> + F<sub>n</sub> - 3</sup>
+        = 1 + x + &Sigma;<sub>n&gt;1</sub>x<sup>n</sup>y<sup>F<sub>n+1</sub> + F<sub>n-1</sub> - 3</sup></pre>
+So C<sub>0</sub> = C<sub>1</sub> = 0 and C<sub>n</sub> = F<sub>n+1</sub>&nbsp;+&nbsp;F<sub>n-1</sub>&nbsp;-&nbsp;3 for n&gt;1. And 
+that's a good thing to know. After the leading 0 has been latched into ~r, thing multiplies 
 like rabbits as the transducer iterates over any remaining inputs. This isn't surprising, because Dr Fibonacci
-was studying rabbit populations when he came up with this sequence. In his model, in the n<sup>th</sup> generation produces 
-F<sub>n</sub> new rabbits to join F<sub>n-2</sub> + F<sub>n-1</sub> = F<sub>n</sub> survivors from previous generations while
-C<sub>n</sub> - 2F<sub>n</sub> = F<sub>n+1</sub> - 4 ancestral rabbits drink beer in Valhalla. Such is life. In 
-the Fibonacci transducer the cut[..] effector operates as a culling factor, leaving just 3 generations of 0s in the target
-after each iteration. 
+was studying rabbit populations when he came up with this sequence. In his model, the n<sup>th</sup> generation produces 
+F<sub>n-2</sub> new pairs of rabbits to join F<sub>n-1</sub> surviving pairs from previous generations while
+C<sub>n</sub>&nbsp;-&nbsp;F<sub>n</sub> = F<sub>n+1</sub>&nbsp;-&nbsp;F<sub>n-2</sub>&nbsp;-&nbsp;3 pairs of ancestral rabbits drink beer in Valhalla. 
+Such is life. 
+<h3>Down the Rabbit Hole</h3>
+This simple example illustrates how important insights into the dynamics of transduction systems can gained when 
+there is a clear separation of syntax and semantics. In the Fibonacci transducer the cut[..] effector operates as
+a culling factor, leaving just 2 Fibonacci generations in the target after each iteration. The remainder disappear 
+from the system, but they are all essential to the transduction. Information in transduction systems acts 
+analogously to energy in thermodynamic systems, working to reduce entropy (or uncertainty, if you prefer) in 
+the system, and like energy it comes at a cost. In the Fibonacci transducer C<sub>n</sub> is a measure of the 
+cost of computing intermediate and final results and the sequence {C<sub>i</sub>}<sub>0&le;i</sub> reflects 
+the nonlinear increase in cost relative to input length. 
+<hr>
+<img src="resources/FibonacciCost.png"/>
+<hr>
+The ratio C<sub>n</sub>&nbsp;/&nbsp;F<sub>n</sub> is a measure of the efficiency of non-linear aspects of the transduction. The 
+chart above shows how quickly C<sub>n</sub> and F<sub>n</sub> grow with n and how the efficiency of the transduction 
+converges to ~2.236 at steady state. The ratio F<sub>n</sub>&nbsp;/&nbsp;n of output and input lengths does not converge, which 
+reflects the fact that unary Fibonacci numbers are not a regular set. And they are not context-free but they are
+context-sensitive, which means that they can only be generated by a linear-bounded automaton.<sup>4,5</sup>
 <p>
-This simple example illustrates how important insights into the dynamics of transduction systems can gained 
-when there is a clear separation of concerns between syntax and semantics. The same analytic approach used here 
-can be applied to more complex transducers, such as the kernel log variants presented in the regex runoff above. 
-And while the algebra may seem daunting at first, these techniques have been used for decades and the algebraic algorithms
-involved are well known. Modern symbolic algebra engines like Maxima (previously known as Macsyma) are 
-available to ease the pain, and if Dr Watson could bone up on his algebra and combinatorics he might find 
-a cure. 
+All of which suggests a sort of steampunk analytic framework for transduction systems, where information about transduction
+dynamics is accessible via direct morphisms from transducer design patterns into other semirings for combinatorial and 
+other analyses. The same analytic approach used for Fibonacci can be applied to more complex transducers, such as the
+kernel log variants presented in the regex runoff above. All of the LinuxKernel variants have the same basic structure 
+for actionable log messages, and tracking the paste effector in the output would provide a cost metric and a derivative
+efficiency metric (ratio of cost to input length). The efficiency metric would converge to a value >1 for the LinuxKernel
+transductions as they capture only a subset of the input and decorate it for output with tokens of length less than 
+corresponding the captured input. 
+<p>
+More generally, information about the differential costs of specific target effectors can be encoded as weighting 
+functions for specific transduction targets. If necessary, this information can be acquired empirically by instrumenting 
+the target and running a representative set of benchmark transductions as long as required to get accurate timings for 
+all effectors. Then operational models of cost and efficiency as functions of input patterns can be constructed for any 
+transducer defined for the target, using well established algebraic algorithms. These models will be predictive of 
+online behavior and provide information that could be relevant to provisioning bandwidth for downstream consumers 
+of the products of multiple concurrent transduction processes.
+<p>
+These techniques have been used for decades and the algebraic algorithms involved are well known. Modern symbolic
+algebra engines like Maxima (previously known as Macsyma) are available to ease the pain, and modern cognitive
+platforms like IBM's Watson could bone up on their algebra and combinatorics we might find a cure.
+<h2>What's Next?</h2>
+The main driver for producing Jrte was the observation, long ago, that patterns (or grammars, if you will) contained
+sufficient logic to drive machines and that this logic could be harnessed without tedious translation into procedural
+computing languages. The original effort focussed on finite-state transductions, mainly because that was the limit of 
+the available tools (ginr) but also because almost all of the input sources of interest were finite state and could be
+described as regular patterns. In fact, this is true of almost all of the digital information sources available for 
+machine processing: they can largely be described as regular sets, or as non-linear (context-sensitive, context-free)
+algebraic structures that embed regular sets as homomorphisms, or as regular sets that embed non-linear structures. 
+<p>
+When an information source is analyzed for pattern extraction and the regular components have been identified and 
+articulated as regular patterns, the remainder (if non-trivial) will likely be a context-free or context-sensitive
+structure that has been substantially simplified since the regular subpatterns are represented by their inverse 
+homomorphic images (ie, regular pattern names). By so isolating the linear aspects of the source, the residual 
+non-linear requirements are reduced to a transducer stack (context-free) and transduction target that expresses
+effectors to harness traditional machine processor-memory resources (context-sensitive). 
+<p>
+<p>
+This is a basic premise underlying Jrte: Regular sets (DFAs) are the workhorses of the computing world. They are ubiquitous 
+and they have rich algebraic properties that can be exploited to ask questions, prove assertions and obtain analytic 
+information about collections of data. Jrte aims to enable data mining systems to process information sources that 
+can be articulated as context-sensitive patterns embedding regular subpatterns as homomorphisms. This is analogous 
+to the goals Pierre Boullier expressed for his range catentation framework, which <i>"allows a form of modularity 
+which may lead to the design of libraries of reuseable generic grammatical components [and] can act as a syntactic 
+backbone upon which decorations from other domains (say feature structures) can be grafted."</i><sup>6</sup>
+<p>
+That is the general idea, and that is generally where Jrte is heading.  
+<h2>References</h2>
+1. J. Howard Johnson. <a href="http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.456.2799">INR: A program for computing finite automata</a> 1988.
+<p>
+2. Salomaa A, Soittola M. Automata-Theoretic Aspects of Formal Power Series. Springer-Verlag New York, Inc. Secaucus, NJ, USA 1978
+<p>
+3. ProofWiki. <a href="https://proofwiki.org/wiki/Sum_of_Sequence_of_Fibonacci_Numbers" target="_blank">Sum of Sequence of Fibonacci Numbers</a> 
+<p>
+4. Moll RJ, Venkatesean SM. <a href="http://www.fq.math.ca/Scanned/29-1/moll.pdf">Fibonacci Numbers are not Context-Free</a> 1989.
+<p>
+5. Mootha VK. <a href="http://www.fq.math.ca/Scanned/31-1/mootha.pdf">Unary Fibonacci Numbers are Context-Sensitive</a> 1991.</body>
+<p>
+6. Boullier, P. <a href="https://hal.archives-ouvertes.fr/file/index/docid/73347/filename/RR-3342.pdf">Proposal for a Natural Language Processing Syntactic Backbone</a> 1988.
 </body>
 </html>

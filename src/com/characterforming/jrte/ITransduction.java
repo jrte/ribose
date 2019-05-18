@@ -151,4 +151,11 @@ public interface ITransduction extends ITarget {
 	 * @return The named value wrapped in an {@link INamedValue} instance
 	 */
 	public INamedValue getNamedValue(int nameIndex);
+
+	/**
+	 * Get the current selected value
+	 * 
+	 * @return The selected value wrapped in an {@link INamedValue} instance
+	 */
+	public INamedValue getSelectedValue();
 }
