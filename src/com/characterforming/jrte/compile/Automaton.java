@@ -45,6 +45,7 @@ class Automaton {
 		final DataInputStream f = new DataInputStream(new FileInputStream(inrfile));
 		final byte[] tapeHeader = new byte[2];
 		if (f.read(tapeHeader) != 2 || tapeHeader[0] > 2 || tapeHeader[1] != 10) {
+			f.close();
 			String error = String.format("Malformed tape header for INR automaton %1$s (%2$d tapes)", inrfile.getPath(), tapeHeader[0]);
 			this.error(error);
 			throw new CompilationException(error);

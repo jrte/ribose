@@ -2,13 +2,13 @@
 
 value = {alpha, digit, punct};
 
-datetime = upper lower+ space digit+ space (digit+ ':')+ digit+;
+datetime = upper lower+ space digit digit? space (digit digit ':')+ digit digit;
 
 header = (
 	(datetime @@ PasteAny)
 	(space, select[`~hostname`])
-	(value* @@ PasteAny) 
-	(space 'kernel: [' (space* digit+ '.' digit+) ']')
+	(value, paste)* 
+	(space 'kernel: [' space* digit+ '.' digit+ space* ']')
 );
 
 tag = (space, select[`~tag`]) (('DROPPED' | 'LIMITED' | 'ABORTED') @@ PasteAny);
@@ -27,7 +27,7 @@ capture = (
 			|	('DPT=', select[`~dstport`]) 
 			|	('PROTO=', select[`~protocol`])
 			)
-			(value* @@ PasteAny)
+			(value, paste)*
 		||	value*
 		)
 	)+
@@ -60,17 +60,17 @@ LinuxKernel = (
 
 # Fact check. If A is empty, ginr will print nothing for (`NOT~ A is empty:\n` A):enum 3;
 
-`NOT~ The domain of LinuxKernel restricted to text input (eliding signals other than nul) is (notnl* nl)*:\n` 
-		((notnl* nl*)* ! (nil \ (LinuxKernel$0)) @ ((any$(0,0))* (nul, notnl))*):enum 3;
+#`NOT~ The domain of LinuxKernel restricted to text input (eliding signals other than nul) is (notnl* nl)*:\n` 
+#		((notnl* nl*)* ! (nil \ (LinuxKernel$0)) @ ((any$(0,0))* (nul, notnl))*):enum 3;
 
-`NOT~ The image of matched lines on the range of LinuxKernel is contained in (clear (select paste*)* out)* clear select):\n` 
-		((nil ((line$0) nl)* @ (LinuxKernel$(0,1))) - (clear (select paste*)* out)* clear select):enum 3;
+#`NOT~ The image of matched lines on the range of LinuxKernel is contained in (clear (select paste*)* out)* clear select):\n` 
+#		((nil ((line$0) nl)* @ (LinuxKernel$(0,1))) - (clear (select paste*)* out)* clear select):enum 3;
 
-`NOT~ The image of unmatched lines on the range of LinuxKernel is (clear select (clear (select paste*)*)* clear select):\n` 
-		((nil ((linenul$0) nl)* @ (LinuxKernel$(0,1))) - clear select (clear (select paste*)*)* clear select):enum;
+#`NOT~ The image of unmatched lines on the range of LinuxKernel is (clear select (clear (select paste*)*)* clear select):\n` 
+#		((nil ((linenul$0) nl)* @ (LinuxKernel$(0,1))) - clear select (clear (select paste*)*)* clear select):enum;
 
-`NOT~ The matching lines in domain image of effector sequences in the range of LinuxKernel that do not invoke the out effector is empty:\n` 
-		(line$(0,1)) @ ((nil (line$0) nl @ (LinuxKernel$(0,1))) - (l1* out clear select)):enum:3;
+#`NOT~ The matching lines in domain image of effector sequences in the range of LinuxKernel that do not invoke the out effector is empty:\n` 
+#		(line$(0,1)) @ ((nil (line$0) nl @ (LinuxKernel$(0,1))) - (l1* out clear select)):enum:3;
 		
 ### LinuxKernelStrict 
 # This will mark input at start of line and look ahead using the input patterns of 3 transducers
@@ -130,17 +130,17 @@ LinuxKernelLoose = (
 	)*
 );
 
-LinuxKernelDropped:save		`LinuxKernelDropped.dfa`;
-LinuxKernelDropped:pr		`LinuxKernelDropped.pr`;
-LinuxKernelLimited:save		`LinuxKernelLimited.dfa`;
-LinuxKernelLimited:pr		`LinuxKernelLimited.pr`;
-LinuxKernelAborted:save		`LinuxKernelAborted.dfa`;
-LinuxKernelAborted:pr		`LinuxKernelAborted.pr`;
-LinuxKernelLoose:save		`LinuxKernelLoose.dfa`;
-LinuxKernelLoose:pr			`LinuxKernelLoose.pr`;
-LinuxKernelStrict:save		`LinuxKernelStrict.dfa`;
-LinuxKernelStrict:pr			`LinuxKernelStrict.pr`;
-LinuxKernelCapture:save		`LinuxKernelCapture.dfa`;
-LinuxKernelCapture:pr		`LinuxKernelCapture.pr`;
-LinuxKernel:save				`LinuxKernel.dfa`;
-LinuxKernel:pr					`LinuxKernel.pr`;
+LinuxKernelDropped:save `LinuxKernelDropped.dfa`;
+LinuxKernelDropped:pr `LinuxKernelDropped.pr`;
+LinuxKernelLimited:save `LinuxKernelLimited.dfa`;
+LinuxKernelLimited:pr `LinuxKernelLimited.pr`;
+LinuxKernelAborted:save `LinuxKernelAborted.dfa`;
+LinuxKernelAborted:pr `LinuxKernelAborted.pr`;
+LinuxKernelLoose:save `LinuxKernelLoose.dfa`;
+LinuxKernelLoose:pr `LinuxKernelLoose.pr`;
+LinuxKernelStrict:save `LinuxKernelStrict.dfa`;
+LinuxKernelStrict:pr `LinuxKernelStrict.pr`;
+LinuxKernelCapture:save `LinuxKernelCapture.dfa`;
+LinuxKernelCapture:pr `LinuxKernelCapture.pr`;
+LinuxKernel:save `LinuxKernel.dfa`;
+LinuxKernel:pr `LinuxKernel.pr`;

@@ -17,8 +17,6 @@ public class NamedValue implements INamedValue {
 	private char[] value;
 	private int length;
 
-	private String string;
-
 	/**
 	 * Constructor
 	 */
@@ -27,7 +25,6 @@ public class NamedValue implements INamedValue {
 		this.index = index;
 		this.value = value;
 		this.length = length;
-		this.string = null;
 	}
 
 	/*

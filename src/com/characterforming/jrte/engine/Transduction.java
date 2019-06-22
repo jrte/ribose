@@ -256,26 +256,23 @@ public final class Transduction implements ITransduction {
 				break;
 			}
 		}
-		int status = this.status();
-		if (status != ITransduction.RUNNABLE) {
-			return status; 
-		}
 		String debug = null;
 		int state = 0;
 		try {
 			char[] inputArray = inputBuffer.array();
-T:			while (status == ITransduction.RUNNABLE) {
+T:			while (this.status() == ITransduction.RUNNABLE) {
 				final TransducerState transducerState = this.transducerStack.peek();
 				final Transducer transducer = transducerState.transducer;
 				final int[] inputFilter = transducer.getInputFilter();
 				final int[][] transitionMatrix = transducer.getTransitionMatrix();
 				final int[] effectorVector = transducer.getEffectorVector();
-				state = transducerState.state;
 				int currentInput = 0;
+				int status = this.status();
+				state = transducerState.state;
 				while (status == ITransduction.RUNNABLE) {
 					if (position < limit) {
 						currentInput = inputArray[position++];
-					} else if (currentInput != this.eosSignal) {
+					} else {
 						currentInput = this.eosSignal;
 						inputBuffer.position(position);
 						for (IInput input = this.inputStack.peek(); input != null; input = this.inputStack.pop()) {
@@ -288,14 +285,6 @@ T:			while (status == ITransduction.RUNNABLE) {
 								break;
 							}
 						}
-						if (currentInput == this.eosSignal) {
-							status = status();
-							break;
-						}
-					} else {
-						this.inputStack.pop();
-						status = status();
-						break;
 					}
 					final int transition[] = transitionMatrix[state + inputFilter[currentInput]];
 					state = transition[0];
@@ -378,7 +367,7 @@ T:			while (status == ITransduction.RUNNABLE) {
 										case BaseEffector.RTE_TRANSDUCTION_STOP:
 											break;
 										case BaseEffector.RTE_TRANSDUCTION_PUSH:
-											if (position <= limit) {
+											if ((null != inputBuffer) && (position <= limit)) {
 												inputBuffer.position(limit);
 											}
 											limit = -1;
@@ -397,6 +386,16 @@ T:			while (status == ITransduction.RUNNABLE) {
 						} else if (clutch != BaseEffector.RTE_TRANSDUCTION_RUN) {
 							break;
 						}
+					}
+					if (currentInput == this.eosSignal) {
+						IInput input = this.inputStack.peek();
+						inputBuffer = (null != input) ? input.get() : null;
+						if (null != inputBuffer) {
+							inputArray = inputBuffer.array();
+							position = inputBuffer.position();
+							limit = inputBuffer.limit();
+						}
+						status = status();
 					}
 				}
 			}
@@ -624,8 +623,10 @@ T:			while (status == ITransduction.RUNNABLE) {
 	}
 
 	int cut(final int nameIndex) {
-		this.copy(nameIndex);
-		this.valueLength[nameIndex] = 0;
+		if (nameIndex != this.selectionIndex) {
+			this.copy(nameIndex);
+			this.valueLength[nameIndex] = 0;
+		}
 		return BaseEffector.RTE_TRANSDUCTION_RUN;
 	}
 

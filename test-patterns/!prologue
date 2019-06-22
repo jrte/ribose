@@ -11,16 +11,49 @@ tab ='\t';
 backslash = '\\';
 quote = '\'';
 dot = '.';
-
-digit = '0123456789':alph;
-lower = 'abcdefghijklmnopqrstuvwxyz':alph;
-upper = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ':alph;
 punct = '!"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~':alph;
+digit = '0123456789':alph;
+
+letters = {
+	(a,A),
+	(b,B),
+	(c,C),
+	(d,D),
+	(e,E),
+	(f,F),
+	(g,G),
+	(h,H),
+	(i,I),
+	(j,J),
+	(k,K),
+	(l,L),
+	(m,M),
+	(n,N),
+	(o,O),
+	(p,P),
+	(q,Q),
+	(r,R),
+	(s,S),
+	(t,T),
+	(u,U),
+	(v,V),
+	(w,W),
+	(x,X),
+	(y,Y),
+	(z,Z)
+};
+
+lower = letters$0;
+upper = letters$1;
 alpha = lower | upper;
 alnum = alpha | digit;
 black = alnum | punct;
 white = space | tab;
 print = black | white;
+
+dot='.';
+dash='-';
+comma=',';
 
 hexlower = digit | 'abcdef':alph;
 hexupper = digit | 'ABCDEF':alph;
@@ -78,7 +111,7 @@ AnyOrNul = {
 # Restrict AnyOrNul to exclude nul extension for nl, eg (NotNlOrNul @@ T) ((nl, out[..] end) | (nul notnl* nl, end))
 NotNlOrNul = AnyOrNul @@ notnl;
 
-# This is death to Perl. Extend any transducer T to accept x? for x in any state using (N = AnyOrNil @@ T)
+# Extend any transducer T to accept x? for x in any state using (N = AnyOrNil @@ T)
 AnyOrNil = {
 	('\x00'?,'\x00'), ('\x01'?,'\x01'), ('\x02'?,'\x02'), ('\x03'?,'\x03'), 
 	('\x04'?,'\x04'), ('\x05'?,'\x05'), ('\x06'?,'\x06'), ('\x07'?,'\x07'),

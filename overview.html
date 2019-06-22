@@ -491,7 +491,7 @@ That was easy...
 Fibonacci = (
    <i># ~r, ~q, ~p are sequences of 0s preset to empty string ^</i>
    (
-      <i># F1: ~q <- 0</i>
+      <i># fib(0): ~q <- 0</i>
       ('0', select[`~q`] paste)
       <i># fib(n>1): cycle (~r) <- (~q) <- (~p) <- (~p)(~r), (~r) <- ^</i>
       ('0', select[`~r`] cut[`~p`] select[`~p`] copy[`~q`] select[`~q`] cut[`~r`])*
@@ -675,6 +675,6 @@ That is the general idea, and that is generally where Jrte is heading.
 <p>
 5. Mootha VK. <a href="http://www.fq.math.ca/Scanned/31-1/mootha.pdf">Unary Fibonacci Numbers are Context-Sensitive</a> 1991.</body>
 <p>
-6. Boullier, P. <a href="https://hal.archives-ouvertes.fr/file/index/docid/73347/filename/RR-3342.pdf">Proposal for a Natural Language Processing Syntactic Backbone</a> 1988.
+6. Boullier, P. <a href="https://hal.archives-ouvertes.fr/file/index/docid/73347/filename/RR-3342.pdf">Proposal for a Natural Language Processing Syntactic Backbone</a> 1988.</div>
 </body>
 </html>

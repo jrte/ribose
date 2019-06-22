@@ -79,7 +79,7 @@
  * to the input pattern, so the application in HelloWorld is equivalent to:<pre class="code">
  * (h,paste)(e,paste)(l,paste)...(r,paste)(l,paste)(d,paste)</pre>
  * <p>
- * A synopsis of the operators provided by ginr can be viewed <a href="{@docRoot}/../doc/resources/ginr.html">
+ * A synopsis of the operators provided by ginr can be viewed <a href="{@docRoot}/../doc/resources/ginr.html" target="_blank">
  * here</a>.
  */
 package com.characterforming.jrte;
