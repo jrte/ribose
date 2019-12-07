@@ -69,12 +69,10 @@ a1 = (date$1):alph;
 a2 = (date$2):alph;
 
 notdate = (
-	(
-		((AnyOrNul* @ date)$(0 1 2))
-	@	((a0$(0,0))* (a1$(0,,0))* (a2$(0,,,0))*)*
-		(nul, nul, clear[`~*`] select)
-		(nul* a0* a1* a2*)* 
-	)
+	((AnyOrNul* @ date)$(0 1 2))
+@	((a0$(0,0))* (a1$(0,,0))* (a2$(0,,,0))*)*
+	(nul, nul, retry in[`~`] clear[`~*`] select)
+	(nul* a0* a1* a2*)* 
 );
 
 notdate$(0,1 2):sseq:report;
