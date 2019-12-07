@@ -188,9 +188,9 @@
 		<tar basedir="." destfile="${jrte.project.tz}" compression="gzip" defaultexcludes="false" excludes="*.tar.gz"/>
 	</target>
 
-	<target name="all" depends="package-patterns" description="Incremental build for java and patterns" />
+	<target name="all" depends="package-test,package-patterns,package-source,javadoc" description="Incremental build for java and patterns" />
 
-	<target name="all-clean" depends="clean,package-test,package-patterns,package-source,javadoc" description="Full build for java and patterns" />
+	<target name="all-clean" depends="clean,all" description="Full build for java and patterns" />
 
 	<target name="all-deploy" depends="clean-deploy,tar-source,tar-deploy" description="Full build and deployment for java and patterns" />
 

@@ -294,83 +294,60 @@ T:			while (this.status() == ITransduction.RUNNABLE) {
 					final int transition[] = transitionMatrix[state + inputFilter[currentInput]];
 					state = transition[0];
 					int action = transition[1];
-					int effect = BaseEffector.RTE_TRANSDUCTION_RUN;
-					switch (action) {
-						case Transduction.RTE_EFFECTOR_NUL:
-							if (currentInput == this.nulSignal) {
-								debug = this.getErrorInput(inputArray, position, state);
-								throw new DomainErrorException(String.format("Domain error in %1$s %2$s", transducer.getName(), debug));
-							} else if (currentInput != this.eosSignal) {
-								effect |= this.in(this.nulSignal);
-								lastError = (char)currentInput;
-							}
-							break;
-						case Transduction.RTE_EFFECTOR_NIL:
-							break;
-						case Transduction.RTE_EFFECTOR_PASTE:
-							if (this.selectionPosition >= this.selectionValue.length) {
-								this.selectionValue = Arrays.copyOf(this.selectionValue, (this.selectionPosition * 3) >> 1);
-							}
-							this.selectionValue[this.selectionPosition++] = (char) currentInput;
-							break;
-						case Transduction.RTE_EFFECTOR_COUNT:
-							if (--transducerState.countdown[1] <= 0) {
-								effect |= this.in(transducerState.countdown[0]);
-								transducerState.countdown[1] = 0;
-							}
-							break;
-						case Transduction.RTE_EFFECTOR_MARK:
-							this.mark(inputBuffer, position);
-							limit = -1;
-							break;
-						case Transduction.RTE_EFFECTOR_RESET:
-							position = this.reset(inputBuffer, position);
-							break;
-						case Transduction.RTE_EFFECTOR_RETRY:
-							if (currentInput == this.nulSignal) {
-								effect |= this.in(new char[][] { { lastError } });
-							}
-							break;
-						default:
-							if (action > 0) {
-								effect |= this.effectors[action].invoke();
-							} else {
-								int index = -1 * action;
-								for (action = effectorVector[index]; action != Transduction.RTE_EFFECTOR_NUL; action = effectorVector[++index]) {
-									switch (action) {
-										case Transduction.RTE_EFFECTOR_NIL:
-											break;
-										case Transduction.RTE_EFFECTOR_PASTE:
-											if (this.selectionPosition >= this.selectionValue.length) {
-												this.selectionValue = Arrays.copyOf(this.selectionValue, (this.selectionPosition * 3) >> 1);
-											}
-											this.selectionValue[this.selectionPosition++] = (char) currentInput;
-											break;
-										case Transduction.RTE_EFFECTOR_COUNT:
-											if (--transducerState.countdown[1] <= 0) {
-												effect |= this.in(transducerState.countdown[0]);
-												transducerState.countdown[1] = 0;
-											}
-											break;
-										case Transduction.RTE_EFFECTOR_MARK:
-											this.mark(inputBuffer, position);
-											limit = -1;
-											break;
-										case Transduction.RTE_EFFECTOR_RESET:
-											position = this.reset(inputBuffer, position);
-											break;
-										case Transduction.RTE_EFFECTOR_RETRY:
-											if (currentInput == this.nulSignal) {
-												effect |= this.in(new char[][] { { lastError } });
-											}
-											break;
-										default:
-											effect |= action > 0 ? this.effectors[action].invoke() : ((IParameterizedEffector<?, ?>) this.effectors[-action]).invoke(effectorVector[++index]);
-											break;
-									}
-								}
-							}
+					int index = 0;
+					if (action < 0) {
+						index = -action;
+						action = effectorVector[index++];
 					}
+					
+					int effect = BaseEffector.RTE_TRANSDUCTION_RUN;
+					do {
+						switch (action) {
+							case Transduction.RTE_EFFECTOR_NUL:
+								if (currentInput == this.nulSignal) {
+									debug = this.getErrorInput(inputArray, position, state);
+									throw new DomainErrorException(String.format("Domain error in %1$s %2$s", transducer.getName(), debug));
+								} else if (currentInput != this.eosSignal) {
+									effect |= this.in(this.nulSignal);
+									lastError = (char)currentInput;
+								}
+								break;
+							case Transduction.RTE_EFFECTOR_NIL:
+								break;
+							case Transduction.RTE_EFFECTOR_PASTE:
+								if (this.selectionPosition >= this.selectionValue.length) {
+									this.selectionValue = Arrays.copyOf(this.selectionValue, (this.selectionPosition * 3) >> 1);
+								}
+								this.selectionValue[this.selectionPosition++] = (char) currentInput;
+								break;
+							case Transduction.RTE_EFFECTOR_COUNT:
+								if (--transducerState.countdown[1] <= 0) {
+									effect |= this.in(transducerState.countdown[0]);
+									transducerState.countdown[1] = 0;
+								}
+								break;
+							case Transduction.RTE_EFFECTOR_MARK:
+								this.mark(inputBuffer, position);
+								limit = -1;
+								break;
+							case Transduction.RTE_EFFECTOR_RESET:
+								position = this.reset(inputBuffer, position);
+								break;
+							case Transduction.RTE_EFFECTOR_RETRY:
+								if (currentInput == this.nulSignal) {
+									effect |= this.in(new char[][] { { lastError } });
+								}
+								break;
+							default:
+								effect |= action > 0 ? this.effectors[action].invoke() : ((IParameterizedEffector<?, ?>) this.effectors[-action]).invoke(effectorVector[index++]);
+								break;
+						}
+						if (index > 0) {
+							action = effectorVector[index++];
+						} else {
+							break;
+						}
+					} while (action != Transduction.RTE_EFFECTOR_NUL);
 					
 					if (effect != BaseEffector.RTE_TRANSDUCTION_RUN) {
 						final int clutch = effect & (BaseEffector.RTE_TRANSDUCTION_START | BaseEffector.RTE_TRANSDUCTION_STOP | BaseEffector.RTE_TRANSDUCTION_SHIFT);
