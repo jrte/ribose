@@ -37,21 +37,16 @@ public interface IEffector<T extends ITarget> {
 	 */
 	public static final int RTE_TRANSDUCTION_PUSH = 8;
 	/**
-	 * Return RTE_TRANSDUCTION_PUSH from effector.invoke() methods that push the
-	 * ITransduction input stack.
-	 */
-	public static final int RTE_TRANSDUCTION_POP = 16;
-	/**
 	 * Return RTE_TRANSDUCTION_PAUSE from an effector.invoke() method to force
 	 * immediate exit from run() on end of input if caller should continue when
 	 * input is available.
 	 */
-	public static final int RTE_TRANSDUCTION_PAUSE = 32;
+	public static final int RTE_TRANSDUCTION_PAUSE = 16;
 	/**
 	 * Return RTE_TRANSDUCTION_END from an effector.invoke() method to force
 	 * immediate and final exit from run() .
 	 */
-	public static final int RTE_TRANSDUCTION_END = 64;
+	public static final int RTE_TRANSDUCTION_END = 32;
 
 	/**
 	 * Returns the target that expresses the effector
