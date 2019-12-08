@@ -1,4 +1,3 @@
-all = AnyOrNul$0;
 delim = {'-','/','.','\\'};
 white = {space, tab, comma, nl, eos};
 yyyy = ((digit-'0') (digit:3)) @@ PasteAny;
@@ -25,20 +24,14 @@ numericDate = (
 
 numericDate$(0,1 2):sseq:report;
 
-day = dd | md | (
-	(digit,paste)?
-	(
-		(1, paste) 'st' | (2, paste) 'nd' | (3, paste) 'rd'
-	|	({4,5,6,7,8,9,0}, paste) 'th'
-	)
-);
+day = (dd | md) {'st','nd','rd','th'}?;
 
 month = {
 	({'J','j'} 'an', select[`~?`] paste[`01`] select[`~`]) 'uary'?,
 	({'F','f'} 'eb', select[`~?`] paste[`02`] select[`~`]) 'ruary'?,
 	({'M','m'} 'ar', select[`~?`] paste[`03`] select[`~`]) 'ch'?,
 	({'A','a'} 'pr', select[`~?`] paste[`04`] select[`~`]) 'il'?,
-	({'M','m'} 'ay', select[`~?`] paste[`05`] select[`~`])
+	({'M','m'} 'ay', select[`~?`] paste[`05`] select[`~`]),
 	({'J','j'} 'un', select[`~?`] paste[`06`] select[`~`]) 'e'?,
 	({'J','j'} 'ul', select[`~?`] paste[`07`] select[`~`]) 'y'?,
 	({'A','a'} 'ug', select[`~?`] paste[`08`] select[`~`]) 'ust'?,
@@ -62,7 +55,7 @@ date = (numericDate | alphanumericDate);
 
 date$(0,1 2):sseq:report;
 
-noise = (any - white) - (any & (date$0:pref));
+noise = (utf7 - white) - (utf7 & (date$0:pref));
 
 a0 = (date$0):alph;
 a1 = (date$1):alph;

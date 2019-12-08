@@ -61,7 +61,7 @@ LinuxKernel = (
 # Fact check. If A is empty, ginr will print nothing for (`NOT~ A is empty:\n` A):enum 3;
 
 #`NOT~ The domain of LinuxKernel restricted to text input (eliding signals other than nul) is (notnl* nl)*:\n` 
-#		((notnl* nl*)* ! (nil \ (LinuxKernel$0)) @ ((any$(0,0))* (nul, notnl))*):enum 3;
+#		((notnl* nl*)* ! (nil \ (LinuxKernel$0)) @ ((utf7$(0,0))* (nul, notnl))*):enum 3;
 
 #`NOT~ The image of matched lines on the range of LinuxKernel is contained in (clear (select paste*)* out)* clear select):\n` 
 #		((nil ((line$0) nl)* @ (LinuxKernel$(0,1))) - (clear (select paste*)* out)* clear select):enum 3;
