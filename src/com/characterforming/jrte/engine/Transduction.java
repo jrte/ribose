@@ -260,7 +260,7 @@ public final class Transduction implements ITransduction {
 		}
 		String debug = null;
 		int state = 0;
-		try {
+		if (inputBuffer != null) try {
 			char[] inputArray = inputBuffer.array();
 T:			while (this.status() == ITransduction.RUNNABLE) {
 				final TransducerState transducerState = this.transducerStack.peek();
@@ -278,7 +278,10 @@ T:			while (this.status() == ITransduction.RUNNABLE) {
 						currentInput = inputArray[position++];
 					} else {
 						currentInput = this.eosSignal;
-						inputBuffer.position(position);
+						if (inputBuffer != null) {
+							inputBuffer.position(position);
+							inputBuffer = null;
+						}
 						for (IInput input = this.inputStack.peek(); input != null; input = this.inputStack.pop()) {
 							inputBuffer = input.get();
 							if (inputBuffer != null && inputBuffer.hasRemaining()) {
@@ -327,11 +330,15 @@ T:			while (this.status() == ITransduction.RUNNABLE) {
 								}
 								break;
 							case Transduction.RTE_EFFECTOR_MARK:
-								this.mark(inputBuffer, position);
+								if (inputBuffer != null) {
+									this.mark(inputBuffer, position);
+								}
 								limit = -1;
 								break;
 							case Transduction.RTE_EFFECTOR_RESET:
-								position = this.reset(inputBuffer, position);
+								if (inputBuffer != null) {
+									position = this.reset(inputBuffer, position);
+								}
 								break;
 							case Transduction.RTE_EFFECTOR_RETRY:
 								if (currentInput == this.nulSignal) {
@@ -383,13 +390,10 @@ T:			while (this.status() == ITransduction.RUNNABLE) {
 					}
 					
 					if (currentInput == this.eosSignal) {
-						IInput input = this.inputStack.peek();
-						inputBuffer = (null != input) ? input.get() : null;
-						if (null != inputBuffer) {
-							inputArray = inputBuffer.array();
-							position = inputBuffer.position();
-							limit = inputBuffer.limit();
+						if (inputBuffer != null) {
+							inputBuffer.position(limit);
 						}
+						position = limit;
 						status = status();
 					}
 				}
@@ -583,13 +587,14 @@ T:			while (this.status() == ITransduction.RUNNABLE) {
 
 	int select(final int selectionIndex) {
 		final int currentIndex = this.selectionIndex;
-		this.selectionIndex = selectionIndex;
 		this.valueLength[currentIndex] = this.selectionPosition;
-		this.selectionPosition = this.valueLength[selectionIndex];
 		this.namedValue[currentIndex] = this.selectionValue;
+		this.selectionIndex = selectionIndex;
+		this.selectionPosition = this.valueLength[selectionIndex];
 		this.selectionValue = this.namedValue[selectionIndex];
 		if (this.selectionValue == null) {
 			this.selectionValue = new char[Transduction.INITIAL_NAMED_VALUE_CHARS];
+			assert(this.selectionPosition == 0);
 		}
 		return BaseEffector.RTE_TRANSDUCTION_RUN;
 	}
@@ -618,10 +623,8 @@ T:			while (this.status() == ITransduction.RUNNABLE) {
 	}
 
 	int cut(final int nameIndex) {
-		if (nameIndex != this.selectionIndex) {
-			this.copy(nameIndex);
-			this.valueLength[nameIndex] = 0;
-		}
+		this.copy(nameIndex);
+		this.valueLength[nameIndex] = 0;
 		return BaseEffector.RTE_TRANSDUCTION_RUN;
 	}
 
@@ -947,7 +950,13 @@ T:			while (this.status() == ITransduction.RUNNABLE) {
 
 		@Override
 		public final int invoke() throws EffectorException {
-			System.out.print(super.getTarget().getSelectedValue().getValue());
+			INamedValue handle = super.getTarget().getSelectedValue();
+			char value[] = handle.getValue();
+			int length = handle.getLength();
+			for (int i = 0; i < length; i++) {
+				System.out.print(value[i]);
+			}
+			System.out.flush();
 			return BaseEffector.RTE_TRANSDUCTION_RUN;
 		}
 
