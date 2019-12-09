@@ -26,12 +26,12 @@ public class LinuxKernelLogTest {
 			Jrte jrte = new Jrte(new File("build/patterns/Jrte.gears"), "com.characterforming.jrte.base.BaseTarget");
 			IInput[] inputs = new IInput[] {
 					jrte.input(new FileInputStream(f), Charset.defaultCharset()),
-					jrte.input(new char[][] { new char[] { 'n','i','l' } })
+					jrte.input(new char[][] { new char[] { '!','n','i','l' } })
 			};
 
 			ITransduction t = jrte.transduction(new BaseTarget());
 			long t0 = System.currentTimeMillis();
-			t.start("linuxkernel");
+			t.start("LinuxKernel");
 			t.input(inputs);
 			long t1 = System.currentTimeMillis();
 			t.run();

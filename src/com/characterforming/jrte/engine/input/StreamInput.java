@@ -48,7 +48,9 @@ public class StreamInput extends BaseInput {
 				int count = this.bytes.capacity() - this.bytes.limit();
 				if (0 < count) {
 					count = this.stream.read(buffer, this.bytes.limit(), count);
-					this.bytes.limit(this.bytes.limit() + count);
+					if (0 < count) {
+						this.bytes.limit(this.bytes.limit() + count);
+					}
 				}
 				if (this.bytes.position() < this.bytes.limit()) {
 					this.decoder.decode(this.bytes, empty, false);
