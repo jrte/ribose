@@ -9,6 +9,7 @@ import java.io.FileNotFoundException;
 import java.nio.charset.Charset;
 
 import org.junit.Test;
+import static org.junit.Assert.*;
 
 import com.characterforming.jrte.IInput;
 import com.characterforming.jrte.ITransduction;
@@ -40,6 +41,7 @@ public class LinuxKernelLogTest {
 			System.out.println();
 		} catch (Exception e) {
 			e.printStackTrace();
+			assertFalse(e.toString(), true);
 		}
 	}
 }
