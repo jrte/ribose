@@ -34,7 +34,7 @@ package com.characterforming.jrte;
  * IInput.get() will return null and force eos whenever it is called after the
  * last input ordinal is returned from the input stack. Transducers can explicitly handle
  * this by including a transition on eos. If eos is not explicitly handled the transduction
- * will simply stop and ({@link ITransduction#status()} will return {@link END}).
+ * will simply stop and ({@link ITransduction#status()} will return {@link STOPPED}).
  * 
  * @author kb
  */
@@ -42,17 +42,17 @@ public interface ITransduction extends ITarget {
 	/**
 	 * Transduction is paused, waiting for input; will be runnable when input is available
 	 */
-	public final static int PAUSED = IEffector.RTE_TRANSDUCTION_PAUSE;
+	public final static int PAUSED = IEffector.RTE_EFFECT_PAUSE;
 
 	/**
 	 * Transduction is runnable when status() == RUNNABLE
 	 */
-	public final static int RUNNABLE = IEffector.RTE_TRANSDUCTION_RUN;
+	public final static int RUNNABLE = IEffector.RTE_EFFECT_NONE;
 
 	/**
 	 * Transduction is not runnable because transduction stack is empty 
 	 */
-	public final static int END = IEffector.RTE_TRANSDUCTION_END;
+	public final static int STOPPED = IEffector.RTE_EFFECT_STOPPED;
 
 	/**
 	 * Set up or reset a transduction with a specified transducer at its start
@@ -99,7 +99,7 @@ public interface ITransduction extends ITarget {
 	 * <th align="left"><b>Description</b></th>
 	 * </tr>
 	 * <tr>
-	 * <td><b>{@link END}</b></td>
+	 * <td><b>{@link STOPPED}</b></td>
 	 * <td>Transduction stack is empty.</td>
 	 * </tr>
 	 * <tr>

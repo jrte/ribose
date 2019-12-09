@@ -82,7 +82,7 @@
  * using the {@link com.characterforming.jrte.ITransduction#start(String)} and 
  * {@link com.characterforming.jrte.ITransduction#input(IInput[])} methods. The run() method will 
  * return normally when the input stack is exhausted, or the transducer stack is empty, 
- * or an effector returns {@link com.characterforming.jrte.base.BaseEffector#RTE_TRANSDUCTION_PAUSE}. 
+ * or an effector returns {@link com.characterforming.jrte.base.BaseEffector#RTE_EFFECT_PAUSE}. 
  * <p>
  * Paused or excepting transduction can be continued by calling the run() method again, without
  * specifying new inputs. When the transducer stack is empty, the transduction can be 
@@ -98,13 +98,13 @@
  * <h4>Simple Effectors</h4>
  * The {@link com.characterforming.jrte.base.BaseEffector} base class implements the IEffector 
  * interface and specifies an abstract {@link com.characterforming.jrte.base.BaseEffector#invoke()} 
- * method that returns an int (typically returning {@link com.characterforming.jrte.base.BaseEffector#RTE_TRANSDUCTION_RUN}).
+ * method that returns an int (typically returning {@link com.characterforming.jrte.base.BaseEffector#RTE_EFFECT_NONE}).
  * <pre class="code">
  * new BaseEffector&lt;BaseTarget&gt;(this, "outln") {
  *    &#64;Override
  *    public int invoke() throws EffectorException {
  *       System.out.println();
- *       return BaseEffector.RTE_TRANSDUCTION_RUN;
+ *       return BaseEffector.RTE_EFFECT_NONE;
  *    }
  * };
  * </pre>
