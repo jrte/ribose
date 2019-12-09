@@ -17,8 +17,8 @@ import com.characterforming.jrte.ITransduction;
  * {@link #bind(ITransduction)} method, and these may serve as subclasses for 
  * additional extensions. Each subclass override must call super.bind() and
  * include the superclass effectors as predecessors of its own in the returned
- * list. In that context you should consider using a List<IEffector<?>> to 
- * accumulate subclass effectors and call List<..>.toArray() to obtain 
+ * list. In that context you should consider using a List&lt;IEffector&lt;?&gt;&gt; to 
+ * accumulate subclass effectors and call List&lt;..&gt;.toArray() to obtain 
  * top-level bindings to return.
  * 
  * @author kb

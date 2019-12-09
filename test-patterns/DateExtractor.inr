@@ -1,4 +1,4 @@
-delim = {'-','/','.','\\'};
+delim = ({'-','/','.','\\'}, '-');
 white = {space, tab, comma, nl, eos};
 yyyy = ((digit-'0') (digit:3)) @@ PasteAny;
 md = ('0'? (digit-'0') | '1' ('0'|'1'|'2')) @@ PasteAny;
@@ -7,18 +7,18 @@ dd = ('1' (digit-('0'|'1'|'2')) | '2' digit | '3' ('0'|'1')) @@ PasteAny;
 qy = `!_dmy`;
 yq = `!_ydm`;
 
-cutd0 = select[`~d0`] cut[`~`] select[`~`];
-cutd1 = select[`~d1`] cut[`~`] select[`~`];
-cutd2 = select[`~d2`] cut[`~`] select[`~`];
+d0 = ('-', select[`~d0`] cut[`~`] select[`~`]);
+d1 = ('-', select[`~d1`] cut[`~`] select[`~`]);
+d2 = select[`~d2`] cut[`~`] select[`~`];
 
 numericDate = (
-	(((digit$(0,0))* (delim, '-')*)* @@ (digit+ '-' digit+ '-' digit+)) (white$(0,0))
-@	(	md ('-', cutd0) dd ('-', cutd1) yyyy (white, cutd2 in[`!_mdy`])
-	|	dd ('-', cutd0) md ('-', cutd1) yyyy (white, cutd2 in[`!_dmy`])
-	|	yyyy ('-', cutd0) md ('-', cutd1) dd (white, cutd2 in[`!_ymd`])
-	|	yyyy ('-', cutd0) dd ('-', cutd1) md (white, cutd2 in[`!_ydm`])
-	|	md ('-', cutd0) md ('-', cutd1) yyyy (white, cutd2 in[qy])
-	|	yyyy ('-', cutd0) md ('-', cutd1) md (white, cutd2 in[yq])
+	(((digit$(0,0))* delim*)* @@ (digit+ '-' digit+ '-' digit+)) (white$(0,0))
+@	(	md d0	dd d1 yyyy	(white, d2 in[`!_mdy`])
+	|	dd d0	md d1 yyyy	(white, d2 in[`!_dmy`])
+	|	yyyy d0	md d1 dd	(white, d2 in[`!_ymd`])
+	|	yyyy d0	dd d1 md	(white, d2 in[`!_ydm`])
+	|	md d0	md d1 yyyy	(white, d2 in[qy])
+	|	yyyy d0	md d1 md	(white, d2 in[yq])
 	)
 );
 
@@ -41,12 +41,12 @@ month = {
 	({'D','d'} 'ec', select[`~?`] paste[`12`] select[`~`]) 'ember'?
 };
 
-monthday = month @ ((((month$2:alph) - `~?`)$(0,0))* (`~?`, `~d0`)*)*;
-daymonth = month @ ((((month$2:alph) - `~?`)$(0,0))* (`~?`, `~d1`)*)*;
+m0 = ((((month$2:alph) - `~?`)$(0,0))* (`~?`, `~d0`)*)*;
+m1 = ((((month$2:alph) - `~?`)$(0,0))* (`~?`, `~d1`)*)*;
 
 alphanumericDate = (
-	day (white, select[`~d0`] cut[`~`]) white* 'of'? white* daymonth white+ yyyy (white, select[`~d2`] cut[`~`] select[`~`] in[`!_dmy`])
-| 	monthday white+ day (white, select[`~d1`] cut[`~`] select[`~`]) white* yyyy (white, select[`~d2`] cut[`~`] select[`~`] in[`!_mdy`])
+	day (white, select[`~d0`] cut[`~`]) white* 'of'? white* (month @ m1) white+ yyyy (white, select[`~d2`] cut[`~`] select[`~`] in[`!_dmy`])
+| 	(month @ m0) white+ day (white, select[`~d1`] cut[`~`] select[`~`]) white* yyyy (white, select[`~d2`] cut[`~`] select[`~`] in[`!_mdy`])
 );
 
 alphanumericDate$(0,1 2):sseq:report;
@@ -57,6 +57,8 @@ date$(0,1 2):sseq:report;
 
 noise = (utf7 - white) - (utf7 & (date$0:pref));
 
+reset = clear[`~*`] select;
+
 a0 = (date$0):alph;
 a1 = (date$1):alph;
 a2 = (date$2):alph;
@@ -64,11 +66,16 @@ a2 = (date$2):alph;
 notdate = (
 	((AnyOrNul* @ date)$(0 1 2))
 @	((a0$(0,0))* (a1$(0,,0))* (a2$(0,,,0))*)*
-	(nul, nul, retry in[`~`] clear[`~*`] select)
+	(nul, nul, retry in[`~`] reset)
 	(nul* a0* a1* a2*)* 
 );
 
 notdate$(0,1 2):sseq:report;
+
+mdy = out[`~d2` '/' `~d0` '/' `~d1` nl] reset;
+dmy = out[`~d2` '/' `~d1` '/' `~d0` nl] reset;
+ymd = out[`~d0` '/' `~d1` '/' `~d2` nl] reset;
+ydm = out[`~d0` '/' `~d2` '/' `~d1` nl] reset;
 
 DateExtractor = (
 	nil?
@@ -77,10 +84,10 @@ DateExtractor = (
 		(
 			date
 			(
-				(`_mdy`, out['_mdy ' `~d2` '=' `~d0` '=' `~d1` nl] clear[`~*`] select)
-			|	(`_dmy`, out['_dmy ' `~d2` '=' `~d1` '=' `~d0` nl] clear[`~*`] select)
-			|	(`_ymd`, out['_ymd ' `~d0` '=' `~d1` '=' `~d2` nl] clear[`~*`] select)
-			|	(`_ydm`, out['_ydm ' `~d0` '=' `~d2` '=' `~d1` nl] clear[`~*`] select)
+				(`_mdy`, mdy)
+			|	(`_dmy`, dmy)
+			|	(`_ymd`, ymd)
+			|	(`_ydm`, ydm)
 			)
 		)*
 	)*

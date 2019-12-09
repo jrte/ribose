@@ -39,7 +39,7 @@ public interface IParameterizedEffector<T extends ITarget, P> extends IEffector<
 	 *           with the parameter value
 	 * @param parameterList An array of parameters, where each parameter is an
 	 *           array of bytes.
-	 * @throws TargetBindingException
+	 * @throws TargetBindingException On error
 	 */
 	public void setParameter(int parameterIndex, byte[][] parameterList) throws TargetBindingException;
 
@@ -59,7 +59,7 @@ public interface IParameterizedEffector<T extends ITarget, P> extends IEffector<
 	 * @param parameterIndex This index of the parameter object to be used in the
 	 *           invocation
 	 * @return User-defined effectors should return 0
-	 * @throws EffectorException
+	 * @throws EffectorException On error
 	 */
 	public int invoke(int parameterIndex) throws EffectorException;
 }

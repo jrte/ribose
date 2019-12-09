@@ -22,5 +22,5 @@ if (($argc>0)); then
 		cat $@ | java -Djrte.out.enabled=true -cp build/java/jrte-HEAD.jar com.characterforming.jrte.Jrte $nil $transducer $gearbox
 	fi
 else
-	echo -e "Usage:\tribase [--nil] <transducer-name> [<gearbox-path>] [<input-path> ...]\n\tDefault gearbox is build/patterns/Jrte.gears; stdin is default input path"
+	echo -e "Usage:\tjrte [--nil] <transducer-name> [<gearbox-path>] [<input-path> ...]\n\tDefault gearbox is build/patterns/Jrte.gears; stdin is default input path"
 fi

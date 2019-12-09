@@ -4127,6 +4127,6 @@ awords = {
 	('azure',`!azure`)
 };
 
-'Azerbaijan'@awords:;
-awords@`!Azerbaijan`:;
+#'Azerbaijan'@awords:;
+#awords@`!Azerbaijan`:;
 

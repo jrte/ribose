@@ -50,7 +50,7 @@ public interface ITarget {
 	 * 
 	 * @param transduction The Transduction that the target is being bound to
 	 * @return An array of IEffector instances implemented by the target.
-	 * @throws TargetBindingException
+	 * @throws TargetBindingException On error
 	 * @see BaseTarget#bind(ITransduction)
 	 */
 	public IEffector<?>[] bind(ITransduction transduction) throws TargetBindingException;

@@ -22,7 +22,7 @@ public final class SignalInput extends BaseInput {
 	 * Signal constructor
 	 * 
 	 * @param signals The inputs
-	 * @throws InputException
+	 * @throws InputException On error
 	 */
 	public SignalInput(final char[][] inputs) throws InputException {
 		super(inputs.length, 0);

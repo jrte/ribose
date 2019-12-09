@@ -22,9 +22,9 @@ public class FileRunner {
 
 	/**
 	 * @param args
-	 * @throws InterruptedException
-	 * @throws RteException
-	 * @throws IOException
+	 * @throws InterruptedException On error
+	 * @throws RteException On error
+	 * @throws IOException On error
 	 */
 	public static void main(final String[] args) throws InterruptedException, RteException, IOException {
 		if (args.length != 3) {
