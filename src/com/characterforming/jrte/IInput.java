@@ -22,7 +22,7 @@ public interface IInput {
 	 * buffer should be returned and with the updated position and limit.
 	 * 
 	 * @return The next block of input char, or null
-	 * @throws InputException
+	 * @throws InputException On error
 	 */
 	public CharBuffer get() throws InputException;
 
@@ -31,16 +31,16 @@ public interface IInput {
 	 * bound on the number of marked characters. Calls to reset() may fail after
 	 * this limit is reached.
 	 * 
-	 * @throws InputException If input has been reset but previous marked input remains
+	 * @throws InputException On error
 	 */
 	public void mark() throws InputException;
 
 	/**
 	 * Reset stream input at a previously marked position and clear the mark.
 	 * 
-	 * @throws InputException If no previous mark is set
 	 * @return The new position at the mark
-	 * @throws MarkLimitExceededException If the mark limit has been exceeded
+	 * @throws InputException On error
+	 * @throws MarkLimitExceededException On error
 	 */
 	public int reset() throws InputException, MarkLimitExceededException;
 }

@@ -60,18 +60,17 @@ public interface ITransduction extends ITarget {
 	 * {@link #input(IInput[])} method.
 	 * 
 	 * @param transducer The name of the transducer to start
-	 * @throws GearboxException
-	 * @throws TransducerNotFoundException
-	 * @throws RteException
+	 * @throws GearboxException On error
+	 * @throws TransducerNotFoundException On error
+	 * @throws RteException On error
 	 */
 	public void start(String transducer) throws RteException;
 
 	/**
 	 * Set up transduction inputs.
 	 * 
-	 * @param inputs Initial (or additional) inputs in LIFO order, inputs[0] is
-	 *           last out
-	 * @throws RteException If this method is called on an active transduction
+	 * @param inputs Initial (or additional) inputs in LIFO order, inputs[0] is last out
+	 * @throws RteException On error
 	 */
 	public void input(IInput[] inputs) throws RteException;
 
@@ -80,13 +79,11 @@ public interface ITransduction extends ITarget {
 	 * stack is empty, or an effector returns RTE_PAUSE, or an exception is thrown.
 	 * 
 	 * @return Run status of transduction at point of return 
-	 * @see status()
-	 * @throws DomainErrorException If a nul signal is presented and no
-	 *            transition is defined to handle it
-	 * @throws EffectorException If an effector throws an exception
-	 * @throws InputException If there is a problem relating to the transduction
-	 *            input stack
-	 * @throws RteException If this method is called on a running transduction
+	 * @see #status()
+	 * @throws DomainErrorException On error
+	 * @throws EffectorException On error
+	 * @throws InputException On error
+	 * @throws RteException On error
 	 */
 	public int run() throws RteException;
 
@@ -94,7 +91,7 @@ public interface ITransduction extends ITarget {
 	 * Test the status of the transduction's input and transducer stacks.
 	 * 
 	 * <table border="1" width="100%" cellpadding="3" cellspacing="0" summary="">
-	 * <tr bgcolor="#CCCCFF" class="TableHeadingColor">
+	 * <tr class="TableHeadingColor">
 	 * <th align="left"><b>Status</b></th>
 	 * <th align="left"><b>Description</b></th>
 	 * </tr>
@@ -140,7 +137,7 @@ public interface ITransduction extends ITarget {
 	 * 
 	 * @param valueName The name of the value
 	 * @return The numeric index of the value
-	 * @throws TargetBindingException If valueName is not recognized
+	 * @throws TargetBindingException On error
 	 */
 	public int getValueNameIndex(String valueName) throws TargetBindingException;
 

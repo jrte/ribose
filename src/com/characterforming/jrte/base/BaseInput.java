@@ -53,7 +53,7 @@ public abstract class BaseInput implements IInput {
 	 * @param empty A free buffer with a fixed backing char[] array that input
 	 *           can be read into
 	 * @return The next sequential block of input, or null if at end of input
-	 * @throws InputException
+	 * @throws InputException On error
 	 */
 	protected abstract CharBuffer next(CharBuffer empty) throws InputException;
 	

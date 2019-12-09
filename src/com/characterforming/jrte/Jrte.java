@@ -35,12 +35,14 @@ public final class Jrte {
 	
 	/**
 	 * Default Jrte runtime transduces System.in to System.out, with an optional nil signal as input prefix. 
-	 * <p>
-	 * <pre class="code">Usage: java -cp Jrte.jar com.characterforming.jrte.Jrte [--nil] <transducer-name> <gearbox-path></pre>
-	 * <p>
-	 * @param args
-	 * @throws SecurityException
-	 * @throws IOException
+	 * <pre class="code">Usage: java -cp Jrte.jar com.characterforming.jrte.Jrte [--nil] &lt;transducer-name&gt; &lt;gearbox-path&gt;</pre>
+	 * @param args [--nil] &lt;transducer-name&gt; &lt;gearbox-path&gt;
+	 * @throws SecurityException On error
+	 * @throws IOException On error
+	 * @throws RteException On error
+	 * @throws GearboxException On error
+	 * @throws TargetBindingException On error
+	 * @throws InputException On error
 	 */
 	public static void main(final String[] args) 
 			throws SecurityException, IOException, RteException, GearboxException, TargetBindingException, InputException {
@@ -89,8 +91,8 @@ public final class Jrte {
 	 * 
 	 * @param gearboxPath The path to the gearbox
 	 * @param targetClassName The fully qualified Java class name of the target class to bind to the transduction stack
-	 * @throws GearboxException If the gearbox is invalid or corrupt or cannot be instantiated
-	 * @throws TargetBindingException If the target or target effectors cannot be bound
+	 * @throws GearboxException On error
+	 * @throws TargetBindingException On error
 	 */
 	public Jrte(final File gearboxPath, final String targetClassName) throws GearboxException, TargetBindingException {
 		try {
@@ -112,10 +114,10 @@ public final class Jrte {
 	 * 
 	 * @param target The ITarget instance to bind to the transduction
 	 * @return The bound Transduction instance
-	 * @throws TargetBindingException If the target effectors cannot be bound
-	 * @throws TargetNotFoundException If the target class is not known to the gearbox
-	 * @throws GearboxException If the gearbox is invalid or corrupt
-	 * @throws TargetNotFoundException If the specified target class does not match gearbox target class
+	 * @throws TargetBindingException On error
+	 * @throws TargetNotFoundException On error
+	 * @throws GearboxException On error
+	 * @throws TargetNotFoundException On error
 	 */
 	public ITransduction transduction(final ITarget target) throws TargetBindingException, TargetNotFoundException, GearboxException, RteException {
 		if (target.getClass().equals(this.gearbox.getTarget().getClass())) {
@@ -132,8 +134,8 @@ public final class Jrte {
 	 * 
 	 * @param input The symbolic names for the signals and text segments to include in LIFO order (input[0] is last out)
 	 * @return An IInput containing the signal sequence
-	 * @throws GearboxException
-	 * @throws InputException
+	 * @throws GearboxException On error
+	 * @throws InputException On error
 	 */
 	public IInput input(final char[][] input) throws GearboxException, InputException {
 		int n = 0;
@@ -150,8 +152,8 @@ public final class Jrte {
 	 * 
 	 * @param infile The text input source
 	 * @return An IInput wrapping the input source
-	 * @throws GearboxException
-	 * @throws InputException
+	 * @throws GearboxException On error
+	 * @throws InputException On error
 	 */
 	public IInput input(final Reader infile) throws GearboxException, InputException {
 		return new ReaderInput(infile);
@@ -163,8 +165,8 @@ public final class Jrte {
 	 * @param infile The raw input source
 	 * @param charset The Charset to decode the raw input with
 	 * @return An IInput wrapping the input source
-	 * @throws GearboxException
-	 * @throws InputException
+	 * @throws GearboxException On error
+	 * @throws InputException On error
 	 */
 	public IInput input(final InputStream infile, final Charset charset) throws GearboxException, InputException {
 		return new StreamInput(infile, charset);

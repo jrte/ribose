@@ -2,7 +2,7 @@
  * Main package provides the transduction factory class Jrte and the interfaces that 
  * define the application integration points.
  * <p>
- * <img src="{@docRoot}/resources/Jrte.png"/>
+ * <img alt="Jrte" src="{@docRoot}/resources/Jrte.png">
  * <p>
  * Client applications use the {@link com.characterforming.jrte.Jrte#Jrte(File, String)} 
  * constructor to load a Gearbox compiled from ginr automata. The Gearbox instantiates 

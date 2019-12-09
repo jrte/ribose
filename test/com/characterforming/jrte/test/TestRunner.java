@@ -18,8 +18,8 @@ public class TestRunner {
 
 	/**
 	 * @param args
-	 * @throws InterruptedException
-	 * @throws RteException
+	 * @throws InterruptedException On error
+	 * @throws RteException On error
 	 */
 	public static void main(final String[] args) throws InterruptedException, RteException {
 		if (args.length == 0) {

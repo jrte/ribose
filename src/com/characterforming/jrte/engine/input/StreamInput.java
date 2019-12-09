@@ -25,7 +25,7 @@ public class StreamInput extends BaseInput {
 	/**
 	 * Constructor
 	 * 
-	 * @throws InputException
+	 * @throws InputException On error
 	 */
 	public StreamInput(final InputStream input, final Charset charset) throws InputException {
 		super(4, 4096);

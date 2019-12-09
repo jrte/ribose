@@ -18,22 +18,22 @@ public class MarkLimitExceededException extends InputException {
 	}
 
 	/**
-	 * @param message
+	 * @param message Exception message
 	 */
 	public MarkLimitExceededException(final String message) {
 		super(message);
 	}
 
 	/**
-	 * @param cause
+	 * @param cause Causal exception
 	 */
 	public MarkLimitExceededException(final Throwable cause) {
 		super(cause);
 	}
 
 	/**
-	 * @param message
-	 * @param cause
+	 * @param message Exception message
+	 * @param cause Causal exception
 	 */
 	public MarkLimitExceededException(final String message, final Throwable cause) {
 		super(message, cause);

@@ -23,7 +23,7 @@ public final class ReaderInput extends BaseInput {
 	 * Constructor
 	 * 
 	 * @param input The input source
-	 * @throws InputException
+	 * @throws InputException On error
 	 */
 	public ReaderInput(final Reader input) throws InputException {
 		super(4, 4096);

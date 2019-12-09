@@ -66,7 +66,7 @@ public interface IEffector<T extends ITarget> {
 	 * This method is invoked at runtime when triggered by an input transition.
 	 * 
 	 * @return User-defined effectors should return 0
-	 * @throws EffectorException
+	 * @throws EffectorException On error
 	 */
 	public int invoke() throws EffectorException;
 
