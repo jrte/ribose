@@ -92,7 +92,7 @@
 			</fileset>
 		</concat>
 		<fixcrlf file="${build.patterns.automata}/_all.inr" eol="lf" />
-		<exec failonerror="false" dir="${build.patterns.automata}" executable="etc/gnr/ginr" input="${build.patterns.automata}/_all.inr" outputproperty="ginr.output"/>
+		<exec failonerror="false" dir="${build.patterns.automata}" executable="etc/ginr/ginr" input="${build.patterns.automata}/_all.inr" outputproperty="ginr.output"/>
 		<echo message="${ginr.output}" />
 		<condition property="ginr.fail">
 			<or>
