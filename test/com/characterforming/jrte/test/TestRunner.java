@@ -31,10 +31,10 @@ public class TestRunner {
 		Thread.sleep(arg);
 		if (arg == 1) {
 			final RegexTest regex = new RegexTest();
-			System.out.printf("%16s: ", "RegexTest");
+			System.out.printf("%20s: ", "RegexTest");
 			regex.testRun();
 			final RegexGroupTest regexGroup = new RegexGroupTest();
-			System.out.printf("%16s: ", "RegexGroupTest");
+			System.out.printf("%20s: ", "RegexGroupTest");
 			regexGroup.testRun();
 		}
 		final char[] achars = new char[10000000];
@@ -55,7 +55,7 @@ public class TestRunner {
 		int n = 0;
 		for (final String test : tests) {
 			long t1 = 0, t2 = 0;
-			System.out.format("%16s: ", test);
+			System.out.format("%20s: ", test);
 			for (int i = 0; i < 20; i++) {
 				t.start(test);
 				inputs[n].rewind();

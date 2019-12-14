@@ -54,8 +54,9 @@ public class FileRunner {
 				// "May 15 07:58:52 kb-ubuntu kernel: [ 1794.599801] DROPPED IN=eth0 OUT= MAC=01:00:5e:00:00:fb:00:13:20:c0:36:32:08:00 SRC=192.168.144.101 DST=224.0.0.251 LEN=32 TOS=0x00 PREC=0x00 TTL=1 ID=8596 OPT (94040000) PROTO=2 "
 				final Jrte jrte = new Jrte(new File(gearboxPath), "com.characterforming.jrte.base.BaseTarget");
 				final ITransduction t = jrte.transduction(new BaseTarget());
-				if (!jrteOutEnabled) {
-					System.out.print(String.format("%20s: ", transducerName));
+				System.out.print(String.format("%20s: ", transducerName));
+				if (jrteOutEnabled) {
+					System.out.println();
 				}
 				int loops = jrteOutEnabled ? 1 : 20;
 				for (int i = 0; i < loops; i++) {
