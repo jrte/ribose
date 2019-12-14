@@ -16,6 +16,13 @@ import java.nio.CharBuffer;
  */
 public interface IInput {
 	/**
+	 * Test for end of input.
+	 * 
+	 * @return true if no more input
+	 */
+	public boolean isEmpty();
+	
+	/**
 	 * Get the next block of input from the source. The returned buffer may contain
 	 * mixed text (Unicode) and signal ordinal values. If the position returned with
 	 * the previous call is less than the limit returned from that call, the previous
@@ -31,16 +38,24 @@ public interface IInput {
 	 * bound on the number of marked characters. Calls to reset() may fail after
 	 * this limit is reached.
 	 * 
+	 * @return true unless at end of stream
+	 * 
 	 * @throws InputException On error
 	 */
-	public void mark() throws InputException;
+	public boolean mark() throws InputException;
 
 	/**
 	 * Reset stream input at a previously marked position and clear the mark.
 	 * 
-	 * @return The new position at the mark
+	 * @return An array of buffers containing marked input up to current position
 	 * @throws InputException On error
-	 * @throws MarkLimitExceededException On error
 	 */
-	public int reset() throws InputException, MarkLimitExceededException;
+	public CharBuffer[] reset() throws InputException;
+
+	/**
+	 * Rewind stream input to beginning and clear the mark.
+	 * 
+	 * @throws InputException On error
+	 */
+	public void rewind() throws InputException;
 }

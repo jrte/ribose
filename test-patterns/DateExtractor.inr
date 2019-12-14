@@ -57,7 +57,7 @@ date$(0,1 2):sseq:report;
 
 noise = (utf7 - white) - (utf7 & (date$0:pref));
 
-reset = clear[`~*`] select;
+reselect = clear[`~*`] select;
 
 a0 = (date$0):alph;
 a1 = (date$1):alph;
@@ -66,16 +66,16 @@ a2 = (date$2):alph;
 notdate = (
 	((AnyOrNul* @ date)$(0 1 2))
 @	((a0$(0,0))* (a1$(0,,0))* (a2$(0,,,0))*)*
-	(nul, nul, retry in[`~`] reset)
+	(nul, nul, echo in[`~`] reselect)
 	(nul* a0* a1* a2*)* 
 );
 
 notdate$(0,1 2):sseq:report;
 
-mdy = out[`~d2` '/' `~d0` '/' `~d1` nl] reset;
-dmy = out[`~d2` '/' `~d1` '/' `~d0` nl] reset;
-ymd = out[`~d0` '/' `~d1` '/' `~d2` nl] reset;
-ydm = out[`~d0` '/' `~d2` '/' `~d1` nl] reset;
+mdy = out[`~d2` '/' `~d0` '/' `~d1` nl] reselect;
+dmy = out[`~d2` '/' `~d1` '/' `~d0` nl] reselect;
+ymd = out[`~d0` '/' `~d1` '/' `~d2` nl] reselect;
+ydm = out[`~d0` '/' `~d2` '/' `~d1` nl] reselect;
 
 DateExtractor = (
 	nil?

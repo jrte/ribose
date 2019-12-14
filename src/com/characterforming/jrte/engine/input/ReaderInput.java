@@ -26,9 +26,8 @@ public final class ReaderInput extends BaseInput {
 	 * @throws InputException On error
 	 */
 	public ReaderInput(final Reader input) throws InputException {
-		super(4, 4096);
+		this.eof = (input == null);
 		this.reader = input;
-		this.eof = this.reader == null;
 	}
 
 	/*
@@ -36,14 +35,17 @@ public final class ReaderInput extends BaseInput {
 	 * @see com.characterforming.jrte.base.BaseInput#next()
 	 */
 	@Override
-	public CharBuffer next(final CharBuffer empty) throws InputException {
+	public CharBuffer get() throws InputException {
 		if (!this.eof) {
 			try {
-				final int count = this.reader.read(empty.array());
+				char[] chars = new char[1<<16];
+				final int count = this.reader.read(chars);
 				if (count > 0) {
-					empty.position(0);
-					empty.limit(count);
-					return empty;
+					CharBuffer buffer = CharBuffer.wrap(chars);
+					buffer.position(0);
+					buffer.limit(count);
+					super.got(buffer);
+					return buffer;
 				} else {
 					this.eof = true;
 				}

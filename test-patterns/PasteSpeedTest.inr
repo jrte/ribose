@@ -1,2 +1,2 @@
-PasteSpeedTest = ((a, paste)* (b, clear))* (`eos`, stop);
+PasteSpeedTest = nil? ((a, paste)* (b, clear))* (`eos`, stop);
 PasteSpeedTest :save `PasteSpeedTest.dfa`;

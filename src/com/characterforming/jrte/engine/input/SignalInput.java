@@ -5,7 +5,6 @@ package com.characterforming.jrte.engine.input;
 
 import java.nio.CharBuffer;
 
-import com.characterforming.jrte.IInput;
 import com.characterforming.jrte.InputException;
 import com.characterforming.jrte.base.BaseInput;
 
@@ -24,25 +23,39 @@ public final class SignalInput extends BaseInput {
 	 * @param signals The inputs
 	 * @throws InputException On error
 	 */
-	public SignalInput(final char[][] inputs) throws InputException {
-		super(inputs.length, 0);
+	public SignalInput(final CharBuffer inputs[]) throws InputException {
+		this.inputs = inputs;
 		this.index = 0;
+	}
+
+	/**
+	 * Signal constructor
+	 * 
+	 * @param signals The inputs
+	 * @throws InputException On error
+	 */
+	public SignalInput(final char[][] inputs) throws InputException {
 		this.inputs = new CharBuffer[inputs.length];
 		for (int i = 0; i < this.inputs.length; i++) {
 			this.inputs[i] = CharBuffer.wrap(inputs[i]);
 		}
+		this.index = 0;
 	}
 
 	/*
 	 * (non-Javadoc)
-	 * @see com.characterforming.jrte.base.BaseInput#next()
+	 * @see com.characterforming.jrte.base.BaseInput#get()
 	 */
 	@Override
-	public CharBuffer next(final CharBuffer empty) throws InputException {
-		while (this.index < this.inputs.length && !this.inputs[this.index].hasRemaining()) {
-			this.index++;
+	public CharBuffer get() throws InputException {
+		while (this.index < this.inputs.length) {
+			if (this.inputs[this.index].hasRemaining()) {
+				super.got(this.inputs[this.index]);
+				return this.inputs[this.index];
+			}
+			this.index += 1;
 		}
-		return this.index < this.inputs.length ? this.inputs[this.index] : null;
+		return null;
 	}
 
 	/*
@@ -50,10 +63,9 @@ public final class SignalInput extends BaseInput {
 	 * @see com.characterforming.jrte.base.BaseInput#rewind()
 	 */
 	@Override
-	public IInput rewind() {
+	public void rewind() {
 		while (this.index > 0) {
 			this.inputs[--this.index].rewind();
 		}
-		return super.rewind();
 	}
 }

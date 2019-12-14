@@ -2,7 +2,7 @@
 bin/
 build/
 doc/
-jrtc.log
-jrtc.out
-/jrte-deploy.tar.gz
-/jrte-source.tar.gz
+jars/*.jar
+*.gz
+/*.out
+/*.log

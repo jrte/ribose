@@ -3,7 +3,8 @@
 	<property name="java.source.dir" value="src" />
 	<property name="pattern.source.dir" value="test-patterns" />
 	<property name="java.test.dir" value="test" />
-	<property name="test.jars.dir" value="jars/test" />
+	<property name="jars.dir" value="jars" />
+	<property name="jars.test.dir" value="${jars.dir}/test" />
 	<property name="build.java" value="build/java" />
 	<property name="build.java.classes" value="${build.java}/classes" />
 	<property name="build.java.test" value="${build.java}/test" />
@@ -14,7 +15,6 @@
 	<property name="jrte.deploy.tz" value="jrte-deploy.tar.gz" />
 	<property name="jrte.project.tz" value="jrte-project.tar.gz" />
 	<property name="javadoc.dir" value="doc" />
-	<property name="jars" value="jars" />
 	<property name="svn.root" value="svn://localhost/jrte" />
 
 	<condition property="archive" value="${user.home}/archive">
@@ -31,16 +31,20 @@
 
 	<path id="test.classpath">
 		<pathelement location="${build.java.classes}"/>
-		<pathelement location="${jars}/test/junit-4.8.2.jar"/>
+		<pathelement location="${jars.test.dir}/junit-4.8.2.jar"/>
 	</path>
 
 	<path id="jrte.classpath">
-		<pathelement location="${build.java}/${ant.project.name}-${jrte.version.revision}.jar"/>
+		<pathelement location="${jars.dir}/${ant.project.name}-${jrte.version.revision}.jar"/>
 	</path>
 
 	<target name="clean-java">
 		<delete dir="${build.java}" quiet="true" />
+		<delete dir="${build.java.test}" quiet="true" />
 		<delete dir="${javadoc.dir}" quiet="true" />
+		<delete>
+		  <fileset dir="${jars.dir}" includes="*.jar"/>
+		</delete>
 	</target>
 
 	<target name="clean-patterns">
@@ -49,11 +53,9 @@
 
 	<target name="clean-deploy" depends="clean-java,clean-patterns">
 		<delete dir="${build.deploy}" quiet="true" />
-		<delete file="${jrte.source.tz}" quiet="true" />
-		<delete file="${jrte.deploy.tz}" quiet="true" />
 	</target>
 
-	<target name="clean" depends="clean-java,clean-patterns" />
+	<target name="clean" depends="clean-java,clean-patterns,clean-deploy" />
 
 	<target name="init">
 		<tstamp />
@@ -110,21 +112,21 @@
 		<copy file="LICENSE-gpl-3.0" todir="${build.java.classes}" />
 		<copy file="LICENSE-lgpl-3.0" todir="${build.java.classes}" />
 		<echo file="${build.java.classes}/VERSION" message="${ant.project.name}-${jrte.version.revision}" append="false" />
-		<jar basedir="${build.java.classes}" destfile="${build.java}/${ant.project.name}-${jrte.version.revision}.jar" />
+		<jar basedir="${build.java.classes}" destfile="${jars.dir}/${ant.project.name}-${jrte.version.revision}.jar" />
 	</target>
 
-	<target name="package-patterns" depends="compile-patterns,package-java" unless="ginr.fail" >
+	<target name="package-patterns" depends="compile-patterns,package-java,package-test" unless="ginr.fail" >
 		<java fork="true" dir ="." classname="com.characterforming.jrte.compile.GearboxCompiler" classpathref="jrte.classpath" failonerror="true">
 			<arg line="--maxchar 128 --target com.characterforming.jrte.base.BaseTarget ${build.patterns.automata} ${build.patterns}/Jrte.gears" />
 		</java>
 	</target>
 
-	<target name="package-test" depends="compile-test,package-java,package-patterns" unless="ginr.fail" >
-		<jar basedir="${build.java.test}" destfile="${build.java}/${ant.project.name}-${jrte.version.revision}-test.jar" />
+	<target name="package-test" depends="compile-test,package-java" unless="ginr.fail" >
+		<jar basedir="${build.java.test}" destfile="${jars.dir}/${ant.project.name}-${jrte.version.revision}-test.jar" />
 	</target>
 
 	<target name="package-source" depends="compile-java">
-		<jar basedir="${java.source.dir}" destfile="${build.java}/${ant.project.name}-${jrte.version.revision}-source.jar" />
+		<jar basedir="${java.source.dir}" destfile="${jars.dir}/${ant.project.name}-${jrte.version.revision}-source.jar" />
 	</target>
 
 	<target name="javadoc">
@@ -149,30 +151,28 @@
 				<include name="*.png" />
 			</fileset>
 		</copy>
-		<jar basedir="doc" destfile="${build.java}/${ant.project.name}-${jrte.version.revision}-javadoc.jar" />
+		<jar basedir="doc" destfile="${jars.dir}/${ant.project.name}-${jrte.version.revision}-javadoc.jar" />
 	</target>
 
 	<target name="tar-source" depends="package-patterns,package-test" unless="ginr.fail" >
-		<tar destfile="${jrte.source.tz}" compression="gzip">
+		<tar destfile="${build.deploy}/${jrte.source.tz}" compression="gzip">
 			<fileset dir=".">
-				<include name="**/*" />
-				<exclude name="bin/**" />
-				<exclude name="build/**" />
-				<exclude name="doc/**" />
-				<exclude name="*.tar.gz" />
+				<include name="src" />
+				<include name="test" />
+				<include name="test-patterns" />
 			</fileset>
 		</tar>
 	</target>
 
 	<target name="tar-deploy" depends="package-patterns,package-test,javadoc" unless="ginr.fail" >
-		<tar destfile="${jrte.deploy.tz}" compression="gzip">
+		<tar destfile="${build.deploy}/${jrte.deploy.tz}" compression="gzip">
 			<fileset dir="etc/sh">
 				<include name="*.sh" />
 			</fileset>
-			<fileset dir="${build.java}">
+			<fileset dir="${jars.dir}">
 				<include name="*.jar" />
 			</fileset>
-			<fileset dir="${test.jars.dir}">
+			<fileset dir="${jars.test.dir}">
 				<include name="*.jar" />
 			</fileset>
 			<fileset dir="${build.patterns}">
@@ -185,7 +185,7 @@
 	</target>
 
 	<target name="tar-project" depends="clean">
-		<tar basedir="." destfile="${jrte.project.tz}" compression="gzip" defaultexcludes="false" excludes="*.tar.gz"/>
+		<tar basedir="." destfile="${build.deploy}/${jrte.project.tz}" compression="gzip" defaultexcludes="false" excludes="*.tar.gz"/>
 	</target>
 
 	<target name="all" depends="package-test,package-patterns,package-source,javadoc" description="Incremental build for java and patterns" />
