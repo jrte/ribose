@@ -31,10 +31,10 @@ public class TestRunner {
 		Thread.sleep(arg);
 		if (arg == 1) {
 			final RegexTest regex = new RegexTest();
-			System.out.printf("%16s: ", "RegexTest");
+			System.out.printf("%20s: ", "RegexTest");
 			regex.testRun();
 			final RegexGroupTest regexGroup = new RegexGroupTest();
-			System.out.printf("%16s: ", "RegexGroupTest");
+			System.out.printf("%20s: ", "RegexGroupTest");
 			regexGroup.testRun();
 		}
 		final char[] achars = new char[10000000];
@@ -47,7 +47,7 @@ public class TestRunner {
 		final SignalInput input = (SignalInput) jrte.input(new char[][] {achars});
 		final SignalInput nilinput = (SignalInput) jrte.input(new char[][] {new String("!nil").toCharArray(), achars});
 		SignalInput[] inputs = new SignalInput[] {
-			nilinput, input, input, input, input, input, nilinput, nilinput, nilinput
+			nilinput, nilinput, nilinput, nilinput, nilinput, nilinput, nilinput, nilinput, nilinput
 		};
 		String[] tests = new String[] {
 				"StackTest", "NilSpeedTest", "PasteSpeedTest", "NilPauseTest", "PastePauseTest", "PasteCutTest", "SelectPasteTest", "CounterTest", "PasteCountTest"
@@ -55,10 +55,11 @@ public class TestRunner {
 		int n = 0;
 		for (final String test : tests) {
 			long t1 = 0, t2 = 0;
-			System.out.format("%16s: ", test);
+			System.out.format("%20s: ", test);
 			for (int i = 0; i < 20; i++) {
 				t.start(test);
-				t.input(new IInput[] { inputs[n].rewind() });
+				inputs[n].rewind();
+				t.input(new IInput[] { inputs[n] });
 				t1 = System.currentTimeMillis();
 				while (t.status() == ITransduction.RUNNABLE) {
 					t.run();

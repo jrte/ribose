@@ -28,7 +28,6 @@ public class StreamInput extends BaseInput {
 	 * @throws InputException On error
 	 */
 	public StreamInput(final InputStream input, final Charset charset) throws InputException {
-		super(4, 4096);
 		this.stream = input;
 		this.decoder = charset.newDecoder();
 		this.bytes = ByteBuffer.wrap(new byte[4096]);
@@ -38,40 +37,32 @@ public class StreamInput extends BaseInput {
 
 	/*
 	 * (non-Javadoc)
-	 * @see com.characterforming.jrte.base.BaseInput#next()
+	 * @see com.characterforming.jrte.base.BaseInput#get()
 	 */
 	@Override
-	public CharBuffer next(final CharBuffer empty) throws InputException {
+	public CharBuffer get() throws InputException {
 		if (!this.eof) {
 			try {
-				final byte[] buffer = this.bytes.array();
-				int count = this.bytes.capacity() - this.bytes.limit();
-				if (0 < count) {
-					count = this.stream.read(buffer, this.bytes.limit(), count);
-					if (0 < count) {
-						this.bytes.limit(this.bytes.limit() + count);
-					}
-				}
-				if (this.bytes.position() < this.bytes.limit()) {
-					this.decoder.decode(this.bytes, empty, false);
-					if (this.bytes.remaining() == 0) {
-						this.bytes.position(0);
-						this.bytes.limit(0);
-					}
-					return (CharBuffer) empty.flip();
-				} else if (this.bytes.remaining() == 0) {
+				final byte[] input = this.bytes.array();
+				int count = this.stream.read(input, 0, input.length);
+				if (count > 0) {
 					this.bytes.position(0);
-					this.bytes.limit(0);
-					this.eof = true;
-					return null;
-				} else {
+					this.bytes.limit(count);
+					char[] chars = new char[count];
+					CharBuffer buffer = CharBuffer.wrap(chars);
+					this.decoder.decode(this.bytes, buffer, false);
+					if (this.bytes.remaining() == 0) {
+						super.got(buffer);
+						return buffer;
+					}
 					throw new InputException(String.format("%1$d undecoded bytes remaining in at end of stream", this.bytes.remaining()));
+				} else {
+					this.eof = true;
 				}
 			} catch (final IOException e) {
 				throw new InputException("Caught an IOException reading from InputStream", e);
 			}
-		} else {
-			return null;
 		}
+		return null;
 	}
 }

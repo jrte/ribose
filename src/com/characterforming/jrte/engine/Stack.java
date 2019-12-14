@@ -10,15 +10,15 @@ import java.util.EmptyStackException;
  * @author kb
  */
 public final class Stack<T> {
-	private final boolean free;
+	private final boolean isStatic;
 	private T[] stack;
 	private int tos;
 
-	public Stack(final T[] initialItems, final boolean free) {
+	public Stack(final T[] initialItems, final boolean isStatic) {
 		final int initialSize = initialItems.length > 2 ? (initialItems.length * 3) >> 1 : 4;
 		this.stack = Arrays.copyOf(initialItems, initialSize);
 		this.tos = initialItems.length - 1;
-		this.free = free;
+		this.isStatic = isStatic;
 	}
 
 	private void stackcheck(final int itemCount) {
@@ -39,24 +39,14 @@ public final class Stack<T> {
 	}
 
 	/**
-	 * Push an array of items onto the stack. Items are
-	 * pushed in array order, items[0] is first in and last out.
+	 * Position a new frame at top of stack and return it (will be null unless stack is static).
 	 * 
-	 * @param items The items to push
-	 */
-	public void push(final T[] items) {
-		this.stackcheck(items.length);
-		System.arraycopy(items, 0, this.stack, 1 + this.tos - items.length, items.length);
-	}
-
-	/**
-	 * Push a empty item onto the stack and return it.
-	 * 
-	 * @param item The item to push
+	 * @param item The new frme (null if stack not static)
 	 */
 	public T next() {
+		assert(this.isStatic);
 		this.stackcheck(1);
-		final T item = this.stack[this.tos];
+		final T item = this.peek();
 		if (item == null) {
 			--this.tos;
 		}
@@ -107,7 +97,7 @@ public final class Stack<T> {
 	public T pop() {
 		if (this.tos >= 0) {
 			final T top = --this.tos >= 0 ? this.stack[this.tos] : null;
-			if (this.free) {
+			if (!this.isStatic) {
 				this.stack[this.tos + 1] = null;
 			}
 			return top;

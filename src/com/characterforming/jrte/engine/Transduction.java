@@ -21,7 +21,6 @@ import com.characterforming.jrte.IParameterizedEffector;
 import com.characterforming.jrte.ITarget;
 import com.characterforming.jrte.ITransduction;
 import com.characterforming.jrte.InputException;
-import com.characterforming.jrte.MarkLimitExceededException;
 import com.characterforming.jrte.RteException;
 import com.characterforming.jrte.TargetBindingException;
 import com.characterforming.jrte.TargetNotFoundException;
@@ -70,7 +69,7 @@ public final class Transduction implements ITransduction {
 
 	// Inline effector names
 	public static final String[] RTE_INLINE_EFFECTORS = {
-		"0", "1", "paste", "count", "mark", "reset", "retry"
+		"0", "1", "paste", "count", "mark", "reset", "echo"
 	};
 
 	// Inline effector ordinals
@@ -80,7 +79,9 @@ public final class Transduction implements ITransduction {
 	private static final int RTE_EFFECTOR_COUNT = 3;
 	private static final int RTE_EFFECTOR_MARK = 4;
 	private static final int RTE_EFFECTOR_RESET = 5;
-	private static final int RTE_EFFECTOR_RETRY = 6;
+	private static final int RTE_EFFECTOR_ECHO = 6;
+	
+	private static final int RTE_EFFECTOR_IN = 11;
 
 	// Base target (this) effectors.
 	private final IEffector<?>[] base = {
@@ -90,7 +91,7 @@ public final class Transduction implements ITransduction {
 		new InlineEffector(this, "count"),
 		new InlineEffector(this, "mark"),
 		new InlineEffector(this, "reset"),
-		new InlineEffector(this, "retry"),
+		new InlineEffector(this, "echo"),
 		new SelectEffector(this),
 		new CopyEffector(this),
 		new CutEffector(this),
@@ -216,7 +217,7 @@ public final class Transduction implements ITransduction {
 		if (transducer != null) {
 			this.inputStack = null;
 			final TransducerState[] state = new TransducerState[] { new TransducerState(0, transducer) };
-			this.transducerStack = new Stack<TransducerState>(state, false);
+			this.transducerStack = new Stack<TransducerState>(state, true);
 			this.selectionIndex = this.getNamedValueReference(Transduction.ANONYMOUS_VALUE_REFERENCE, false);
 			this.selectionValue = this.namedValue[this.selectionIndex] = new char[Transduction.INITIAL_NAMED_VALUE_CHARS];
 			this.selectionPosition = 0;
@@ -233,7 +234,7 @@ public final class Transduction implements ITransduction {
 	@Override
 	public void input(final IInput[] inputs) throws RteException {
 		if (this.inputStack == null) {
-			this.inputStack = new Stack<IInput>(inputs, true);
+			this.inputStack = new Stack<IInput>(inputs, false);
 		} else {
 			this.inputStack.put(inputs);
 		}
@@ -256,9 +257,11 @@ T:			while (this.status() == ITransduction.RUNNABLE) {
 				final int[] inputFilter = transducer.getInputFilter();
 				final int[][] transitionMatrix = transducer.getTransitionMatrix();
 				final int[] effectorVector = transducer.getEffectorVector();
-				state = transducerState.state;
 				
-				char lastError = 0;
+				state = transducerState.state;
+				inputBuffer = null;
+				
+				int errorInput = 0;
 				int currentInput = 0;
 				char[] inputArray = null;
 				int status = this.status();
@@ -269,19 +272,26 @@ T:			while (this.status() == ITransduction.RUNNABLE) {
 						currentInput = inputArray[position++];
 					} else {
 						currentInput = this.eosSignal;
-						if (inputBuffer != null) {
+						if ((limit >= 0) && (inputBuffer != null)) {
 							inputBuffer.position(position);
-							inputBuffer = null;
 						}
 						for (IInput input = this.inputStack.peek(); input != null; input = this.inputStack.pop()) {
 							inputBuffer = input.get();
-							if (inputBuffer != null && inputBuffer.hasRemaining()) {
+							if ((inputBuffer != null) && inputBuffer.hasRemaining()) {
 								inputArray = inputBuffer.array();
 								position = inputBuffer.position();
 								limit = inputBuffer.limit();
 								currentInput = inputArray[position++];
 								break;
 							}
+						}
+						if ((inputBuffer == null) || !inputBuffer.hasRemaining())  {
+							inputBuffer = null;
+							if ((currentInput != this.eosSignal) && (currentInput != this.nulSignal)) {
+								currentInput = this.eosSignal;
+							} else {
+								break T;
+							} 
 						}
 					}
 					
@@ -291,7 +301,7 @@ T:			while (this.status() == ITransduction.RUNNABLE) {
 					int action = transition[1];
 					int index = 0;
 					if (action < Transduction.RTE_EFFECTOR_NUL) {
-						index = -1 * action;
+						index = -action;
 						action = effectorVector[index++];
 					}
 					
@@ -305,7 +315,7 @@ T:			while (this.status() == ITransduction.RUNNABLE) {
 									throw new DomainErrorException(String.format("Domain error in %1$s %2$s", transducer.getName(), debug));
 								} else if (currentInput != this.eosSignal) {
 									effect |= this.in(this.nulSignal);
-									lastError = (char)currentInput;
+									errorInput = currentInput;
 								}
 								break;
 							case Transduction.RTE_EFFECTOR_NIL:
@@ -314,7 +324,7 @@ T:			while (this.status() == ITransduction.RUNNABLE) {
 								if (this.selectionPosition >= this.selectionValue.length) {
 									this.selectionValue = Arrays.copyOf(this.selectionValue, (this.selectionPosition * 3) >> 1);
 								}
-								this.selectionValue[this.selectionPosition++] = (char) currentInput;
+								this.selectionValue[this.selectionPosition++] = (char)currentInput;
 								break;
 							case Transduction.RTE_EFFECTOR_COUNT:
 								if (--transducerState.countdown[1] <= 0) {
@@ -324,22 +334,52 @@ T:			while (this.status() == ITransduction.RUNNABLE) {
 								break;
 							case Transduction.RTE_EFFECTOR_MARK:
 								if (inputBuffer != null) {
-									this.mark(inputBuffer, position);
+									CharBuffer buffer = null;
+									inputBuffer.position(position);
+									IInput input = this.inputStack.peek();
+									while ((input != null) && (buffer == null)) {
+										buffer = input.get();
+										if ((buffer == null) || !buffer.hasRemaining()) {
+											input = this.inputStack.pop();
+										}
+									}
+									if ((input != null) && input.mark()){
+										if (buffer != inputBuffer) {
+											effect |= IEffector.RTE_EFFECT_PUSH;
+										}
+									}
 								}
-								limit = -1;
 								break;
 							case Transduction.RTE_EFFECTOR_RESET:
 								if (inputBuffer != null) {
-									position = this.reset(inputBuffer, position);
+									inputBuffer.position(position);
+									IInput input = this.inputStack.peek();
+									CharBuffer[] buffers = input.reset();
+									if ((buffers != null) && (buffers.length > 0)) {
+										buffers[0].reset();
+										position = buffers[0].position();
+										for (int i = 1; i < buffers.length; i++) {
+											buffers[i].rewind();
+										}
+										assert(buffers[buffers.length - 1] == inputBuffer);
+										if (buffers.length > 2) {
+											buffers = Arrays.copyOfRange(buffers, 0, buffers.length - 2);
+											this.inputStack.push(new SignalInput(buffers));
+										}
+										effect |= IEffector.RTE_EFFECT_POP;
+										limit = -1;
+									}
 								}
-								break;
-							case Transduction.RTE_EFFECTOR_RETRY:
-								if (currentInput == this.nulSignal) {
-									effect |= this.in(new char[][] { { lastError } });
-								}
+							break;
+							case Transduction.RTE_EFFECTOR_ECHO:
+								effect |= this.in(new char[][] { { (char)((currentInput == this.nulSignal) ? errorInput : currentInput) } });
 								break;
 							default:
-								effect |= action > 0 ? this.effectors[action].invoke() : ((IParameterizedEffector<?, ?>) this.effectors[-action]).invoke(effectorVector[index++]);
+								if (action > 0) {
+									effect |= this.effectors[action].invoke();
+								} else {
+									effect |= ((IParameterizedEffector<?, ?>)this.effectors[-action]).invoke(effectorVector[index++]);
+								}
 								break;
 						}
 						if (index > 0) {
@@ -352,18 +392,29 @@ T:			while (this.status() == ITransduction.RUNNABLE) {
 					// Handle side effects relating to transduction status (input/transduction stacks)
 					if (effect != IEffector.RTE_EFFECT_NONE) {
 						
-						// Input pushed to input stack
-						if (0 != (effect & IEffector.RTE_EFFECT_PUSH)) {
-							status = status();
-							limit = -1; 
-						}
-												
+						inputBuffer.position(position);
+						
 						// Transducer pushed, popped, or shifted on transduction stack
 						if (0 != (effect & (IEffector.RTE_EFFECT_START | IEffector.RTE_EFFECT_STOP | IEffector.RTE_EFFECT_SHIFT))) {
 							if (0 != (effect & IEffector.RTE_EFFECT_START)) {
 								this.transducerStack.get(this.transducerStack.size() - 2).state = state;
 							}
+							status = this.status();
+							limit = -1; 
 							break;
+						}
+						
+						// Input pushed to input stack or reset to mark
+						if (0 != (effect & IEffector.RTE_EFFECT_PUSH)) {
+							status = this.status();
+							limit = -1; 
+						}
+												
+						// Input stack was popped one or more times to set mark
+						if (0 != (effect & IEffector.RTE_EFFECT_POP)) {
+							inputBuffer = null;
+							status = this.status();
+							limit = -1; 
 						}
 						
 						// Transduction paused or stopped
@@ -374,7 +425,7 @@ T:			while (this.status() == ITransduction.RUNNABLE) {
 					
 					// Check for status change after handling end of stream signal
 					if (currentInput == this.eosSignal) {
-						status = status();
+						status = this.status();
 					}
 				}
 			}
@@ -626,40 +677,6 @@ T:			while (this.status() == ITransduction.RUNNABLE) {
 		return IEffector.RTE_EFFECT_NONE;
 	}
 
-	private void mark(CharBuffer inputBuffer, final int position) throws EffectorException {
-		inputBuffer.position(position);
-		IInput input = this.inputStack.peek();
-		try {
-			if (!inputBuffer.hasRemaining()) {
-				do {
-					do {
-						inputBuffer = input.get();
-					} while (inputBuffer != null && !inputBuffer.hasRemaining());
-					if (inputBuffer == null) {
-						input = !this.inputStack.isEmpty() ? this.inputStack.pop() : null;
-						inputBuffer = input != null ? input.get() : null;
-					}
-				} while (inputBuffer != null && !inputBuffer.hasRemaining());
-			}
-			if (inputBuffer != null && input != null) {
-				input.mark();
-			}
-		} catch (final InputException e) {
-			throw new EffectorException("Unable to mark input", e);
-		}
-	}
-
-	private int reset(final CharBuffer inputBuffer, final int position) throws EffectorException {
-		inputBuffer.position(position);
-		try {
-			return this.inputStack.peek().reset();
-		} catch (final MarkLimitExceededException e) {
-			throw new EffectorException("Unable to reset input", e);
-		} catch (final InputException e) {
-			throw new EffectorException("Unable to reset input", e);
-		}
-	}
-
 	int counter(final int[] countdown) {
 		System.arraycopy(countdown, 0, this.transducerStack.peek().countdown, 0, countdown.length);
 		return IEffector.RTE_EFFECT_NONE;
@@ -671,7 +688,9 @@ T:			while (this.status() == ITransduction.RUNNABLE) {
 	}
 
 	int in(final int signal) throws InputException {
-		this.inputStack.push(this.signalInputs[signal - this.gearbox.getSignalBase()].rewind());
+		SignalInput input = this.signalInputs[signal - this.gearbox.getSignalBase()];
+		input.rewind();
+		this.inputStack.push(input);
 		return IEffector.RTE_EFFECT_PUSH;
 	}
 
@@ -792,7 +811,7 @@ T:			while (this.status() == ITransduction.RUNNABLE) {
 
 		@Override
 		public final int invoke() throws EffectorException {
-			throw new EffectorException(String.format("Cannot bind inline effector '%1$s'", super.getName()));
+			throw new EffectorException(String.format("Cannot invoke inline effector '%1$s'", super.getName()));
 		}
 	}
 
@@ -808,7 +827,7 @@ T:			while (this.status() == ITransduction.RUNNABLE) {
 
 		@Override
 		public final int invoke() throws EffectorException {
-			throw new EffectorException("Cannot bind inline effector 'paste'");
+			throw new EffectorException("Cannot invoke inline effector 'paste'");
 		}
 
 		@Override

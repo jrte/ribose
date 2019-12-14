@@ -1,2 +1,2 @@
 # /bin/bash
-java -cp build/java/jrte-HEAD.jar com.characterforming.jrte.compile.GearboxCompiler --maxchar 128 --target com.characterforming.jrte.base.BaseTarget build/patterns/automata build/patterns/Jrte.gears
+java -cp jars/jrte-HEAD.jar com.characterforming.jrte.compile.GearboxCompiler --maxchar 128 --target com.characterforming.jrte.base.BaseTarget build/patterns/automata build/patterns/Jrte.gears
