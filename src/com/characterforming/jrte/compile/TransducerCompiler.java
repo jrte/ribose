@@ -82,6 +82,7 @@ public final class TransducerCompiler extends Automaton {
 								for (final int element : effectVector) {
 									this.effectorVectorList.add(element);
 								}
+								this.effectorVectorMap.put(vector,  v);
 							}
 							transitionMatrix[inputOrdinal][rteState][1] = -v;
 						}

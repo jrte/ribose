@@ -81,8 +81,6 @@ public final class Transduction implements ITransduction {
 	private static final int RTE_EFFECTOR_RESET = 5;
 	private static final int RTE_EFFECTOR_ECHO = 6;
 	
-	private static final int RTE_EFFECTOR_IN = 11;
-
 	// Base target (this) effectors.
 	private final IEffector<?>[] base = {
 		new InlineEffector(this, "0"),
@@ -271,28 +269,26 @@ T:			while (this.status() == ITransduction.RUNNABLE) {
 					if (position < limit) {
 						currentInput = inputArray[position++];
 					} else {
-						currentInput = this.eosSignal;
-						if ((limit >= 0) && (inputBuffer != null)) {
-							inputBuffer.position(position);
-						}
-						for (IInput input = this.inputStack.peek(); input != null; input = this.inputStack.pop()) {
+						IInput input = this.inputStack.peek();
+						while (input != null) {
 							inputBuffer = input.get();
-							if ((inputBuffer != null) && inputBuffer.hasRemaining()) {
+							if (inputBuffer != null) {
 								inputArray = inputBuffer.array();
 								position = inputBuffer.position();
 								limit = inputBuffer.limit();
 								currentInput = inputArray[position++];
 								break;
 							}
+							input = this.inputStack.pop();
 						}
-						if ((inputBuffer == null) || !inputBuffer.hasRemaining())  {
+						if (input == null) {
 							inputBuffer = null;
 							if ((currentInput != this.eosSignal) && (currentInput != this.nulSignal)) {
 								currentInput = this.eosSignal;
 							} else {
 								break T;
 							} 
-						}
+						} 
 					}
 					
 					// Filter input to equivalence ordinal and map ordinal and state to next state and action
@@ -311,7 +307,7 @@ T:			while (this.status() == ITransduction.RUNNABLE) {
 						switch (action) {
 							case Transduction.RTE_EFFECTOR_NUL:
 								if (currentInput == this.nulSignal) {
-									debug = this.getErrorInput(inputArray, position, state);
+									debug = this.getErrorInput(this.inputStack.pop().get(), state);
 									throw new DomainErrorException(String.format("Domain error in %1$s %2$s", transducer.getName(), debug));
 								} else if (currentInput != this.eosSignal) {
 									effect |= this.in(this.nulSignal);
@@ -334,41 +330,14 @@ T:			while (this.status() == ITransduction.RUNNABLE) {
 								break;
 							case Transduction.RTE_EFFECTOR_MARK:
 								if (inputBuffer != null) {
-									CharBuffer buffer = null;
-									inputBuffer.position(position);
-									IInput input = this.inputStack.peek();
-									while ((input != null) && (buffer == null)) {
-										buffer = input.get();
-										if ((buffer == null) || !buffer.hasRemaining()) {
-											input = this.inputStack.pop();
-										}
-									}
-									if ((input != null) && input.mark()){
-										if (buffer != inputBuffer) {
-											effect |= IEffector.RTE_EFFECT_PUSH;
-										}
-									}
+									effect |= this.mark(inputBuffer, position);
 								}
 								break;
 							case Transduction.RTE_EFFECTOR_RESET:
 								if (inputBuffer != null) {
 									inputBuffer.position(position);
-									IInput input = this.inputStack.peek();
-									CharBuffer[] buffers = input.reset();
-									if ((buffers != null) && (buffers.length > 0)) {
-										buffers[0].reset();
-										position = buffers[0].position();
-										for (int i = 1; i < buffers.length; i++) {
-											buffers[i].rewind();
-										}
-										assert(buffers[buffers.length - 1] == inputBuffer);
-										if (buffers.length > 2) {
-											buffers = Arrays.copyOfRange(buffers, 0, buffers.length - 2);
-											this.inputStack.push(new SignalInput(buffers));
-										}
-										effect |= IEffector.RTE_EFFECT_POP;
-										limit = -1;
-									}
+									effect |= this.reset(inputBuffer);
+									position = this.inputStack.peek().get().position();
 								}
 							break;
 							case Transduction.RTE_EFFECTOR_ECHO:
@@ -389,40 +358,32 @@ T:			while (this.status() == ITransduction.RUNNABLE) {
 						}
 					} while (action != Transduction.RTE_EFFECTOR_NUL);
 					
-					// Handle side effects relating to transduction status (input/transduction stacks)
-					if (effect != IEffector.RTE_EFFECT_NONE) {
+					if ((position == limit) || (effect != IEffector.RTE_EFFECT_NONE)) {
+						// Synchronize position with input buffer at limit and when input/transducer stacks are modified 
+						if (inputBuffer != null) {
+							inputBuffer.position(position);
+						}
 						
-						inputBuffer.position(position);
-						
-						// Transducer pushed, popped, or shifted on transduction stack
-						if (0 != (effect & (IEffector.RTE_EFFECT_START | IEffector.RTE_EFFECT_STOP | IEffector.RTE_EFFECT_SHIFT))) {
-							if (0 != (effect & IEffector.RTE_EFFECT_START)) {
-								this.transducerStack.get(this.transducerStack.size() - 2).state = state;
+						// Handle side effects relating to transduction status (input/transduction stacks)
+						if (effect != IEffector.RTE_EFFECT_NONE) {
+							status = this.status();
+							if (0 != (effect & (IEffector.RTE_EFFECT_PUSH | IEffector.RTE_EFFECT_POP | IEffector.RTE_EFFECT_START | IEffector.RTE_EFFECT_STOP | IEffector.RTE_EFFECT_SHIFT))) {
+								// Input pushed, popped, marked or reset, or transducer stack pushed, popped, or shifted
+								limit = -1; 
+								if (0 != (effect & (IEffector.RTE_EFFECT_START | IEffector.RTE_EFFECT_STOP | IEffector.RTE_EFFECT_SHIFT))) {
+									if (0 != (effect & IEffector.RTE_EFFECT_START)) {
+										this.transducerStack.get(this.transducerStack.size() - 2).state = state;
+									}
+									break;
+								}
 							}
-							status = this.status();
-							limit = -1; 
-							break;
+							if (effect >= IEffector.RTE_EFFECT_PAUSE) {
+								// Transduction paused or stopped
+								break T;
+							} 
 						}
-						
-						// Input pushed to input stack or reset to mark
-						if (0 != (effect & IEffector.RTE_EFFECT_PUSH)) {
-							status = this.status();
-							limit = -1; 
-						}
-												
-						// Input stack was popped one or more times to set mark
-						if (0 != (effect & IEffector.RTE_EFFECT_POP)) {
-							inputBuffer = null;
-							status = this.status();
-							limit = -1; 
-						}
-						
-						// Transduction paused or stopped
-						if (effect >= IEffector.RTE_EFFECT_PAUSE) {
-							break T;
-						} 
 					}
-					
+										
 					// Check for status change after handling end of stream signal
 					if (currentInput == this.eosSignal) {
 						status = this.status();
@@ -445,179 +406,37 @@ T:			while (this.status() == ITransduction.RUNNABLE) {
 		return this.status();
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see com.characterforming.jrte.engine.ITransduction#status()
-	 */
-	@Override
-	public int status() {
-		if (this.transducerStack != null && !this.transducerStack.isEmpty()) {
-			return this.inputStack != null && !this.inputStack.isEmpty() ? ITransduction.RUNNABLE : ITransduction.PAUSED;
-		} else {
-			return ITransduction.STOPPED;
-		}
-	}
-
-	/*
-	 * (non-Javadoc)
-	 * @see com.characterforming.jrte.engine.ITransduction#getTarget()
-	 */
-	@Override
-	public ITarget getTarget() {
-		return this.target;
-	}
-
-	/*
-	 * (non-Javadoc)
-	 * @see com.characterforming.jrte.engine.ITransduction#listValueNames()
-	 */
-	@Override
-	public String[] listValueNames() {
-		return this.valueNameIndexMap.keySet().toArray(new String[this.valueNameIndexMap.size()]);
-	}
-
-	/*
-	 * (non-Javadoc)
-	 * @see com.characterforming.jrte.engine.ITransduction#getValueNameIndex()
-	 */
-	@Override
-	public int getValueNameIndex(final String valueName) throws TargetBindingException {
-		final Integer nameIndex = this.valueNameIndexMap.get(valueName);
-		if (nameIndex == null) {
-			throw new TargetBindingException(String.format("Named value index is null for name '%1$s'", valueName));
-		}
-		return nameIndex;
-	}
-
-	/*
-	 * (non-Javadoc)
-	 * @see com.characterforming.jrte.engine.ITransduction#getNamedValue()
-	 */
-	@Override
-	public final INamedValue getNamedValue(final int nameIndex) {
-		this.updateSelectedNamedValue();
-		if (nameIndex < this.namedValueHandles.length && this.namedValueHandles[nameIndex] != null) {
-			final NamedValue namedValueHandle = this.namedValueHandles[nameIndex];
-			namedValueHandle.setValue(this.namedValue[nameIndex]);
-			namedValueHandle.setLength(this.valueLength[nameIndex]);
-			return namedValueHandle;
-		} else {
-			return null;
-		}
-	}
-
-	/*
-	 * (non-Javadoc)
-	 * @see com.characterforming.jrte.engine.ITransduction#getSelectedValue()
-	 */
-	@Override
-	public final INamedValue getSelectedValue() {
-		this.updateSelectedNamedValue();
-		if (this.selectionIndex < this.namedValueHandles.length && this.namedValueHandles[this.selectionIndex] != null) {
-			final NamedValue namedValueHandle = this.namedValueHandles[this.selectionIndex];
-			namedValueHandle.setValue(this.namedValue[this.selectionIndex]);
-			namedValueHandle.setLength(this.valueLength[this.selectionIndex]);
-			return namedValueHandle;
-		} else {
-			return null;
-		}
-	}
-
-	/*
-	 * (non-Javadoc)
-	 * @see com.characterforming.jrte.engine.ITarget#getName()
-	 */
-	@Override
-	public String getName() {
-		return this.getClass().getName();
-	}
-
-	/*
-	 * (non-Javadoc)
-	 * @see com.characterforming.jrte.engine.ITarget#bind(ITransduction)
-	 */
-	@Override
-	public IEffector<?>[] bind(final ITransduction transduction) throws TargetBindingException {
-		return this.base;
-	}
-
-	/*
-	 * (non-Javadoc)
-	 * @see com.characterforming.jrte.engine.ITarget#getTransduction()
-	 */
-	@Override
-	public ITransduction getTransduction() {
-		return this;
-	}
-
-	/**
-	 * For internal use
-	 * 
-	 * @return The transduction target effectors
-	 */
-	public Gearbox getGearbox() {
-		return this.gearbox;
-	}
-
-	/**
-	 * For internal use
-	 * 
-	 * @return The transduction target effectors
-	 */
-	public IEffector<?>[] getEffectors() {
-		return this.effectors;
-	}
-
-	private String getErrorInput(final char[] inputArray, final int position, final int state) {
-		int start = (position < 16) ? 0 : position - 16;
-		String in = String.copyValueOf(inputArray, start, position - start);
-		return String.format("[state=%1$d; char=%2$d; pos=%3$d; <%4$s>]", state, (int)inputArray[position - 1], position, in);
-	}
-
-	private SignalInput[] getSignalInputs() throws InputException {
-		final SignalInput[] signals = new SignalInput[this.gearbox.getSignalCount()];
-		for (int i = 0; i < signals.length; i++) {
-			signals[i] = new SignalInput(new char[][] { new char[] { (char) (this.gearbox.getSignalBase() + i) } });
-		}
-		return signals;
-	}
-
-	Integer getNamedValueReference(final char[] chars, final boolean allocateIndex) {
-		if (chars != null && chars.length > 0 && chars[0] == Transduction.TYPE_REFERENCE_VALUE) {
-			final String valueName = new String(chars, 1, chars.length - 1);
-			Integer nameIndex = this.valueNameIndexMap.get(valueName);
-			if (nameIndex == null && allocateIndex) {
-				nameIndex = this.valueNameIndexMap.size();
-				this.valueNameIndexMap.put(valueName, nameIndex);
-				this.valueLength[nameIndex] = 0;
+	private int mark(CharBuffer inputBuffer, int position) throws InputException {
+		CharBuffer buffer = null;
+		inputBuffer.position(position);
+		IInput input = this.inputStack.peek();
+		while (input != null) {
+			buffer = input.get();
+			if ((buffer != null) && buffer.hasRemaining()) {
+				input.mark();
+				break;
 			}
-			return nameIndex;
+			input = this.inputStack.pop();
 		}
-		return null;
+		return (buffer != inputBuffer) ? IEffector.RTE_EFFECT_POP : IEffector.RTE_EFFECT_NONE;
 	}
 
-	void updateSelectedNamedValue() {
-		this.namedValue[this.selectionIndex] = this.selectionValue;
-		this.valueLength[this.selectionIndex] = this.selectionPosition;
-	}
-
-	char[] copyNamedValue(final int nameIndex) {
-		this.updateSelectedNamedValue();
-		if (this.namedValue[nameIndex] != null) {
-			return Arrays.copyOf(this.namedValue[nameIndex], this.valueLength[nameIndex]);
-		} else {
-			return Transduction.EMPTY;
-		}
-	}
-
-	void ensureNamedValueCapacity(final int maxIndex) {
-		if (this.namedValue.length < maxIndex) {
-			this.valueLength = Arrays.copyOf(this.valueLength, maxIndex);
-			this.namedValue = Arrays.copyOf(this.namedValue, maxIndex);
-			for (int i = this.namedValue.length; i < maxIndex; i++) {
-				this.namedValue[i] = null;
+	private int reset(CharBuffer inputBuffer) throws InputException {
+		IInput input = this.inputStack.peek();
+		CharBuffer[] buffers = input.reset();
+		if ((buffers != null) && (buffers.length > 0)) {
+			buffers[0].reset();
+			for (int i = 1; i < buffers.length; i++) {
+				buffers[i].rewind();
 			}
+			assert(buffers[buffers.length - 1] == inputBuffer);
+			if (buffers.length > 2) {
+				buffers = Arrays.copyOfRange(buffers, 0, buffers.length - 2);
+				this.inputStack.push(new SignalInput(buffers));
+			}
+			return IEffector.RTE_EFFECT_PUSH;
 		}
+		return IEffector.RTE_EFFECT_NONE;
 	}
 
 	int select(final int selectionIndex) {
@@ -745,6 +564,198 @@ T:			while (this.status() == ITransduction.RUNNABLE) {
 			return IEffector.RTE_EFFECT_STOPPED;
 		} catch (final Exception e) {
 			throw new EffectorException("The stop effector failed", e);
+		}
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * @see com.characterforming.jrte.engine.ITransduction#status()
+	 */
+	@Override
+	public int status() {
+		if (this.transducerStack != null && !this.transducerStack.isEmpty()) {
+			return this.inputStack != null && !this.inputStack.isEmpty() ? ITransduction.RUNNABLE : ITransduction.PAUSED;
+		} else {
+			return ITransduction.STOPPED;
+		}
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * @see com.characterforming.jrte.engine.ITransduction#getTarget()
+	 */
+	@Override
+	public ITarget getTarget() {
+		return this.target;
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * @see com.characterforming.jrte.engine.ITransduction#listValueNames()
+	 */
+	@Override
+	public String[] listValueNames() {
+		return this.valueNameIndexMap.keySet().toArray(new String[this.valueNameIndexMap.size()]);
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * @see com.characterforming.jrte.engine.ITransduction#getValueNameIndex()
+	 */
+	@Override
+	public int getValueNameIndex(final String valueName) throws TargetBindingException {
+		final Integer nameIndex = this.valueNameIndexMap.get(valueName);
+		if (nameIndex == null) {
+			throw new TargetBindingException(String.format("Named value index is null for name '%1$s'", valueName));
+		}
+		return nameIndex;
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * @see com.characterforming.jrte.engine.ITransduction#getNamedValue()
+	 */
+	@Override
+	public final INamedValue getNamedValue(final int nameIndex) {
+		this.updateSelectedNamedValue();
+		if (nameIndex < this.namedValueHandles.length && this.namedValueHandles[nameIndex] != null) {
+			final NamedValue namedValueHandle = this.namedValueHandles[nameIndex];
+			namedValueHandle.setValue(this.namedValue[nameIndex]);
+			namedValueHandle.setLength(this.valueLength[nameIndex]);
+			return namedValueHandle;
+		} else {
+			return null;
+		}
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * @see com.characterforming.jrte.engine.ITransduction#getSelectedValue()
+	 */
+	@Override
+	public final INamedValue getSelectedValue() {
+		this.updateSelectedNamedValue();
+		if (this.selectionIndex < this.namedValueHandles.length && this.namedValueHandles[this.selectionIndex] != null) {
+			final NamedValue namedValueHandle = this.namedValueHandles[this.selectionIndex];
+			namedValueHandle.setValue(this.namedValue[this.selectionIndex]);
+			namedValueHandle.setLength(this.valueLength[this.selectionIndex]);
+			return namedValueHandle;
+		} else {
+			return null;
+		}
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * @see com.characterforming.jrte.engine.ITarget#getName()
+	 */
+	@Override
+	public String getName() {
+		return this.getClass().getName();
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * @see com.characterforming.jrte.engine.ITarget#bind(ITransduction)
+	 */
+	@Override
+	public IEffector<?>[] bind(final ITransduction transduction) throws TargetBindingException {
+		return this.base;
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * @see com.characterforming.jrte.engine.ITarget#getTransduction()
+	 */
+	@Override
+	public ITransduction getTransduction() {
+		return this;
+	}
+
+	/**
+	 * For internal use
+	 * 
+	 * @return The transduction target effectors
+	 */
+	public Gearbox getGearbox() {
+		return this.gearbox;
+	}
+
+	/**
+	 * For internal use
+	 * 
+	 * @return The transduction target effectors
+	 */
+	public IEffector<?>[] getEffectors() {
+		return this.effectors;
+	}
+
+	private String getErrorInput(final CharBuffer input, final int state) {
+		String error = "<unknown>";
+		if (input != null) {
+			char[] array = input.array();
+			int position = input.position() - 1;
+			int start = (position < 8) ? 0 : position - 8;
+			int end = Math.min(start + 16, input.limit());
+			String format = "[state=%1$d; char=0x%2$x; pos=%3$d; <";
+			error = String.format(format, state, (int) array[position], position);
+			while (start < end) {
+				char ch = array[start];
+				if (Character.getType(ch) != Character.CONTROL) {
+					error += String.format((start != position) ? " %1$c " : "[%1$c]", ch);
+				} else {
+					error += String.format((start != position) ? " 0x%1$x " : "[0x%1$x]", (int)ch);
+				}
+				start += 1;
+			}
+			error += ">";
+		}
+		return error;
+	}
+
+	private SignalInput[] getSignalInputs() throws InputException {
+		final SignalInput[] signals = new SignalInput[this.gearbox.getSignalCount()];
+		for (int i = 0; i < signals.length; i++) {
+			signals[i] = new SignalInput(new char[][] { new char[] { (char) (this.gearbox.getSignalBase() + i) } });
+		}
+		return signals;
+	}
+
+	Integer getNamedValueReference(final char[] chars, final boolean allocateIndex) {
+		if (chars != null && chars.length > 0 && chars[0] == Transduction.TYPE_REFERENCE_VALUE) {
+			final String valueName = new String(chars, 1, chars.length - 1);
+			Integer nameIndex = this.valueNameIndexMap.get(valueName);
+			if (nameIndex == null && allocateIndex) {
+				nameIndex = this.valueNameIndexMap.size();
+				this.valueNameIndexMap.put(valueName, nameIndex);
+				this.valueLength[nameIndex] = 0;
+			}
+			return nameIndex;
+		}
+		return null;
+	}
+
+	void updateSelectedNamedValue() {
+		this.namedValue[this.selectionIndex] = this.selectionValue;
+		this.valueLength[this.selectionIndex] = this.selectionPosition;
+	}
+
+	char[] copyNamedValue(final int nameIndex) {
+		this.updateSelectedNamedValue();
+		if (this.namedValue[nameIndex] != null) {
+			return Arrays.copyOf(this.namedValue[nameIndex], this.valueLength[nameIndex]);
+		} else {
+			return Transduction.EMPTY;
+		}
+	}
+
+	void ensureNamedValueCapacity(final int maxIndex) {
+		if (this.namedValue.length < maxIndex) {
+			this.valueLength = Arrays.copyOf(this.valueLength, maxIndex);
+			this.namedValue = Arrays.copyOf(this.namedValue, maxIndex);
+			for (int i = this.namedValue.length; i < maxIndex; i++) {
+				this.namedValue[i] = null;
+			}
 		}
 	}
 

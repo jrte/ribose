@@ -19,8 +19,9 @@ public interface IInput {
 	 * Test for end of input.
 	 * 
 	 * @return true if no more input
+	 * @throws InputException On error
 	 */
-	public boolean isEmpty();
+	public boolean isEmpty() throws InputException;
 	
 	/**
 	 * Get the next block of input from the source. The returned buffer may contain

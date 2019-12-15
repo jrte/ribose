@@ -37,7 +37,7 @@ public interface IEffector<T extends ITarget> {
 	 */
 	public static final int RTE_EFFECT_PUSH = 8;
 	/**
-	 * Return RTE_EFFECT_POP from effector.invoke() methods that push the
+	 * Return RTE_EFFECT_POP from effector.invoke() methods that pop the
 	 * ITransduction input stack.
 	 */
 	public static final int RTE_EFFECT_POP = 16;

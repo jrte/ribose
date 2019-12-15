@@ -25,11 +25,16 @@ public abstract class BaseInput implements IInput {
 		this.current = null;
 	}
 	
-	/** 
-	 * Test for emp
+	/*
+	 * (non-Javadoc)
+	 * @see com.characterforming.jrte.IInput#isEmpty()
 	 */
-	public boolean isEmpty() {
-		return (this.current == null) || !this.current.hasRemaining();
+	@Override
+	public boolean isEmpty() throws InputException {
+		while ((this.current == null) || !this.current.hasRemaining()) {
+			this.current = this.get();
+		}
+		return this.current == null;
 	}
 
 	/*
