@@ -15,6 +15,7 @@ import java.util.logging.SimpleFormatter;
 
 import com.characterforming.jrte.CompilationException;
 import com.characterforming.jrte.GearboxException;
+import com.characterforming.jrte.IEffector;
 import com.characterforming.jrte.ITarget;
 import com.characterforming.jrte.TargetBindingException;
 import com.characterforming.jrte.TargetNotFoundException;
@@ -38,7 +39,13 @@ public final class GearboxCompiler {
 		this.gearboxOutputPath = gearboxOutputPath;
 		this.charset = charset;
 		this.gearbox = new Gearbox(gearboxOutputPath, charset, target, maxchar);
-		this.targetCompiler = new TargetCompiler(target);
+		Transduction transduction = new Transduction(gearbox);
+		IEffector<?>[] baseEffectors = transduction.bind(transduction);
+		IEffector<?>[] targetEffectors = target.bind(transduction);
+		IEffector<?>[] effectors = new IEffector<?>[baseEffectors.length + targetEffectors.length];
+		System.arraycopy(baseEffectors, 0, effectors, 0, baseEffectors.length);
+		System.arraycopy(targetEffectors, 0, effectors, baseEffectors.length, targetEffectors.length);
+		this.targetCompiler = new TargetCompiler(target, effectors);
 	}
 
 	public static void main(final String[] args) throws SecurityException, IOException {

@@ -48,9 +48,7 @@ public abstract class BaseInputOutputEffector extends BaseParameterizedEffector<
 
 	/*
 	 * (non-Javadoc)
-	 * @see
-	 * com.characterforming.jrte.engine.IParameterizedEffector#setParameter(int,
-	 * byte[][])
+	 * @see com.characterforming.jrte.engine.IParameterizedEffector#setParameter(int, byte[][])
 	 */
 	@Override
 	public void setParameter(final int parameterIndex, final byte[][] parameterList) throws TargetBindingException {
@@ -61,7 +59,8 @@ public abstract class BaseInputOutputEffector extends BaseParameterizedEffector<
 		for (int i = 0; i < parameterList.length; i++) {
 			parameter[i] = super.decodeParameter(parameterList[i]);
 			if (parameter[i][0] == Transduction.TYPE_REFERENCE_VALUE) {
-				final Integer nameIndex = super.getTarget().getNamedValueReference(parameter[i], false);
+				final char[] referenceName = Arrays.copyOfRange(parameter[i], 1, parameter[i].length);
+				final Integer nameIndex = super.getTarget().getNamedValueReference(referenceName, true);
 				if (nameIndex != null) {
 					super.getTarget().ensureNamedValueCapacity(nameIndex);
 					parameter[i] = new char[] { Character.MAX_VALUE, (char) nameIndex.intValue() };
@@ -92,7 +91,8 @@ public abstract class BaseInputOutputEffector extends BaseParameterizedEffector<
 			parameter = Arrays.copyOf(parameter, parameter.length);
 			for (int i = 0; i < parameter.length; i++) {
 				if (parameter[i][0] == Character.MAX_VALUE) {
-					parameter[i] = super.getTarget().copyNamedValue(parameter[i][1]);
+					int namedValueIndex = (int)parameter[i][1];
+					parameter[i] = super.getTarget().copyNamedValue(namedValueIndex);
 				}
 			}
 		}

@@ -16,7 +16,9 @@ import com.characterforming.jrte.CompilationException;
 import com.characterforming.jrte.GearboxException;
 import com.characterforming.jrte.compile.array.Ints;
 import com.characterforming.jrte.compile.array.IntsArray;
+import com.characterforming.jrte.engine.BaseNamedValueEffector;
 import com.characterforming.jrte.engine.Gearbox;
+import com.characterforming.jrte.engine.Transduction;
 
 public final class TransducerCompiler extends Automaton {
 	private final Gearbox gearbox;
@@ -148,6 +150,7 @@ public final class TransducerCompiler extends Automaton {
 
 	private Chain chain(final Transition transition) {
 		assert (transition.getTape() == 0) : String.format("Invalid tape number for chain(Transition) : %1$d)", transition.getTape());
+		int effectorOrdinal = -1;
 		int effectorPos = 0;
 		int[] effectorVector = new int[8];
 		int parameterPos = 0;
@@ -161,25 +164,21 @@ public final class TransducerCompiler extends Automaton {
 						effectorVector = Arrays.copyOf(effectorVector, (effectorVector.length * 3) >> 1);
 					}
 					if (parameterPos > 0) {
-						final int parameterizedEffectorOrdinal = effectorVector[effectorPos - 1];
+						assert((effectorPos >= 0) && (effectorOrdinal == effectorVector[effectorPos - 1])); 
 						final byte[][] parameters = Arrays.copyOf(parameterList, parameterPos);
 						effectorVector[effectorPos - 1] *= -1;
-						effectorVector[effectorPos++] = this.targetCompiler.getParametersIndex(parameterizedEffectorOrdinal, parameters);
+						effectorVector[effectorPos++] = this.targetCompiler.getParametersIndex(effectorOrdinal, parameters);
 						parameterList = new byte[8][];
 						parameterPos = 0;
 					}
-					final Integer effectorOrdinal = this.targetCompiler.getEffectorOrdinal(t.getString());
-					if (effectorOrdinal != null) {
-						effectorVector[effectorPos++] = effectorOrdinal;
-					} else {
-						super.error(String.format("Unknown effector '%1$s' in transition %2$s", t.getString(), t.toString()));
-					}
+					effectorOrdinal = this.targetCompiler.getEffectorOrdinal(t.getString());
+					effectorVector[effectorPos++] = effectorOrdinal;
 					break;
 				case 2:
 					if (parameterPos >= parameterList.length) {
 						parameterList = Arrays.copyOf(parameterList, (parameterList.length * 3) >> 1);
 					}
-					parameterList[parameterPos++] = t.getBytes();
+					parameterList[parameterPos++] = compileParameterTransition(effectorOrdinal, t.getBytes());
 					break;
 				default:
 					super.error(String.format("Invalid tape number in transducer : %1$s", t.toString()));
@@ -220,5 +219,14 @@ public final class TransducerCompiler extends Automaton {
 			}
 			return null;
 		}
+	}
+
+	public byte[] compileParameterTransition(int effectorOrdinal, byte[] bytes) {
+		if (this.targetCompiler.getEffector(effectorOrdinal) instanceof BaseNamedValueEffector) {
+			if ((bytes.length == 1)&& (bytes[0]== Transduction.ANONYMOUS_VALUE_COMPILER[0][0])) {
+				return Transduction.ANONYMOUS_VALUE_RUNTIME[0]; 
+			}
+		}
+		return bytes;
 	}
 }

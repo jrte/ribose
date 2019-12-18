@@ -33,6 +33,14 @@ public interface IInput {
 	 * @throws InputException On error
 	 */
 	public CharBuffer get() throws InputException;
+	
+	/**
+	 * Peek at the current buffer. Implementations must retain this reference to the most 
+	 * recent return from get().
+	 * 
+	 * @return The current buffer, which may be spent, or null if get() not yet called.
+	 */
+	public CharBuffer current(); 
 
 	/**
 	 * Mark a position in the input stream. The implementation class may set an upper

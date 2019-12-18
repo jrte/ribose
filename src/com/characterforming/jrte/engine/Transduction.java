@@ -51,7 +51,7 @@ public final class Transduction implements ITransduction {
 	public static final String[] RTE_SIGNAL_NAMES = {
 		"nul", "nil", "eol", "eos"
 	};
-
+	
 	// Type reference prefixes for parameter tape references to transducers
 	static final char TYPE_REFERENCE_TRANSDUCER = '@'; 
 	static final char TYPE_REFERENCE_SIGNAL = '!';
@@ -61,8 +61,14 @@ public final class Transduction implements ITransduction {
 	private static final int INITIAL_NAMED_VALUE_BUFFERS = 32;
 	private static final int INITIAL_NAMED_VALUE_CHARS = 256;
 
-	// The name of the anonymous value. 
-	private static final char[] ANONYMOUS_VALUE_REFERENCE = new char[] { Transduction.TYPE_REFERENCE_VALUE };
+	// The name of the anonymous value (explicitly referenced as `~`). 
+	public static final char[] ANONYMOUS_VALUE_REFERENCE = new char[] { };
+
+	// The runtime image of the anonymous value (explicitly referenced as `~`). 
+	public static final byte[][] ANONYMOUS_VALUE_RUNTIME = new byte[][] { { } };
+
+	// The compiler image of the anonymous value (explicitly referenced as `~`). 
+	public static final byte[][] ANONYMOUS_VALUE_COMPILER = new byte[][] { { (byte)TYPE_REFERENCE_VALUE } };
 
 	// Preinitialized empty char array returned in lieu of null value when named value is undefined.
 	private static final char[] EMPTY = {};
@@ -177,10 +183,19 @@ public final class Transduction implements ITransduction {
 	private char[][] namedValue;
 	private int[] valueLength;
 
+	/**
+	 *  Runtime constructor
+	 *  
+	 * @param gearbox The gearbox 
+	 * @param target The transduction target
+	 * @param warn Print warnings during runtime binding
+	 * @throws TargetNotFoundException On error
+	 * @throws GearboxException On error
+	 * @throws TargetBindingException On error
+	 */
 	public Transduction(final Gearbox gearbox, final ITarget target, final boolean warn) throws TargetNotFoundException, GearboxException, TargetBindingException {
 		this.target = target;
 		this.gearbox = gearbox;
-		this.gearbox.getSignalOrdinal("nil");
 		this.nulSignal = this.gearbox.getSignalOrdinal("nul");
 		this.eosSignal = this.gearbox.getSignalOrdinal("eos");
 		try {
@@ -202,6 +217,27 @@ public final class Transduction implements ITransduction {
 		}
 	}
 
+	/**
+	 *  Gearbox constructor instantiates base effector array only for parameter construction during compilation
+	 *  
+	 * @param gearbox The gearbox 
+	 */
+	public Transduction(final Gearbox gearbox) {
+		this.target = this;
+		this.gearbox = gearbox;
+		this.nulSignal = this.gearbox.getSignalOrdinal("nul");
+		this.eosSignal = this.gearbox.getSignalOrdinal("eos");
+		this.signalInputs = null;
+		this.valueLength = null;
+		this.namedValue = null;
+		this.valueNameIndexMap = null;
+		this.selectionIndex = 0;
+		this.selectionValue = null;
+		this.selectionPosition = 0;
+		this.effectors = null;
+		this.namedValueHandles = null;
+	}
+
 	/*
 	 * (non-Javadoc)
 	 * @see com.characterforming.jrte.engine.ITransduction#start(String)
@@ -216,7 +252,7 @@ public final class Transduction implements ITransduction {
 			this.inputStack = null;
 			final TransducerState[] state = new TransducerState[] { new TransducerState(0, transducer) };
 			this.transducerStack = new Stack<TransducerState>(state, true);
-			this.selectionIndex = this.getNamedValueReference(Transduction.ANONYMOUS_VALUE_REFERENCE, false);
+			this.selectionIndex = this.getNamedValueReference(Transduction.ANONYMOUS_VALUE_REFERENCE, true);
 			this.selectionValue = this.namedValue[this.selectionIndex] = new char[Transduction.INITIAL_NAMED_VALUE_CHARS];
 			this.selectionPosition = 0;
 			this.clear();
@@ -307,7 +343,7 @@ T:			while (this.status() == ITransduction.RUNNABLE) {
 						switch (action) {
 							case Transduction.RTE_EFFECTOR_NUL:
 								if (currentInput == this.nulSignal) {
-									debug = this.getErrorInput(this.inputStack.pop().get(), state);
+									debug = this.getErrorInput(state);
 									throw new DomainErrorException(String.format("Domain error in %1$s %2$s", transducer.getName(), debug));
 								} else if (currentInput != this.eosSignal) {
 									effect |= this.in(this.nulSignal);
@@ -367,8 +403,9 @@ T:			while (this.status() == ITransduction.RUNNABLE) {
 						// Handle side effects relating to transduction status (input/transduction stacks)
 						if (effect != IEffector.RTE_EFFECT_NONE) {
 							status = this.status();
+							
+							// Input pushed, popped, marked or reset, or transducer stack pushed, popped, or shifted?
 							if (0 != (effect & (IEffector.RTE_EFFECT_PUSH | IEffector.RTE_EFFECT_POP | IEffector.RTE_EFFECT_START | IEffector.RTE_EFFECT_STOP | IEffector.RTE_EFFECT_SHIFT))) {
-								// Input pushed, popped, marked or reset, or transducer stack pushed, popped, or shifted
 								limit = -1; 
 								if (0 != (effect & (IEffector.RTE_EFFECT_START | IEffector.RTE_EFFECT_STOP | IEffector.RTE_EFFECT_SHIFT))) {
 									if (0 != (effect & IEffector.RTE_EFFECT_START)) {
@@ -377,14 +414,15 @@ T:			while (this.status() == ITransduction.RUNNABLE) {
 									break;
 								}
 							}
+							
+							// Transduction paused or stopped?
 							if (effect >= IEffector.RTE_EFFECT_PAUSE) {
-								// Transduction paused or stopped
 								break T;
 							} 
 						}
 					}
 										
-					// Check for status change after handling end of stream signal
+					// Check for input that might have been pushed while handling end of stream signal
 					if (currentInput == this.eosSignal) {
 						status = this.status();
 					}
@@ -690,25 +728,28 @@ T:			while (this.status() == ITransduction.RUNNABLE) {
 		return this.effectors;
 	}
 
-	private String getErrorInput(final CharBuffer input, final int state) {
-		String error = "<unknown>";
+	private String getErrorInput(final int state) {
+		String error;
+		final CharBuffer input = this.inputStack.pop().current();
 		if (input != null) {
 			char[] array = input.array();
 			int position = input.position() - 1;
-			int start = (position < 8) ? 0 : position - 8;
+			int start = Math.max(0, position - 8);
 			int end = Math.min(start + 16, input.limit());
-			String format = "[state=%1$d; char=0x%2$x; pos=%3$d; <";
+			String format = "[ state=%1$d; char=0x%2$x; pos=%3$d; < ";
 			error = String.format(format, state, (int) array[position], position);
 			while (start < end) {
 				char ch = array[start];
 				if (Character.getType(ch) != Character.CONTROL) {
-					error += String.format((start != position) ? " %1$c " : "[%1$c]", ch);
+					error += String.format((start != position) ? "%1$c " : "[%1$c] ", ch);
 				} else {
-					error += String.format((start != position) ? " 0x%1$x " : "[0x%1$x]", (int)ch);
+					error += String.format((start != position) ? "0x%1$x " : "[0x%1$x] ", (int)ch);
 				}
 				start += 1;
 			}
-			error += ">";
+			error += "> ]";
+		} else {
+			error = String.format("[ state=%1$d; < end-of-input > ]", state);
 		}
 		return error;
 	}
@@ -722,17 +763,14 @@ T:			while (this.status() == ITransduction.RUNNABLE) {
 	}
 
 	Integer getNamedValueReference(final char[] chars, final boolean allocateIndex) {
-		if (chars != null && chars.length > 0 && chars[0] == Transduction.TYPE_REFERENCE_VALUE) {
-			final String valueName = new String(chars, 1, chars.length - 1);
-			Integer nameIndex = this.valueNameIndexMap.get(valueName);
-			if (nameIndex == null && allocateIndex) {
-				nameIndex = this.valueNameIndexMap.size();
-				this.valueNameIndexMap.put(valueName, nameIndex);
-				this.valueLength[nameIndex] = 0;
-			}
-			return nameIndex;
+		final String valueName = new String(chars);
+		Integer nameIndex = this.valueNameIndexMap.get(valueName);
+		if (nameIndex == null && allocateIndex) {
+			nameIndex = this.valueNameIndexMap.size();
+			this.valueNameIndexMap.put(valueName, nameIndex);
+			this.valueLength[nameIndex] = 0;
 		}
-		return null;
+		return nameIndex;
 	}
 
 	void updateSelectedNamedValue() {
@@ -774,11 +812,11 @@ T:			while (this.status() == ITransduction.RUNNABLE) {
 						if (effector instanceof IParameterizedEffector) {
 							if (effectorParameters != null) {
 								final IParameterizedEffector<?, ?> parameterizedEffector = (IParameterizedEffector<?, ?>) effector;
+								int parameterIndex = 0;
 								parameterizedEffector.newParameters(effectorParameters.length);
-								// TODO: provide named parameter for anonymous->0 and shift loop i = 1; i <= length
 								for (int i = 0; i < effectorParameters.length; i++) {
 									try {
-										parameterizedEffector.setParameter(i, effectorParameters[i]);
+										parameterizedEffector.setParameter(parameterIndex++, effectorParameters[i]);
 									} catch (final Exception e) {
 										final String message = String.format("Unable to compile parameters for effector '%1$s': %2$s", parameterizedEffector.getName(), this.gearbox.parameterToString(effectorParameters[i]));
 										Transduction.logger.log(Level.SEVERE, message, e);
@@ -878,7 +916,7 @@ T:			while (this.status() == ITransduction.RUNNABLE) {
 
 		@Override
 		public final int invoke() throws EffectorException {
-			return super.getTarget().copy(super.getParameter(0));
+			return super.getTarget().copy(0);
 		}
 
 		@Override
@@ -894,7 +932,7 @@ T:			while (this.status() == ITransduction.RUNNABLE) {
 
 		@Override
 		public final int invoke() throws EffectorException {
-			return super.getTarget().copy(super.getParameter(0));
+			return super.getTarget().cut(0);
 		}
 
 		@Override
@@ -1006,10 +1044,11 @@ T:			while (this.status() == ITransduction.RUNNABLE) {
 			for (int i = 0; i < parameterList.length; i++) {
 				final char[] valueName = super.decodeParameter(parameterList[i]);
 				if (parameterList[i][0] == Transduction.TYPE_REFERENCE_VALUE) {
-					final Integer nameIndex = super.getTarget().getNamedValueReference(valueName, false);
-					if (nameIndex != null) {
-						super.getTarget().ensureNamedValueCapacity(nameIndex);
-						nameIndices[i] = nameIndex;
+					final char[] referenceName = Arrays.copyOfRange(valueName, 1, valueName.length);
+					final Integer referenceIndex = super.getTarget().getNamedValueReference(referenceName, true);
+					if (referenceIndex != null) {
+						super.getTarget().ensureNamedValueCapacity(referenceIndex);
+						nameIndices[i] = referenceIndex;
 					} else {
 						throw new TargetBindingException(String.format("Unrecognized value reference `%1$s` for %2$s effector", new String(valueName), this.getName()));
 					}

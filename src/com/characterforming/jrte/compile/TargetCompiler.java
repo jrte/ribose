@@ -14,6 +14,7 @@ import com.characterforming.jrte.IEffector;
 import com.characterforming.jrte.IParameterizedEffector;
 import com.characterforming.jrte.ITarget;
 import com.characterforming.jrte.compile.array.BytesArray;
+import com.characterforming.jrte.engine.BaseNamedValueEffector;
 import com.characterforming.jrte.engine.Gearbox;
 import com.characterforming.jrte.engine.Transduction;
 
@@ -22,46 +23,56 @@ import com.characterforming.jrte.engine.Transduction;
  */
 public class TargetCompiler {
 	private final ITarget target;
+	private final IEffector<?>[] effectors;
 	private final HashMap<String, Integer> effectorOrdinalMap;
-	private final ArrayList<byte[][][]> effectorParameters;
 	private final ArrayList<HashMap<BytesArray, Integer>> effectorParameterMaps;
 
 	/**
 	 * Constructor
 	 */
-	TargetCompiler(final ITarget target) {
+	TargetCompiler(final ITarget target, IEffector<?>[] effectors) {
 		this.target = target;
+		this.effectors = effectors;
 		this.effectorOrdinalMap = new HashMap<String, Integer>(100);
-		this.effectorParameters = new ArrayList<byte[][][]>(100);
 		this.effectorParameterMaps = new ArrayList<HashMap<BytesArray, Integer>>(100);
-		for (final String inlineEffectorName : Transduction.RTE_INLINE_EFFECTORS) {
-			this.getEffectorOrdinal(inlineEffectorName);
+		for (IEffector<?> effector : this.effectors) {
+			int effectorOrdinal = this.getEffectorOrdinal(effector);
+			if (effectors[effectorOrdinal] instanceof BaseNamedValueEffector) {
+				getParametersIndex(effectorOrdinal, Transduction.ANONYMOUS_VALUE_RUNTIME);
+			}
 		}
 	}
 
 	ITarget getTarget() {
 		return this.target;
 	}
+	
+	IEffector<?> getEffector(int effectorOrdinal) {
+		return this.effectors[effectorOrdinal];
+	}
 
-	int getEffectorOrdinal(final String effectorName) {
+	int getEffectorOrdinal(final IEffector<?> effector) {
+		return this.getEffectorOrdinal(effector.getName());
+	}
+
+	int getEffectorOrdinal(String effectorName) {
 		Integer effectorOrdinal = this.effectorOrdinalMap.get(effectorName);
 		if (effectorOrdinal == null) {
 			effectorOrdinal = this.effectorOrdinalMap.size();
 			this.effectorOrdinalMap.put(effectorName, effectorOrdinal);
 			this.effectorParameterMaps.add(null);
-			this.effectorParameters.add(null);
 		}
 		return effectorOrdinal;
 	}
 
 	int getParametersIndex(final int effectorOrdinal, final byte[][] parameterBytes) {
-		final BytesArray parameters = new BytesArray(parameterBytes);
 		HashMap<BytesArray, Integer> parametersMap = this.effectorParameterMaps.get(effectorOrdinal);
 		if (parametersMap == null) {
 			parametersMap = new HashMap<BytesArray, Integer>(10);
-			this.effectorParameterMaps.ensureCapacity(effectorOrdinal + 1);
 			this.effectorParameterMaps.set(effectorOrdinal, parametersMap);
 		}
+		byte[][] p = compileParameterBytes(effectorOrdinal, parameterBytes);
+		final BytesArray parameters = new BytesArray(p);
 		Integer parametersIndex = parametersMap.get(parameters);
 		if (parametersIndex == null) {
 			parametersIndex = parametersMap.size();
@@ -128,5 +139,14 @@ public class TargetCompiler {
 
 	Map<String, Integer> getEffectorOrdinalMap() {
 		return Collections.unmodifiableMap(this.effectorOrdinalMap);
+	}
+
+	private byte[][] compileParameterBytes(int effectorOrdinal, byte[][] bytes) {
+		if (this.effectors[effectorOrdinal] instanceof BaseNamedValueEffector) {
+			if ((bytes.length == 1) && (bytes[0].length == 1) && (bytes[0][0]== Transduction.ANONYMOUS_VALUE_COMPILER[0][0])) {
+				return Transduction.ANONYMOUS_VALUE_RUNTIME; 
+			}
+		}
+		return bytes;
 	}
 }

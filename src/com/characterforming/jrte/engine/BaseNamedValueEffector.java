@@ -3,6 +3,8 @@
  */
 package com.characterforming.jrte.engine;
 
+import java.util.Arrays;
+
 import com.characterforming.jrte.EffectorException;
 import com.characterforming.jrte.TargetBindingException;
 import com.characterforming.jrte.base.BaseParameterizedEffector;
@@ -57,8 +59,9 @@ public abstract class BaseNamedValueEffector extends BaseParameterizedEffector<T
 			throw new TargetBindingException(String.format("The %1$s effector accepts exactly one parameter", super.getName()));
 		}
 		final char[] valueName = super.decodeParameter(parameterList[0]);
-		if (valueName[0] == Transduction.TYPE_REFERENCE_VALUE) {
-			final Integer nameIndex = super.getTarget().getNamedValueReference(valueName, true);
+		if ((valueName.length == 0) || (valueName[0] == Transduction.TYPE_REFERENCE_VALUE)) {
+			final char[] referenceName = (valueName.length > 0) ? Arrays.copyOfRange(valueName, 1, valueName.length) : valueName;
+			final Integer nameIndex = super.getTarget().getNamedValueReference(referenceName, true);
 			if (nameIndex != null) {
 				super.getTarget().ensureNamedValueCapacity(nameIndex);
 				super.setParameter(parameterIndex, nameIndex);

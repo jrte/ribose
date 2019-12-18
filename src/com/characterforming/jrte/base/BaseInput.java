@@ -25,6 +25,11 @@ public abstract class BaseInput implements IInput {
 		this.current = null;
 	}
 	
+	@Override
+	public CharBuffer current() {
+		return this.current;
+	}
+	
 	/*
 	 * (non-Javadoc)
 	 * @see com.characterforming.jrte.IInput#isEmpty()
