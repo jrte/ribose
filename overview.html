@@ -573,7 +573,7 @@ by copy/cut[..] effectors arranged in a vector within a single transition
 <pre class="code">(select[`~r`] cut[`~p`]) (select[`~p`] copy[`~q`]) (select[`~q`] cut[`~r`])</pre>
 that is triggered once for each of the last m = n-1 0s in the input. I've grouped the terms in the transition
 to identify the configurations of interest. For m&gt;1, on the m<sup>th</sup> iteration, ~r cuts 
-0<sup>F<sub>m-2</sub></sup> from ~p, ~p copies 0<sup>F<sub>n-1</sub></sup> from ~q, and then ~q appends 
+0<sup>F<sub>m-2</sub></sup> from ~p, ~p copies 0<sup>F<sub>m-1</sub></sup> from ~q, and then ~q appends 
 0<sup>F<sub>m-2</sub></sup> cut from ~r to produce 0<sup>F<sub>m</sub></sup>. These are the configurations 
 to be tracked in our length-work generating function. Labeling these configurations as p, q, r with unit weight,
 and labelling inputs 0 and nl with x with weights 1 and 0, respectively, a generating function for Fibonacci
@@ -622,9 +622,9 @@ dynamics is accessible via direct morphisms from transducer design patterns into
 other analyses. The same analytic approach used for Fibonacci can be applied to more complex transducers, such as the
 kernel log variants presented in the regex runoff above. All of the LinuxKernel variants have the same basic structure 
 for actionable log messages, and tracking the paste effector in the output would provide a cost metric and a derivative
-efficiency metric (ratio of cost to input length). The efficiency metric would converge to a value >1 for the LinuxKernel
-transductions as they capture only a subset of the input and decorate it for output with tokens of length less than 
-corresponding the captured input. 
+efficiency metric (ratio of cost to input length). The efficiency metric for the LinuxKernel transductions would converge 
+to a constant value C&lt;1 for all inputs as they capture only a subset of the input and decorate it with tokens of fixed 
+length to produce outputs of length less than the corresponding input. 
 <p>
 More generally, information about the differential costs of specific target effectors can be encoded as weighting 
 functions for specific transduction targets. If necessary, this information can be acquired empirically by instrumenting 
@@ -643,8 +643,8 @@ sufficient logic to drive machines and that this logic could be harnessed withou
 computing languages. The original effort focussed on finite-state transductions, mainly because that was the limit of 
 the available tools (ginr) but also because almost all of the input sources of interest were finite state and could be
 described as regular patterns. In fact, this is true of almost all of the digital information sources available for 
-machine processing: they can largely be described as regular sets, or as non-linear (context-sensitive, context-free)
-algebraic structures that embed regular sets as homomorphisms, or as regular sets that embed non-linear structures. 
+machine processing: they can largely be described as regular sets, or as non-linear (context-free) algebraic structures
+that embed regular sets as homomorphisms, or as regular sets that embed non-linear structures. 
 <p>
 When an information source is analyzed for pattern extraction and the regular components have been identified and 
 articulated as regular patterns, the remainder (if non-trivial) will likely be a context-free or context-sensitive
