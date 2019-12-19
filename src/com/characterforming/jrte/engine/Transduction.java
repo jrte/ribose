@@ -864,14 +864,9 @@ T:			while (this.status() == ITransduction.RUNNABLE) {
 		}
 	}
 
-	private final static class PasteEffector extends BaseParameterizedEffector<Transduction, char[]> {
+	private final static class PasteEffector extends BaseInputOutputEffector {
 		private PasteEffector(final Transduction transduction) {
 			super(transduction, "paste");
-		}
-
-		@Override
-		public void newParameters(final int parameterCount) {
-			super.setParameters(new char[parameterCount][]);
 		}
 
 		@Override
@@ -880,16 +875,13 @@ T:			while (this.status() == ITransduction.RUNNABLE) {
 		}
 
 		@Override
-		public void setParameter(final int parameterIndex, final byte[][] parameterList) throws TargetBindingException {
-			if (parameterList.length != 1) {
-				throw new TargetBindingException("The paste effector accepts at most one parameter");
-			}
-			super.setParameter(parameterIndex, super.decodeParameter(parameterList[0]));
-		}
-
-		@Override
 		public final int invoke(final int parameterIndex) throws EffectorException {
-			return super.getTarget().paste(super.getParameter(parameterIndex));
+			int effect = 0;
+			char[][] text = super.getParameter(parameterIndex);
+			for (char[] chars : text) {
+				effect |= super.getTarget().paste(chars);
+			}
+			return effect;
 		}
 	}
 

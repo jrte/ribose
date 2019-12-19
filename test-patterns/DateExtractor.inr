@@ -22,8 +22,6 @@ numericDate = (
 	)
 );
 
-numericDate$(0,1 2):sseq:report;
-
 day = (dd | md) {'st','nd','rd','th'}?;
 
 month = {
@@ -49,15 +47,9 @@ alphanumericDate = (
 | 	(month @ m0) white+ day (white, select[`~d1`] cut select) white* yyyy (white, select[`~d2`] cut select in[`!_mdy`])
 );
 
-alphanumericDate$(0,1 2):sseq:report;
-
 date = (numericDate | alphanumericDate);
 
-date$(0,1 2):sseq:report;
-
 noise = (utf7 - white) - (utf7 & (date$0:pref));
-
-reselect = clear[`~*`] select;
 
 a0 = (date$0):alph;
 a1 = (date$1):alph;
@@ -66,11 +58,9 @@ a2 = (date$2):alph;
 notdate = (
 	((AnyOrNul* @ date)$(0 1 2))
 @	((a0$(0,0))* (a1$(0,,0))* (a2$(0,,,0))*)*
-	(nul, nul, echo in[`~`] reselect)
+	(nul, nul, echo in[`~`] clear[`~*`] select)
 	(nul* a0* a1* a2*)* 
 );
-
-notdate$(0,1 2):sseq:report;
 
 zday = (
 	(digit, paste)
@@ -80,10 +70,10 @@ zday = (
 	)
 );
 
-mdy = (`_mdy`, in[`~d1` `!eol`] clear select) zday (eol, out[`~d2` '/' `~d0` '/' `~dz` nl] reselect);
-dmy = (`_dmy`, in[`~d0` `!eol`] clear select) zday (eol, out[`~d2` '/' `~d1` '/' `~dz` nl] reselect);
-ymd = (`_ymd`, in[`~d2` `!eol`] clear select) zday (eol, out[`~d0` '/' `~d1` '/' `~dz` nl] reselect);
-ydm = (`_ydm`, in[`~d1` `!eol`] clear select) zday (eol, out[`~d0` '/' `~d2` '/' `~dz` nl] reselect);
+mdy = (`_mdy`, in[`~d1` `!eol`] clear select) zday (eol, select paste[`~d2` '/' `~d0` '/' `~dz` nl] out clear[`~*`]);
+dmy = (`_dmy`, in[`~d0` `!eol`] clear select) zday (eol, select paste[`~d2` '/' `~d1` '/' `~dz` nl] out clear[`~*`]);
+ymd = (`_ymd`, in[`~d2` `!eol`] clear select) zday (eol, select paste[`~d0` '/' `~d1` '/' `~dz` nl] out clear[`~*`]);
+ydm = (`_ydm`, in[`~d1` `!eol`] clear select) zday (eol, select paste[`~d0` '/' `~d2` '/' `~dz` nl] out clear[`~*`]);
 
 DateExtractor = nil? (white* noise* notdate* (date (mdy | dmy | ymd | ydm))*)*;
 
