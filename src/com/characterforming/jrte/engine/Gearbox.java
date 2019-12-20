@@ -456,21 +456,25 @@ public final class Gearbox {
 			position = this.in.getFilePointer();
 			final int rows = this.in.readInt();
 			final int columns = this.in.readInt();
-			matrix = new int[rows * columns][2];
+			matrix = new int[columns * rows][2];
+			// matrix is an ExS array, column index ranges over E input equivalence ordinals, row index over S states 
 			for (int column = 0; column < columns; column++) {
 				for (int row = 0; row < rows; row++) {
-					final int cell = column * rows + row;
-					matrix[cell][0] = column * rows;
-					matrix[cell][1] = 0;
+					final int state = column * rows;
+					final int cell = state + row;
+					// Preset to invoke nul() effector on domain error, injects nul signal for next input
+					matrix[cell][0] = state;
+					matrix[cell][1] = Transduction.RTE_EFFECTOR_NUL;
 				}
 			}
 			for (int row = 0; row < rows; row++) {
 				final int count = this.in.readInt();
 				for (int i = 0; i < count; i++) {
 					final int column = this.in.readInt();
-					final int toState = this.in.readInt();
+					final int fromState = column * rows;
+					final int toState = this.in.readInt() * rows;
 					final int effect = this.in.readInt();
-					matrix[column * rows + row] = new int[] { toState * rows, effect };
+					matrix[fromState + row] = new int[] { toState, effect };
 				}
 			}
 		} catch (final IOException e) {

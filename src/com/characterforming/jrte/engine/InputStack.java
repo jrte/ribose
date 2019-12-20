@@ -6,19 +6,18 @@ package com.characterforming.jrte.engine;
 import java.util.Arrays;
 import java.util.EmptyStackException;
 
+import com.characterforming.jrte.IInput;
+
 /**
  * @author kb
  */
-public final class Stack<T> {
-	private final boolean isStatic;
-	private T[] stack;
+public final class InputStack {
+	private IInput[] stack;
 	private int tos;
 
-	public Stack(final T[] initialItems, final boolean isStatic) {
-		final int initialSize = initialItems.length > 2 ? (initialItems.length * 3) >> 1 : 4;
-		this.stack = Arrays.copyOf(initialItems, initialSize);
-		this.tos = initialItems.length - 1;
-		this.isStatic = isStatic;
+	public InputStack(final int initialSize) {
+		this.stack = new IInput[initialSize];
+		this.tos = -1;
 	}
 
 	private void stackcheck(final int itemCount) {
@@ -33,24 +32,9 @@ public final class Stack<T> {
 	 * 
 	 * @param item The item to push
 	 */
-	public void push(final T item) {
+	public void push(final IInput item) {
 		this.stackcheck(1);
 		this.stack[this.tos] = item;
-	}
-
-	/**
-	 * Position a new frame at top of stack and return it (will be null unless stack is static).
-	 * 
-	 * @param item The new frme (null if stack not static)
-	 */
-	public T next() {
-		assert(this.isStatic);
-		this.stackcheck(1);
-		final T item = this.peek();
-		if (item == null) {
-			--this.tos;
-		}
-		return item;
 	}
 
 	/**
@@ -58,7 +42,7 @@ public final class Stack<T> {
 	 * 
 	 * @param item The item to put
 	 */
-	public void put(final T item) {
+	public void put(final IInput item) {
 		this.stackcheck(1);
 		System.arraycopy(this.stack, 0, this.stack, 1, this.tos);
 		this.stack[0] = item;
@@ -70,7 +54,7 @@ public final class Stack<T> {
 	 * 
 	 * @param items The items to put
 	 */
-	public void put(final T[] items) {
+	public void put(final IInput[] items) {
 		this.stackcheck(items.length);
 		System.arraycopy(this.stack, 0, this.stack, items.length, 1 + this.tos - items.length);
 		System.arraycopy(items, 0, this.stack, 0, items.length);
@@ -81,7 +65,7 @@ public final class Stack<T> {
 	 * 
 	 * @return The item on the top of the stack, or null if empty
 	 */
-	public T peek() {
+	public IInput peek() {
 		if (this.tos >= 0) {
 			return this.stack[this.tos];
 		} else {
@@ -94,12 +78,10 @@ public final class Stack<T> {
 	 * 
 	 * @return The item on top of the stack after the pop
 	 */
-	public T pop() {
+	public IInput pop() {
 		if (this.tos >= 0) {
-			final T top = --this.tos >= 0 ? this.stack[this.tos] : null;
-			if (!this.isStatic) {
-				this.stack[this.tos + 1] = null;
-			}
+			final IInput top = --this.tos >= 0 ? this.stack[this.tos] : null;
+			this.stack[this.tos + 1] = null;
 			return top;
 		} else {
 			throw new EmptyStackException();
@@ -112,7 +94,7 @@ public final class Stack<T> {
 	 * @param index The index of the item to get
 	 * @return The Nth item from the stack
 	 */
-	public T get(final int index) {
+	public IInput get(final int index) {
 		if (index >= 0 && index <= this.tos) {
 			return this.stack[index];
 		} else {

@@ -78,6 +78,5 @@ ydm = (`_ydm`, in[`~d1` `!eol`] clear select) zday (eol, select paste[`~d0` '/' 
 DateExtractor = nil? (white* noise* notdate* (date (mdy | dmy | ymd | ydm))*)*;
 
 DateExtractor:dfamin:pr `DateExtractor.pr`;
-DateExtractor$(0,1 2):dfamin:prsseq `DateExtractor.sseq`;
 DateExtractor:dfamin:save `DateExtractor.dfa`;
 

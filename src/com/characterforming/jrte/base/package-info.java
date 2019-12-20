@@ -194,7 +194,7 @@
  *    &#64;Override
  *    public int invoke(int parameterIndex) throws EffectorException {
  *       int[] countdown = super.getParameter(parameterIndex);
- *       return this.getTarget().transduction.setCounter(countdown[0], countdown[1]);
+ *       return this.getTarget().transduction.counter(countdown[0], countdown[1]);
  *    }
  * };
  * </pre>

@@ -79,13 +79,13 @@ public final class Transduction implements ITransduction {
 	};
 
 	// Inline effector ordinals
-	private static final int RTE_EFFECTOR_NUL = 0;
-	private static final int RTE_EFFECTOR_NIL = 1;
-	private static final int RTE_EFFECTOR_PASTE = 2;
-	private static final int RTE_EFFECTOR_COUNT = 3;
-	private static final int RTE_EFFECTOR_MARK = 4;
-	private static final int RTE_EFFECTOR_RESET = 5;
-	private static final int RTE_EFFECTOR_ECHO = 6;
+	static final int RTE_EFFECTOR_NUL = 0;
+	static final int RTE_EFFECTOR_NIL = 1;
+	static final int RTE_EFFECTOR_PASTE = 2;
+	static final int RTE_EFFECTOR_COUNT = 3;
+	static final int RTE_EFFECTOR_MARK = 4;
+	static final int RTE_EFFECTOR_RESET = 5;
+	static final int RTE_EFFECTOR_ECHO = 6;
 	
 	// Base target (this) effectors.
 	private final IEffector<?>[] base = {
@@ -110,7 +110,7 @@ public final class Transduction implements ITransduction {
 		new StopEffector(this),
 	};
 
-	private static class TransducerState {
+	static class TransducerState {
 		Transducer transducer;
 		int[] countdown;
 		int state;
@@ -175,8 +175,8 @@ public final class Transduction implements ITransduction {
 	private final SignalInput[] signalInputs;
 	private final HashMap<String, Integer> valueNameIndexMap;
 	private final NamedValue[] namedValueHandles;
-	private Stack<IInput> inputStack;
-	private Stack<TransducerState> transducerStack;
+	private InputStack inputStack;
+	private TransducerStack transducerStack;
 	private int selectionIndex;
 	private char[] selectionValue;
 	private int selectionPosition;
@@ -249,12 +249,12 @@ public final class Transduction implements ITransduction {
 		}
 		Transducer transducer = this.gearbox.loadTransducer(this.gearbox.getTransducerOrdinal(transducerName));
 		if (transducer != null) {
-			this.inputStack = null;
-			final TransducerState[] state = new TransducerState[] { new TransducerState(0, transducer) };
-			this.transducerStack = new Stack<TransducerState>(state, true);
+			this.transducerStack = new TransducerStack(8);
+			this.transducerStack.push(transducer);
 			this.selectionIndex = this.getNamedValueReference(Transduction.ANONYMOUS_VALUE_REFERENCE, true);
 			this.selectionValue = this.namedValue[this.selectionIndex] = new char[Transduction.INITIAL_NAMED_VALUE_CHARS];
 			this.selectionPosition = 0;
+			this.inputStack = null;
 			this.clear();
 		} else {
 			throw new GearboxException(String.format("Unknown transducer (%s)", transducerName));
@@ -268,7 +268,10 @@ public final class Transduction implements ITransduction {
 	@Override
 	public void input(final IInput[] inputs) throws RteException {
 		if (this.inputStack == null) {
-			this.inputStack = new Stack<IInput>(inputs, false);
+			this.inputStack = new InputStack(inputs.length);
+			for (int i = 0; i < inputs.length; i++) {
+				this.inputStack.push(inputs[i]);
+			}
 		} else {
 			this.inputStack.put(inputs);
 		}
@@ -359,9 +362,9 @@ T:			while (this.status() == ITransduction.RUNNABLE) {
 								this.selectionValue[this.selectionPosition++] = (char)currentInput;
 								break;
 							case Transduction.RTE_EFFECTOR_COUNT:
-								if (--transducerState.countdown[1] <= 0) {
-									effect |= this.in(transducerState.countdown[0]);
-									transducerState.countdown[1] = 0;
+								if (--transducerState.countdown[0] <= 0) {
+									effect |= this.in(transducerState.countdown[1]);
+									transducerState.countdown[0] = 0;
 								}
 								break;
 							case Transduction.RTE_EFFECTOR_MARK:
@@ -562,12 +565,7 @@ T:			while (this.status() == ITransduction.RUNNABLE) {
 
 	int pushTransducer(final Integer transducerOrdinal) throws EffectorException {
 		try {
-			final TransducerState transducerState = this.transducerStack.next();
-			if (transducerState == null) {
-				this.transducerStack.push(new TransducerState(0, this.gearbox.loadTransducer(transducerOrdinal)));
-			} else {
-				transducerState.reset(0, this.gearbox.loadTransducer(transducerOrdinal));
-			}
+			this.transducerStack.push(this.gearbox.loadTransducer(transducerOrdinal));
 			return IEffector.RTE_EFFECT_START;
 		} catch (final TransducerNotFoundException e) {
 			throw new EffectorException(String.format("The start effector failed to load %1$s", this.gearbox.getTransducerName(transducerOrdinal)), e);
@@ -591,7 +589,6 @@ T:			while (this.status() == ITransduction.RUNNABLE) {
 
 	int popTransducer() throws EffectorException {
 		try {
-			this.transducerStack.peek().reset(0, null);
 			final TransducerState popped = this.transducerStack.pop();
 			if (popped != null) {
 				if (popped.nameIndex != null) {
@@ -612,7 +609,11 @@ T:			while (this.status() == ITransduction.RUNNABLE) {
 	@Override
 	public int status() {
 		if (this.transducerStack != null && !this.transducerStack.isEmpty()) {
-			return this.inputStack != null && !this.inputStack.isEmpty() ? ITransduction.RUNNABLE : ITransduction.PAUSED;
+			if (this.inputStack != null && !this.inputStack.isEmpty()) {
+				return ITransduction.RUNNABLE;
+			} else {
+				return ITransduction.PAUSED;
+			}
 		} else {
 			return ITransduction.STOPPED;
 		}
@@ -1084,7 +1085,7 @@ T:			while (this.status() == ITransduction.RUNNABLE) {
 			final int ordinal = signal[0];
 			final String counterValue = new String(super.decodeParameter(parameterList[1]));
 			try {
-				super.setParameter(parameterIndex, new int[] { ordinal, Integer.parseInt(counterValue) });
+				super.setParameter(parameterIndex, new int[] { Integer.parseInt(counterValue), ordinal });
 			} catch (final NumberFormatException e) {
 				throw new TargetBindingException(String.format("The counter value '%1$s' is not numeric", counterValue));
 			}
