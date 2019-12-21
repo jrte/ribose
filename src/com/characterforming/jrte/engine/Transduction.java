@@ -412,7 +412,7 @@ T:			while (this.status() == ITransduction.RUNNABLE) {
 								limit = -1; 
 								if (0 != (effect & (IEffector.RTE_EFFECT_START | IEffector.RTE_EFFECT_STOP | IEffector.RTE_EFFECT_SHIFT))) {
 									if (0 != (effect & IEffector.RTE_EFFECT_START)) {
-										this.transducerStack.get(this.transducerStack.size() - 2).state = state;
+										this.transducerStack.get(this.transducerStack.tos() - 1).state = state;
 									}
 									break;
 								}
@@ -788,6 +788,10 @@ T:			while (this.status() == ITransduction.RUNNABLE) {
 		}
 	}
 
+	char[] copyNamedValue() {
+		return this.copyNamedValue(this.selectionIndex);
+	}
+
 	void ensureNamedValueCapacity(final int maxIndex) {
 		if (this.namedValue.length < maxIndex) {
 			this.valueLength = Arrays.copyOf(this.valueLength, maxIndex);
@@ -970,7 +974,7 @@ T:			while (this.status() == ITransduction.RUNNABLE) {
 		@Override
 		public final int invoke() throws EffectorException {
 			try {
-				return super.getTarget().in(new char[][] { super.getTarget().getSelectedValue().getValue() });
+				return super.getTarget().in(new char[][] { super.getTarget().copyNamedValue() });
 			} catch (InputException e) {
 				throw new EffectorException("The in effector failed", e);
 			}

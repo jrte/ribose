@@ -29,6 +29,15 @@ public final class TransducerStack {
 	}
 
 	/**
+	 * Get the index of the top of stack
+	 * 
+	 * @return the index of the top of stack
+	 */
+	public int tos() {
+		return this.tos;
+	}
+
+	/**
 	 * Push an transducer onto the stack.
 	 * 
 	 * @param transducer The transducer to push

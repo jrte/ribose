@@ -26,6 +26,15 @@ public final class InputStack {
 			this.stack = Arrays.copyOf(this.stack, this.tos > 2 ? (this.tos * 3) >> 1 : 4);
 		}
 	}
+	
+	/**
+	 * Get the index of the top of stack
+	 * 
+	 * @return the index of the top of stack
+	 */
+	public int tos() {
+		return this.tos;
+	}
 
 	/**
 	 * Push an item onto the stack.

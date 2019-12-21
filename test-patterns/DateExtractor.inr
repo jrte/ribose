@@ -1,5 +1,5 @@
 delim = ({'-','/','.','\\'}, '-');
-white = {space, tab, comma, nl, eos};
+white = {space, tab, comma, nl};
 yyyy = ((digit-'0') (digit:3)) @@ PasteAny;
 md = ('0'? (digit-'0') | '1' ('0'|'1'|'2')) @@ PasteAny;
 dd = ('1' (digit-('0'|'1'|'2')) | '2' digit | '3' ('0'|'1')) @@ PasteAny;
@@ -58,7 +58,7 @@ a2 = (date$2):alph;
 notdate = (
 	((AnyOrNul* @ date)$(0 1 2))
 @	((a0$(0,0))* (a1$(0,,0))* (a2$(0,,,0))*)*
-	(nul, nul, echo in[`~`] clear[`~*`] select)
+	(nul, nul, echo in clear[`~*`] select)
 	(nul* a0* a1* a2*)* 
 );
 
@@ -70,12 +70,21 @@ zday = (
 	)
 );
 
-mdy = (`_mdy`, in[`~d1` `!eol`] clear select) zday (eol, select paste[`~d2` '/' `~d0` '/' `~dz` nl] out clear[`~*`]);
-dmy = (`_dmy`, in[`~d0` `!eol`] clear select) zday (eol, select paste[`~d2` '/' `~d1` '/' `~dz` nl] out clear[`~*`]);
-ymd = (`_ymd`, in[`~d2` `!eol`] clear select) zday (eol, select paste[`~d0` '/' `~d1` '/' `~dz` nl] out clear[`~*`]);
-ydm = (`_ydm`, in[`~d1` `!eol`] clear select) zday (eol, select paste[`~d0` '/' `~d2` '/' `~dz` nl] out clear[`~*`]);
+mdy = (`_mdy`, in[`~d1` `!eol`] clear select) zday (eol, select paste[`~d2` '/' `~d0` '/' `~dz` space] out clear[`~*`]);
+dmy = (`_dmy`, in[`~d0` `!eol`] clear select) zday (eol, select paste[`~d2` '/' `~d1` '/' `~dz` space] out clear[`~*`]);
+ymd = (`_ymd`, in[`~d2` `!eol`] clear select) zday (eol, select paste[`~d0` '/' `~d1` '/' `~dz` space] out clear[`~*`]);
+ydm = (`_ydm`, in[`~d1` `!eol`] clear select) zday (eol, select paste[`~d0` '/' `~d2` '/' `~dz` space] out clear[`~*`]);
 
-DateExtractor = nil? (white* noise* notdate* (date (mdy | dmy | ymd | ydm))*)*;
+DateExtractor = nil? (
+	(
+		white* noise* 
+		(
+			date (mdy | dmy | ymd | ydm)
+		|	notdate
+		)*
+	)*
+	(eos, out[nl])
+);
 
 DateExtractor:dfamin:pr `DateExtractor.pr`;
 DateExtractor:dfamin:save `DateExtractor.dfa`;
