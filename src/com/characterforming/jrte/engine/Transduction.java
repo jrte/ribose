@@ -730,27 +730,40 @@ T:			while (this.status() == ITransduction.RUNNABLE) {
 	}
 
 	private String getErrorInput(final int state) {
-		String error;
-		final CharBuffer input = this.inputStack.pop().current();
-		if (input != null) {
-			char[] array = input.array();
-			int position = input.position() - 1;
-			int start = Math.max(0, position - 8);
-			int end = Math.min(start + 16, input.limit());
-			String format = "[ state=%1$d; char=0x%2$x; pos=%3$d; < ";
-			error = String.format(format, state, (int) array[position], position);
-			while (start < end) {
-				char ch = array[start];
-				if (Character.getType(ch) != Character.CONTROL) {
-					error += String.format((start != position) ? "%1$c " : "[%1$c] ", ch);
+		String error = "\n\tTransducer stack:\n";
+		this.transducerStack.peek().state = state;
+		for (int t = this.transducerStack.tos(); t >= 0; t--) {
+			TransducerState transducerState = this.transducerStack.get(t);
+			error += String.format("\t\t%1$s (state %2$d)\n", transducerState.transducer.getName(), transducerState.state);
+		}
+		error += "\tInput stack:\n";
+		for (int i = this.inputStack.tos() - 1; i >=0 ; i--) {
+			final CharBuffer input = this.inputStack.get(i).current();
+			if (input != null) {
+				char[] array = input.array();
+				int position = input.position() - 1;
+				int start = Math.max(0, position - 8);
+				int end = Math.min(start + 16, input.limit());
+				String inch;
+				if (Character.getType(array[position]) != Character.CONTROL) {
+					inch = String.format("%1$c", (int) array[position]);
 				} else {
-					error += String.format((start != position) ? "0x%1$x " : "[0x%1$x] ", (int)ch);
+					inch = String.format("0x%1$x", (int) array[position]);
 				}
-				start += 1;
-			}
-			error += "> ]";
-		} else {
-			error = String.format("[ state=%1$d; < end-of-input > ]", state);
+				error += String.format("\t\t[ char='%1$s' (0x%2$x); pos=%3$d; < ", inch, (int) array[position], position);
+				while (start < end) {
+					char ch = array[start];
+					if (Character.getType(ch) != Character.CONTROL) {
+						error += String.format((start != position) ? "%1$c " : "[%1$c] ", ch);
+					} else {
+						error += String.format((start != position) ? "0x%1$x " : "[0x%1$x] ", (int)ch);
+					}
+					start += 1;
+				}
+				error += "> ]\n";
+			} else {
+				error += "[ < end-of-input > ]\n";
+			} 
 		}
 		return error;
 	}
