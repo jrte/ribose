@@ -394,7 +394,7 @@ transducer in the next section for an example of this).
 I once worked for a firm that dedicated server blades exclusively to scanning incoming
 log files and extracting  information using Java regex. I think they would have been pleased to 
 learn that they could double or triple their throughput per blade at the cost of a few 
-gigabytes of RAM.
+megabytes of RAM.
 <p>
 The chart below shows BaseTarget running the 3 tutorial transducers that extract
 IP tables log information from a Linux kernel log versus an equivalent Java regex on a 20 MB 
@@ -470,7 +470,9 @@ half of the lines matched by regex. There were no exceptions thrown, with or wit
 <img src="resources/LinuxKernelLog.png"/>
 <hr>
 <h2>Some Fun with Numbers</h2>
-Computer science wonks love this stuff. Here's some:
+For most text mining tasks like extracting IP information from kernel logs or identifying personal information 
+CPU/RAM utilization is a linear function of the length of input, and their outputs have regular patterns. Here's
+an example of a transducer with a non-linear cost function producing a pattern that is distinctly not regular:
 <pre class="code">
 $ for n in '' 0 00 000 0000 00000 000000 0000000 00000000 000000000; do echo $n | jrte Fibonacci; done
 
@@ -507,11 +509,23 @@ Fibonacci = (
 1        nl [ paste out stop ]                                      (FINAL)
 </pre>
 <p>
-Easy because Fibonacci is a simple arithmetic progression, so we can use the morphism (<b>&naturals;</b>, +) &map; ({0}, catenation)
-to map into Jrte's domain. Jrte can also compute Ackerman's function A(X,Y) for X in {0,1,2} because these values 
-represent a progression of arithmetic operations -- addition (X=0), multiplication (X=1), exponentiation (X=2). It 
-gets strange in the fourth and higher dimensions, but Jrte may be able to compute these, theoretically, using 
-the transducer stack. An exercise for a rainy afternoon. RAM is cheap.
+Easy because Fibonacci is a simple arithmetic progression, so we can use the morphism (<b>&naturals;</b>, +) &map; ({<b>0</b>}, catenation)
+to map the arithmetic into Jrte's domain.
+<p>
+In general, similar techniques can be used to map specific features of other sequential domains into named
+equivalence classes, yielding names in the source domain that can be interleaved with domain-specific target
+effectors to articulate regular patterns expressing sequential process and control features in terms of Jrte
+transductions. This results in a clear and clean separation of syntactic (input) and semantic (effect) concerns,
+simplifying design efforts on both sides of the comma. It also admits some more serious fun with numbers and
+cost functions, more of this below.
+<p>
+Jrte aside, this makes pattern analysis and runtime transduction an excellent design and run modality
+for real-time process control. Pattern analysts may identify control decisions not decidable on the basis of 
+available input and define oracle effectors that push out-of-band signals into the input pattern, allowing
+the target to weigh in on process control. Once a source pattern has been articulated, the functional requirements
+of any domain-specific target effectors necessary to effect a process are in sharp focus and implementation
+is considerably eased -- almost all of what would be complex if/while/do/foo() etc is expressed as alternatives, 
+repetitions and compositions of (input, effector) patterns. 
 <h3>Some Serious Numbers</h3>
 Arithmetic is not an apparent strength of Jrte. Patterns are expressed in terms of semiring operators acting on 
 ordinal numbers, and even basic counting is onerous (if you balked at counting in the example above, the inputs 
@@ -533,15 +547,13 @@ l(a) = 1 for a in {0,nl}. The length generating function for the input domain 0<
 and [x<sup>0</sup>]L = 0, [x<sup>n</sup>]L = 1 for n&gt;0, because all inputs to Fibonacci include a nl character. If we
 choose a different weighting function z:{0,nl}&map;{0,1} that assigns unit weight to 0 and zero weight to nl, the 
 generating function is just <pre class="code">Z(x) = 1 + x(1 / (1 - x))x<sup>0</sup> = 1 / (1 - x) = &Sigma;<sub>n&ge;0</sub>x<sup>n</sup></pre>
-and [x<sup>n</sup>]Z = 1 for n&ge;0.
+and [x<sup>n</sup>]Z = 1 for n&ge;0, as expected, since this generating function simply counts each natural number (input) once.
 <h3>Seriouser and Seriouser</h3>
-This can be extended to include the range of a Jrte transducer as well, to obtain length-work generating functions that
-relates the length of the input to some properties of interest in the effector range, by binding disjoint 
-effector-parameter combinations as unitary symbols (as was done above for ginr's printout of the subsequential 
-Fibonacci automaton). But there is an interesting wrinkle, one that will give functional programming purists
-something to moan about. Recall my assertion that DFAs had linear performance characteristics? In Jrte contexts 
-this is only true if all effectors have constant execution time, independent of transduction state or external 
-factors; in other words, if they are stateless.
+This can be extended to include the range of a Jrte transducer as well, to obtain length-work generating functions that relates
+the length of the input to some properties of interest in the effector range, by binding disjoint effector-parameter combinations
+as unitary symbols (as was done above for ginr's printout of the subsequential Fibonacci automaton). But there is an interesting
+wrinkle. Recall my assertion that DFAs had linear performance characteristics? In Jrte contexts this is only true if all effectors 
+have constant execution time, independent of transduction state or external factors.
 <p>
 But the Jrte transduction model admits a stateful target object that may be constantly mutating as it 
 assimilates the input symbols conveyed to its effectors by the active transducer. That is exactly what 
@@ -650,7 +662,7 @@ When an information source is analyzed for pattern extraction and the regular co
 articulated as regular patterns, the remainder (if non-trivial) will likely be a context-free or context-sensitive
 structure that has been substantially simplified since the regular subpatterns are represented by their inverse 
 homomorphic images (ie, regular pattern names). By so isolating the linear aspects of the source, the residual 
-non-linear requirements are reduced to a transducer stack (context-free) and transduction target that expresses
+non-linear features are reduced to a transducer stack (context-free) and transduction target that expresses
 effectors to harness traditional machine processor-memory resources (context-sensitive). 
 <p>
 <p>

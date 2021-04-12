@@ -1,0 +1,27 @@
+intervals = (
+	'<cycle-start id="' digit+ '" type="scavenge" contextid="' digit+ '" timestamp="' (digit+ ('-T:.':alph))+ digit+ '" intervalms='
+	('"', select[`~interval`]) (digit, paste)+ ('.', paste) (digit, paste)+ ('"', out[`~interval` nl] clear[`~interval`])
+	(utf7 - (nl | '>'))* '>'
+)*;
+
+l0 = (intervals$0):alph;
+l1 = (intervals$1):alph;
+l2 = (intervals$2):alph;
+
+intervalsnul = (
+	(
+			((NotNlOrNul* @ intervals)$(0 1 2))
+		@	((l0$(0,0))* (l1$(0,,0))* (l2$(0,,,0))*)* (nul$(0,0)) (nul* l0* l1* l2*)* 
+	)
+	(nul* notnl*)*
+);
+
+Tintervals = (
+	(intervalsnul nl)*
+	intervals
+)*
+(intervalsnul nl)*;
+
+Tintervals$(0,1 2):prsseq `Tintervals.pr`;
+Tintervals:save `Tintervals.dfa`;
+Tintervals$0:alph:card;
