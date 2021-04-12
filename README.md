@@ -89,4 +89,6 @@ To build the Javadoc materials (only) for Jrte,
 	ant -f build.xml javadoc
 ```
 
+See Discussions for stories and caveats.
+
 See LICENSE for licensing details.
