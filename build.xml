@@ -139,6 +139,10 @@
 			<jvmarg line="-Djrte.out.enabled=true -Dregex.out.enabled=false"/>
 			<arg line="DateExtractor test-patterns/inputs/dates.txt ${build.patterns}/Jrte.gears" />
 		</java>
+		<java fork="true" dir ="." classname="com.characterforming.jrte.test.FileRunner" classpathref="test.classpath" failonerror="true">
+				<jvmarg line="-Djrte.out.enabled=false -Dregex.out.enabled=false"/>
+				<arg line="Tintervals test-patterns/inputs/verbosegc.vgc ${build.patterns}/Jrte.gears" />
+		</java>
 		<java fork="true" dir ="." classname="com.characterforming.jrte.test.TestRunner" classpathref="test.classpath" failonerror="true">
 				<jvmarg line="-Djrte.out.enabled=false -Dregex.out.enabled=false"/>
 				<arg line="${build.patterns}/Jrte.gears" />
