@@ -2,7 +2,6 @@
 .svn/
 bin/
 build/
-doc/
 jars/*.jar
 *.gz
 /*.out
