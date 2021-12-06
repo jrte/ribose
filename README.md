@@ -60,8 +60,70 @@ To build ginr,
 	make -f Makefile install
 ```
 
-This will install the ginr executable in ~/bin.
+This will install the ginr executable in ~/bin. It can be run interactively (w/o line-edit) or from a catention of files into stdin. The lower- and uppercase letters of the 7-bit ASCII character set are preset token names assigned to the respective characters. Most common `\n\t` etc shortcuts are accepted for non-printing 7-bit control bytes. Multibyte (`...\xHH...` <- with backquotes) and 8-bit `'\xHH'` tokens can also be defined to represent non-ASCII characters present in the transduction domain. (TODO: Define example assigning UNICODE encoding to variable with UNICODE entity name for common non-ASCII characters, define variables for whole set and useful subsets for inclusion in batch compilation prologues).
 
+Single- or multi-tape expressions are compiled on receipt of a semicolon(;). Compiled expressions can be assigned to variables and referenced in other expressions for inline inclusion. 
+
+```
+>~/bin/ginr
+# :help;
+
+Copyright (C) 1988 J Howard Johnson
+
+Operations by priority (highest to lowest):
+
++   *   ?               postfix operators for 1 or more, 0 or more, 0 or 1
+<concatenation>         no explicit operator
+\   /                   left factor, right factor
+&   -                   intersection, set difference
+|   !   ||  !!          union, exclusive or, elseor, shuffle
+$                       project
+@   @@                  composition, join
+<all colon operators>   see :help colonops; for details
+,                       Cartesian product within (), union within {}
+
+All operators associate from left to right.
+Parentheses may be used to indicate a specific order of evaluation.
+{,,,} is a set constructor.
+(,,,) is a tuple construtor.
+[   ] is the tape-shifting operator
+'   ' is a string of single letter tokens.
+`   ` is a token containing arbitrary symbols.
+^     indicates the empty word (or an explicit concatenation operator).
+
+
+Colon operations (postfix operators at lowest priority)
+
+Transformation Operators               Displaying Operators
+:acomp      Active complement          :card       Print cardinality
+:alph       Active alphabet            :enum       Enumerate language
+:clsseq     Subsequential closure      :length     Display min word length
+:comp       Complement w.r.t. SIGMA*   :pr         Display automaton
+:lenmin     Words of min length        :prsseq     Subsequential display
+:pref       Set of prefixes            :report     Display report line
+:rev        Reverse                    :stems #    Print tape # stems
+:sseq       Subsequential transducer
+:LMsseq     LM Subsequential transducer
+:GMsseq     GM Subsequential transducer
+:suff       Set of suffixes            Coercing operators
+:<number>   Concatenation power        :update :nfa :trim :lameq
+:(<number>) Composition power          :lamcm :closed :dfa :dfamin
+
+:enum may take an optional argument to specify the quantity of output.
+
+
+IO operations
+
+:pr <filename>        Postfix operator to display automaton into a file
+:save <filename>      Postfix operator to save automaton in compressed form
+:load <filename>      Operator without left argument to get value from a file
+:readwords <filename> Operator with no argument to load a word file
+
+:get <variable>       Operator with no arguments to get value from a variable
+
+<var> = :load;        Short for <var> = :load <var>;
+:save <var>;          Short for <var> :save <var>;
+```
 ginr must be on your search PATH before building jrte. To build jrte and related javadoc artifacts,
 
 ```
@@ -78,7 +140,9 @@ Transducers are defined in ginr source files (`*.inr`), each directing compiled 
 	java -cp build/java/jrte-HEAD.jar com.characterforming.jrte.compile.GearboxCompiler --maxchar 128 --target $target $automata $gearbox
 ```
 
-Any subclass of `BaseTarget` can serve as target class. The `--maxchar` parameter specifies the maximal input ordinal expected in input. The value 128 limits input text to 7-bit ASCII (ginr was written in 1980 on a 16-bit VAX, sorry). Use `--maxchar=256` if 8-bit characters are required -- these must be encoded in ginr source files using `\xdd` equivalents. All 8-bit and multi-byte characters must be encoded as `\xdd` equivalents for ginr, but it is straightforward to define a transducer that will recognize UNICODE `&entity;` tokens and map them into the `\xdd...` equivalents of the corresponding binary UNICODE sequences. Also, while ginr recogizes identifiers enclosed in `back-quotes`, as first-order atomic entities (like 'A'), and these identifiers may include `\xdd` bytes, inclusion of `\x00` will force truncation, just so you know.
+Any subclass of `BaseTarget` can serve as target class. The `--maxchar` parameter specifies the maximal input ordinal expected in input. The value 128 limits input text to 7-bit ASCII (ginr was written in 1980 on a 16-bit VAX). To transduce UNICODE text that includes 8-bit or multibyte characters from raw byte streams define a set of variables with UNICODE entity names assigned to the `\xdd...` equivalents of the corresponding binary UNICODE sequences. Then use `--maxchar=256`.
+
+Also, while ginr recogizes identifiers enclosed in `back-quotes`, as first-order atomic entities (like 'A'), and these identifiers may include `\xdd` bytes, inclusion of `\x00` will force truncation, just so you know.
 
 To use a `transducer` compiled into a `gearbox` to transduce an `input` file, for example (the --nil option prepends an initial `!nil` signal to the input stack before running the transduction),
 
