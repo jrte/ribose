@@ -44,20 +44,21 @@ The range of acceptable inputs includes most context-free patterns, such as XML 
 
 Ginr compiles input expressions to state-minimized FSTs. The jrte compiler performs another transition-minimizing transformation on compiled automata to coalesce equivalent input symbols so that transducers have maximally compact representations for runtime use. For example, if 10 digit symbols are used equivalently in all states in an FST they can be reduced to a single symbol in the transduction transition matrix. The jrte runtime loads transducers on demand and provides a simple interface for running and controlling transduction processes.
 
-Compared to Java regex, ginr provides a more robust regular expression compiler and the jrte runtime executes regex-equivalent text transductions with much greater throughput than the Java regex runtime. Below are the results of a benchmarking runoff between Java regex and 3 different jrte transductions (see *Time is Money. RAM is Cheap* in the Javadoc overview to see the regex and ginr expressions compiled and other benchmarking details):
+Compared to Java regex, ginr provides a more robust regular expression compiler and the jrte runtime executes regex-equivalent text transductions with much greater throughput than the Java regex runtime. Below are the results of a benchmarking runoff between Java regex and 3 different jrte transductions (see ginr [source](https://github.com/jrte/ribose/blob/master/test-patterns/LinuxKernelLog.inr) for patterns compiled for these, also see *Time is Money. RAM is Cheap* in the Javadoc overview for other benchmarking details):
 
 ![iptables data extraction from 20MB Linux kernel log](https://github.com/jrte/ribose/blob/master/etc/javadoc/LinuxKernelLog.png)
 
 Jrte is a mature WIP and interested parties are encouraged to use the discussions section here to contact [me](https://github.com/jrte) for support. The general idea is to enable Java developers to embed the jrte runtime and develop transductions for domain-specific targets. The included test transductions use the base target, which provides simple select, cut, copy, paste, clear, input/output and other basic operational effectors that are themselves sufficient for most generic text mining use cases.
 
-To get started, build ginr and jrte and see the examples below for building a gearbox and running transducers from testing artifacts included in the repo. You may then want to prepare transducers for other test artifacts you may have available. You will need ginr v2.0.2 to build transducers to use in the jrte runtime. Ginr can be cloned or downloaded from https://github.com/ntozubod/ginr. I have included a copy of the ginr executable compiled for Linux in the jrte repo to enable Github CI builds to run transduction test cases. Also included is a whitepaper providing a detailed presentation of ginr with some examples illustrating usage of the available operators. These artifacts can be found [here](https://github.com/jrte/ribose/tree/master/etc/ginr).
+To get started, build ginr and jrte and see the examples below for building a gearbox and running transducers from testing artifacts included in the repo. You may then want to prepare transducers for other test artifacts you may have available. You will need ginr v2.0.2 to build transducers to use in the jrte runtime. Ginr can be cloned or downloaded from https://github.com/ntozubod/ginr. I have included a copy of the ginr executable compiled for Linux in the jrte repo to enable Github CI builds to run transduction test cases. Also included is a whitepaper providing a detailed presentation of ginr with some examples illustrating usage of the available operators. These artifacts can be found [here](https://github.com/jrte/ribose/tree/master/etc/ginr). More current information can be found at the [ginr repo](https://github.com/ntozubod/ginr).
 
 To build ginr,
 
 ```
 	mkdir -p ~/bin
-	cd src
+	pushd src
 	make -f Makefile install
+	popd
 ```
 
 This will install the ginr executable in ~/bin. It can be run interactively (w/o line-edit) or from a catention of files into stdin. The lower- and uppercase letters of the 7-bit ASCII character set are preset token names assigned to the respective characters. Most common `\n\t` etc shortcuts are accepted for non-printing 7-bit control bytes. Multibyte (`...\xHH...` <- with backquotes) and 8-bit `'\xHH'` tokens can also be defined to represent non-ASCII characters present in the transduction domain. (TODO: Define example assigning UNICODE encoding to variable with UNICODE entity name for common non-ASCII characters, define variables for whole set and useful subsets for inclusion in batch compilation prologues).
@@ -130,7 +131,7 @@ ginr must be on your search PATH before building jrte. To build jrte and related
 	ant -f build.xml all-clean
 ```
 
-Transducers are defined in ginr source files (`*.inr`), each directing compiled FST output to an intermediate build directory  (`:save ...` in ginr source). It is helpful to define a base set of common artifacts in a prologue. To compile the complete suite of transducers pipe the catenation of prologue with `*.inr` source files into ginr. Then run the jrte compiler as shown below to assemble FSTs into a gearbox for runtime use with its associated target.
+Transducers are defined in ginr source files (`*.inr`), each directing compiled FST output to an intermediate build directory  (`:save ...` in ginr source). It is helpful to define a base set of common artifacts in a prologue. To compile the complete suite of transducers pipe the catenation of prologue with `*.inr` source files into ginr. Then run the jrte compiler as shown below to assemble FSTs into a gearbox for runtime use with its associated target (NOTE: the following procedure will not work at present, see workaround in [Issue #6](https://github.com/jrte/ribose/issues/6).
 
 ```
 	automata=build/patterns/automata
