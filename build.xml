@@ -1,4 +1,4 @@
-<project name="jrte" default="all" basedir=".">
+<project name="jrte" default="all" basedir="." xmlns:if="ant:if" xmlns:unless="ant:unless">
 	<property name="jrte.version" value="0.0.0" />
 	<property name="java.source.dir" value="src" />
 	<property name="pattern.source.dir" value="test-patterns" />
@@ -16,6 +16,13 @@
 	<property name="jrte.project.tz" value="jrte-project.tar.gz" />
 	<property name="javadoc.dir" value="doc" />
 	<property name="svn.root" value="svn://localhost/jrte" />
+	<property name="regex.linux.kernel" value="([JFMASOND][a-z]+ [0-9]+ ([0-9]+:)+[0-9]+) ([-.:A-Za-z_0-9]*) kernel: \\[[ ]*[0-9]+\\.[0-9]+\\] (DROPPED|ABORTED|LIMITED) IN=([-.:A-Za-z_0-9]*) OUT=([-.:A-Za-z_0-9]*)( MAC=([-.:A-Za-z_0-9]*))? SRC=([-.:A-Za-z_0-9]*) DST=([-.:A-Za-z_0-9]*).* PROTO=([-.:A-Za-z_0-9]*)(.* SPT=([-.:A-Za-z_0-9]*) DPT=([-.:A-Za-z_0-9]*))?.*\n" />
+
+	<taskdef resource="net/sf/antcontrib/antlib.xml">
+	     <classpath>
+	         <fileset dir="${jars.dir}/ant-contrib"/>
+	     </classpath>
+	</taskdef>
 
 	<condition property="archive" value="${user.home}/archive">
 		<available type="dir" file="${user.home}/archive" />
@@ -96,16 +103,20 @@
 		</concat>
 		<fixcrlf file="${build.patterns.automata}/_all.inr" eol="lf" />
 		<exec failonerror="false" dir="${build.patterns.automata}" executable="${basedir}/etc/ginr/ginr" input="${build.patterns.automata}/_all.inr" outputproperty="ginr.output"/>
-		<echo message="${ginr.output}" />
+		<echo file="${build.patterns.automata}/_all.out">${ginr.output}</echo>
+		<exec failonerror="false" dir="${build.patterns.automata}" executable="/usr/bin/grep" outputproperty="ginr.list">
+			<arg line="'^I N R\|^Copyright\|^Distributed under GPLv3\|DFA MIN' _all.out" />
+		</exec>
+		<echo>${ginr.list}></echo>
+		<echo file="${build.patterns.automata}/_all.out">${ginr.output}</echo>
+		<exec failonerror="false" dir="${build.patterns.automata}" executable="/usr/bin/grep" outputproperty="ginr.errors">
+			<arg line="'^[ ]*\*\*\*\|^Error detected at state [0-9]*:\|^Reserved character:\|^Warning:' _all.out" />
+		</exec>
 		<condition property="ginr.fail">
-			<or>
-				<matches string="${ginr.output}" pattern="^[ ]*\*\*\*" multiline="true" />
-				<matches string="${ginr.output}" pattern="^Error detected at state [0-9]*:" multiline="true" />
-				<matches string="${ginr.output}" pattern="^Reserved character:" multiline="true" />
-				<matches string="${ginr.output}" pattern="^Warning:" multiline="true" />
-			</or>
+			<not><length string="${ginr.errors}" trim="true" length="0"/></not>
 		</condition>
-		<fail if="ginr.fail" message="There were ginr compilation errors" />
+		<echo if:set="ginr.fail" message="&#xA;*** Pattern compilation failed, see ${build.patterns.automata}/_all.out&#xA;${ginr.errors}" />
+		<fail if:set="ginr.fail" />
 	</target>
 
 	<target name="package-java" depends="compile-java">
@@ -116,13 +127,13 @@
 		<jar basedir="${build.java.classes}" destfile="${jars.dir}/${ant.project.name}-${jrte.version.revision}.jar" />
 	</target>
 
-	<target name="package-patterns" depends="compile-patterns,package-java,package-test" unless="ginr.fail" >
+	<target name="package-patterns" depends="compile-patterns,package-java,package-test" unless:set="ginr.fail" >
 		<java fork="true" dir ="." classname="com.characterforming.jrte.compile.GearboxCompiler" classpathref="jrte.classpath" failonerror="true">
 			<arg line="--maxchar 128 --target com.characterforming.jrte.base.BaseTarget ${build.patterns.automata} ${build.patterns}/Jrte.gears" />
 		</java>
 	</target>
 
-	<target name="package-test" depends="compile-test,package-java" unless="ginr.fail" >
+	<target name="package-test" depends="compile-test,package-java" unless:set="ginr.fail" >
 		<jar basedir="${build.java.test}" destfile="${jars.dir}/${ant.project.name}-${jrte.version.revision}-test.jar" />
 	</target>
 
@@ -131,37 +142,41 @@
 	</target>
 	
 	<target name="test" depends="package-java,package-test,package-patterns">
-		<java fork="true" dir ="." classname="com.characterforming.jrte.test.FileRunner" classpathref="test.classpath" failonerror="true">
-			<jvmarg line="-Djrte.out.enabled=true -Dregex.out.enabled=false"/>
-			<arg line="Fibonacci test-patterns/inputs/fib.txt ${build.patterns}/Jrte.gears" />
-		</java>
-		<java fork="true" dir ="." classname="com.characterforming.jrte.test.FileRunner" classpathref="test.classpath" failonerror="true">
-			<jvmarg line="-Djrte.out.enabled=true -Dregex.out.enabled=false"/>
-			<arg line="DateExtractor test-patterns/inputs/dates.txt ${build.patterns}/Jrte.gears" />
-		</java>
-		<java fork="true" dir ="." classname="com.characterforming.jrte.test.FileRunner" classpathref="test.classpath" failonerror="true">
-				<jvmarg line="-Djrte.out.enabled=false -Dregex.out.enabled=false"/>
-				<arg line="Tintervals test-patterns/inputs/verbosegc.vgc ${build.patterns}/Jrte.gears" />
-		</java>
-		<java fork="true" dir ="." classname="com.characterforming.jrte.test.FileRunner" classpathref="test.classpath" failonerror="true">
-				<jvmarg line="-Djrte.out.enabled=false -Dregex.out.enabled=false"/>
-				<arg line="Sintervals test-patterns/inputs/verbosegc.vgc ${build.patterns}/Jrte.gears" />
-		</java>
+		<echo>TestRunner (simple fsts driving base transduction effectors):</echo>
 		<java fork="true" dir ="." classname="com.characterforming.jrte.test.TestRunner" classpathref="test.classpath" failonerror="true">
-				<jvmarg line="-Djrte.out.enabled=false -Dregex.out.enabled=false"/>
+				<jvmarg line="-showversion -Djrte.out.enabled=false -Dregex.out.enabled=false"/>
 				<arg line="${build.patterns}/Jrte.gears" />
 		</java>
+		<echo>Runoffs (benchmarking fsts for extracting data from noisy inputs, vs similar regex, output muted):</echo>
 		<java fork="true" dir ="." classname="com.characterforming.jrte.test.FileRunner" classpathref="test.classpath" failonerror="true">
 			<jvmarg line="-Djrte.out.enabled=false -Dregex.out.enabled=false"/>
-			<arg line="LinuxKernel test-patterns/inputs/kern-10.log ${build.patterns}/Jrte.gears" />
+			<arg line="--nil LinuxKernel test-patterns/inputs/kern-10.log ${build.patterns}/Jrte.gears &quot;${regex.linux.kernel}&quot;" />
 		</java>
 		<java fork="true" dir ="." classname="com.characterforming.jrte.test.FileRunner" classpathref="test.classpath" failonerror="true">
 			<jvmarg line="-Djrte.out.enabled=false -Dregex.out.enabled=false"/>
-			<arg line="LinuxKernelLoose test-patterns/inputs/kern-10.log ${build.patterns}/Jrte.gears" />
+			<arg line="--nil LinuxKernelLoose test-patterns/inputs/kern-10.log ${build.patterns}/Jrte.gears &quot;${regex.linux.kernel}&quot;" />
 		</java>
 		<java fork="true" dir ="." classname="com.characterforming.jrte.test.FileRunner" classpathref="test.classpath" failonerror="true">
 				<jvmarg line="-Djrte.out.enabled=false -Dregex.out.enabled=false"/>
-				<arg line="LinuxKernelStrict test-patterns/inputs/kern-10.log ${build.patterns}/Jrte.gears" />
+				<arg line="--nil LinuxKernelStrict test-patterns/inputs/kern-10.log ${build.patterns}/Jrte.gears &quot;${regex.linux.kernel}&quot;" />
+		</java>
+		<java fork="true" dir ="." classname="com.characterforming.jrte.test.FileRunner" classpathref="test.classpath" failonerror="true">
+				<jvmarg line="-Djrte.out.enabled=false -Dregex.out.enabled=false"/>
+				<arg line="--nil Tintervals test-patterns/inputs/verbosegc.vgc ${build.patterns}/Jrte.gears cycle-start.id=.*type=.*contextid=.*timestamp=.*intervalms=.([0-9]+'.'[0-9]+)[^0-9]" />
+		</java>
+		<java fork="true" dir ="." classname="com.characterforming.jrte.test.FileRunner" classpathref="test.classpath" failonerror="true">
+				<jvmarg line="-Djrte.out.enabled=false -Dregex.out.enabled=false"/>
+				<arg line="--nil Sintervals test-patterns/inputs/verbosegc.vgc ${build.patterns}/Jrte.gears cycle-start.id=.*type=.*contextid=.*timestamp=.*intervalms=.([0-9]+'.'[0-9]+)[^0-9]" />
+		</java>
+		<echo>Fibonacci:</echo>
+		<java fork="true" dir ="." classname="com.characterforming.jrte.test.FileRunner" classpathref="test.classpath" failonerror="true">
+			<jvmarg line="-Djrte.out.enabled=true -Dregex.out.enabled=false"/>
+			<arg line="--nil Fibonacci test-patterns/inputs/fib.txt ${build.patterns}/Jrte.gears" />
+		</java>
+		<echo>DateExtractor:</echo>
+		<java fork="true" dir ="." classname="com.characterforming.jrte.test.FileRunner" classpathref="test.classpath" failonerror="true">
+			<jvmarg line="-Djrte.out.enabled=true -Dregex.out.enabled=false"/>
+			<arg line="--nil DateExtractor test-patterns/inputs/dates.txt ${build.patterns}/Jrte.gears" />
 		</java>
 	</target>
 
@@ -190,7 +205,7 @@
 		<jar basedir="doc" destfile="${jars.dir}/${ant.project.name}-${jrte.version.revision}-javadoc.jar" />
 	</target>
 
-	<target name="tar-source" depends="package-patterns,package-test" unless="ginr.fail" >
+	<target name="tar-source" depends="package-patterns,package-test" unless:set="ginr.fail" >
 		<tar destfile="${build.deploy}/${jrte.source.tz}" compression="gzip">
 			<fileset dir=".">
 				<include name="src" />
@@ -200,7 +215,7 @@
 		</tar>
 	</target>
 
-	<target name="tar-deploy" depends="package-patterns,package-test,javadoc" unless="ginr.fail" >
+	<target name="tar-deploy" depends="package-patterns,package-test,javadoc" unless:set="ginr.fail" >
 		<tar destfile="${build.deploy}/${jrte.deploy.tz}" compression="gzip">
 			<fileset dir="etc/sh">
 				<include name="*.sh" />
@@ -230,7 +245,7 @@
 
 	<target name="all-deploy" depends="clean-deploy,tar-source,tar-deploy" description="Full build and deployment for java and patterns" />
 
-	<target name="all-archive" depends="all-deploy,tar-project" if="archive" unless="ginr.fail" >
+	<target name="all-archive" depends="all-deploy,tar-project" if="archive" unless:set="ginr.fail" >
 		<delete quiet="true" file="${archive}/jrte-svn-${DSTAMP}.dump" />
 		<exec failonerror="true" executable="svnadmin" output="${archive}/jrte-svn-${DSTAMP}.dump">
 			<arg line="dump /home/kb/Development/svn/repo/jrte/" />

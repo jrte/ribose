@@ -1,54 +1,61 @@
-intervals = (
-	'<cycle-start id="' digit+ '" type="scavenge" contextid="' digit+ '" timestamp="' (digit+ ('-T:.':alph))+ digit+ '" intervalms='
-	('"', select[`~interval`]) (digit, paste)+ ('.', paste) (digit, paste)+ ('"', out[`~interval` nl] clear[`~interval`])
-	(utf7 - (nl | '>'))* '>'
-)*;
+interval = (
+	'<cycle-start id="' digit+ '" type="scavenge" contextid="' digit+ '" timestamp="' (digit+ ('.:-T':alph))+ digit+ '" '
+	('intervalms="', select[`~interval`])
+	(digit, paste)+ ('.', paste) (digit, paste)+
+	('"', out[`~interval` NL] clear[`~interval`])
+	(utf7 - '>')* '>' notnl* nl
+);
 
-l0 = (intervals$0):alph;
-l1 = (intervals$1):alph;
-l2 = (intervals$2):alph;
+l0 = (interval$0):alph;
+l1 = (interval$1):alph;
+l2 = (interval$2):alph;
 
-intervalsnul = (
+conjoint = (l0 & l1) | (l0 & l2) | (l1 & l2);
+
+notinterval= (
 	(
-			((NotNlOrNul* @ intervals)$(0 1 2))
-		@	((l0$(0,0))* (l1$(0,,0))* (l2$(0,,,0))*)* (nul$(0,0)) (nul* l0* l1* l2*)* 
+			((AnyOrNul* @ interval)$(0 1 2))
+		@	((l0$(0,0))* (l1$(0,,0))* (l2$(0,,,0))*)*
+            (nul$(0,0)) (nul* l0* l1* l2*)* 
 	)
 	(nul* notnl*)* nl
 );
 
-Tintervals = (
-	(intervalsnul)*
-	intervals
-)*
-(intervalsnul)*;
+Tintervals = ((notinterval* interval*)* notinterval*) @ (((l2 - NL)$(0,0))* (NL, nl)*)*;
 
 Tintervals$(0,1 2):prsseq `Tintervals.pr`;
 Tintervals:save `Tintervals.dfa`;
 Tintervals$0:alph:card;
 
-_intervals = (
-	'<cycle-start id="' digit+ '" type="scavenge"' (any* - 'intervalms=')* 'intervalms='
-	('"', select[`~interval`]) (digit, paste)+ ('.', paste) (digit, paste)+ ('"', out[`~interval` nl] clear[`~interval`])
-	(utf7 - (nl | '>'))* '>'
-)*;
-
-l0 = (_intervals$0):alph;
-l1 = (_intervals$1):alph;
-l2 = (_intervals$2):alph;
-
-_intervalsnul = (
+_interval = (
+	'<cycle-start id="' digit+ '" type="scavenge"'
 	(
-			((NotNlOrNul* @ _intervals)$(0 1 2))
-		@	((l0$(0,0))* (l1$(0,,0))* (l2$(0,,,0))*)* (nul$(0,0)) (nul* l0* l1* l2*)* 
+		space
+		(
+			('intervalms="', select[`~interval`]) (digit, paste)+ ('.', paste) (digit, paste)+ ('"', out[`~interval` NL] clear[`~interval`])
+		||	((lower* '="') - 'intervalms="') (utf7 - '"')* '"'
+		)
+	)*
+	space? '/>' notnl* nl
+)*;
+_interval$(0,1 2):prsseq `/tmp/_i.ssq`;
+
+l0 = (_interval$0):alph;
+l1 = (_interval$1):alph;
+l2 = (_interval$2):alph;
+
+conjoint = (l0 & l1) | (l0 & l2) | (l1 & l2);
+
+_notinterval = (
+	(
+			((AnyOrNul* @ _interval)$(0 1 2))
+		@	((l0$(0,0))* (l1$(0,,0))* (l2$(0,,,0))*)*
+			(nul$(0,0)) (nul* l0* l1* l2*)* 
 	)
 	(nul* notnl*)* nl
 );
 
-Sintervals = (
-	(_intervalsnul)*
-	_intervals
-)*
-(_intervalsnul)*;
+Sintervals = ((_notinterval* _interval*)* _notinterval*) @ (((l2 - NL)$(0,0))* (NL, nl)*)*;
 
 Sintervals$(0,1 2):prsseq `Sintervals.pr`;
 Sintervals:save `Sintervals.dfa`;

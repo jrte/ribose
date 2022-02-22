@@ -50,7 +50,7 @@ public class TestRunner {
 			nilinput, nilinput, nilinput, nilinput, nilinput, nilinput, nilinput, nilinput, nilinput
 		};
 		String[] tests = new String[] {
-				"StackTest", "NilSpeedTest", "PasteSpeedTest", "NilPauseTest", "PastePauseTest", "PasteCutTest", "SelectPasteTest", "CounterTest", "PasteCountTest"
+				"NilSpeedTest", "PasteSpeedTest", "NilPauseTest", "PastePauseTest", "PasteCutTest", "SelectPasteTest", "CounterTest", "PasteCountTest", "StackTest"
 		};
 		int n = 0;
 		for (final String test : tests) {

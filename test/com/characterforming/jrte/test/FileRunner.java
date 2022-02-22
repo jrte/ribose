@@ -27,38 +27,41 @@ public class FileRunner {
 	 * @throws IOException On error
 	 */
 	public static void main(final String[] args) throws InterruptedException, RteException, IOException {
-		if (args.length != 3) {
-			System.out.println(String.format("Usage: java -cp <classpath> [-Djrte.out.enabled=true ^|^ -Dregex.out.enabled=true] %s <transducer-name> <input-path> <gearbox-path>", FileRunner.class.getName()));
+		if ((args.length < 3) || (args.length > 5)) {
+			System.out.println(String.format("Usage: java -cp <classpath> [-Djrte.out.enabled=true ^|^ -Dregex.out.enabled=true] %s [--nil] <transducer-name> <input-path> <gearbox-path>", FileRunner.class.getName()));
 			System.exit(1);
 		}
-		final String transducerName = args[0];
-		final String inputPath = args[1];
-		final String gearboxPath = args[2];
+		final boolean nil = args[0].compareTo("--nil") == 0;
+		int arg = nil ? 1 : 0;
+		final String transducerName = args[arg++];
+		final String inputPath = args[arg++];
+		final String gearboxPath = args[arg++];
+		final String regex = (args.length > arg) ? args[arg++] : "";
 		
 		try {
-			boolean jrteOutEnabled = System.getProperty("jrte.out.enabled", "false").equals("true");
-			boolean regexOutEnabled = System.getProperty("regex.out.enabled", "false").equals("true");
-			if (jrteOutEnabled == regexOutEnabled) {
-				jrteOutEnabled = regexOutEnabled = false;
+			final boolean jrteOutEnabled = System.getProperty("jrte.out.enabled", "false").equals("true");
+			final boolean regexOutEnabled = !regex.isEmpty() && System.getProperty("regex.out.enabled", "false").equals("true");
+			if (jrteOutEnabled && regexOutEnabled) {
+				System.out.println(String.format("Usage: java -cp <classpath> [-Djrte.out.enabled=true ^|^ -Dregex.out.enabled=true] %s [--nil] <transducer-name> <input-path> <gearbox-path>\n(jrteOutputEnabled and regexOutputEnabled can't both be true)", FileRunner.class.getName()));
+				System.exit(1);
 			}
 			
 			long tjrte = 0, t0 = 0, t1 = 0;
 			final File f = new File(inputPath);
 			final InputStreamReader isr = new InputStreamReader(new FileInputStream(f));
 			int clen = (int)f.length();
-			char[][]fchar = new char[][] {new String("!nil").toCharArray(), new char[clen]};
-			clen = isr.read(fchar[1], 0, clen);
+			char[][] fchar = nil ? new char[][] {new String("!nil").toCharArray(), new char[clen]} : new char[][] {new char[clen]};
+			clen = isr.read(fchar[fchar.length - 1], 0, clen);
 			isr.close();
 			
-			if (jrteOutEnabled || !regexOutEnabled) {
-				// "May 15 07:58:52 kb-ubuntu kernel: [ 1794.599801] DROPPED IN=eth0 OUT= MAC=01:00:5e:00:00:fb:00:13:20:c0:36:32:08:00 SRC=192.168.144.101 DST=224.0.0.251 LEN=32 TOS=0x00 PREC=0x00 TTL=1 ID=8596 OPT (94040000) PROTO=2 "
-				final Jrte jrte = new Jrte(new File(gearboxPath), "com.characterforming.jrte.base.BaseTarget");
-				final ITransduction t = jrte.transduction(new BaseTarget());
-				System.out.print(String.format("%20s: ", transducerName));
-				if (jrteOutEnabled) {
-					System.out.println();
+			final Jrte jrte = new Jrte(new File(gearboxPath), "com.characterforming.jrte.base.BaseTarget");
+			final ITransduction t = jrte.transduction(new BaseTarget());
+			int loops;
+			if (!regexOutEnabled) {
+				if (!jrteOutEnabled) {
+					System.out.print(String.format("%20s: ", transducerName));
 				}
-				int loops = jrteOutEnabled ? 1 : 20;
+				loops = jrteOutEnabled ? 1 : 20;
 				for (int i = 0; i < loops; i++) {
 					t.start(transducerName);
 					final IInput[] inputs = new IInput[] { jrte.input(fchar) };
@@ -72,36 +75,29 @@ public class FileRunner {
 					tjrte += t1;
 				}
 				if (!jrteOutEnabled) {
-					System.out.println(String.format(" : %,12d (%,d)", (((long)clen * loops * 1000) / tjrte), clen));
-				}
+					System.out.println(
+							String.format(" : %,12d (%dx%,d)", (((long) clen * loops * 1000) / tjrte), loops, clen));
+				} 
 			}
-			
-			if (regexOutEnabled || !jrteOutEnabled) {
-				// 1date 3host 4tag 5in 6out 8mac 9src 10dst 11proto 13sp 14dp
-				String regex = "([JFMASOND][a-z]+ [0-9]+ ([0-9]+:)+[0-9]+) ([-.:A-Za-z_0-9]*) kernel: \\[[ ]*[0-9]+\\.[0-9]+\\] (DROPPED|ABORTED|LIMITED) IN=([-.:A-Za-z_0-9]*) OUT=([-.:A-Za-z_0-9]*)( MAC=([-.:A-Za-z_0-9]*))? SRC=([-.:A-Za-z_0-9]*) DST=([-.:A-Za-z_0-9]*).* PROTO=([-.:A-Za-z_0-9]*)(.* SPT=([-.:A-Za-z_0-9]*) DPT=([-.:A-Za-z_0-9]*))?.*\n";
+			if (!jrteOutEnabled && !regex.isEmpty()) {
 				Pattern pattern = Pattern.compile(regex);
 				if (!regexOutEnabled) {
 					System.out.print(String.format("%20s: ", "RegEx"));
 				}
 				long tregex = 0;
-				long loops = regexOutEnabled ? 1 : 20;
+				loops = regexOutEnabled ? 1 : 20;
 				for (int i = 0; i < loops; i++) {
-					Matcher matcher = pattern.matcher(CharBuffer.wrap(fchar[1]));
+					Matcher matcher = pattern.matcher(CharBuffer.wrap(fchar[fchar.length - 1]));
 					t0 = System.currentTimeMillis();
 					while (matcher.find()) {
 						if (regexOutEnabled) {
 							int k = matcher.groupCount();
-							if (k >= 4) {
-								System.out.printf("%s ", matcher.group(4));
-								System.out.printf("%s ", matcher.group(1));
-								System.out.printf("%s ", matcher.group(3));
-								for (int j = 5; j <= k; j++) {
-									if ((j != 7) && (j != 12) && (null != matcher.group(j))) {
-										System.out.printf("%s ", matcher.group(j));
-									}
+							if (0 < k) {
+								for (int j = 1; j <= k; j++) {
+									System.out.printf("%s ", matcher.group(j));
 								}
+								System.out.println();
 							}
-							System.out.println();
 						}
 					}
 					t1 = System.currentTimeMillis() - t0;
@@ -112,7 +108,7 @@ public class FileRunner {
 				}
 				if (!regexOutEnabled) {
 					double tr = (double) tregex / tjrte;
-					System.out.println(String.format(" : %,12d (%,d) %3.2f", (((long)clen * loops * 1000) / tregex), clen, tr));
+					System.out.println(String.format(" : %,12d (%dx%,d) %3.2f", (((long)clen * loops * 1000) / tregex), loops, clen, tr));
 				}
 			}
 		} catch (Exception e) {

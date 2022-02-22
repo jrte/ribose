@@ -346,7 +346,7 @@ T:			while (this.status() == ITransduction.RUNNABLE) {
 						switch (action) {
 							case Transduction.RTE_EFFECTOR_NUL:
 								if (currentInput == this.nulSignal) {
-									debug = this.getErrorInput(state);
+									debug = this.getErrorInput(state, position);
 									throw new DomainErrorException(String.format("Domain error in %1$s %2$s", transducer.getName(), debug));
 								} else if (currentInput != this.eosSignal) {
 									effect |= this.in(this.nulSignal);
@@ -729,7 +729,7 @@ T:			while (this.status() == ITransduction.RUNNABLE) {
 		return this.effectors;
 	}
 
-	private String getErrorInput(final int state) {
+	private String getErrorInput(final int state, final int index) {
 		String error = "\n\tTransducer stack:\n";
 		this.transducerStack.peek().state = state;
 		for (int t = this.transducerStack.tos(); t >= 0; t--) {
@@ -737,11 +737,11 @@ T:			while (this.status() == ITransduction.RUNNABLE) {
 			error += String.format("\t\t%1$s (state %2$d)\n", transducerState.transducer.getName(), transducerState.state);
 		}
 		error += "\tInput stack:\n";
-		for (int i = this.inputStack.tos() - 1; i >=0 ; i--) {
+		for (int i = this.inputStack.tos(); i >= 0 ; i--) {
 			final CharBuffer input = this.inputStack.get(i).current();
 			if (input != null) {
 				char[] array = input.array();
-				int position = input.position() - 1;
+				int position = (i < this.inputStack.tos()) ? index - 1: input.position();
 				int start = Math.max(0, position - 8);
 				int end = Math.min(start + 16, input.limit());
 				String inch;

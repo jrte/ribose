@@ -1,7 +1,7 @@
 Fibonacci = (
 	(
 		# ~r, ~q, ~p are sequences of 0s preset to empty
-		(nil, clear[`~*`] select[`~q`] paste['0'])
+		(nil, clear[`~*`] select[`~q`] paste['1'])
 		(
 			# fib(n>0): cycle (~r) <- (~q) <- (~p) <- (~p)(~r), (~r) <- empty
 			('0', select[`~r`] cut[`~p`] select[`~p`] copy[`~q`] select[`~q`] cut[`~r`])*

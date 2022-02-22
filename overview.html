@@ -147,8 +147,8 @@ location. In practice, the latter case seldom occurs because transducers can
 be hardened to handle domain errors similarly, without excepting. 
 <p>
 For text-oriented transductions input symbols A include Unicode ordinal values up to a 
-declared maximal Unicode ordinal M and signals (Java char[N], N>1) S represented as Unicode ordinal
-values >M. Signals include base control signals nul (nothing), nil (something), eol (end of line), 
+declared maximal Unicode ordinal M and signals (Java char[N], N&gt;1) S represented as Unicode ordinal
+values &gt;M. Signals include base control signals nul (nothing), nil (something), eol (end of line), 
 and eos (end of stream), and counters (end of countdown). Specialized targets can select the maximal 
 Unicode character ordinal and define additional signals as required.
 <p>
@@ -289,7 +289,7 @@ a called transducer</td>
 <p>
 These effectors are expressed by the base Jrte transduction class. Any 
 collection of ginr transducers that require only these built-in effectors can be compiled 
-into a gearbox by specifying {@link com.characterforming.jrte.BaseTarget}
+into a gearbox by specifying {@link com.characterforming.jrte.base.BaseTarget}
 as gearbox target class. Specialized {@link com.characterforming.jrte.ITarget}
 implementations can express additional effectors for domain-specific
 transduction capabilities in their {@link com.characterforming.jrte.ITarget#bind(ITransduction)}
@@ -447,7 +447,7 @@ the next synchronization point (eg, end of line).
 <p>
 This approach is preferred if there is any chance of the transducer forcing the target into an irreversible and
 inconsistent state. This is the safest and least performant of the 3 Jrte alternatives presented, but its 
-throughput is still >1.5X higher than Java regex.
+throughput is still &gt;1.5X higher than Java regex.
 <p>
 This example shows how to use lookahead to recognize and classify patterns in the input. This can also be used to
 resolve ambiguous cases where choice of transduction path depends on upstream information. 
@@ -492,9 +492,9 @@ That was easy...
 Fibonacci = (
    <i># ~r, ~q, ~p are sequences of 0s preset to empty string ^</i>
    (
-      <i># fib(0): ~q <- 0</i>
+      <i># fib(0): ~q &lt;- 0</i>
       ('0', select[`~q`] paste)
-      <i># fib(n>1): cycle (~r) <- (~q) <- (~p) <- (~p)(~r), (~r) <- ^</i>
+      <i># fib(n&gt;1): cycle (~r) &lt;- (~q) &lt;- (~p) &lt;- (~p)(~r), (~r) &lt;- ^</i>
       ('0', select[`~r`] cut[`~p`] select[`~p`] copy[`~q`] select[`~q`] cut[`~r`])*
    )?
    <i># (~q) is empty or selected and holds the result, so append nl and print result</i>
