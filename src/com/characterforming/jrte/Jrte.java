@@ -4,6 +4,7 @@
 package com.characterforming.jrte;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -46,21 +47,31 @@ public final class Jrte {
 	 */
 	public static void main(final String[] args) 
 			throws SecurityException, IOException, RteException, GearboxException, TargetBindingException, InputException {
-		int argIndex = 0;
-		final boolean startWithNil = args[argIndex].equals("--nil");
-		if (startWithNil) {
-			++argIndex;
+		if ((args.length < 3) || (args.length > 4)) {
+			for (int i = 0; i < args.length; i++) {System.out.printf("%d: %s\n", i, args[i]); } 
+			System.out.println(String.format("Usage: java -cp <classpath> [-Djrte.out.enabled=false] [--nil] <transducer-name> <input-path> <gearbox-path>"));
+			System.exit(1);
 		}
-		final String transducerName = args[argIndex++];
-		final String gearboxPath = args[argIndex++];
-		
+		final boolean nil = args[0].compareTo("--nil") == 0;
+		int arg = nil ? 1 : 0;
+		final String transducerName = args[arg++];
+		final String inputPath = args[arg++];
+		final String gearboxPath = args[arg++];
+
 		try {
 			Jrte jrte = new Jrte(new File(gearboxPath), "com.characterforming.jrte.base.BaseTarget");
 //			System.out.format("Opened %s\n", gearboxPath);
-			IInput[] inputs = startWithNil
-					? new IInput[] { jrte.input(new InputStreamReader(System.in)),
-							jrte.input(new char[][] { new String("!nil").toCharArray() }) }
-					: new IInput[] { jrte.input(new InputStreamReader(System.in)) };
+			final File f = new File(inputPath);
+			final InputStreamReader isr = new InputStreamReader(new FileInputStream(f));
+			int clen = (int)f.length();
+			char[] chars = new char[clen];
+			clen = isr.read(chars, 0, clen);
+			isr.close();
+
+			IInput[] inputs = nil
+					? new IInput[] { (SignalInput) jrte.input(new char[][] {new String("!nil").toCharArray(), chars}) }
+					: new IInput[] { (SignalInput) jrte.input(new char[][] {chars}) };
+
 //			System.out.format("Inputs.length %d\n", inputs.length);
 			ITarget baseTarget = new BaseTarget();
 //			System.out.format("Target %s\n", baseTarget.getClass().getName());

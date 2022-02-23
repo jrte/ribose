@@ -1,22 +1,23 @@
 <project name="jrte" default="all" basedir="." xmlns:if="ant:if" xmlns:unless="ant:unless">
-	<property name="jrte.version" value="0.0.0" />
-	<property name="java.source.dir" value="src" />
-	<property name="pattern.source.dir" value="test-patterns" />
-	<property name="java.test.dir" value="test" />
-	<property name="jars.dir" value="jars" />
-	<property name="jars.test.dir" value="${jars.dir}/test" />
-	<property name="build.java" value="build/java" />
-	<property name="build.java.classes" value="${build.java}/classes" />
-	<property name="build.java.test" value="${build.java}/test" />
-	<property name="build.deploy" value="build/deploy" />
-	<property name="build.patterns" value="build/patterns" />
-	<property name="build.patterns.automata" value="build/patterns/automata" />
-	<property name="jrte.source.tz" value="jrte-source.tar.gz" />
-	<property name="jrte.deploy.tz" value="jrte-deploy.tar.gz" />
-	<property name="jrte.project.tz" value="jrte-project.tar.gz" />
-	<property name="javadoc.dir" value="doc" />
-	<property name="svn.root" value="svn://localhost/jrte" />
-	<property name="regex.linux.kernel" value="([JFMASOND][a-z]+ [0-9]+ ([0-9]+:)+[0-9]+) ([-.:A-Za-z_0-9]*) kernel: \\[[ ]*[0-9]+\\.[0-9]+\\] (DROPPED|ABORTED|LIMITED) IN=([-.:A-Za-z_0-9]*) OUT=([-.:A-Za-z_0-9]*)( MAC=([-.:A-Za-z_0-9]*))? SRC=([-.:A-Za-z_0-9]*) DST=([-.:A-Za-z_0-9]*).* PROTO=([-.:A-Za-z_0-9]*)(.* SPT=([-.:A-Za-z_0-9]*) DPT=([-.:A-Za-z_0-9]*))?.*\n" />
+	<property name="jrte.version" value="0.0.0"/>
+	<property name="java.source.dir" value="src"/>
+	<property name="pattern.source.dir" value="test-patterns"/>
+	<property name="java.test.dir" value="test"/>
+	<property name="jars.dir" value="jars"/>
+	<property name="jars.test.dir" value="${jars.dir}/test"/>
+	<property name="build.java" value="build/java"/>
+	<property name="build.java.classes" value="${build.java}/classes"/>
+	<property name="build.java.test" value="${build.java}/test"/>
+	<property name="build.deploy" value="build/deploy"/>
+	<property name="build.patterns" value="build/patterns"/>
+	<property name="build.patterns.automata" value="build/patterns/automata"/>
+	<property name="build.test" value="build/patterns/test"/>
+	<property name="jrte.source.tz" value="jrte-source.tar.gz"/>
+	<property name="jrte.deploy.tz" value="jrte-deploy.tar.gz"/>
+	<property name="jrte.project.tz" value="jrte-project.tar.gz"/>
+	<property name="javadoc.dir" value="doc"/>
+	<property name="svn.root" value="svn://localhost/jrte"/>
+	<property name="regex.linux.kernel" value="([JFMASOND][a-z]+ [0-9]+ ([0-9]+:)+[0-9]+) ([-.:A-Za-z_0-9]*) kernel: \\[[ ]*[0-9]+\\.[0-9]+\\] (DROPPED|ABORTED|LIMITED) IN=([-.:A-Za-z_0-9]*) OUT=([-.:A-Za-z_0-9]*)( MAC=([-.:A-Za-z_0-9]*))? SRC=([-.:A-Za-z_0-9]*) DST=([-.:A-Za-z_0-9]*).* PROTO=([-.:A-Za-z_0-9]*)(.* SPT=([-.:A-Za-z_0-9]*) DPT=([-.:A-Za-z_0-9]*))?.*\n"/>
 
 	<taskdef resource="net/sf/antcontrib/antlib.xml">
 	     <classpath>
@@ -25,11 +26,11 @@
 	</taskdef>
 
 	<condition property="archive" value="${user.home}/archive">
-		<available type="dir" file="${user.home}/archive" />
+		<available type="dir" file="${user.home}/archive"/>
 	</condition>
 
 	<condition property="jrte.version.revision" value="${jrte.version}.${env.SVN_REVISION}" else="HEAD">
-		<isset property="env.SVN_REVISION" />
+		<isset property="env.SVN_REVISION"/>
 	</condition>
 
 	<path id="java.classpath">
@@ -47,136 +48,186 @@
 	</path>
 
 	<target name="clean-java">
-		<delete dir="${build.java}" quiet="true" />
-		<delete dir="${build.java.test}" quiet="true" />
-		<delete dir="${javadoc.dir}" quiet="true" />
+		<delete dir="${build.java}" quiet="true"/>
+		<delete dir="${build.java.test}" quiet="true"/>
+		<delete dir="${javadoc.dir}" quiet="true"/>
+		<delete dir="${build.test}" quiet="true"/>
 		<delete>
 		  <fileset dir="${jars.dir}" includes="*.jar"/>
 		</delete>
 	</target>
 
 	<target name="clean-patterns">
-		<delete dir="${build.patterns}" quiet="true" />
+		<delete dir="${build.patterns}" quiet="true"/>
 	</target>
 
 	<target name="clean-deploy" depends="clean-java,clean-patterns">
-		<delete dir="${build.deploy}" quiet="true" />
+		<delete dir="${build.deploy}" quiet="true"/>
 	</target>
 
-	<target name="clean" depends="clean-java,clean-patterns,clean-deploy" />
+	<target name="clean" depends="clean-java,clean-patterns,clean-deploy"/>
 
 	<target name="init">
-		<tstamp />
-		<mkdir dir="${build.java.classes}" />
-		<mkdir dir="${build.java.test}" />
-		<mkdir dir="${build.patterns.automata}" />
-		<mkdir dir="${build.deploy}" />
+		<tstamp/>
+		<mkdir dir="${build.java.classes}"/>
+		<mkdir dir="${build.java.test}"/>
+		<mkdir dir="${build.patterns.automata}"/>
+		<mkdir dir="${build.test}"/>
+		<mkdir dir="${build.deploy}"/>
 	</target>
 	
 	<target name="properties" depends="init">
-		<echoproperties />
+		<echoproperties/>
 	</target>
 		
 	<target name="compile-java" depends="init">
 		<javac includeantruntime="false" srcdir="${java.source.dir}" destdir="${build.java.classes}" debug="true" debuglevel="lines,vars,source">
-			<classpath refid="java.classpath" />
+			<classpath refid="java.classpath"/>
 		</javac>
 	</target>
 
 	<target name="compile-test" depends="package-java">
 		<javac includeantruntime="false" srcdir="${java.test.dir}" destdir="${build.java.test}" debug="true" debuglevel="lines,vars,source">
-			<classpath refid="test.classpath" />
+			<classpath refid="test.classpath"/>
 		</javac>
 	</target>
 
 	<target name="compile-patterns" depends="init">
 		<concat destfile="${build.patterns.automata}/_all.inr" eol="lf" force="true">
 			<fileset dir="${pattern.source.dir}">
-				<include name="!prologue" />
+				<include name="!prologue"/>
 			</fileset>
 			<fileset dir="${pattern.source.dir}">
-				<include name="*.inr" />
+				<include name="*.inr"/>
 			</fileset>
 			<fileset dir="${pattern.source.dir}">
-				<include name="!epilogue" />
+				<include name="!epilogue"/>
 			</fileset>
 		</concat>
-		<fixcrlf file="${build.patterns.automata}/_all.inr" eol="lf" />
+		<fixcrlf file="${build.patterns.automata}/_all.inr" eol="lf"/>
 		<exec failonerror="false" dir="${build.patterns.automata}" executable="${basedir}/etc/ginr/ginr" input="${build.patterns.automata}/_all.inr" outputproperty="ginr.output"/>
 		<echo file="${build.patterns.automata}/_all.out">${ginr.output}</echo>
 		<exec failonerror="false" dir="${build.patterns.automata}" executable="/usr/bin/grep" outputproperty="ginr.list">
-			<arg line="'^I N R\|^Copyright\|^Distributed under GPLv3\|DFA MIN' _all.out" />
+			<arg line="'^I N R\|^Copyright\|^Distributed under GPLv3\|DFA MIN' _all.out"/>
 		</exec>
 		<echo>${ginr.list}></echo>
 		<echo file="${build.patterns.automata}/_all.out">${ginr.output}</echo>
 		<exec failonerror="false" dir="${build.patterns.automata}" executable="/usr/bin/grep" outputproperty="ginr.errors">
-			<arg line="'^[ ]*\*\*\*\|^Error detected at state [0-9]*:\|^Reserved character:\|^Warning:' _all.out" />
+			<arg line="'^[ ]*\*\*\*\|^Error detected at state [0-9]*:\|^Reserved character:\|^Warning:' _all.out"/>
 		</exec>
 		<condition property="ginr.fail">
 			<not><length string="${ginr.errors}" trim="true" length="0"/></not>
 		</condition>
-		<echo if:set="ginr.fail" message="&#xA;*** Pattern compilation failed, see ${build.patterns.automata}/_all.out&#xA;${ginr.errors}" />
-		<fail if:set="ginr.fail" />
+		<echo if:set="ginr.fail" message="&#xA;*** Pattern compilation failed, see ${build.patterns.automata}/_all.out&#xA;${ginr.errors}"/>
+		<fail if:set="ginr.fail"/>
 	</target>
 
 	<target name="package-java" depends="compile-java">
-		<copy file="LICENSE" todir="${build.java.classes}" />
-		<copy file="LICENSE-gpl-3.0" todir="${build.java.classes}" />
-		<copy file="LICENSE-lgpl-3.0" todir="${build.java.classes}" />
-		<echo file="${build.java.classes}/VERSION" message="${ant.project.name}-${jrte.version.revision}" append="false" />
-		<jar basedir="${build.java.classes}" destfile="${jars.dir}/${ant.project.name}-${jrte.version.revision}.jar" />
+		<copy file="LICENSE" todir="${build.java.classes}"/>
+		<copy file="LICENSE-gpl-3.0" todir="${build.java.classes}"/>
+		<copy file="LICENSE-lgpl-3.0" todir="${build.java.classes}"/>
+		<echo file="${build.java.classes}/VERSION" message="${ant.project.name}-${jrte.version.revision}" append="false"/>
+		<jar basedir="${build.java.classes}" destfile="${jars.dir}/${ant.project.name}-${jrte.version.revision}.jar"/>
 	</target>
 
 	<target name="package-patterns" depends="compile-patterns,package-java,package-test" unless:set="ginr.fail" >
 		<java fork="true" dir ="." classname="com.characterforming.jrte.compile.GearboxCompiler" classpathref="jrte.classpath" failonerror="true">
-			<arg line="--maxchar 128 --target com.characterforming.jrte.base.BaseTarget ${build.patterns.automata} ${build.patterns}/Jrte.gears" />
+			<arg line="--maxchar 128 --target com.characterforming.jrte.base.BaseTarget ${build.patterns.automata} ${build.patterns}/Jrte.gears"/>
 		</java>
 	</target>
 
 	<target name="package-test" depends="compile-test,package-java" unless:set="ginr.fail" >
-		<jar basedir="${build.java.test}" destfile="${jars.dir}/${ant.project.name}-${jrte.version.revision}-test.jar" />
+		<jar basedir="${build.java.test}" destfile="${jars.dir}/${ant.project.name}-${jrte.version.revision}-test.jar"/>
 	</target>
 
 	<target name="package-source" depends="compile-java">
-		<jar basedir="${java.source.dir}" destfile="${jars.dir}/${ant.project.name}-${jrte.version.revision}-source.jar" />
+		<jar basedir="${java.source.dir}" destfile="${jars.dir}/${ant.project.name}-${jrte.version.revision}-source.jar"/>
 	</target>
 	
 	<target name="test" depends="package-java,package-test,package-patterns">
+		<echo>java -version</echo>
+		<exec failonerror="false" executable="/usr/bin/java">
+			<arg line="-version"/>
+		</exec>
 		<echo>TestRunner (simple fsts driving base transduction effectors):</echo>
 		<java fork="true" dir ="." classname="com.characterforming.jrte.test.TestRunner" classpathref="test.classpath" failonerror="true">
-				<jvmarg line="-showversion -Djrte.out.enabled=false -Dregex.out.enabled=false"/>
-				<arg line="${build.patterns}/Jrte.gears" />
+				<jvmarg line="-Djrte.out.enabled=false -Dregex.out.enabled=false"/>
+				<arg line="${build.patterns}/Jrte.gears"/>
 		</java>
 		<echo>Runoffs (benchmarking fsts for extracting data from noisy inputs, vs similar regex, output muted):</echo>
 		<java fork="true" dir ="." classname="com.characterforming.jrte.test.FileRunner" classpathref="test.classpath" failonerror="true">
 			<jvmarg line="-Djrte.out.enabled=false -Dregex.out.enabled=false"/>
-			<arg line="--nil LinuxKernel test-patterns/inputs/kern-10.log ${build.patterns}/Jrte.gears &quot;${regex.linux.kernel}&quot;" />
+			<arg line="--nil LinuxKernel test-patterns/inputs/kern-10.log ${build.patterns}/Jrte.gears &quot;${regex.linux.kernel}&quot;"/>
 		</java>
 		<java fork="true" dir ="." classname="com.characterforming.jrte.test.FileRunner" classpathref="test.classpath" failonerror="true">
 			<jvmarg line="-Djrte.out.enabled=false -Dregex.out.enabled=false"/>
-			<arg line="--nil LinuxKernelLoose test-patterns/inputs/kern-10.log ${build.patterns}/Jrte.gears &quot;${regex.linux.kernel}&quot;" />
+			<arg line="--nil LinuxKernelLoose test-patterns/inputs/kern-10.log ${build.patterns}/Jrte.gears &quot;${regex.linux.kernel}&quot;"/>
 		</java>
 		<java fork="true" dir ="." classname="com.characterforming.jrte.test.FileRunner" classpathref="test.classpath" failonerror="true">
 				<jvmarg line="-Djrte.out.enabled=false -Dregex.out.enabled=false"/>
-				<arg line="--nil LinuxKernelStrict test-patterns/inputs/kern-10.log ${build.patterns}/Jrte.gears &quot;${regex.linux.kernel}&quot;" />
+				<arg line="--nil LinuxKernelStrict test-patterns/inputs/kern-10.log ${build.patterns}/Jrte.gears &quot;${regex.linux.kernel}&quot;"/>
 		</java>
 		<java fork="true" dir ="." classname="com.characterforming.jrte.test.FileRunner" classpathref="test.classpath" failonerror="true">
 				<jvmarg line="-Djrte.out.enabled=false -Dregex.out.enabled=false"/>
-				<arg line="--nil Tintervals test-patterns/inputs/verbosegc.vgc ${build.patterns}/Jrte.gears cycle-start.id=.*type=.*contextid=.*timestamp=.*intervalms=.([0-9]+'.'[0-9]+)[^0-9]" />
+				<arg line="--nil Tintervals test-patterns/inputs/verbosegc.vgc ${build.patterns}/Jrte.gears cycle-start.id=.*type=.*contextid=.*timestamp=.*intervalms=.([0-9]+'.'[0-9]+)[^0-9]"/>
 		</java>
 		<java fork="true" dir ="." classname="com.characterforming.jrte.test.FileRunner" classpathref="test.classpath" failonerror="true">
 				<jvmarg line="-Djrte.out.enabled=false -Dregex.out.enabled=false"/>
-				<arg line="--nil Sintervals test-patterns/inputs/verbosegc.vgc ${build.patterns}/Jrte.gears cycle-start.id=.*type=.*contextid=.*timestamp=.*intervalms=.([0-9]+'.'[0-9]+)[^0-9]" />
+				<arg line="--nil Sintervals test-patterns/inputs/verbosegc.vgc ${build.patterns}/Jrte.gears cycle-start.id=.*type=.*contextid=.*timestamp=.*intervalms=.([0-9]+'.'[0-9]+)[^0-9]"/>
 		</java>
+		<java fork="true" dir ="." classname="com.characterforming.jrte.test.FileRunner" classpathref="test.classpath" failonerror="true" output="${build.patterns}/T.regex.FileRunner.raw">
+				<jvmarg line="-Djrte.out.enabled=false -Dregex.out.enabled=true"/>
+				<arg line="--nil Tintervals test-patterns/inputs/verbosegc.vgc ${build.patterns}/Jrte.gears cycle-start.id=.*type=.*contextid=.*timestamp=.*intervalms=.([0-9]+'.'[0-9]+)[^0-9]"/>
+		</java>
+		<java fork="true" dir ="." classname="com.characterforming.jrte.Jrte" classpathref="jrte.classpath" failonerror="true" output="${build.patterns}/T.jrte.Jrte.out">
+				<jvmarg line="-Djrte.out.enabled=true"/>
+				<arg line="--nil Tintervals test-patterns/inputs/verbosegc.vgc ${build.patterns}/Jrte.gears"/>
+		</java>
+		<java fork="true" dir ="." classname="com.characterforming.jrte.Jrte" classpathref="jrte.classpath" failonerror="true" output="${build.patterns}/S.jrte.Jrte.out">
+				<jvmarg line="-Djrte.out.enabled=true"/>
+				<arg line="--nil Sintervals test-patterns/inputs/verbosegc.vgc ${build.patterns}/Jrte.gears"/>
+		</java>
+		<java fork="true" dir ="." classname="com.characterforming.jrte.Jrte" classpathref="jrte.classpath" failonerror="true" output="${build.patterns}/S.jrte.Jrte.out">
+				<jvmarg line="-Djrte.out.enabled=true"/>
+				<arg line="--nil Tintervals test-patterns/inputs/verbosegc.vgc ${build.patterns}/Jrte.gears"/>
+		</java>
+		<echo>Output equivalence:</echo>
+		<delete failonerror="false" file="${build.test}/T.regex.FileRunner.raw"/>
+		<delete failonerror="false" file="${build.test}/T.regex.FileRunner.out"/>
+		<delete failonerror="false" file="${build.test}/T.jrte.Jrte.out"/>
+		<delete failonerror="false" file="${build.test}/S.jrte.FileRunner.out"/>
+		<java fork="true" dir ="." classname="com.characterforming.jrte.test.FileRunner" classpathref="test.classpath" failonerror="true" output="${build.test}/T.regex.FileRunner.raw">
+				<jvmarg line="-Djrte.out.enabled=false -Dregex.out.enabled=true"/>
+				<arg line="--nil Tintervals test-patterns/inputs/verbosegc.vgc ${build.patterns}/Jrte.gears cycle-start.id=.*type=.*contextid=.*timestamp=.*intervalms=.([0-9]+'.'[0-9]+)[^0-9]"/>
+		</java>
+		<java fork="true" dir ="." classname="com.characterforming.jrte.test.FileRunner" classpathref="test.classpath" failonerror="true" output="${build.test}/S.jrte.FileRunner.out">
+				<jvmarg line="-Djrte.out.enabled=true -Dregex.out.enabled=false"/>
+				<arg line="--nil Sintervals test-patterns/inputs/verbosegc.vgc ${build.patterns}/Jrte.gears cycle-start.id=.*type=.*contextid=.*timestamp=.*intervalms=.([0-9]+'.'[0-9]+)[^0-9]"/>
+		</java>
+		<java fork="true" dir ="." classname="com.characterforming.jrte.Jrte" classpathref="jrte.classpath" failonerror="true" output="${build.test}/T.jrte.Jrte.out">
+				<jvmarg line="-Djrte.out.enabled=true"/>
+				<arg line="--nil Tintervals test-patterns/inputs/verbosegc.vgc ${build.patterns}/Jrte.gears"/>
+		</java>
+		<exec failonerror="false" executable="/usr/bin/tr" input="${build.test}/T.regex.FileRunner.raw" output="${build.test}/T.regex.FileRunner.out">
+			<arg line="-d ' '"/>
+		</exec>
+		<condition property="intervals.match">
+			<and>
+				<filesmatch file1="${build.test}/T.regex.FileRunner.out" file2="${build.test}/S.jrte.FileRunner.out"/>
+				<filesmatch file1="${build.test}/T.jrte.Jrte.out" file2="${build.test}/S.jrte.FileRunner.out"/>
+			</and>
+		</condition>
+		<fail unless="intervals.match">Not equivalent:&#xA;   ${build.test}/T.regex.FileRunner.out&#xA;   ${build.test}/S.jrte.FileRunner.out&#xA;   ${build.test}/T.regex.FileRunner.out</fail>
+		<echo>Equivalent:&#xA;   ${build.test}/T.jrte.Jrte.out&#xA;   ${build.test}/S.jrte.FileRunner.out&#xA;   ${build.test}/T.regex.FileRunner.out</echo>
 		<echo>Fibonacci:</echo>
-		<java fork="true" dir ="." classname="com.characterforming.jrte.test.FileRunner" classpathref="test.classpath" failonerror="true">
-			<jvmarg line="-Djrte.out.enabled=true -Dregex.out.enabled=false"/>
-			<arg line="--nil Fibonacci test-patterns/inputs/fib.txt ${build.patterns}/Jrte.gears" />
+		<java fork="true" dir ="." classname="com.characterforming.jrte.Jrte" classpathref="jrte.classpath" failonerror="true">
+			<jvmarg line="-Djrte.out.enabled=true"/>
+			<arg line="--nil Fibonacci test-patterns/inputs/fib.txt ${build.patterns}/Jrte.gears"/>
 		</java>
 		<echo>DateExtractor:</echo>
-		<java fork="true" dir ="." classname="com.characterforming.jrte.test.FileRunner" classpathref="test.classpath" failonerror="true">
-			<jvmarg line="-Djrte.out.enabled=true -Dregex.out.enabled=false"/>
-			<arg line="--nil DateExtractor test-patterns/inputs/dates.txt ${build.patterns}/Jrte.gears" />
+		<java fork="true" dir ="." classname="com.characterforming.jrte.Jrte" classpathref="jrte.classpath" failonerror="true">
+			<jvmarg line="-Djrte.out.enabled=true"/>
+			<arg line="--nil DateExtractor test-patterns/inputs/dates.txt ${build.patterns}/Jrte.gears"/>
 		</java>
 	</target>
 
@@ -188,29 +239,29 @@
 			<bottom>
 				&lt;b&gt;Copyright (c) 2011,2017,2019 Kim T Briggs, Fredericton, NB&lt;/b&gt;
 			</bottom>
-			<link href="http://download.oracle.com/javase/6/docs/api/" />
-			<package name="com.characterforming.jrte" />
-			<package name="com.characterforming.jrte.base" />
-			<excludepackage name="com.characterforming.jrte.compile" />
-			<excludepackage name="com.characterforming.jrte.engine" />
+			<link href="http://download.oracle.com/javase/6/docs/api/"/>
+			<package name="com.characterforming.jrte"/>
+			<package name="com.characterforming.jrte.base"/>
+			<excludepackage name="com.characterforming.jrte.compile"/>
+			<excludepackage name="com.characterforming.jrte.engine"/>
 		</javadoc>
 		<copy todir="doc/resources">
 			<fileset dir="etc/javadoc/api/resources">
-				<include name="*" />
+				<include name="*"/>
 			</fileset>
 			<fileset dir="etc/javadoc">
-				<include name="*.png" />
+				<include name="*.png"/>
 			</fileset>
 		</copy>
-		<jar basedir="doc" destfile="${jars.dir}/${ant.project.name}-${jrte.version.revision}-javadoc.jar" />
+		<jar basedir="doc" destfile="${jars.dir}/${ant.project.name}-${jrte.version.revision}-javadoc.jar"/>
 	</target>
 
 	<target name="tar-source" depends="package-patterns,package-test" unless:set="ginr.fail" >
 		<tar destfile="${build.deploy}/${jrte.source.tz}" compression="gzip">
 			<fileset dir=".">
-				<include name="src" />
-				<include name="test" />
-				<include name="test-patterns" />
+				<include name="src"/>
+				<include name="test"/>
+				<include name="test-patterns"/>
 			</fileset>
 		</tar>
 	</target>
@@ -218,19 +269,19 @@
 	<target name="tar-deploy" depends="package-patterns,package-test,javadoc" unless:set="ginr.fail" >
 		<tar destfile="${build.deploy}/${jrte.deploy.tz}" compression="gzip">
 			<fileset dir="etc/sh">
-				<include name="*.sh" />
+				<include name="*.sh"/>
 			</fileset>
 			<fileset dir="${jars.dir}">
-				<include name="*.jar" />
+				<include name="*.jar"/>
 			</fileset>
 			<fileset dir="${jars.test.dir}">
-				<include name="*.jar" />
+				<include name="*.jar"/>
 			</fileset>
 			<fileset dir="${build.patterns}">
-				<include name="*.gears" />
+				<include name="*.gears"/>
 			</fileset>
 			<fileset dir="test-patterns">
-				<include name="inputs/*" />
+				<include name="inputs/*"/>
 			</fileset>
 		</tar>
 	</target>
@@ -239,27 +290,27 @@
 		<tar basedir="." destfile="${build.deploy}/${jrte.project.tz}" compression="gzip" defaultexcludes="false" excludes="*.tar.gz"/>
 	</target>
 
-	<target name="all" depends="all-clean,test" description="Clean build for java, tests and patterns and run tests" />
+	<target name="all" depends="all-clean,test" description="Clean build for java, tests and patterns and run tests"/>
 
-	<target name="all-clean" depends="clean,package-java,package-test,package-patterns,package-source,javadoc" description="Full build for java and patterns" />
+	<target name="all-clean" depends="clean,package-java,package-test,package-patterns,package-source,javadoc" description="Full build for java and patterns"/>
 
-	<target name="all-deploy" depends="clean-deploy,tar-source,tar-deploy" description="Full build and deployment for java and patterns" />
+	<target name="all-deploy" depends="clean-deploy,tar-source,tar-deploy" description="Full build and deployment for java and patterns"/>
 
 	<target name="all-archive" depends="all-deploy,tar-project" if="archive" unless:set="ginr.fail" >
-		<delete quiet="true" file="${archive}/jrte-svn-${DSTAMP}.dump" />
+		<delete quiet="true" file="${archive}/jrte-svn-${DSTAMP}.dump"/>
 		<exec failonerror="true" executable="svnadmin" output="${archive}/jrte-svn-${DSTAMP}.dump">
-			<arg line="dump /home/kb/Development/svn/repo/jrte/" />
+			<arg line="dump /home/kb/Development/svn/repo/jrte/"/>
 		</exec>
-		<delete quiet="true" file="${archive}/jrte-svn-${DSTAMP}.info" />
+		<delete quiet="true" file="${archive}/jrte-svn-${DSTAMP}.info"/>
 		<exec failonerror="true" executable="svn" output="${archive}/jrte-svn-${DSTAMP}.info">
 			<arg line="info ${svn.root}"/>
 		</exec>
 		<exec failonerror="true" executable="svn" output="${archive}/jrte-svn-${DSTAMP}.info" append="true">
-			<arg line="-Rv list ${svn.root}" />
+			<arg line="-Rv list ${svn.root}"/>
 		</exec>
 		<copy todir="${archive}">
 			<fileset dir=".">
-				<include name="*.tar.gz" />
+				<include name="*.tar.gz"/>
 			</fileset>
 		</copy>
 	</target>

@@ -145,14 +145,16 @@ Any subclass of `BaseTarget` can serve as target class. The `--maxchar` paramete
 
 Also, while ginr recogizes identifiers enclosed in `back-quotes`, as first-order atomic entities (like 'A'), and these identifiers may include `\xdd` bytes, inclusion of `\x00` will force truncation, just so you know.
 
-To use a `transducer` compiled into a `gearbox` to transduce an `input` file, for example (the --nil option prepends an initial `!nil` signal to the input stack before running the transduction),
+To use a `transducer` compiled into a `gearbox` to transduce an `input` file, for example:
 
 ```
 	transducer=LinuxKernel
 	input=test-patterns/inputs/kern.log
 	gearbox=build/patterns/Jrte.gears
-	cat $input | java -cp build/java/jrte-HEAD.jar com.characterforming.jrte.Jrte --nil $transducer $gearbox
+	java -cp build/java/jrte-HEAD.jar com.characterforming.jrte.Jrte --nil $transducer $input $gearbox
 ```
+
+The entire file contents will be loaded into RAM and presented to the transduction as a single `char[]` array (see issue #6 to see why this is necessary, for now). The `--nil` option presents an initial `!nil` signal to the transduction, before presenting input file contents. This can be used for one-time initialization as may be required in some cases, eg when the start state would otherwise belong in a loop.
 
 To use the jrte runtime to set up and run transductions in a Java application, include jrte-HEAD.jar in classpath. Classes in `com.characterforming.jrte.compile.*` classes are never loaded by the jrte runtime. Application classes import supporting classes from runtime `com.characterforming.jrte` packages and subpackages as required. See related Javadoc and `etc/sh/*.sh` for more details and examples relating to runtime use.
 
