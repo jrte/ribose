@@ -113,7 +113,7 @@
 		<echo>${ginr.list}></echo>
 		<echo file="${build.patterns.automata}/_all.out">${ginr.output}</echo>
 		<exec failonerror="false" dir="${build.patterns.automata}" executable="/usr/bin/grep" outputproperty="ginr.errors">
-			<arg line="'^[ ]*\*\*\*\|^Error detected at state [0-9]*:\|^Reserved character:\|^Warning:' _all.out"/>
+			<arg line="'^[ ]*\* \* \*\|^[ ]*\*\*\*\|^Error detected at state [0-9]*:\|^Reserved character:\|^Warning:' _all.out"/>
 		</exec>
 		<condition property="ginr.fail">
 			<not><length string="${ginr.errors}" trim="true" length="0"/></not>
@@ -149,12 +149,14 @@
 		<exec failonerror="false" executable="/usr/bin/java">
 			<arg line="-version"/>
 		</exec>
-		<echo>TestRunner (simple fsts driving base transduction effectors):</echo>
+		
+		<echo>TestRunner (benchmarking simple fsts driving base transduction effectors):</echo>
 		<java fork="true" dir ="." classname="com.characterforming.jrte.test.TestRunner" classpathref="test.classpath" failonerror="true">
 				<jvmarg line="-Djrte.out.enabled=false -Dregex.out.enabled=false"/>
 				<arg line="${build.patterns}/Jrte.gears"/>
 		</java>
-		<echo>Runoffs (benchmarking fsts for extracting data from noisy inputs, vs similar regex, output muted):</echo>
+		
+		<echo>FileRunner (benchmarking fsts for extracting data from noisy inputs, vs similar regex, output muted):</echo>
 		<java fork="true" dir ="." classname="com.characterforming.jrte.test.FileRunner" classpathref="test.classpath" failonerror="true">
 			<jvmarg line="-Djrte.out.enabled=false -Dregex.out.enabled=false"/>
 			<arg line="--nil LinuxKernel test-patterns/inputs/kern-10.log ${build.patterns}/Jrte.gears &quot;${regex.linux.kernel}&quot;"/>
@@ -175,50 +177,90 @@
 				<jvmarg line="-Djrte.out.enabled=false -Dregex.out.enabled=false"/>
 				<arg line="--nil Sintervals test-patterns/inputs/verbosegc.vgc ${build.patterns}/Jrte.gears cycle-start.id=.*type=.*contextid=.*timestamp=.*intervalms=.([0-9]+'.'[0-9]+)[^0-9]"/>
 		</java>
-		<java fork="true" dir ="." classname="com.characterforming.jrte.test.FileRunner" classpathref="test.classpath" failonerror="true" output="${build.patterns}/T.regex.FileRunner.raw">
+		<java fork="true" dir ="." classname="com.characterforming.jrte.test.FileRunner" classpathref="test.classpath" failonerror="true" output="/dev/null">
 				<jvmarg line="-Djrte.out.enabled=false -Dregex.out.enabled=true"/>
 				<arg line="--nil Tintervals test-patterns/inputs/verbosegc.vgc ${build.patterns}/Jrte.gears cycle-start.id=.*type=.*contextid=.*timestamp=.*intervalms=.([0-9]+'.'[0-9]+)[^0-9]"/>
 		</java>
-		<java fork="true" dir ="." classname="com.characterforming.jrte.Jrte" classpathref="jrte.classpath" failonerror="true" output="${build.patterns}/T.jrte.Jrte.out">
+		<java fork="true" dir ="." classname="com.characterforming.jrte.Jrte" classpathref="jrte.classpath" failonerror="true" output="/dev/null">
 				<jvmarg line="-Djrte.out.enabled=true"/>
 				<arg line="--nil Tintervals test-patterns/inputs/verbosegc.vgc ${build.patterns}/Jrte.gears"/>
 		</java>
-		<java fork="true" dir ="." classname="com.characterforming.jrte.Jrte" classpathref="jrte.classpath" failonerror="true" output="${build.patterns}/S.jrte.Jrte.out">
+		<java fork="true" dir ="." classname="com.characterforming.jrte.Jrte" classpathref="jrte.classpath" failonerror="true" output="/dev/null">
 				<jvmarg line="-Djrte.out.enabled=true"/>
 				<arg line="--nil Sintervals test-patterns/inputs/verbosegc.vgc ${build.patterns}/Jrte.gears"/>
 		</java>
-		<java fork="true" dir ="." classname="com.characterforming.jrte.Jrte" classpathref="jrte.classpath" failonerror="true" output="${build.patterns}/S.jrte.Jrte.out">
+		<java fork="true" dir ="." classname="com.characterforming.jrte.Jrte" classpathref="jrte.classpath" failonerror="true" output="/dev/null">
 				<jvmarg line="-Djrte.out.enabled=true"/>
 				<arg line="--nil Tintervals test-patterns/inputs/verbosegc.vgc ${build.patterns}/Jrte.gears"/>
 		</java>
-		<echo>Output equivalence:</echo>
-		<delete failonerror="false" file="${build.test}/T.regex.FileRunner.raw"/>
-		<delete failonerror="false" file="${build.test}/T.regex.FileRunner.out"/>
-		<delete failonerror="false" file="${build.test}/T.jrte.Jrte.out"/>
-		<delete failonerror="false" file="${build.test}/S.jrte.FileRunner.out"/>
-		<java fork="true" dir ="." classname="com.characterforming.jrte.test.FileRunner" classpathref="test.classpath" failonerror="true" output="${build.test}/T.regex.FileRunner.raw">
+		
+		<echo>Jrte (output equivalence tests):</echo>
+		<delete failonerror="false" file="${build.test}/Tintervals.regex.FileRunner.out"/>
+		<delete failonerror="false" file="${build.test}/Tintervals.jrte.FileRunner.out"/>
+		<delete failonerror="false" file="${build.test}/Sintervals.jrte.FileRunner.out"/>
+		<java fork="true" dir ="." classname="com.characterforming.jrte.test.FileRunner" classpathref="test.classpath" failonerror="true" output="${build.test}/Tintervals.jrte.FileRunner.out">
+				<jvmarg line="-Djrte.out.enabled=true -Dregex.out.enabled=false"/>
+				<arg line="--nil Tintervals test-patterns/inputs/verbosegc.vgc ${build.patterns}/Jrte.gears"/>
+		</java>
+		<exec failonerror="true" executable="/usr/bin/wc">
+			<arg line="${build.test}/Tintervals.jrte.FileRunner.out"/>
+		</exec>		
+		<java fork="true" dir ="." classname="com.characterforming.jrte.test.FileRunner" classpathref="test.classpath" failonerror="true" output="${build.test}/Sintervals.jrte.FileRunner.out">
+				<jvmarg line="-Djrte.out.enabled=true -Dregex.out.enabled=false"/>
+				<arg line="--nil Sintervals test-patterns/inputs/verbosegc.vgc ${build.patterns}/Jrte.gears"/>
+		</java>
+		<exec failonerror="true" executable="/usr/bin/wc">
+			<arg line="${build.test}/Sintervals.jrte.FileRunner.out"/>
+		</exec>		
+		<java fork="true" dir ="." classname="com.characterforming.jrte.test.FileRunner" classpathref="test.classpath" failonerror="true" output="${build.test}/Tintervals.regex.FileRunner.out">
 				<jvmarg line="-Djrte.out.enabled=false -Dregex.out.enabled=true"/>
 				<arg line="--nil Tintervals test-patterns/inputs/verbosegc.vgc ${build.patterns}/Jrte.gears cycle-start.id=.*type=.*contextid=.*timestamp=.*intervalms=.([0-9]+'.'[0-9]+)[^0-9]"/>
 		</java>
-		<java fork="true" dir ="." classname="com.characterforming.jrte.test.FileRunner" classpathref="test.classpath" failonerror="true" output="${build.test}/S.jrte.FileRunner.out">
-				<jvmarg line="-Djrte.out.enabled=true -Dregex.out.enabled=false"/>
-				<arg line="--nil Sintervals test-patterns/inputs/verbosegc.vgc ${build.patterns}/Jrte.gears cycle-start.id=.*type=.*contextid=.*timestamp=.*intervalms=.([0-9]+'.'[0-9]+)[^0-9]"/>
-		</java>
-		<java fork="true" dir ="." classname="com.characterforming.jrte.Jrte" classpathref="jrte.classpath" failonerror="true" output="${build.test}/T.jrte.Jrte.out">
-				<jvmarg line="-Djrte.out.enabled=true"/>
-				<arg line="--nil Tintervals test-patterns/inputs/verbosegc.vgc ${build.patterns}/Jrte.gears"/>
-		</java>
-		<exec failonerror="false" executable="/usr/bin/tr" input="${build.test}/T.regex.FileRunner.raw" output="${build.test}/T.regex.FileRunner.out">
-			<arg line="-d ' '"/>
-		</exec>
+		<exec failonerror="true" executable="/usr/bin/wc">
+			<arg line="${build.test}/Tintervals.regex.FileRunner.out"/>
+		</exec>		
 		<condition property="intervals.match">
 			<and>
-				<filesmatch file1="${build.test}/T.regex.FileRunner.out" file2="${build.test}/S.jrte.FileRunner.out"/>
-				<filesmatch file1="${build.test}/T.jrte.Jrte.out" file2="${build.test}/S.jrte.FileRunner.out"/>
+				<filesmatch file1="${build.test}/Tintervals.regex.FileRunner.out" file2="${build.test}/Sintervals.jrte.FileRunner.out"/>
+				<filesmatch file1="${build.test}/Sintervals.jrte.FileRunner.out" file2="${build.test}/Tintervals.jrte.FileRunner.out"/>
 			</and>
 		</condition>
-		<fail unless="intervals.match">Not equivalent:&#xA;   ${build.test}/T.regex.FileRunner.out&#xA;   ${build.test}/S.jrte.FileRunner.out&#xA;   ${build.test}/T.regex.FileRunner.out</fail>
-		<echo>Equivalent:&#xA;   ${build.test}/T.jrte.Jrte.out&#xA;   ${build.test}/S.jrte.FileRunner.out&#xA;   ${build.test}/T.regex.FileRunner.out</echo>
+		<fail unless="intervals.match">Not equivalent:&#xA;   ${build.test}/Tintervals.jrte.FileRunner.out&#xA;   ${build.test}/Sintervals.jrte.FileRunner.out&#xA;   ${build.test}/Tintervals.regex.FileRunner.out</fail>
+		<echo>Equivalent:&#xA;   ${build.test}/Tintervals.jrte.FileRunner.out&#xA;   ${build.test}/Sintervals.jrte.FileRunner.out&#xA;   ${build.test}/Tintervals.regex.FileRunner.out</echo>
+
+		<delete failonerror="false" file="${build.test}/LinuxKernel.jrte.Jrte.out"/>
+		<delete failonerror="false" file="${build.test}/LinuxKernelLoose.jrte.Jrte.out"/>
+		<delete failonerror="false" file="${build.test}/LinuxKernelStrict.jrte.Jrte.out"/>
+		<java fork="true" dir ="." classname="com.characterforming.jrte.Jrte" classpathref="jrte.classpath" failonerror="true" output="${build.test}/LinuxKernel.jrte.Jrte.out">
+				<jvmarg line="-Djrte.out.enabled=true"/>
+				<arg line="--nil LinuxKernel test-patterns/inputs/kern-10.log ${build.patterns}/Jrte.gears"/>
+		</java>
+		<exec failonerror="true" executable="/usr/bin/wc">
+			<arg line="${build.test}/LinuxKernel.jrte.Jrte.out"/>
+		</exec>		
+		<java fork="true" dir ="." classname="com.characterforming.jrte.Jrte" classpathref="jrte.classpath" failonerror="true" output="${build.test}/LinuxKernelLoose.jrte.Jrte.out">
+				<jvmarg line="-Djrte.out.enabled=true"/>
+				<arg line="--nil LinuxKernelLoose test-patterns/inputs/kern-10.log ${build.patterns}/Jrte.gears"/>
+		</java>
+		<exec failonerror="true" executable="/usr/bin/wc">
+			<arg line="${build.test}/LinuxKernelLoose.jrte.Jrte.out"/>
+		</exec>		
+		<java fork="true" dir ="." classname="com.characterforming.jrte.Jrte" classpathref="jrte.classpath" failonerror="true" output="${build.test}/LinuxKernelStrict.jrte.Jrte.out">
+				<jvmarg line="-Djrte.out.enabled=true"/>
+				<arg line="--nil LinuxKernelStrict test-patterns/inputs/kern-10.log ${build.patterns}/Jrte.gears"/>
+		</java>
+		<exec failonerror="true" executable="/usr/bin/wc">
+			<arg line="${build.test}/LinuxKernelStrict.jrte.Jrte.out"/>
+		</exec>		
+		<condition property="kernel.match">
+			<and>
+				<filesmatch file1="${build.test}/LinuxKernel.jrte.Jrte.out" file2="${build.test}/LinuxKernelLoose.jrte.Jrte.out"/>
+				<filesmatch file1="${build.test}/LinuxKernelLoose.jrte.Jrte.out" file2="${build.test}/LinuxKernelStrict.jrte.Jrte.out"/>
+			</and>
+		</condition>
+		<fail unless="kernel.match">Not equivalent:&#xA;   ${build.test}/LinuxKernel.jrte.Jrte.out&#xA;   ${build.test}/LinuxKernelLoose.jrte.Jrte.out&#xA;   ${build.test}/LinuxKernelStrict.jrte.Jrte.out</fail>
+		<echo>Equivalent:&#xA;   ${build.test}/LinuxKernel.jrte.Jrte.out&#xA;   ${build.test}/LinuxKernelLoose.jrte.Jrte.out&#xA;   ${build.test}/LinuxKernelStrict.jrte.Jrte.out</echo>
+		
 		<echo>Fibonacci:</echo>
 		<java fork="true" dir ="." classname="com.characterforming.jrte.Jrte" classpathref="jrte.classpath" failonerror="true">
 			<jvmarg line="-Djrte.out.enabled=true"/>

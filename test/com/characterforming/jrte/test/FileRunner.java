@@ -93,9 +93,10 @@ public class FileRunner {
 						if (regexOutEnabled) {
 							int k = matcher.groupCount();
 							if (0 < k) {
-								for (int j = 1; j <= k; j++) {
+								for (int j = 1; j < k; j++) {
 									System.out.printf("%s ", matcher.group(j));
 								}
+								System.out.printf("%s", matcher.group(k));
 								System.out.println();
 							}
 						}

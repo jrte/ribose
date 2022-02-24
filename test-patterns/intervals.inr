@@ -1,9 +1,11 @@
+# <cycle-start id="4" type="scavenge" contextid="0" timestamp="2021-04-05T23:12:58.597" intervalms="5243.468" />
+
 interval = (
 	'<cycle-start id="' digit+ '" type="scavenge" contextid="' digit+ '" timestamp="' (digit+ ('.:-T':alph))+ digit+ '" '
-	('intervalms="', select[`~interval`])
+	('intervalms="', select[`~interval`] clear)
 	(digit, paste)+ ('.', paste) (digit, paste)+
-	('"', out[`~interval` NL] clear[`~interval`])
-	(utf7 - '>')* '>' notnl* nl
+	('"', out[`~interval` NL])
+	space* '/>' (utf7 - '<')*
 );
 
 l0 = (interval$0):alph;
@@ -12,13 +14,15 @@ l2 = (interval$2):alph;
 
 conjoint = (l0 & l1) | (l0 & l2) | (l1 & l2);
 
+'*** Tintervals tape alphabets must be disjoint' conjoint:enum;
+
 notinterval= (
 	(
-			((AnyOrNul* @ interval)$(0 1 2))
-		@	((l0$(0,0))* (l1$(0,,0))* (l2$(0,,,0))*)*
-            (nul$(0,0)) (nul* l0* l1* l2*)* 
+		((AnyOrNul* @ interval)$(0 1 2))
+	@	((l0$(0,0))* (l1$(0,,0))* (l2$(0,,,0))*)*
+        (nul$(0,0)) (nul* l0* l1* l2*)* 
 	)
-	(nul* notnl*)* nl
+	((utf7 - '>')* nul*)* '>' (utf7 - '<')*
 );
 
 Tintervals = ((notinterval* interval*)* notinterval*) @ (((l2 - NL)$(0,0))* (NL, nl)*)*;
@@ -30,13 +34,16 @@ Tintervals$0:alph:card;
 _interval = (
 	'<cycle-start id="' digit+ '" type="scavenge"'
 	(
-		space
+		space+
 		(
-			('intervalms="', select[`~interval`]) (digit, paste)+ ('.', paste) (digit, paste)+ ('"', out[`~interval` NL] clear[`~interval`])
-		||	((lower* '="') - 'intervalms="') (utf7 - '"')* '"'
+			('intervalms="', select[`~interval`] clear)
+			(digit, paste)+ ('.', paste) (digit, paste)+
+			('"', out[`~interval` NL] )
+		||	((lower* '="') - 'intervalms="')
+			(utf7 - '"')* '"'
 		)
 	)*
-	space? '/>' notnl* nl
+	space* '/>' (utf7 - '<')*
 )*;
 _interval$(0,1 2):prsseq `/tmp/_i.ssq`;
 
@@ -46,13 +53,15 @@ l2 = (_interval$2):alph;
 
 conjoint = (l0 & l1) | (l0 & l2) | (l1 & l2);
 
+'*** Sintervals tape alphabets must be disjoint' conjoint:enum;
+
 _notinterval = (
 	(
-			((AnyOrNul* @ _interval)$(0 1 2))
-		@	((l0$(0,0))* (l1$(0,,0))* (l2$(0,,,0))*)*
-			(nul$(0,0)) (nul* l0* l1* l2*)* 
+		((AnyOrNul* @ _interval)$(0 1 2))
+	@	((l0$(0,0))* (l1$(0,,0))* (l2$(0,,,0))*)*
+		(nul$(0,0)) (nul* l0* l1* l2*)* 
 	)
-	(nul* notnl*)* nl
+	((utf7 - '>')* nul*)* '>' (utf7 - '<')*
 );
 
 Sintervals = ((_notinterval* _interval*)* _notinterval*) @ (((l2 - NL)$(0,0))* (NL, nl)*)*;

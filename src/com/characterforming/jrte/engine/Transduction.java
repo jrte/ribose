@@ -524,9 +524,14 @@ T:			while (this.status() == ITransduction.RUNNABLE) {
 	}
 
 	int clear(final int nameIndex) {
-		this.valueLength[nameIndex] = 0;
-		if (nameIndex == this.selectionIndex) {
-			this.selectionPosition = 0;
+		int index = (nameIndex == -2) ? this.selectionIndex : nameIndex;
+		if (index >= 0) {
+			this.valueLength[index] = 0;
+			if (index == this.selectionIndex) {
+				this.selectionPosition = 0;
+			}
+		} else if (index == -1) {
+			return clear();
 		}
 		return IEffector.RTE_EFFECT_NONE;
 	}
@@ -958,7 +963,7 @@ T:			while (this.status() == ITransduction.RUNNABLE) {
 
 		@Override
 		public final int invoke() throws EffectorException {
-			return super.getTarget().clear(0);
+			return super.getTarget().clear(-2);
 		}
 
 		@Override
@@ -975,7 +980,7 @@ T:			while (this.status() == ITransduction.RUNNABLE) {
 		@Override
 		public final int invoke(final int parameterIndex) throws EffectorException {
 			final int nameIndex = super.getParameter(parameterIndex);
-			return nameIndex >= 0 ? super.getTarget().clear(nameIndex) : super.getTarget().clear();
+			return super.getTarget().clear(nameIndex);
 		}
 	}
 
