@@ -25,7 +25,7 @@ notinterval= (
 	((utf7 - '>')* nul*)* '>' (utf7 - '<')*
 );
 
-Tintervals = ((notinterval* interval*)* notinterval*) @ (((l2 - NL)$(0,0))* (NL, nl)*)*;
+Tintervals = (notinterval* interval*)* @ (((l2 - NL)$(0,0))* (NL, nl)*)*;
 
 Tintervals$(0,1 2):prsseq `Tintervals.pr`;
 Tintervals:save `Tintervals.dfa`;
@@ -64,7 +64,7 @@ _notinterval = (
 	((utf7 - '>')* nul*)* '>' (utf7 - '<')*
 );
 
-Sintervals = ((_notinterval* _interval*)* _notinterval*) @ (((l2 - NL)$(0,0))* (NL, nl)*)*;
+Sintervals = (notinterval* _interval*)* @ (((l2 - NL)$(0,0))* (NL, nl)*)*;
 
 Sintervals$(0,1 2):prsseq `Sintervals.pr`;
 Sintervals:save `Sintervals.dfa`;

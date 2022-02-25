@@ -48,9 +48,48 @@ Compared to Java regex, ginr provides a more robust regular expression compiler 
 
 ![iptables data extraction from 20MB Linux kernel log](https://github.com/jrte/ribose/blob/master/etc/javadoc/LinuxKernelLog.png)
 
-Jrte is a mature WIP and interested parties are encouraged to use the discussions section here to contact [me](https://github.com/jrte) for support. The general idea is to enable Java developers to embed the jrte runtime and develop transductions for domain-specific targets. The included test transductions use the base target, which provides simple select, cut, copy, paste, clear, input/output and other basic operational effectors that are themselves sufficient for most generic text mining use cases.
+## Using Jrte
 
-To get started, build ginr and jrte and see the examples below for building a gearbox and running transducers from testing artifacts included in the repo. You may then want to prepare transducers for other test artifacts you may have available. You will need ginr v2.0.2 to build transducers to use in the jrte runtime. Ginr can be cloned or downloaded from https://github.com/ntozubod/ginr. I have included a copy of the ginr executable compiled for Linux in the jrte repo to enable Github CI builds to run transduction test cases. Also included is a whitepaper providing a detailed presentation of ginr with some examples illustrating usage of the available operators. These artifacts can be found [here](https://github.com/jrte/ribose/tree/master/etc/ginr). More current information can be found at the [ginr repo](https://github.com/ntozubod/ginr).
+Jrte is a mature WIP and interested parties are encouraged to use the discussions section here to contact [me](https://github.com/jrte) for support. The general idea is to enable Java developers to embed the jrte runtime and develop transductions for domain-specific targets. The included test transductions use the base target, which provides simple select, cut, copy, paste, clear, in, out and other basic operational effectors that are themselves sufficient for most generic text mining use cases. Java developers can roll their own domain-specific targets with new effectors by extending `BaseTarget` or any subclass and implementing `ITarget.bind()` to return an array enumerating the new effectors. The new effectors as well as the any effector inherited from superclasses can then be used in domain-specific patterns, compiled to transducers and archived to the target gearbox (note: the relationship between target and gearbox is  one-to-one).
+
+The base target effectors are:
+
+| Effector[`Parameter` ...] | Description |
+| --- | --- |
+|start[`@transducer`]|Push a named transducer onto the transducer stack|
+|stop|Stop the current transducer and pop the transducer stack|
+|shift[`@transducer`]|Replace current transducer on top of transducer stack with a named transducer|
+|select|Select the anonymous value as current selection|
+|select[`~name`]|Select a named value as current selection|
+|paste|Extend the current selection by appending the current input character|
+|paste[`text`]|Extend the current selection by appending text|
+|copy[`~name`]|Extend the current selection by appending a named value|
+|cut[`~name`]|Extend the current selection by appending a named value and clear the named value|
+|clear|Clear the current selection|
+|clear[`~name`]|Clear the named value|
+|counter[`!signal` `digit+`]|Set up a counter signal and initial counter value|
+|count|Decrement the counter and push `!signal` onto the input stack when result is 0|
+|in|Push current selection onto the input stack|
+|in[...]|Push onto the input stack a signal or a sequence of mixed text and named values|
+|mark|Mark a position in the current input|
+|reset|Resets the input to the last mark|
+|end|Pops the input stack|
+|out|Write value of current selection to System.out|
+|out[...]|Write a sequence of mixed text and named values to System.out|
+
+Each `ITarget` implementation must provide a nullary constructor. The gearbox compiler will instantiate and bind() a target instance to a null `Transduction` to obtain the target effectors to compile to and will use these to verify parameters used in compiled ginr source; these effector instances must be capable of compiling parameters in the absence of an associated runtime `Transduction` instance. Effector parameters in jrte patterns are always presented to ginr as a series of tokens with backquotes, which may include binary `\xHH` bytes. These are compiled to an array of byte arrays for each parameterized effector call in ginr source.
+
+In the jrte runtime the collection of parameters associated with each effector instance is enumerated. When the target is bound to a transduction runtime will call the each effector's `newParameters(int)` method to indicate the number of enumerated parameters. The effector is expected to instantiate an array of specified capacity to receive compiled parameter objects.  It will then call each effector's `setParameter(int, byte[][])` once method for each enumerated parameter passing the parameter's enumerator and an array of byte arrays to be used to construct a parameter object. The `BaseParameterizedEffector.decodeParameter(byte[])` method is available to decode UTF-8 bytes in parameter lists to `char[]` array, which can be wrapped as `String` if required for parameter object construction.
+
+When binding is complete each parameterized effector has an array of parameter objects indexed by parameter enumerators. At runtime, a parameter enumerator is passed to the effector's `invoke(int)` method to select the parameter object to be used in the call.
+
+The gearbox produced by the jrte gearbox compiler includes collections of compiled transducers, value names, and signals. The names selected for these artifacts must be prefixed by a special symbol, eg `@Transducer`, `~NamedValue`, `!Signal`, which acts as a poor man's namespace. The intention is to ensure that these names do not clash with effector names or input tokens, so that each tape (`(input-tape, effector-tape[parameter-tape])`) has symbols that are disjoint with respact to other tapes. This allows compiled transducers to be edited in ginr, for example, to harden them against domain errors (input with no defined transition is current state). See the `Tintervals` transducer in the test suite to see how this is done. (Note: Transducer, value, and signal names are always enclosed with backquotes (impossible to show in markdowm, afaik) when they are used on the parameter tape. To reference a signal on the input tape, remove the `!` prefix, for example, (`nul`, select[`~error`] start[`@HandleDomainError`]).
+
+In the current implementation of the jrte gearbox, all named artifacts are global. This was a poor design decision that will present problems in multithreaded contexts. In future revisions mutable named values will be localized to each `Transduction` instance. Transducers and signals are immutable in the jrte runtime. 
+
+## Building and Running Jrte Transducers
+
+To get started, build ginr and jrte and see the examples below for building a gearbox and running transducers from testing artifacts included in the repo. You may then want to prepare transducers for other test artifacts you may have available. You will need ginr v2.1.0c or greater to build transducers to use in the jrte runtime. Ginr can be cloned or downloaded from https://github.com/ntozubod/ginr. I have included a copy of the ginr executable compiled for Linux in the jrte repo to enable Github CI builds to run transduction test cases. Also included is a whitepaper providing a detailed presentation of ginr with some examples illustrating usage of the available operators. These artifacts can be found [here](https://github.com/jrte/ribose/tree/master/etc/ginr). More current information can be found at the [ginr repo](https://github.com/ntozubod/ginr).
 
 To build ginr,
 
@@ -61,9 +100,7 @@ To build ginr,
 	popd
 ```
 
-This will install the ginr executable in ~/bin. It can be run interactively (w/o line-edit) or from a catention of files into stdin. The lower- and uppercase letters of the 7-bit ASCII character set are preset token names assigned to the respective characters. Most common `\n\t` etc shortcuts are accepted for non-printing 7-bit control bytes. Multibyte (`...\xHH...` <- with backquotes) and 8-bit `'\xHH'` tokens can also be defined to represent non-ASCII characters present in the transduction domain. (TODO: Define example assigning UNICODE encoding to variable with UNICODE entity name for common non-ASCII characters, define variables for whole set and useful subsets for inclusion in batch compilation prologues).
-
-Single- or multi-tape expressions are compiled on receipt of a semicolon(;). Compiled expressions can be assigned to variables and referenced in other expressions for inline inclusion. 
+This will install the ginr executable in ~/bin. It can be run interactively (w/o line-edit) or from a catention of files into stdin. Single- or multi-tape expressions are compiled on receipt of a semicolon(;). Compiled expressions can be assigned to variables and referenced in other expressions for inline inclusion. 
 
 ```
 >~/bin/ginr
@@ -131,7 +168,7 @@ ginr must be on your search PATH before building jrte. To build jrte and related
 	ant -f build.xml all-clean
 ```
 
-Transducers are defined in ginr source files (`*.inr`), each directing compiled FST output to an intermediate build directory  (`:save ...` in ginr source). It is helpful to define a base set of common artifacts in a prologue. To compile the complete suite of transducers pipe the catenation of prologue with `*.inr` source files into ginr. Then run the jrte compiler as shown below to assemble FSTs into a gearbox for runtime use with its associated target (NOTE: the following procedure will not work at present, see workaround in [Issue #6](https://github.com/jrte/ribose/issues/6).
+Transducers are defined in ginr source files (`*.inr`), and compiled FSTs to are saved to DFA (`*.dfa`) files in an intermediate build directory  (`:save ...` in ginr source). It is helpful to define a base set of common artifacts in a prologue. To compile the complete suite of transducers pipe the catenation of prologue with `*.inr` source files into ginr. Then run the jrte compiler as shown below to assemble FSTs into a gearbox for runtime use with its associated target.
 
 ```
 	automata=build/patterns/automata
@@ -141,9 +178,7 @@ Transducers are defined in ginr source files (`*.inr`), each directing compiled 
 	java -cp build/java/jrte-HEAD.jar com.characterforming.jrte.compile.GearboxCompiler --maxchar 128 --target $target $automata $gearbox
 ```
 
-Any subclass of `BaseTarget` can serve as target class. The `--maxchar` parameter specifies the maximal input ordinal expected in input. The value 128 limits input text to 7-bit ASCII (ginr was written in 1980 on a 16-bit VAX). To transduce UNICODE text that includes 8-bit or multibyte characters from raw byte streams define a set of variables with UNICODE entity names assigned to the `\xdd...` equivalents of the corresponding binary UNICODE sequences. Then use `--maxchar=256`.
-
-Also, while ginr recogizes identifiers enclosed in `back-quotes`, as first-order atomic entities (like 'A'), and these identifiers may include `\xdd` bytes, inclusion of `\x00` will force truncation, just so you know.
+Any subclass of `BaseTarget` can serve as target class. The `--maxchar` parameter specifies the maximal input ordinal expected in input. The value 128 limits input text to 7-bit ASCII. To transduce UTF-8 text in the encoded domain use `--maxchar=256`. Also, while ginr recognizes tokens enclosed in `back-quotes` as first-order atomic entities (like 'A'), and these identifiers may include `\xHH` bytes, inclusion of `\x00` will force truncation. However, jrte will recognize the stand-alone `\x00` token as a null byte in compiled ginr automata.
 
 To use a `transducer` compiled into a `gearbox` to transduce an `input` file, for example:
 

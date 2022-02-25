@@ -37,7 +37,6 @@ public final class TransducerCompiler extends Automaton {
 		this.inputEquivalenceIndex = null;
 	}
 
-	@Override
 	public void load(final File inrfile) throws IOException, CompilationException {
 		super.load(inrfile);
 		if (super.getErrors().size() > 0) {

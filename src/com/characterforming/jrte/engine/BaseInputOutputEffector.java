@@ -24,14 +24,12 @@ public abstract class BaseInputOutputEffector extends BaseParameterizedEffector<
 	 * (non-Javadoc)
 	 * @see com.characterforming.jrte.engine.IParameterizedEffector#invoke(int)
 	 */
-	@Override
 	public abstract int invoke(int parameterIndex) throws EffectorException;
 
 	/*
 	 * (non-Javadoc)
 	 * @see com.characterforming.jrte.engine.IParameterizedEffector#invoke()
 	 */
-	@Override
 	public int invoke() throws EffectorException {
 		throw new EffectorException(String.format("The %1$s effector requires at least one parameter", super.getName()));
 	}
@@ -41,7 +39,6 @@ public abstract class BaseInputOutputEffector extends BaseParameterizedEffector<
 	 * @see
 	 * com.characterforming.jrte.engine.IParameterizedEffector#newParameters()
 	 */
-	@Override
 	public final void newParameters(final int parameterCount) {
 		super.setParameters(new char[parameterCount][][]);
 	}
@@ -50,7 +47,6 @@ public abstract class BaseInputOutputEffector extends BaseParameterizedEffector<
 	 * (non-Javadoc)
 	 * @see com.characterforming.jrte.engine.IParameterizedEffector#setParameter(int, byte[][])
 	 */
-	@Override
 	public void setParameter(final int parameterIndex, final byte[][] parameterList) throws TargetBindingException {
 		if (parameterList.length < 1) {
 			throw new TargetBindingException(String.format("The %1$s effector requires at leat one parameter", super.getName()));
@@ -84,7 +80,6 @@ public abstract class BaseInputOutputEffector extends BaseParameterizedEffector<
 	 * com.characterforming.jrte.engine.IParameterizedEffector#getParameter(int,
 	 * byte[][])
 	 */
-	@Override
 	public char[][] getParameter(final int parameterIndex) {
 		char[][] parameter = super.getParameter(parameterIndex);
 		if (this.hasBufferReferences) {

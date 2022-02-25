@@ -19,9 +19,9 @@ import com.characterforming.jrte.base.BaseParameterizedEffector;
  */
 public interface IParameterizedEffector<T extends ITarget, P> extends IEffector<T> {
 	/**
-	 * Create a parameters array with capacity for a specified number of compiled
-	 * parameter values. The implementation class must call
-	 * {@link BaseParameterizedEffector#setParameters(Object[])} with the result.
+	 * Create a parameters array (P[]) with capacity for a specified number of P
+	 * instances and retain the resulting array to receive enumerated parameter
+	 * instances in subsequent calls to {@link #setParameter(int, byte[][])}.
 	 * 
 	 * @param parameterCount The size of the array to create
 	 */
@@ -30,10 +30,9 @@ public interface IParameterizedEffector<T extends ITarget, P> extends IEffector<
 	/**
 	 * Compile and set a parameter value from effector arguments specified in
 	 * gearbox transducers. The parameter value, which may be a scalar or an
-	 * array, is to be compiled from an array of byte arrays.
-	 * The implementation class must call
-	 * {@link BaseParameterizedEffector#setParameter(int, Object)} with the
-	 * result.
+	 * array, is to be compiled from an array of byte arrays. The implementation
+	 * class must call {@link #setParameter(int, byte[][])} to set the result in
+	 * the P[] array instantiated in {@link #newParameters(int)}.
 	 * 
 	 * @param parameterIndex The array index in the parameters array P[] to set
 	 *           with the parameter value

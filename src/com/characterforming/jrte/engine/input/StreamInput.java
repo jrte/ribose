@@ -39,7 +39,6 @@ public class StreamInput extends BaseInput {
 	 * (non-Javadoc)
 	 * @see com.characterforming.jrte.base.BaseInput#get()
 	 */
-	@Override
 	public CharBuffer get() throws InputException {
 		if (!this.eof) {
 			try {

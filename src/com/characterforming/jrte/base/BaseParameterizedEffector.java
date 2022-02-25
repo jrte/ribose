@@ -42,7 +42,6 @@ public abstract class BaseParameterizedEffector<T extends ITarget, P> extends Ba
 	 * @see
 	 * com.characterforming.jrte.engine.IParameterizedEffector#newParameters()
 	 */
-	@Override
 	public abstract void newParameters(int parameterLength);
 
 	/*
@@ -51,7 +50,6 @@ public abstract class BaseParameterizedEffector<T extends ITarget, P> extends Ba
 	 * com.characterforming.jrte.engine.IParameterizedEffector#setParameter(int,
 	 * Charset, byte[][])
 	 */
-	@Override
 	public abstract void setParameter(int parameterIndex, byte[][] parameterList) throws TargetBindingException;
 	// TODO add P[] getParameters(), void setParameters(P[]) and maintain array[effector] of ?[] in gearbox
 
@@ -60,7 +58,6 @@ public abstract class BaseParameterizedEffector<T extends ITarget, P> extends Ba
 	 * @see
 	 * com.characterforming.jrte.engine.IParameterizedEffector#getParameter()
 	 */
-	@Override
 	public P getParameter(final int parameterIndex) {
 		return this.parameters[parameterIndex];
 	}
@@ -69,14 +66,12 @@ public abstract class BaseParameterizedEffector<T extends ITarget, P> extends Ba
 	 * (non-Javadoc)
 	 * @see com.characterforming.jrte.engine.IParameterizedEffector#invoke(int)
 	 */
-	@Override
 	public abstract int invoke(int parameterIndex) throws EffectorException;
 
 	/*
 	 * (non-Javadoc)
 	 * @see com.characterforming.jrte.engine.IParameterizedEffector#invoke()
 	 */
-	@Override
 	public abstract int invoke() throws EffectorException;
 
 	/**

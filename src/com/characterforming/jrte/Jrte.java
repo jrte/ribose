@@ -96,7 +96,7 @@ public final class Jrte {
 	 * Constructor sets up the gearbox as an ITransduction factory. This will instantiate a proxy instance of the
 	 * target class for effector binding as follows:
 	 * <p>
-	 * <code>Target.Target(); Target.getName(); bind(null); (Efffector.getName())*</code>
+	 * <code>Target.Target(); Target.getName(); bind(null); (Effector.getName())*</code>
 	 * <p>
 	 * The proxy target instance is discarded after enumerating the target and effector namespace.
 	 * 

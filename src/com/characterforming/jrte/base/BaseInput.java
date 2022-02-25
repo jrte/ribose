@@ -25,7 +25,6 @@ public abstract class BaseInput implements IInput {
 		this.current = null;
 	}
 	
-	@Override
 	public CharBuffer current() {
 		return this.current;
 	}
@@ -34,7 +33,6 @@ public abstract class BaseInput implements IInput {
 	 * (non-Javadoc)
 	 * @see com.characterforming.jrte.IInput#isEmpty()
 	 */
-	@Override
 	public boolean isEmpty() throws InputException {
 		while ((this.current == null) || !this.current.hasRemaining()) {
 			this.current = this.get();
@@ -46,7 +44,6 @@ public abstract class BaseInput implements IInput {
 	 * (non-Javadoc)
 	 * @see com.characterforming.jrte.IInput#get()
 	 */
-	@Override
 	public abstract CharBuffer get() throws InputException;
 
 	/**
@@ -68,7 +65,6 @@ public abstract class BaseInput implements IInput {
 	 * (non-Javadoc)
 	 * @see com.characterforming.jrte.IInput#mark()
 	 */
-	@Override
 	public boolean mark() throws InputException {
 		if (this.current != null) {
 			this.marked = new ArrayList<CharBuffer>();
@@ -83,7 +79,6 @@ public abstract class BaseInput implements IInput {
 	 * (non-Javadoc)
 	 * @see com.characterforming.jrte.IInput#reset()
 	 */
-	@Override
 	public final CharBuffer[] reset() {
 		if (this.marked != null) {
 			CharBuffer[] buffers = this.marked.toArray(new CharBuffer[this.marked.size()]);
@@ -97,7 +92,6 @@ public abstract class BaseInput implements IInput {
 	 * (non-Javadoc)
 	 * @see com.characterforming.jrte.base.BaseInput#rewind()
 	 */
-	@Override
 	public void rewind() throws InputException {
 		throw new InputException(String.format("Rewind not supported by %1$s", super.getClass().getName()));
 	}

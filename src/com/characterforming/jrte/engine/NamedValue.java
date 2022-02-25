@@ -31,7 +31,6 @@ public class NamedValue implements INamedValue {
 	 * (non-Javadoc)
 	 * @see com.characterforming.jrte.INamedValue#getName()
 	 */
-	@Override
 	public String getName() {
 		return this.name;
 	}
@@ -40,7 +39,6 @@ public class NamedValue implements INamedValue {
 	 * (non-Javadoc)
 	 * @see com.characterforming.jrte.INamedValue#getIndex()
 	 */
-	@Override
 	public int getIndex() {
 		return this.index;
 	}
@@ -49,7 +47,6 @@ public class NamedValue implements INamedValue {
 	 * (non-Javadoc)
 	 * @see com.characterforming.jrte.INamedValue#getValue()
 	 */
-	@Override
 	public char[] getValue() {
 		return this.value;
 	}
@@ -62,7 +59,6 @@ public class NamedValue implements INamedValue {
 	 * (non-Javadoc)
 	 * @see com.characterforming.jrte.INamedValue#getLength()
 	 */
-	@Override
 	public int getLength() {
 		return this.length;
 	}

@@ -242,7 +242,6 @@ public final class Transduction implements ITransduction {
 	 * (non-Javadoc)
 	 * @see com.characterforming.jrte.engine.ITransduction#start(String)
 	 */
-	@Override
 	public void start(final String transducerName) throws GearboxException, TransducerNotFoundException, RteException {
 		if (this.target == null) {
 			throw new RteException(String.format("Transduction not bound, cannot start %1$s", transducerName));
@@ -265,7 +264,6 @@ public final class Transduction implements ITransduction {
 	 * (non-Javadoc)
 	 * @see com.characterforming.jrte.engine.ITransduction#input(IInput[])
 	 */
-	@Override
 	public void input(final IInput[] inputs) throws RteException {
 		if (this.inputStack == null) {
 			this.inputStack = new InputStack(inputs.length);
@@ -281,7 +279,6 @@ public final class Transduction implements ITransduction {
 	 * (non-Javadoc)
 	 * @see com.characterforming.jrte.engine.ITransduction#run()
 	 */
-	@Override
 	public int run() throws RteException {
 		CharBuffer inputBuffer = null;
 		int position = 0, limit = 0;
@@ -611,7 +608,6 @@ T:			while (this.status() == ITransduction.RUNNABLE) {
 	 * (non-Javadoc)
 	 * @see com.characterforming.jrte.engine.ITransduction#status()
 	 */
-	@Override
 	public int status() {
 		if (this.transducerStack != null && !this.transducerStack.isEmpty()) {
 			if (this.inputStack != null && !this.inputStack.isEmpty()) {
@@ -628,7 +624,6 @@ T:			while (this.status() == ITransduction.RUNNABLE) {
 	 * (non-Javadoc)
 	 * @see com.characterforming.jrte.engine.ITransduction#getTarget()
 	 */
-	@Override
 	public ITarget getTarget() {
 		return this.target;
 	}
@@ -637,7 +632,6 @@ T:			while (this.status() == ITransduction.RUNNABLE) {
 	 * (non-Javadoc)
 	 * @see com.characterforming.jrte.engine.ITransduction#listValueNames()
 	 */
-	@Override
 	public String[] listValueNames() {
 		return this.valueNameIndexMap.keySet().toArray(new String[this.valueNameIndexMap.size()]);
 	}
@@ -646,7 +640,6 @@ T:			while (this.status() == ITransduction.RUNNABLE) {
 	 * (non-Javadoc)
 	 * @see com.characterforming.jrte.engine.ITransduction#getValueNameIndex()
 	 */
-	@Override
 	public int getValueNameIndex(final String valueName) throws TargetBindingException {
 		final Integer nameIndex = this.valueNameIndexMap.get(valueName);
 		if (nameIndex == null) {
@@ -659,7 +652,6 @@ T:			while (this.status() == ITransduction.RUNNABLE) {
 	 * (non-Javadoc)
 	 * @see com.characterforming.jrte.engine.ITransduction#getNamedValue()
 	 */
-	@Override
 	public final INamedValue getNamedValue(final int nameIndex) {
 		this.updateSelectedNamedValue();
 		if (nameIndex < this.namedValueHandles.length && this.namedValueHandles[nameIndex] != null) {
@@ -676,7 +668,6 @@ T:			while (this.status() == ITransduction.RUNNABLE) {
 	 * (non-Javadoc)
 	 * @see com.characterforming.jrte.engine.ITransduction#getSelectedValue()
 	 */
-	@Override
 	public final INamedValue getSelectedValue() {
 		this.updateSelectedNamedValue();
 		if (this.selectionIndex < this.namedValueHandles.length && this.namedValueHandles[this.selectionIndex] != null) {
@@ -693,7 +684,6 @@ T:			while (this.status() == ITransduction.RUNNABLE) {
 	 * (non-Javadoc)
 	 * @see com.characterforming.jrte.engine.ITarget#getName()
 	 */
-	@Override
 	public String getName() {
 		return this.getClass().getName();
 	}
@@ -702,7 +692,6 @@ T:			while (this.status() == ITransduction.RUNNABLE) {
 	 * (non-Javadoc)
 	 * @see com.characterforming.jrte.engine.ITarget#bind(ITransduction)
 	 */
-	@Override
 	public IEffector<?>[] bind(final ITransduction transduction) throws TargetBindingException {
 		return this.base;
 	}
@@ -711,7 +700,6 @@ T:			while (this.status() == ITransduction.RUNNABLE) {
 	 * (non-Javadoc)
 	 * @see com.characterforming.jrte.engine.ITarget#getTransduction()
 	 */
-	@Override
 	public ITransduction getTransduction() {
 		return this;
 	}

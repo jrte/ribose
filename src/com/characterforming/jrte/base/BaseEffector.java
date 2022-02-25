@@ -27,7 +27,6 @@ public abstract class BaseEffector<T extends ITarget> implements IEffector<T> {
 	 * (non-Javadoc)
 	 * @see com.characterforming.jrte.base.IEffector#getName()
 	 */
-	@Override
 	public final String getName() {
 		return this.name;
 	}
@@ -36,7 +35,6 @@ public abstract class BaseEffector<T extends ITarget> implements IEffector<T> {
 	 * (non-Javadoc)
 	 * @see com.characterforming.jrte.base.IEffector#getTarget()
 	 */
-	@Override
 	public final T getTarget() {
 		return this.target;
 	}
@@ -45,7 +43,6 @@ public abstract class BaseEffector<T extends ITarget> implements IEffector<T> {
 	 * (non-Javadoc)
 	 * @see com.characterforming.jrte.base.IEffector#invoke()
 	 */
-	@Override
 	public abstract int invoke() throws EffectorException;
 
 	/*

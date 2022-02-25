@@ -34,7 +34,6 @@ public final class ReaderInput extends BaseInput {
 	 * (non-Javadoc)
 	 * @see com.characterforming.jrte.base.BaseInput#next()
 	 */
-	@Override
 	public CharBuffer get() throws InputException {
 		if (!this.eof) {
 			try {

@@ -21,6 +21,10 @@ import com.characterforming.jrte.ITransduction;
  * accumulate subclass effectors and call List&lt;..&gt;.toArray() to obtain 
  * top-level bindings to return.
  * 
+ * NOTE: BaseTarget presents no effectors because the core transduction effectors 
+ * are implmented inline in Transduction class, which binds them to itself before
+ * calling domain target bind() to bind itself to target effectors.
+ * 
  * @author kb
  */
 public class BaseTarget implements ITarget {
@@ -34,7 +38,6 @@ public class BaseTarget implements ITarget {
 	 * (non-Javadoc)
 	 * @see com.characterforming.jrte.engine.ITarget#bind(ITransduction)
 	 */
-	@Override
 	public IEffector<?>[] bind(final ITransduction transduction) {
 		this.transduction = transduction;
 		return new IEffector[] {};
@@ -44,7 +47,6 @@ public class BaseTarget implements ITarget {
 	 * (non-Javadoc)
 	 * @see com.characterforming.jrte.engine.ITarget#getTransduction()
 	 */
-	@Override
 	public final ITransduction getTransduction() {
 		return this.transduction;
 	}
@@ -53,7 +55,6 @@ public class BaseTarget implements ITarget {
 	 * (non-Javadoc)
 	 * @see com.characterforming.jrte.engine.ITarget#getName()
 	 */
-	@Override
 	public final String getName() {
 		return this.getClass().getSimpleName();
 	}

@@ -46,7 +46,6 @@ public final class SignalInput extends BaseInput {
 	 * (non-Javadoc)
 	 * @see com.characterforming.jrte.base.BaseInput#get()
 	 */
-	@Override
 	public CharBuffer get() throws InputException {
 		while (this.index < this.inputs.length) {
 			if (this.inputs[this.index].hasRemaining()) {
@@ -62,7 +61,6 @@ public final class SignalInput extends BaseInput {
 	 * (non-Javadoc)
 	 * @see com.characterforming.jrte.base.BaseInput#rewind()
 	 */
-	@Override
 	public void rewind() {
 		while (this.index > 0) {
 			this.inputs[--this.index].rewind();
