@@ -64,7 +64,7 @@ _notinterval = (
 	((utf7 - '>')* nul*)* '>' (utf7 - '<')*
 );
 
-Sintervals = (notinterval* _interval*)* @ (((l2 - NL)$(0,0))* (NL, nl)*)*;
+Sintervals = (_notinterval* _interval*)* @ (((l2 - NL)$(0,0))* (NL, nl)*)*;
 
 Sintervals$(0,1 2):prsseq `Sintervals.pr`;
 Sintervals:save `Sintervals.dfa`;
