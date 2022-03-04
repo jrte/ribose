@@ -4,9 +4,9 @@
 package com.characterforming.jrte.engine;
 
 import java.util.Arrays;
-import java.util.EmptyStackException;
 
 import com.characterforming.jrte.IInput;
+import com.characterforming.jrte.InputException;
 
 /**
  * @author kb
@@ -86,15 +86,17 @@ public final class InputStack {
 	 * Pop the stack
 	 * 
 	 * @return The item on top of the stack after the pop
+	 * @throws InputException 
 	 */
-	public IInput pop() {
+	public IInput pop() throws InputException {
 		if (this.tos >= 0) {
-			final IInput top = --this.tos >= 0 ? this.stack[this.tos] : null;
-			this.stack[this.tos + 1] = null;
-			return top;
-		} else {
-			throw new EmptyStackException();
+			this.stack[this.tos].stop();
+			this.stack[this.tos] = null;
+			if (--this.tos >= 0 ) {
+				return this.stack[this.tos];
+			}
 		}
+		return null;
 	}
 
 	/**

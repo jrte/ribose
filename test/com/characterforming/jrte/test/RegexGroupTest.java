@@ -8,14 +8,10 @@ import java.util.Arrays;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.junit.Test;
-
-
 public class RegexGroupTest {
 
-	@Test
 	public void testRun() {
-		Pattern regex = Pattern.compile("a*b");
+		Pattern regex = Pattern.compile("(a{9}b)");
 		char[] achars = new char[10000000];
 		Arrays.fill(achars, 'a');
 		for (int i = 9; i < achars.length; i += 10) {
@@ -27,14 +23,13 @@ public class RegexGroupTest {
 			Matcher matcher = regex.matcher(CharBuffer.wrap(achars));
 			t0 = System.currentTimeMillis();
 			while (matcher.find()) {
-				if (matcher.group().length() > 0) {
-					count++;
-				}
+				count++;
 			}
 			t1 = System.currentTimeMillis() - t0;
-			System.out.print(String.format("%1$6d", t1));
+			System.out.print(String.format("%4d", t1));
 		}
-		System.out.println(t1 > 0 ? String.format(" : %1$6d bytes/s (%d)", (long)10000000*2000 / t1, count) : "");
+		assert count == (achars.length * 2);
+		System.out.println(t1 > 0 ? String.format(" : %,12d chars/s (%,d)", (long)10000000*1000 / t1, achars.length) : "");
 	}
 
 }

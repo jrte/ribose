@@ -1,0 +1,26 @@
+`256 any`:enum;
+any:card;
+`8 reserved`:enum;
+reserved:card;
+`248 any-reserved`:enum;
+any-reserved:card;
+`248 utf8`:enum;
+utf8:card;
+`128 utf7`:enum;
+utf7:card;
+`120 utf8-utf7`:enum;
+utf8-utf7:card;
+`17 ctrl`:enum;
+ctrl:card;
+`32 punct`:enum;
+punct:card;
+`1 space`:enum;
+space:card;
+`10 digit`:enum;
+digit:card;
+`26 lower`:enum;
+lower:card;
+`26 upper`:enum;
+upper:card;
+
+:bye;

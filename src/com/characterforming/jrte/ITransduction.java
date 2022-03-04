@@ -1,7 +1,27 @@
-/**
- * Copyright (c) 2011,2017, Kim T Briggs, Hampton, NB.
+/***
+ * JRTE is a recursive transduction engine for Java
+ * 
+ * Copyright (C) 2011,2022 Kim Briggs
+ * 
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received copies of the GNU General Public License
+ * and GNU Lesser Public License along with this program.  See 
+ * LICENSE-lgpl-3.0 and LICENSE-gpl-3.0. If not, see 
+ * <http://www.gnu.org/licenses/>.
  */
+
 package com.characterforming.jrte;
+
+import com.characterforming.jrte.base.Bytes;
 
 /**
  * Interface for runtime transductions. A transduction binds an IInput stack,
@@ -34,45 +54,77 @@ package com.characterforming.jrte;
  * IInput.get() will return null and force eos whenever it is called after the
  * last input ordinal is returned from the input stack. Transducers can explicitly handle
  * this by including a transition on eos. If eos is not explicitly handled the transduction
- * will simply stop and ({@link ITransduction#status()} will return {@link STOPPED}).
+ * will simply stop and ({@link status()} will return 
+ * {@link Status#STOPPED}).
  * 
  * @author kb
  */
 public interface ITransduction extends ITarget {
+	
 	/**
-	 * Transduction is paused, waiting for input; will be runnable when input is available
+	 * Transduction status.
+	 * 
+	 * @author rex ex ossibus meis
 	 */
-	public final static int PAUSED = IEffector.RTE_EFFECT_PAUSE;
+	enum Status {
+		/**
+		 * Transduction is invalid and inoperable in runtime
+		 */
+		NULL,
+	
+		/**
+		 * Transduction stack is empty, input stack may or may not be empty  
+		 */
+		STOPPED,
+	
+		/**
+		 * Transduction stack not empty, input stack is empty.
+		 */
+		PAUSED,
+	
+		/**
+		 * Transduction stack not empty, input stack not empty.
+		 */
+		RUNNABLE
+	} 
 
 	/**
-	 * Transduction is runnable when status() == RUNNABLE
+	 * Test the status of the transduction's input and transducer stacks.
+	 * 
+	 * A PAUSED transduction can be resumed by calling run() after new input() is pushed onto   
+	 * the input stack. Transducers may deliberately to break out of run() with transducer and input
+	 * stacks not empty and allow the caller to determine future course, in which case transduction 
+	 * can be run() again immediately and status() will remain RUNNABLE until paused again or 
+	 * stopped. 
+	 * 
+	 * A STOPPED transduction should be reset to factory state by calling stop(). It can then be set
+	 * up to run() again after start() and input() have pushed new transducer and input onto the
+	 * respective stacks. Calling stop() on a RUNNABLE or PAUSED transduction will free any resources 
+	 * bound to the transduction and reset it to factory state for reuse. 
+	 * 
+	 * @return Transduction status
 	 */
-	public final static int RUNNABLE = IEffector.RTE_EFFECT_NONE;
-
-	/**
-	 * Transduction is not runnable because transduction stack is empty 
-	 */
-	public final static int STOPPED = IEffector.RTE_EFFECT_STOPPED;
-
+	public Status status();
+	
 	/**
 	 * Set up or reset a transduction with a specified transducer at its start
 	 * state on top of the transducer stack. To process input, call the
 	 * {@link #input(IInput[])} method.
 	 * 
 	 * @param transducer The name of the transducer to start
-	 * @throws GearboxException On error
-	 * @throws TransducerNotFoundException On error
+	 * @return Run status of transduction at point of return 
 	 * @throws RteException On error
 	 */
-	public void start(String transducer) throws RteException;
+	public Status start(Bytes transducer) throws RteException;
 
 	/**
 	 * Set up transduction inputs.
 	 * 
 	 * @param inputs Initial (or additional) inputs in LIFO order, inputs[0] is last out
+	 * @return Run status of transduction at point of return 
 	 * @throws RteException On error
 	 */
-	public void input(IInput[] inputs) throws RteException;
+	public Status input(IInput[] inputs) throws RteException;
 
 	/**
 	 * Run the transduction with current input until the input or transduction
@@ -80,77 +132,40 @@ public interface ITransduction extends ITarget {
 	 * 
 	 * @return Run status of transduction at point of return 
 	 * @see #status()
-	 * @throws DomainErrorException On error
-	 * @throws EffectorException On error
-	 * @throws InputException On error
 	 * @throws RteException On error
 	 */
-	public int run() throws RteException;
+	public Status run() throws RteException;
 
 	/**
-	 * Test the status of the transduction's input and transducer stacks.
+	 * Clear input and transduction stacks. A {@code stop()} will be sent
+	 * to any inputs that are popped from the input stack. This resets
+	 * the transduction to original factory state ready for reuse.
 	 * 
-	 * <table border="1" width="100%" cellpadding="3" cellspacing="0" summary="">
-	 * <tr class="TableHeadingColor">
-	 * <th align="left"><b>Status</b></th>
-	 * <th align="left"><b>Description</b></th>
-	 * </tr>
-	 * <tr>
-	 * <td><b>{@link STOPPED}</b></td>
-	 * <td>Transduction stack is empty.</td>
-	 * </tr>
-	 * <tr>
-	 * <td><b>{@link PAUSED}</b></td>
-	 * <td>Transduction stack not empty, input stack empty.</td>
-	 * </tr>
-	 * <tr>
-	 * <td><b>{@link RUNNABLE}</b></td>
-	 * <td>Transduction stack not empty, input stack not empty.</td>
-	 * </tr>
-	 * </table>
-	 * <p>
-	 * A paused transduction can be resumed by calling run() when new input becomes available in 
-	 * the input stack. Transducers may deliberately to break out of run() with transducer and input
-	 * stacks not empty and allow the caller to determine future course, in which case transduction 
-	 * can be run() again immediately as long as status() ==  RUNNABLE.
-	 * 
-	 * @return Transduction status
+	 * @return {@link Status#STOPPED} 
+	 * @throws InputException 
+	 * @see #status()
 	 */
-	public int status();
-
-	/**
-	 * Get the target for this transduction
-	 * 
-	 * @return The target object
-	 */
-	public ITarget getTarget();
-
-	/**
-	 * List the names of all values defined for this target 
-	 * 
-	 * @return An array of value names in index order
-	 */
-	public String[] listValueNames();
+	public Status stop() throws InputException;
 
 	/**
 	 * Get the numeric index for a defined named value
 	 * 
-	 * @param valueName The name of the value
+	 * @param valueName The name of the value (UTF-8 bytes)
 	 * @return The numeric index of the value
 	 * @throws TargetBindingException On error
 	 */
-	public int getValueNameIndex(String valueName) throws TargetBindingException;
+	public int getValueOrdinal(Bytes valueName) throws TargetBindingException;
 
 	/**
-	 * Get the current value for a named value
+	 * Get a copy of the current value for a named value
 	 * 
-	 * @param nameIndex The numeric index of the named value to get
+	 * @param valueOrdinal The numeric index of the named value to get
 	 * @return The named value wrapped in an {@link INamedValue} instance
 	 */
-	public INamedValue getNamedValue(int nameIndex);
+	public INamedValue getNamedValue(int valueOrdinal);
 
 	/**
-	 * Get the current selected value
+	 * Get a copy of the current selected value
 	 * 
 	 * @return The selected value wrapped in an {@link INamedValue} instance
 	 */

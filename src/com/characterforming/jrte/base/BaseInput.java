@@ -1,9 +1,27 @@
-/**
+/***
+ * JRTE is a recursive transduction engine for Java
  * 
+ * Copyright (C) 2011,2022 Kim Briggs
+ * 
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received copies of the GNU General Public License
+ * and GNU Lesser Public License along with this program.  See 
+ * LICENSE-lgpl-3.0 and LICENSE-gpl-3.0. If not, see 
+ * <http://www.gnu.org/licenses/>.
  */
+
 package com.characterforming.jrte.base;
 
-import java.nio.CharBuffer;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 
 import com.characterforming.jrte.IInput;
@@ -17,34 +35,18 @@ import com.characterforming.jrte.InputException;
  * @author kb
  */
 public abstract class BaseInput implements IInput {
-	private ArrayList<CharBuffer> marked;
-	private CharBuffer current;
+	private ArrayList<ByteBuffer> marked;
+	private ByteBuffer current;
 
 	protected BaseInput() {
 		this.marked = null;
 		this.current = null;
 	}
 	
-	public CharBuffer current() {
+	@Override
+	public ByteBuffer current() {
 		return this.current;
 	}
-	
-	/*
-	 * (non-Javadoc)
-	 * @see com.characterforming.jrte.IInput#isEmpty()
-	 */
-	public boolean isEmpty() throws InputException {
-		while ((this.current == null) || !this.current.hasRemaining()) {
-			this.current = this.get();
-		}
-		return this.current == null;
-	}
-
-	/*
-	 * (non-Javadoc)
-	 * @see com.characterforming.jrte.IInput#get()
-	 */
-	public abstract CharBuffer get() throws InputException;
 
 	/**
 	 * Subclasses must call this from their get() method passing the buffer (or
@@ -52,24 +54,31 @@ public abstract class BaseInput implements IInput {
 	 * 
 	 * @param buffer The buffer to be returned from get() 
 	 */
-	protected void got(CharBuffer buffer) {
+	protected ByteBuffer got(ByteBuffer buffer) {
 		if ((this.marked != null) && (buffer != null)) {
 			if (buffer != this.marked.get(this.marked.size() - 1)) {
-				this.marked.add(buffer);
+				this.marked.add(buffer.mark());
 			}
 		}
 		this.current = buffer;
+		return this.current;
 	}
 	
 	/*
 	 * (non-Javadoc)
 	 * @see com.characterforming.jrte.IInput#mark()
 	 */
+	@Override
 	public boolean mark() throws InputException {
 		if (this.current != null) {
-			this.marked = new ArrayList<CharBuffer>();
-			this.marked.add(this.current);
-			current.mark();
+			if (this.marked == null) {
+				this.marked = new ArrayList<ByteBuffer>();
+			} else if (this.marked.contains(this.current())) {
+				assert this.current == this.marked.get(this.marked.size() - 1);
+				this.current.mark();
+				return true;
+			}
+			this.marked.add(this.current.mark());
 			return true;
 		}
 		return false;
@@ -79,20 +88,21 @@ public abstract class BaseInput implements IInput {
 	 * (non-Javadoc)
 	 * @see com.characterforming.jrte.IInput#reset()
 	 */
-	public final CharBuffer[] reset() {
+	@Override
+	public final ByteBuffer[] reset() {
+		ByteBuffer[] buffers = null;
 		if (this.marked != null) {
-			CharBuffer[] buffers = this.marked.toArray(new CharBuffer[this.marked.size()]);
-			this.marked = null;
-			return buffers;
+			assert this.marked.size() > 0 && this.marked.get(this.marked.size() - 1) == this.current;
+			if (this.marked.size() > 1) {
+				buffers = new ByteBuffer[this.marked.size() - 1];
+				for (int i = 0; i < buffers.length; i++) {
+					buffers[i] = this.marked.get(i);
+					buffers[i].reset();
+				}
+			}
+			this.marked.get(this.marked.size() - 1).reset();
 		}
-		return null;
-	}
-	
-	/*
-	 * (non-Javadoc)
-	 * @see com.characterforming.jrte.base.BaseInput#rewind()
-	 */
-	public void rewind() throws InputException {
-		throw new InputException(String.format("Rewind not supported by %1$s", super.getClass().getName()));
+		this.marked = null;
+		return buffers;
 	}
 }

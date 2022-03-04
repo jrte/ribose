@@ -48,7 +48,19 @@ linenul = (
 	(nul* notnl*)*
 );
 
-store = out[`~tag` space `~timestamp` space `~hostname` space `~in` space `~out` space `~macaddress` space `~srcip` space `~dstip` space `~protocol` space `~srcport` space `~dstport` `\n`];
+store = out[
+	`~tag` '|'
+	`~timestamp` '|'
+	`~hostname` '|'
+	`~in` '|'
+	`~out` '|'
+	`~macaddress` '|'
+	`~srcip` '|'
+	`~dstip` '|'
+	`~protocol` '|'
+	`~srcport` '|'
+	`~dstport` `\n`
+];
 
 LinuxKernel = (
 	(nil, clear[`~*`] select[`~timestamp`]) 
@@ -130,6 +142,13 @@ LinuxKernelLoose = (
 	)*
 );
 
+### LinuxKernelNil
+#
+# Recognizer for kernel log
+###
+
+LinuxKernelNil = (LinuxKernel$0) (eos, stop);
+
 LinuxKernelDropped:save `LinuxKernelDropped.dfa`;
 LinuxKernelDropped:pr `LinuxKernelDropped.pr`;
 LinuxKernelLimited:save `LinuxKernelLimited.dfa`;
@@ -142,5 +161,7 @@ LinuxKernelStrict:save `LinuxKernelStrict.dfa`;
 LinuxKernelStrict:pr `LinuxKernelStrict.pr`;
 LinuxKernelCapture:save `LinuxKernelCapture.dfa`;
 LinuxKernelCapture:pr `LinuxKernelCapture.pr`;
+LinuxKernelNil:save `LinuxKernelNil.dfa`;
+LinuxKernelNil:pr `LinuxKernelNil.pr`;
 LinuxKernel:save `LinuxKernel.dfa`;
 LinuxKernel:pr `LinuxKernel.pr`;

@@ -1,16 +1,35 @@
-/**
- * Copyright (c) 2011,2017, Kim T Briggs, Hampton, NB.
+/***
+ * JRTE is a recursive transduction engine for Java
+ * 
+ * Copyright (C) 2011,2022 Kim Briggs
+ * 
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received copies of the GNU General Public License
+ * and GNU Lesser Public License along with this program.  See 
+ * LICENSE-lgpl-3.0 and LICENSE-gpl-3.0. If not, see 
+ * <http://www.gnu.org/licenses/>.
  */
+
 package com.characterforming.jrte.engine;
 
-import java.nio.CharBuffer;
-import java.util.ArrayList;
+import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import com.characterforming.jrte.ByteInput;
 import com.characterforming.jrte.DomainErrorException;
 import com.characterforming.jrte.EffectorException;
 import com.characterforming.jrte.GearboxException;
@@ -23,11 +42,11 @@ import com.characterforming.jrte.ITransduction;
 import com.characterforming.jrte.InputException;
 import com.characterforming.jrte.RteException;
 import com.characterforming.jrte.TargetBindingException;
-import com.characterforming.jrte.TargetNotFoundException;
 import com.characterforming.jrte.TransducerNotFoundException;
+import com.characterforming.jrte.base.Base;
 import com.characterforming.jrte.base.BaseEffector;
 import com.characterforming.jrte.base.BaseParameterizedEffector;
-import com.characterforming.jrte.engine.input.SignalInput;
+import com.characterforming.jrte.base.Bytes;
 
 /**
  * Runtime transduction instances are instantiated using Jrte.bind(). Client
@@ -44,219 +63,121 @@ import com.characterforming.jrte.engine.input.SignalInput;
  * 
  * @author kb
  */
-public final class Transduction implements ITransduction {
-	private final static Logger logger = Logger.getLogger(Transduction.class.getName());
+public final class Transduction implements ITransduction, ITarget {
+	private static final boolean isOutEnabled = System.getProperty("jrte.out.enabled", "true").equals("true");
+	private final static Logger logger = Logger.getLogger(Base.RTE_LOGGER_NAME);
 
-	// Predefined signal symbols
-	public static final String[] RTE_SIGNAL_NAMES = {
-		"nul", "nil", "eol", "eos"
-	};
-	
-	// Type reference prefixes for parameter tape references to transducers
-	static final char TYPE_REFERENCE_TRANSDUCER = '@'; 
-	static final char TYPE_REFERENCE_SIGNAL = '!';
-	static final char TYPE_REFERENCE_VALUE = '~';
 
-	// Number and default length of named values to preinitialize
-	private static final int INITIAL_NAMED_VALUE_BUFFERS = 32;
-	private static final int INITIAL_NAMED_VALUE_CHARS = 256;
+	static int INITIAL_NAMED_VALUE_BUFFERS = 256;
+	static int INITIAL_NAMED_VALUE_BYTES = 256;
 
-	// The name of the anonymous value (explicitly referenced as `~`). 
-	public static final char[] ANONYMOUS_VALUE_REFERENCE = new char[] { };
-
-	// The runtime image of the anonymous value (explicitly referenced as `~`). 
-	public static final byte[][] ANONYMOUS_VALUE_RUNTIME = new byte[][] { { } };
-
-	// The compiler image of the anonymous value (explicitly referenced as `~`). 
-	public static final byte[][] ANONYMOUS_VALUE_COMPILER = new byte[][] { { (byte)TYPE_REFERENCE_VALUE } };
-
-	// Preinitialized empty char array returned in lieu of null value when named value is undefined.
-	private static final char[] EMPTY = {};
-
-	// Inline effector names
-	public static final String[] RTE_INLINE_EFFECTORS = {
-		"0", "1", "paste", "count", "mark", "reset", "echo"
-	};
-
-	// Inline effector ordinals
-	static final int RTE_EFFECTOR_NUL = 0;
-	static final int RTE_EFFECTOR_NIL = 1;
-	static final int RTE_EFFECTOR_PASTE = 2;
-	static final int RTE_EFFECTOR_COUNT = 3;
-	static final int RTE_EFFECTOR_MARK = 4;
-	static final int RTE_EFFECTOR_RESET = 5;
-	static final int RTE_EFFECTOR_ECHO = 6;
+	public static final int RTE_EFFECTOR_NUL = 0;
+	public static final int RTE_EFFECTOR_NIL = 1;
+	public static final int RTE_EFFECTOR_PASTE = 2;
+	public static final int RTE_EFFECTOR_COUNT = 3;
+	public static final int RTE_EFFECTOR_MARK = 4;
+	public static final int RTE_EFFECTOR_RESET = 5;
+	public static final int RTE_EFFECTOR_ECHO = 6;
+	public static final int RTE_EFFECTOR_SELECT = 7;
+	public static final int RTE_EFFECTOR_COPY = 8;
+	public static final int RTE_EFFECTOR_CUT = 9;
+	public static final int RTE_EFFECTOR_CLEAR = 10;
+	public static final int RTE_EFFECTOR_IN = 11;
+	public static final int RTE_EFFECTOR_OUT = 12;
+	public static final int RTE_EFFECTOR_COUNTER = 13;
+	public static final int RTE_EFFECTOR_START = 14;
+	public static final int RTE_EFFECTOR_SHIFT = 15;
+	public static final int RTE_EFFECTOR_PAUSE = 16;
+	public static final int RTE_EFFECTOR_STOP = 17;
 	
 	// Base target (this) effectors.
-	private final IEffector<?>[] base = {
-		new InlineEffector(this, "0"),
-		new InlineEffector(this, "1"),
-		new PasteEffector(this),
-		new InlineEffector(this, "count"),
-		new InlineEffector(this, "mark"),
-		new InlineEffector(this, "reset"),
-		new InlineEffector(this, "echo"),
-		new SelectEffector(this),
-		new CopyEffector(this),
-		new CutEffector(this),
-		new ClearEffector(this),
-		new InEffector(this),
-		new OutEffector(this),
-		new SaveEffector(this),
-		new CounterEffector(this),
-		new StartEffector(this),
-		new ShiftEffector(this),
-		new PauseEffector(this),
-		new StopEffector(this),
-	};
-
-	static class TransducerState {
-		Transducer transducer;
-		int[] countdown;
-		int state;
-		int[] nameIndex;
-		int[] valueLengths;
-		char[][] namedValues;
-
-		public TransducerState(final int state, final Transducer transducer) {
-			this.state = state;
-			this.transducer = transducer;
-			this.countdown = new int[2];
-			this.namedValues = null;
-			this.valueLengths = null;
-			this.nameIndex = null;
-		}
-
-		void save(final int[] nameIndex, final char[][] namedValues, final int[] valueLengths) {
-			this.nameIndex = nameIndex;
-			if (this.namedValues == null) {
-				this.namedValues = new char[nameIndex.length][];
-				this.valueLengths = new int[nameIndex.length];
-			}
-			for (int i = 0; i < nameIndex.length; i++) {
-				final int v = nameIndex[i];
-				this.namedValues[i] = namedValues[v];
-				this.valueLengths[i] = valueLengths[v];
-				namedValues[v] = null;
-				valueLengths[v] = 0;
-			}
-		}
-
-		void restore(final char[][] namedValues, final int[] valueLengths) {
-			for (int i = 0; i < this.nameIndex.length; i++) {
-				final int v = this.nameIndex[i];
-				namedValues[v] = this.namedValues[i];
-				valueLengths[v] = this.valueLengths[i];
-				this.namedValues[i] = null;
-				this.valueLengths[i] = 0;
-			}
-			this.nameIndex = null;
-		}
-
-		void reset(final int state, final Transducer transducer) {
-			this.state = state;
-			this.transducer = transducer;
-			this.nameIndex = null;
-			this.countdown[0] = 0;
-			this.countdown[1] = 0;
-		}
-
-		@Override
-		public String toString() {
-			return this.transducer != null ? this.transducer.getName() : "empty";
-		}
+	private final IEffector<?>[] baseEffectors() {
+		return new IEffector<?>[] {
+	/* 0*/	new InlineEffector(this, Bytes.encode("0")),
+	/* 1*/	new InlineEffector(this, Bytes.encode("1")),
+	/* 2*/	new PasteEffector(this),
+	/* 3*/	new InlineEffector(this, Bytes.encode("count")),
+	/* 4*/	new InlineEffector(this, Bytes.encode("mark")),
+	/* 5*/	new InlineEffector(this, Bytes.encode("reset")),
+	/* 6*/	new InlineEffector(this, Bytes.encode("echo")),
+	/* 7*/	new SelectEffector(this),
+	/* 8*/	new CopyEffector(this),
+	/* 9*/	new CutEffector(this),
+	/*10*/	new ClearEffector(this),
+	/*11*/	new InEffector(this),
+	/*12*/	new OutEffector(this),
+	/*13*/	new CounterEffector(this),
+	/*14*/	new StartEffector(this),
+	/*15*/	new ShiftEffector(this),
+	/*16*/	new PauseEffector(this),
+	/*17*/	new StopEffector(this)
+		};
 	}
 
 	private final Gearbox gearbox;
-	private final ITarget target;
-	private final IEffector<?>[] effectors;
-	private final int nulSignal;
-	private final int eosSignal;
-	private final SignalInput[] signalInputs;
-	private final HashMap<String, Integer> valueNameIndexMap;
-	private final NamedValue[] namedValueHandles;
+	private IEffector<?>[] effectors;
+	private NamedValue[] namedValueHandles;
+	private Map<Bytes, Integer> namedValueOrdinalMap;
 	private InputStack inputStack;
 	private TransducerStack transducerStack;
-	private int selectionIndex;
-	private char[] selectionValue;
-	private int selectionPosition;
-	private char[][] namedValue;
-	private int[] valueLength;
-
+	private NamedValue selected;
+	private int effect;
+	
 	/**
-	 *  Runtime constructor
-	 *  
+	 *  Constructor
+	 *
 	 * @param gearbox The gearbox 
 	 * @param target The transduction target
-	 * @param warn Print warnings during runtime binding
-	 * @throws TargetNotFoundException On error
-	 * @throws GearboxException On error
-	 * @throws TargetBindingException On error
 	 */
-	public Transduction(final Gearbox gearbox, final ITarget target, final boolean warn) throws TargetNotFoundException, GearboxException, TargetBindingException {
-		this.target = target;
+	public Transduction(final Gearbox gearbox) {
+		super();
 		this.gearbox = gearbox;
-		this.nulSignal = this.gearbox.getSignalOrdinal("nul");
-		this.eosSignal = this.gearbox.getSignalOrdinal("eos");
-		try {
-			this.signalInputs = this.getSignalInputs();
-		} catch (final InputException e) {
-			throw new GearboxException("Internal error creating transduction SignalInput array", e);
-		}
-		this.valueLength = new int[Transduction.INITIAL_NAMED_VALUE_BUFFERS];
-		this.namedValue = new char[Transduction.INITIAL_NAMED_VALUE_BUFFERS][];
-		this.valueNameIndexMap = new HashMap<String, Integer>(this.valueLength.length);
-		this.selectionIndex = this.getNamedValueReference(Transduction.ANONYMOUS_VALUE_REFERENCE, true);
-		this.selectionValue = this.namedValue[this.selectionIndex];
-		this.selectionPosition = 0;
-		this.effectors = this.bind(this.target, warn);
-		this.namedValueHandles = new NamedValue[this.valueNameIndexMap.size()];
-		for (final String name : this.valueNameIndexMap.keySet()) {
-			final int valueIndex = this.valueNameIndexMap.get(name);
-			this.namedValueHandles[valueIndex] = new NamedValue(name, valueIndex, null, 0);
+		this.effectors = null;
+		this.namedValueHandles = null;
+		this.namedValueOrdinalMap = null;
+		this.inputStack = null;
+		this.transducerStack = null;
+		this.selected = null;
+	}
+
+	void setEffectors(IEffector<?>[] effectors) {
+		this.effectors = effectors;
+	}
+
+	void setNamedValueOrdinalMap(Map<Bytes, Integer> namedValueOrdinalMap) {
+		this.namedValueOrdinalMap = namedValueOrdinalMap;
+		if (this.namedValueOrdinalMap.size() > 0) {
+			this.namedValueHandles = new NamedValue[this.namedValueOrdinalMap.size()];
+			for (final Entry<Bytes, Integer> entry : this.namedValueOrdinalMap.entrySet()) {
+				final int valueIndex = entry.getValue();
+				byte[] valueBuffer = new byte[INITIAL_NAMED_VALUE_BYTES];
+				this.namedValueHandles[valueIndex] = new NamedValue(entry.getKey(), valueIndex, valueBuffer, 0);
+			}
+			this.selected = this.namedValueHandles[Base.ANONYMOUS_VALUE_ORDINAL];
 		}
 	}
 
-	/**
-	 *  Gearbox constructor instantiates base effector array only for parameter construction during compilation
-	 *  
-	 * @param gearbox The gearbox 
-	 */
-	public Transduction(final Gearbox gearbox) {
-		this.target = this;
-		this.gearbox = gearbox;
-		this.nulSignal = this.gearbox.getSignalOrdinal("nul");
-		this.eosSignal = this.gearbox.getSignalOrdinal("eos");
-		this.signalInputs = null;
-		this.valueLength = null;
-		this.namedValue = null;
-		this.valueNameIndexMap = null;
-		this.selectionIndex = 0;
-		this.selectionValue = null;
-		this.selectionPosition = 0;
-		this.effectors = null;
-		this.namedValueHandles = null;
+	@Override
+	public String getName() {
+		return this.getClass().getSimpleName();
 	}
 
 	/*
 	 * (non-Javadoc)
-	 * @see com.characterforming.jrte.engine.ITransduction#start(String)
+	 * @see com.characterforming.jrte.engine.ITransduction#status()
 	 */
-	public void start(final String transducerName) throws GearboxException, TransducerNotFoundException, RteException {
-		if (this.target == null) {
-			throw new RteException(String.format("Transduction not bound, cannot start %1$s", transducerName));
-		}
-		Transducer transducer = this.gearbox.loadTransducer(this.gearbox.getTransducerOrdinal(transducerName));
-		if (transducer != null) {
-			this.transducerStack = new TransducerStack(8);
-			this.transducerStack.push(transducer);
-			this.selectionIndex = this.getNamedValueReference(Transduction.ANONYMOUS_VALUE_REFERENCE, true);
-			this.selectionValue = this.namedValue[this.selectionIndex] = new char[Transduction.INITIAL_NAMED_VALUE_CHARS];
-			this.selectionPosition = 0;
-			this.inputStack = null;
-			this.clear();
+	@Override
+	public Status status() {
+		if (this.effectors != null) {
+			if ((this.transducerStack == null) || (this.transducerStack.isEmpty())) {
+				return ITransduction.Status.STOPPED;
+			} else if (this.inputStack != null && !this.inputStack.isEmpty()) {
+				return ITransduction.Status.RUNNABLE;
+			} else {
+				return ITransduction.Status.PAUSED;			
+			}
 		} else {
-			throw new GearboxException(String.format("Unknown transducer (%s)", transducerName));
+			return ITransduction.Status.NULL;
 		}
 	}
 
@@ -264,7 +185,13 @@ public final class Transduction implements ITransduction {
 	 * (non-Javadoc)
 	 * @see com.characterforming.jrte.engine.ITransduction#input(IInput[])
 	 */
-	public void input(final IInput[] inputs) throws RteException {
+	@Override
+	public Status input(final IInput[] inputs) throws RteException {
+		if (this.status() == ITransduction.Status.NULL) {
+			RteException rtx = new RteException("input: Transaction is MODEL and inoperable");
+			logger.log(Level.SEVERE, rtx.getMessage(), rtx);
+			throw rtx;
+		}
 		if (this.inputStack == null) {
 			this.inputStack = new InputStack(inputs.length);
 			for (int i = 0; i < inputs.length; i++) {
@@ -273,19 +200,83 @@ public final class Transduction implements ITransduction {
 		} else {
 			this.inputStack.put(inputs);
 		}
+		return this.status();
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * @see com.characterforming.jrte.engine.ITransduction#start(String)
+	 */
+	@Override
+	public Status start(final Bytes transducerName) throws RteException {
+		if (this.status() == ITransduction.Status.NULL) {
+			RteException rtx = new RteException("start: Transaction is MODEL and inoperable");
+			logger.log(Level.SEVERE, rtx.getMessage(), rtx);
+			throw rtx;
+		}
+		try {
+			if (this.effectors != null) {
+				assert this.transducerStack == null;
+				this.transducerStack = new TransducerStack(8);
+				this.transducerStack.push(this.gearbox.loadTransducer(this.gearbox.getTransducerOrdinal(transducerName)));
+				this.select(Base.ANONYMOUS_VALUE_ORDINAL);
+				this.clear();
+			} else {
+				throw new RteException(
+					String.format("Transduction %1$s not bound to target", transducerName.toString()));
+			}
+		} catch (Exception e) {
+			String msg = String.format("start: Unexpected exception loading %1$s", transducerName.toString());
+			RteException rtx = new RteException(msg, e);
+			logger.log(Level.SEVERE, rtx.getMessage(), rtx);
+			throw rtx;
+		} 
+		return this.status();
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * @see com.characterforming.jrte.engine.ITransduction#stop()
+	 */
+	@Override
+	public Status stop() throws InputException {
+		while (this.inputStack != null) {
+			if (!this.inputStack.isEmpty()) {
+				this.inputStack.pop();
+			} else {
+				this.inputStack = null;
+			}
+		}
+		while (this.transducerStack != null) {
+			if (!this.transducerStack.isEmpty()) {
+				this.transducerStack.pop();
+			} else {
+				this.transducerStack = null;
+			}
+		}
+		this.transducerStack = null;
+		return this.status();
 	}
 
 	/*
 	 * (non-Javadoc)
 	 * @see com.characterforming.jrte.engine.ITransduction#run()
 	 */
-	public int run() throws RteException {
-		CharBuffer inputBuffer = null;
+	@Override
+	public Status run() throws RteException {
+		if (this.status() == ITransduction.Status.NULL) {
+			RteException rtx = new RteException("run: Transaction is MODEL and inoperable");
+			logger.log(Level.SEVERE, rtx.getMessage(), rtx);
+			throw rtx;
+		}
+		final int nulSignal = Base.Signal.nul.signal();
+		final int eosSignal = Base.Signal.eos.signal();
+		ByteBuffer inputBuffer = null;
 		int position = 0, limit = 0;
 		String debug = null;
 		int state = 0;
 		try {
-T:			while (this.status() == ITransduction.RUNNABLE) {
+T:		while (this.status() == ITransduction.Status.RUNNABLE) {
 				final TransducerState transducerState = this.transducerStack.peek();
 				final Transducer transducer = transducerState.transducer;
 				final int[] inputFilter = transducer.getInputFilter();
@@ -295,106 +286,175 @@ T:			while (this.status() == ITransduction.RUNNABLE) {
 				state = transducerState.state;
 				inputBuffer = null;
 				
-				int errorInput = 0;
-				int currentInput = 0;
-				char[] inputArray = null;
-				int status = this.status();
-				while (status == ITransduction.RUNNABLE) {
+				int errorInput = -1;
+				int signalInput = -1;
+				int currentInput = -1;
+				byte[] inputArray = null;
+				ITransduction.Status status = this.status();
+				while (status == ITransduction.Status.RUNNABLE) {
 					
 					// Get next input symbol from local array, or try to refresh it if exhausted
-					if (position < limit) {
-						currentInput = inputArray[position++];
+					if (signalInput >= 0) {
+						currentInput = signalInput;
+						signalInput = -1;
+					} else if (position < limit) {
+						currentInput = Byte.toUnsignedInt(inputArray[position++]);
 					} else {
 						IInput input = this.inputStack.peek();
 						while (input != null) {
 							inputBuffer = input.get();
 							if (inputBuffer != null) {
-								inputArray = inputBuffer.array();
-								position = inputBuffer.position();
+								assert inputBuffer.hasArray();
 								limit = inputBuffer.limit();
-								currentInput = inputArray[position++];
+								inputArray = inputBuffer.array();
+								if (Base.isReferenceOrdinal(inputArray)) {
+									currentInput = Base.decodeReferenceOrdinal(Base.TYPE_REFERENCE_SIGNAL, inputArray);
+									inputBuffer.position(limit);
+									position = limit;
+									assert currentInput >= 0;
+								} else {
+									position = inputBuffer.position();
+									currentInput = Byte.toUnsignedInt(inputArray[position++]);
+								}
 								break;
 							}
 							input = this.inputStack.pop();
 						}
 						if (input == null) {
 							inputBuffer = null;
-							if ((currentInput != this.eosSignal) && (currentInput != this.nulSignal)) {
-								currentInput = this.eosSignal;
+							if ((currentInput != eosSignal) && (currentInput != nulSignal)) {
+								currentInput = eosSignal;
 							} else {
 								break T;
 							} 
 						} 
 					}
 					
-					// Filter input to equivalence ordinal and map ordinal and state to next state and action
-					final int transition[] = transitionMatrix[state + inputFilter[currentInput]];
-					state = transition[0];
-					int action = transition[1];
+					int action = RTE_EFFECTOR_NUL;
 					int index = 0;
-					if (action < Transduction.RTE_EFFECTOR_NUL) {
-						index = -action;
-						action = effectorVector[index++];
-					}
+					do {
+						// Filter input to equivalence ordinal and map ordinal and state to next state and action
+						final int transition = state + inputFilter[currentInput];
+						state = transitionMatrix[transition][0];
+						action = transitionMatrix[transition][1];
+						if ((action != RTE_EFFECTOR_NIL) || (position >= limit)) {
+							if (action < RTE_EFFECTOR_NUL) {
+								index = -action;
+								action = effectorVector[index++];
+							} 
+							break;
+						}
+						currentInput = inputArray[position++];
+					} while (position <= limit);
 					
 					// Invoke a vector of 1 or more effectors and record side effects on transduction and input stacks 
-					int effect = IEffector.RTE_EFFECT_NONE;
+					effect = IEffector.RTE_EFFECT_NONE;
 					do {
 						switch (action) {
-							case Transduction.RTE_EFFECTOR_NUL:
-								if (currentInput == this.nulSignal) {
-									debug = this.getErrorInput(state, position);
-									throw new DomainErrorException(String.format("Domain error in %1$s %2$s", transducer.getName(), debug));
-								} else if (currentInput != this.eosSignal) {
-									effect |= this.in(this.nulSignal);
-									errorInput = currentInput;
-								}
-								break;
-							case Transduction.RTE_EFFECTOR_NIL:
-								break;
-							case Transduction.RTE_EFFECTOR_PASTE:
-								if (this.selectionPosition >= this.selectionValue.length) {
-									this.selectionValue = Arrays.copyOf(this.selectionValue, (this.selectionPosition * 3) >> 1);
-								}
-								this.selectionValue[this.selectionPosition++] = (char)currentInput;
-								break;
-							case Transduction.RTE_EFFECTOR_COUNT:
-								if (--transducerState.countdown[0] <= 0) {
-									effect |= this.in(transducerState.countdown[1]);
-									transducerState.countdown[0] = 0;
-								}
-								break;
-							case Transduction.RTE_EFFECTOR_MARK:
-								if (inputBuffer != null) {
-									effect |= this.mark(inputBuffer, position);
-								}
-								break;
-							case Transduction.RTE_EFFECTOR_RESET:
-								if (inputBuffer != null) {
-									inputBuffer.position(position);
-									effect |= this.reset(inputBuffer);
-									position = this.inputStack.peek().get().position();
-								}
+						default:
+							if (action > 0) {
+								effect |= this.effectors[action].invoke();
+							} else {
+								effect |= ((IParameterizedEffector<?,?>)this.effectors[(-1)*action]).invoke(effectorVector[index++]);
+							}
 							break;
-							case Transduction.RTE_EFFECTOR_ECHO:
-								effect |= this.in(new char[][] { { (char)((currentInput == this.nulSignal) ? errorInput : currentInput) } });
-								break;
-							default:
-								if (action > 0) {
-									effect |= this.effectors[action].invoke();
-								} else {
-									effect |= ((IParameterizedEffector<?, ?>)this.effectors[-action]).invoke(effectorVector[index++]);
+						case RTE_EFFECTOR_NUL:
+							if (currentInput == nulSignal) {
+								debug = this.getErrorInput(state);
+								throw new DomainErrorException(String.format("Domain error on [%1$d] in %2$s (state %3$d) %4$s", errorInput, transducer.getName(), state, debug));
+							} else if (currentInput != eosSignal) {
+								errorInput = currentInput;
+								signalInput = nulSignal;
+							}
+							break;
+						case RTE_EFFECTOR_NIL:
+							break;
+						case RTE_EFFECTOR_PASTE:
+							assert currentInput >= Byte.MIN_VALUE && currentInput <= Byte.MAX_VALUE;
+							this.selected.append((byte)currentInput);
+							break;
+						case RTE_EFFECTOR_COUNT:
+							if (--transducerState.countdown[0] <= 0) {
+								effect |= this.in(transducerState.countdown[1]);
+								transducerState.countdown[0] = 0;
+							}
+							break;
+						case RTE_EFFECTOR_MARK:
+							inputBuffer.position(position);
+							IInput input = inputStack.peek();
+							while (inputBuffer != null && !inputBuffer.hasRemaining()) {
+								inputBuffer = input.get();
+								if (inputBuffer == null) {
+									input = this.inputStack.pop();
+									if (input != null) {
+										inputBuffer = input.current();
+									}
 								}
-								break;
-						}
-						if (index > 0) {
-							action = effectorVector[index++];
-						} else {
+							}
+							if (inputBuffer != null) {
+								assert !Base.isReferenceOrdinal(inputBuffer.array());
+								assert inputBuffer.hasRemaining();
+								inputArray = inputBuffer.array();
+								position = inputBuffer.position();
+								limit = inputBuffer.limit();
+								input.mark();
+							} else {
+								effect |= IEffector.RTE_EFFECT_POP;
+							}
+							break;
+						case RTE_EFFECTOR_RESET:
+							inputBuffer.position(position);
+							assert !this.inputStack.isEmpty();
+							assert !Base.isReferenceOrdinal(inputStack.peek().current().array());
+							ByteBuffer[] buffers = this.inputStack.peek().reset();
+							if (buffers != null) {
+								assert buffers.length > 0;
+								this.inputStack.push(new ByteInput(buffers));
+								effect |= IEffector.RTE_EFFECT_PUSH;
+							} else {
+								position = inputBuffer.position();
+							}
+							break;
+						case RTE_EFFECTOR_ECHO:
+							signalInput = currentInput;
+							break;
+						case RTE_EFFECTOR_SELECT:
+							this.selected = this.namedValueHandles[Base.ANONYMOUS_VALUE_ORDINAL];
+							assert this.selected != null;
+							break;
+						case RTE_EFFECTOR_COPY:
+						case RTE_EFFECTOR_CUT: {
+							this.selected.append(this.namedValueHandles[Base.ANONYMOUS_VALUE_ORDINAL].getValue());
+							if (action  == RTE_EFFECTOR_CUT) {
+								this.namedValueHandles[Base.ANONYMOUS_VALUE_ORDINAL].setLength(0);
+							}
 							break;
 						}
-					} while (action != Transduction.RTE_EFFECTOR_NUL);
+						case RTE_EFFECTOR_CLEAR:
+							this.selected.setLength(0);
+							break;
+						case RTE_EFFECTOR_IN:
+							in(new byte[][] { copyNamedValue() });
+							break;
+						case RTE_EFFECTOR_OUT: {
+							if (Transduction.isOutEnabled && this.selected.getLength() > 0) {
+								System.out.print(Charset.defaultCharset().decode(ByteBuffer.wrap(selected.getValue(), 0, selected.getLength())).toString());
+								System.out.flush();
+							}
+							break;
+						}
+						case RTE_EFFECTOR_PAUSE:
+							effect |= IEffector.RTE_EFFECT_PAUSE;
+							break;
+						case RTE_EFFECTOR_STOP:
+							effect |= popTransducer();
+							break;
+						}
+						assert index >= 0;
+						action = effectorVector[index++];
+					} while (action != RTE_EFFECTOR_NUL);
 					
-					if ((position == limit) || (effect != IEffector.RTE_EFFECT_NONE)) {
+					if ((position >= limit) || (effect != IEffector.RTE_EFFECT_NONE)) {
 						// Synchronize position with input buffer at limit and when input/transducer stacks are modified 
 						if (inputBuffer != null) {
 							inputBuffer.position(position);
@@ -405,14 +465,16 @@ T:			while (this.status() == ITransduction.RUNNABLE) {
 							status = this.status();
 							
 							// Input pushed, popped, marked or reset, or transducer stack pushed, popped, or shifted?
-							if (0 != (effect & (IEffector.RTE_EFFECT_PUSH | IEffector.RTE_EFFECT_POP | IEffector.RTE_EFFECT_START | IEffector.RTE_EFFECT_STOP | IEffector.RTE_EFFECT_SHIFT))) {
+							if (0 != (effect & (IEffector.RTE_EFFECT_PUSH | IEffector.RTE_EFFECT_POP))) {
 								limit = -1; 
-								if (0 != (effect & (IEffector.RTE_EFFECT_START | IEffector.RTE_EFFECT_STOP | IEffector.RTE_EFFECT_SHIFT))) {
-									if (0 != (effect & IEffector.RTE_EFFECT_START)) {
-										this.transducerStack.get(this.transducerStack.tos() - 1).state = state;
-									}
-									break;
+							}
+							
+							if (0 != (effect & (IEffector.RTE_EFFECT_START | IEffector.RTE_EFFECT_STOP | IEffector.RTE_EFFECT_SHIFT))) {
+								if (0 != (effect & IEffector.RTE_EFFECT_START)) {
+									this.transducerStack.get(this.transducerStack.tos() - 1).state = state;
 								}
+								limit = -1; 
+								break;
 							}
 							
 							// Transduction paused or stopped?
@@ -423,11 +485,16 @@ T:			while (this.status() == ITransduction.RUNNABLE) {
 					}
 										
 					// Check for input that might have been pushed while handling end of stream signal
-					if (currentInput == this.eosSignal) {
+					if (currentInput == eosSignal) {
 						status = this.status();
 					}
 				}
 			}
+		} catch (Exception e) {
+			String msg = String.format("run: Unexpected exception (%s)", e.toString());
+			RteException rtx = new RteException(msg, e);
+			logger.log(Level.SEVERE, msg, rtx);
+			throw rtx;
 		} finally {
 			
 			// Prepare to pause (or stop) transduction
@@ -437,95 +504,87 @@ T:			while (this.status() == ITransduction.RUNNABLE) {
 			if (inputBuffer != null) {
 				inputBuffer.position(position);
 			}
-			this.updateSelectedNamedValue();
 		}
 		
 		// Transduction is paused or stopped; if paused it will resume on next call to run()
 		return this.status();
 	}
 
-	private int mark(CharBuffer inputBuffer, int position) throws InputException {
-		CharBuffer buffer = null;
-		inputBuffer.position(position);
-		IInput input = this.inputStack.peek();
-		while (input != null) {
-			buffer = input.get();
-			if ((buffer != null) && buffer.hasRemaining()) {
-				input.mark();
-				break;
-			}
-			input = this.inputStack.pop();
-		}
-		return (buffer != inputBuffer) ? IEffector.RTE_EFFECT_POP : IEffector.RTE_EFFECT_NONE;
+	/*
+	 * (non-Javadoc)
+	 * @see com.characterforming.jrte.engine.ITransduction#getValueNameIndex()
+	 */
+	@Override
+	public int getValueOrdinal(final Bytes valueName) throws TargetBindingException {
+		return this.namedValueOrdinalMap.get(valueName);
 	}
 
-	private int reset(CharBuffer inputBuffer) throws InputException {
-		IInput input = this.inputStack.peek();
-		CharBuffer[] buffers = input.reset();
-		if ((buffers != null) && (buffers.length > 0)) {
-			buffers[0].reset();
-			for (int i = 1; i < buffers.length; i++) {
-				buffers[i].rewind();
-			}
-			assert(buffers[buffers.length - 1] == inputBuffer);
-			if (buffers.length > 2) {
-				buffers = Arrays.copyOfRange(buffers, 0, buffers.length - 2);
-				this.inputStack.push(new SignalInput(buffers));
-			}
-			return IEffector.RTE_EFFECT_PUSH;
+	/*
+	 * (non-Javadoc)
+	 * @see com.characterforming.jrte.engine.ITransduction#getNamedValue()
+	 */
+	@Override
+	public INamedValue getNamedValue(final int nameOrdinal) {
+		if (nameOrdinal < this.namedValueHandles.length && this.namedValueHandles[nameOrdinal] != null) {
+			return new NamedValue(this.namedValueHandles[nameOrdinal]);
+		} else {
+			return null;
 		}
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * @see com.characterforming.jrte.engine.ITransduction#getSelectedValue()
+	 */
+	@Override
+	public INamedValue getSelectedValue() {
+		return new NamedValue(this.selected);
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * @see com.characterforming.jrte.engine.ITarget#bindEffectors(int)
+	 */
+	@Override
+	public IEffector<?>[] bindEffectors() throws TargetBindingException {
+		return this.baseEffectors();
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * @see com.characterforming.jrte.engine.ITarget#getGearbox()
+	 */
+	Gearbox getGearbox() {
+		return this.gearbox;
+	}
+
+	private int select(final int selectionIndex) {
+		this.selected = this.namedValueHandles[selectionIndex];
 		return IEffector.RTE_EFFECT_NONE;
 	}
 
-	int select(final int selectionIndex) {
-		final int currentIndex = this.selectionIndex;
-		this.valueLength[currentIndex] = this.selectionPosition;
-		this.namedValue[currentIndex] = this.selectionValue;
-		this.selectionIndex = selectionIndex;
-		this.selectionPosition = this.valueLength[selectionIndex];
-		this.selectionValue = this.namedValue[selectionIndex];
-		if (this.selectionValue == null) {
-			this.selectionValue = new char[Transduction.INITIAL_NAMED_VALUE_CHARS];
-			assert(this.selectionPosition == 0);
-		}
+	private int paste(final byte[] bytes) {
+		this.selected.append(bytes);
 		return IEffector.RTE_EFFECT_NONE;
 	}
 
-	int paste(final char[] text) {
-		final int end = this.selectionPosition + text.length;
-		if (end > this.selectionValue.length) {
-			this.selectionValue = Arrays.copyOf(this.selectionValue, (end * 3) >> 1);
-		}
-		System.arraycopy(text, 0, this.selectionValue, this.selectionPosition, text.length);
-		this.selectionPosition += text.length;
+	private int copy(final int nameIndex) {
+		this.selected.append(this.namedValueHandles[nameIndex].getValue());
 		return IEffector.RTE_EFFECT_NONE;
 	}
 
-	int copy(final int nameIndex) {
-		int length = this.valueLength[nameIndex];
-		if (length != 0) {
-			if ((this.selectionPosition + length) > this.selectionValue.length) {
-				this.selectionValue = Arrays.copyOf(this.selectionValue, length + ((this.selectionValue.length * 3) >> 1));
-				this.namedValue[this.selectionIndex] = this.selectionValue;
-			}
-			System.arraycopy(this.namedValue[nameIndex], 0, this.selectionValue, this.selectionPosition, length);
-			this.selectionPosition += length;
-		}
-		return IEffector.RTE_EFFECT_NONE;
-	}
-
-	int cut(final int nameIndex) {
+	private int cut(final int nameIndex) {
 		this.copy(nameIndex);
-		this.valueLength[nameIndex] = 0;
+		this.namedValueHandles[nameIndex].setLength(0);
 		return IEffector.RTE_EFFECT_NONE;
 	}
 
-	int clear(final int nameIndex) {
-		int index = (nameIndex == -2) ? this.selectionIndex : nameIndex;
+	private int clear(final int nameIndex) {
+		int index = (nameIndex == -2) ? this.selected.getOrdinal() : nameIndex;
 		if (index >= 0) {
-			this.valueLength[index] = 0;
-			if (index == this.selectionIndex) {
-				this.selectionPosition = 0;
+			this.namedValueHandles[index].setLength(0);
+			if (index == this.selected.getOrdinal()) {
+				this.selected = namedValueHandles[Base.ANONYMOUS_VALUE_ORDINAL];
 			}
 		} else if (index == -1) {
 			return clear();
@@ -533,39 +592,38 @@ T:			while (this.status() == ITransduction.RUNNABLE) {
 		return IEffector.RTE_EFFECT_NONE;
 	}
 
-	int clear() {
-		Arrays.fill(this.valueLength, 0);
-		this.selectionPosition = 0;
+	private int clear() {
+		for (NamedValue nv : this.namedValueHandles) {
+			nv.setLength(0);
+		}
 		return IEffector.RTE_EFFECT_NONE;
 	}
 
-	int counter(final int[] countdown) {
-		System.arraycopy(countdown, 0, this.transducerStack.peek().countdown, 0, countdown.length);
+	private int counter(final int[] countdown) throws InputException {
+		assert countdown.length == 2;
+		if (countdown[0] == 0) {
+			this.in(countdown[1]);
+		} else {
+			System.arraycopy(countdown, 0, this.transducerStack.peek().countdown, 0, countdown.length);
+		}
 		return IEffector.RTE_EFFECT_NONE;
 	}
 
-	int save(final int[] nameIndexes) {
-		this.transducerStack.peek().save(nameIndexes, this.namedValue, this.valueLength);
-		return IEffector.RTE_EFFECT_NONE;
-	}
-
-	int in(final int signal) throws InputException {
-		SignalInput input = this.signalInputs[signal - this.gearbox.getSignalBase()];
-		input.rewind();
+	private int in(final int signal) throws InputException {
+		assert (signal >= Base.RTE_SIGNAL_BASE);
+		ByteInput input = new ByteInput(
+			new byte[][] { Base.encodeReferenceOrdinal(Base.TYPE_REFERENCE_SIGNAL, signal) }
+		);
 		this.inputStack.push(input);
 		return IEffector.RTE_EFFECT_PUSH;
 	}
 
-	int in(final char[][] input) throws InputException {
-		if (input.length == 1 && input[0].length == 1 && input[0][0] >= this.gearbox.getSignalBase()) {
-			return this.in(input[0][0]);
-		} else {
-			this.inputStack.push(new SignalInput(input));
-			return IEffector.RTE_EFFECT_PUSH;
-		}
+	private int in(final byte[][] input) throws InputException {
+		this.inputStack.push(new ByteInput(input));
+		return IEffector.RTE_EFFECT_PUSH;
 	}
 
-	int pushTransducer(final Integer transducerOrdinal) throws EffectorException {
+	private int pushTransducer(final Integer transducerOrdinal) throws EffectorException {
 		try {
 			this.transducerStack.push(this.gearbox.loadTransducer(transducerOrdinal));
 			return IEffector.RTE_EFFECT_START;
@@ -576,7 +634,7 @@ T:			while (this.status() == ITransduction.RUNNABLE) {
 		}
 	}
 
-	int shiftTransducer(final int transducerOrdinal) throws EffectorException {
+	private int shiftTransducer(final int transducerOrdinal) throws EffectorException {
 		final TransducerState transducerState = this.transducerStack.peek();
 		try {
 			transducerState.state = 0;
@@ -589,167 +647,43 @@ T:			while (this.status() == ITransduction.RUNNABLE) {
 		}
 	}
 
-	int popTransducer() throws EffectorException {
-		try {
-			final TransducerState popped = this.transducerStack.pop();
-			if (popped != null) {
-				if (popped.nameIndex != null) {
-					popped.restore(this.namedValue, this.valueLength);
-				}
-				return IEffector.RTE_EFFECT_STOP;
-			}
+	private int popTransducer() {
+		this.transducerStack.pop();
+		if (this.transducerStack.isEmpty()) {
 			return IEffector.RTE_EFFECT_STOPPED;
-		} catch (final Exception e) {
-			throw new EffectorException("The stop effector failed", e);
-		}
-	}
-
-	/*
-	 * (non-Javadoc)
-	 * @see com.characterforming.jrte.engine.ITransduction#status()
-	 */
-	public int status() {
-		if (this.transducerStack != null && !this.transducerStack.isEmpty()) {
-			if (this.inputStack != null && !this.inputStack.isEmpty()) {
-				return ITransduction.RUNNABLE;
-			} else {
-				return ITransduction.PAUSED;
-			}
 		} else {
-			return ITransduction.STOPPED;
+			return IEffector.RTE_EFFECT_STOP;
 		}
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see com.characterforming.jrte.engine.ITransduction#getTarget()
-	 */
-	public ITarget getTarget() {
-		return this.target;
-	}
-
-	/*
-	 * (non-Javadoc)
-	 * @see com.characterforming.jrte.engine.ITransduction#listValueNames()
-	 */
-	public String[] listValueNames() {
-		return this.valueNameIndexMap.keySet().toArray(new String[this.valueNameIndexMap.size()]);
-	}
-
-	/*
-	 * (non-Javadoc)
-	 * @see com.characterforming.jrte.engine.ITransduction#getValueNameIndex()
-	 */
-	public int getValueNameIndex(final String valueName) throws TargetBindingException {
-		final Integer nameIndex = this.valueNameIndexMap.get(valueName);
-		if (nameIndex == null) {
-			throw new TargetBindingException(String.format("Named value index is null for name '%1$s'", valueName));
-		}
-		return nameIndex;
-	}
-
-	/*
-	 * (non-Javadoc)
-	 * @see com.characterforming.jrte.engine.ITransduction#getNamedValue()
-	 */
-	public final INamedValue getNamedValue(final int nameIndex) {
-		this.updateSelectedNamedValue();
-		if (nameIndex < this.namedValueHandles.length && this.namedValueHandles[nameIndex] != null) {
-			final NamedValue namedValueHandle = this.namedValueHandles[nameIndex];
-			namedValueHandle.setValue(this.namedValue[nameIndex]);
-			namedValueHandle.setLength(this.valueLength[nameIndex]);
-			return namedValueHandle;
-		} else {
-			return null;
-		}
-	}
-
-	/*
-	 * (non-Javadoc)
-	 * @see com.characterforming.jrte.engine.ITransduction#getSelectedValue()
-	 */
-	public final INamedValue getSelectedValue() {
-		this.updateSelectedNamedValue();
-		if (this.selectionIndex < this.namedValueHandles.length && this.namedValueHandles[this.selectionIndex] != null) {
-			final NamedValue namedValueHandle = this.namedValueHandles[this.selectionIndex];
-			namedValueHandle.setValue(this.namedValue[this.selectionIndex]);
-			namedValueHandle.setLength(this.valueLength[this.selectionIndex]);
-			return namedValueHandle;
-		} else {
-			return null;
-		}
-	}
-
-	/*
-	 * (non-Javadoc)
-	 * @see com.characterforming.jrte.engine.ITarget#getName()
-	 */
-	public String getName() {
-		return this.getClass().getName();
-	}
-
-	/*
-	 * (non-Javadoc)
-	 * @see com.characterforming.jrte.engine.ITarget#bind(ITransduction)
-	 */
-	public IEffector<?>[] bind(final ITransduction transduction) throws TargetBindingException {
-		return this.base;
-	}
-
-	/*
-	 * (non-Javadoc)
-	 * @see com.characterforming.jrte.engine.ITarget#getTransduction()
-	 */
-	public ITransduction getTransduction() {
-		return this;
-	}
-
-	/**
-	 * For internal use
-	 * 
-	 * @return The transduction target effectors
-	 */
-	public Gearbox getGearbox() {
-		return this.gearbox;
-	}
-
-	/**
-	 * For internal use
-	 * 
-	 * @return The transduction target effectors
-	 */
-	public IEffector<?>[] getEffectors() {
-		return this.effectors;
-	}
-
-	private String getErrorInput(final int state, final int index) {
+	private String getErrorInput(final int state) {
 		String error = "\n\tTransducer stack:\n";
 		this.transducerStack.peek().state = state;
 		for (int t = this.transducerStack.tos(); t >= 0; t--) {
 			TransducerState transducerState = this.transducerStack.get(t);
-			error += String.format("\t\t%1$s (state %2$d)\n", transducerState.transducer.getName(), transducerState.state);
+			int errorState = transducerState.state / transducerState.transducer.getInputFilter().length;
+			error += String.format("\t\t%1$s (state %2$d)\n", transducerState.transducer.getName(), errorState);
 		}
 		error += "\tInput stack:\n";
 		for (int i = this.inputStack.tos(); i >= 0 ; i--) {
-			final CharBuffer input = this.inputStack.get(i).current();
+			final ByteBuffer input = this.inputStack.get(i).current();
 			if (input != null) {
-				char[] array = input.array();
-				int position = (i < this.inputStack.tos()) ? index - 1: input.position();
+				byte[] array = input.array();
+				int position = input.position();
 				int start = Math.max(0, position - 8);
 				int end = Math.min(start + 16, input.limit());
 				String inch;
-				if (Character.getType(array[position]) != Character.CONTROL) {
-					inch = String.format("%1$c", (int) array[position]);
+				if (array[position] > 0 && Character.getType((char)array[position]) != Character.CONTROL) {
+					inch = String.format("%1$c", (char)array[position]);
 				} else {
-					inch = String.format("0x%1$x", (int) array[position]);
+					inch = String.format("0x%1$x", (int)array[position]);
 				}
-				error += String.format("\t\t[ char='%1$s' (0x%2$x); pos=%3$d; < ", inch, (int) array[position], position);
+				error += String.format("\t\t[ char='%1$s' (0x%2$x); pos=%3$d; < ", inch, (int)array[position], position);
 				while (start < end) {
-					char ch = array[start];
-					if (Character.getType(ch) != Character.CONTROL) {
-						error += String.format((start != position) ? "%1$c " : "[%1$c] ", ch);
+					if (array[start] > 0 && Character.getType((char)array[start]) != Character.CONTROL) {
+						error += String.format((start != position) ? "%1$c " : "[%1$c] ", (char)array[start]);
 					} else {
-						error += String.format((start != position) ? "0x%1$x " : "[0x%1$x] ", (int)ch);
+						error += String.format((start != position) ? "0x%1$x " : "[0x%1$x] ", (int)array[start]);
 					}
 					start += 1;
 				}
@@ -761,452 +695,349 @@ T:			while (this.status() == ITransduction.RUNNABLE) {
 		return error;
 	}
 
-	private SignalInput[] getSignalInputs() throws InputException {
-		final SignalInput[] signals = new SignalInput[this.gearbox.getSignalCount()];
-		for (int i = 0; i < signals.length; i++) {
-			signals[i] = new SignalInput(new char[][] { new char[] { (char) (this.gearbox.getSignalBase() + i) } });
-		}
-		return signals;
-	}
-
-	Integer getNamedValueReference(final char[] chars, final boolean allocateIndex) {
-		final String valueName = new String(chars);
-		Integer nameIndex = this.valueNameIndexMap.get(valueName);
-		if (nameIndex == null && allocateIndex) {
-			nameIndex = this.valueNameIndexMap.size();
-			this.valueNameIndexMap.put(valueName, nameIndex);
-			this.valueLength[nameIndex] = 0;
-		}
-		return nameIndex;
-	}
-
-	void updateSelectedNamedValue() {
-		this.namedValue[this.selectionIndex] = this.selectionValue;
-		this.valueLength[this.selectionIndex] = this.selectionPosition;
-	}
-
-	char[] copyNamedValue(final int nameIndex) {
-		this.updateSelectedNamedValue();
-		if (this.namedValue[nameIndex] != null) {
-			return Arrays.copyOf(this.namedValue[nameIndex], this.valueLength[nameIndex]);
+	byte[] copyNamedValue(final int nameIndex) {
+		NamedValue value = this.namedValueHandles[nameIndex];
+		assert value != null;
+		if (value != null && value.getValue() != null) {
+			return Arrays.copyOf(value.getValue(), this.namedValueHandles[nameIndex].getLength());
 		} else {
-			return Transduction.EMPTY;
+			return Base.EMPTY;
 		}
 	}
 
-	char[] copyNamedValue() {
-		return this.copyNamedValue(this.selectionIndex);
+	private byte[] copyNamedValue() {
+		return this.copyNamedValue(this.selected.getOrdinal());
 	}
 
-	void ensureNamedValueCapacity(final int maxIndex) {
-		if (this.namedValue.length < maxIndex) {
-			this.valueLength = Arrays.copyOf(this.valueLength, maxIndex);
-			this.namedValue = Arrays.copyOf(this.namedValue, maxIndex);
-			for (int i = this.namedValue.length; i < maxIndex; i++) {
-				this.namedValue[i] = null;
-			}
-		}
-	}
-
-	private IEffector<?>[] bind(final ITarget target, final boolean warn) throws TargetBindingException {
-		final Map<String, Integer> effectorOrdinalMap = this.gearbox.getEffectorOrdinalMap();
-		final byte[][][][] effectorParametersIndex = this.gearbox.getEffectorParametersIndex();
-		final IEffector<?>[] effectors = new IEffector<?>[effectorOrdinalMap.size()];
-		final ArrayList<String> unbound = new ArrayList<String>();
-		for (final IEffector<?>[] effectorList : new IEffector[][] { this.base, target.bind(this) }) {
-			for (final IEffector<?> effector : effectorList) {
-				final Integer ordinalIndex = effectorOrdinalMap.get(effector.getName());
-				if (ordinalIndex != null) {
-					if (effectors[ordinalIndex] == null) {
-						effectors[ordinalIndex] = effector;
-						final byte[][][] effectorParameters = effectorParametersIndex[ordinalIndex];
-						if (effector instanceof IParameterizedEffector) {
-							if (effectorParameters != null) {
-								final IParameterizedEffector<?, ?> parameterizedEffector = (IParameterizedEffector<?, ?>) effector;
-								int parameterIndex = 0;
-								parameterizedEffector.newParameters(effectorParameters.length);
-								for (int i = 0; i < effectorParameters.length; i++) {
-									try {
-										parameterizedEffector.setParameter(parameterIndex++, effectorParameters[i]);
-									} catch (final Exception e) {
-										final String message = String.format("Unable to compile parameters for effector '%1$s': %2$s", parameterizedEffector.getName(), this.gearbox.parameterToString(effectorParameters[i]));
-										Transduction.logger.log(Level.SEVERE, message, e);
-										unbound.add(message);
-									}
-								}
-							} else if (warn) {
-								// TODO: provide named parameter for anonymous->0 and remove this warning
-								Transduction.logger.warning(String.format("%1$s.%2$s: effector requires parameters\n", target.getName(), effector.getName()));
-							}
-						} else if (effectorParameters != null) {
-							final String message = String.format("%1$s.%2$s: effector does not accept parameters\n", target.getName(), effector.getName());
-							Transduction.logger.severe(message);
-							unbound.add(message);
-						}
-					} else if (warn) {
-						Transduction.logger.info(String.format("%1$s.%2$s: effector cannot be overridden\n", target.getName(), effector.getName()));
-					}
-				} else if (warn) {
-					Transduction.logger.info(String.format("%1$s.%2$s: effector not referenced in gearbox\n", target.getName(), effector.getName()));
-				}
-			}
-		}
-		for (final Map.Entry<String, Integer> entry : effectorOrdinalMap.entrySet()) {
-			if (effectors[entry.getValue()] == null) {
-				unbound.add(String.format("%1$s.%2$s: effector not found in target", target.getName(), entry.getKey()));
-			}
-		}
-		if (unbound.size() > 0) {
-			final TargetBindingException e = new TargetBindingException(target.getName());
-			e.setUnboundEffectorList(unbound);
-			throw e;
-		}
-		return effectors;
-	}
-
-	private final static class InlineEffector extends BaseEffector<Transduction> {
-		private InlineEffector(final Transduction transduction, final String name) {
+	private final class InlineEffector extends BaseEffector<Transduction> {
+		private InlineEffector(final Transduction transduction, final Bytes name) {
 			super(transduction, name);
 		}
 
 		@Override
-		public final int invoke() throws EffectorException {
+		public int invoke() throws EffectorException {
 			throw new EffectorException(String.format("Cannot invoke inline effector '%1$s'", super.getName()));
 		}
 	}
 
-	private final static class PasteEffector extends BaseInputOutputEffector {
+	private final class PasteEffector extends BaseInputOutputEffector {
 		private PasteEffector(final Transduction transduction) {
-			super(transduction, "paste");
+			super(transduction, Bytes.encode("paste"));
 		}
 
 		@Override
-		public final int invoke() throws EffectorException {
+		public int invoke() throws EffectorException {
 			throw new EffectorException("Cannot invoke inline effector 'paste'");
 		}
 
 		@Override
-		public final int invoke(final int parameterIndex) throws EffectorException {
-			int effect = 0;
-			char[][] text = super.getParameter(parameterIndex);
-			for (char[] chars : text) {
-				effect |= super.getTarget().paste(chars);
+		public int invoke(final int parameterIndex) throws EffectorException {
+			int effect = IEffector.RTE_EFFECT_NONE;
+			for (byte[] bytes : super.getParameter(parameterIndex)) {
+				effect |= super.getTarget().paste(bytes);
 			}
 			return effect;
 		}
 	}
 
-	private final static class SelectEffector extends BaseNamedValueEffector {
+	private final class SelectEffector extends BaseNamedValueEffector {
 		private SelectEffector(final Transduction transduction) {
-			super(transduction, "select");
+			super(transduction, Bytes.encode("select"));
 		}
 
 		@Override
-		public final int invoke() throws EffectorException {
+		public int invoke() throws EffectorException {
 			return super.getTarget().select(0);
 		}
 
 		@Override
-		public final int invoke(final int parameterIndex) throws EffectorException {
+		public int invoke(final int parameterIndex) throws EffectorException {
 			return super.getTarget().select(super.getParameter(parameterIndex));
 		}
 	}
 
-	private final static class CopyEffector extends BaseNamedValueEffector {
+	private final class CopyEffector extends BaseNamedValueEffector {
 		private CopyEffector(final Transduction transduction) {
-			super(transduction, "copy");
+			super(transduction, Bytes.encode("copy"));
 		}
 
 		@Override
-		public final int invoke() throws EffectorException {
-			return super.getTarget().copy(0);
+		public int invoke() throws EffectorException {
+			assert false;
+			return IEffector.RTE_EFFECT_NONE;
 		}
 
 		@Override
-		public final int invoke(final int parameterIndex) throws EffectorException {
+		public int invoke(final int parameterIndex) throws EffectorException {
 			return super.getTarget().copy(super.getParameter(parameterIndex));
 		}
 	}
 
-	private final static class CutEffector extends BaseNamedValueEffector {
+	private final class CutEffector extends BaseNamedValueEffector {
 		private CutEffector(final Transduction transduction) {
-			super(transduction, "cut");
+			super(transduction, Bytes.encode("cut"));
 		}
 
 		@Override
-		public final int invoke() throws EffectorException {
+		public int invoke() throws EffectorException {
 			return super.getTarget().cut(0);
 		}
 
 		@Override
-		public final int invoke(final int parameterIndex) throws EffectorException {
+		public int invoke(final int parameterIndex) throws EffectorException {
 			return super.getTarget().cut(super.getParameter(parameterIndex));
 		}
 	}
 
-	private final static class ClearEffector extends BaseNamedValueEffector {
+	private final class ClearEffector extends BaseNamedValueEffector {
 		private ClearEffector(final Transduction transduction) {
-			super(transduction, "clear");
+			super(transduction, Bytes.encode("clear"));
 		}
 
 		@Override
-		public final int invoke() throws EffectorException {
+		public int invoke() throws EffectorException {
 			return super.getTarget().clear(-2);
 		}
 
 		@Override
-		public void setParameter(final int parameterIndex, final byte[][] parameterList) throws TargetBindingException {
+		public Integer compileParameter(final int parameterIndex, final byte[][] parameterList) throws TargetBindingException {
 			if (parameterList.length == 1 && parameterList[0].length == 2
-					&& (char) parameterList[0][0] == Transduction.TYPE_REFERENCE_VALUE
-					&& (char) parameterList[0][1] == '*') {
-				super.setParameter(parameterIndex, -1);
+					&& parameterList[0][0] == Base.TYPE_REFERENCE_VALUE
+					&& parameterList[0][1] == '*') {
+				super.parameters[parameterIndex] = -1;
+				return -1;
 			} else {
-				super.setParameter(parameterIndex, parameterList);
+				return super.compileParameter(parameterIndex, parameterList);
 			}
 		}
 
 		@Override
-		public final int invoke(final int parameterIndex) throws EffectorException {
+		public int invoke(final int parameterIndex) throws EffectorException {
 			final int nameIndex = super.getParameter(parameterIndex);
 			return super.getTarget().clear(nameIndex);
 		}
 	}
 
-	private final static class InEffector extends BaseInputOutputEffector {
+	private final class InEffector extends BaseInputOutputEffector {
 		private InEffector(final Transduction transduction) {
-			super(transduction, "in");
+			super(transduction, Bytes.encode("in"));
 		}
 
 		@Override
-		public final int invoke() throws EffectorException {
+		public int invoke() throws EffectorException {
 			try {
-				return super.getTarget().in(new char[][] { super.getTarget().copyNamedValue() });
+				return super.getTarget().in(new byte[][] { super.getTarget().copyNamedValue() });
 			} catch (InputException e) {
-				throw new EffectorException("The in effector failed", e);
+				throw new EffectorException("The in[] effector failed", e);
 			}
 		}
 
 		@Override
-		public final int invoke(final int parameterIndex) throws EffectorException {
+		public int invoke(final int parameterIndex) throws EffectorException {
 			try {
 				return super.getTarget().in(super.getParameter(parameterIndex));
-			} catch (final InputException e) {
-				throw new EffectorException("The in effector failed", e);
+			} catch (InputException e) {
+				throw new EffectorException(String.format("The in[%1$d] effector failed", parameterIndex), e);
 			}
 		}
 	}
 
-	private final static class OutEffector extends BaseInputOutputEffector {
-		private final static boolean isOutEnabled = System.getProperty("jrte.out.enabled", "true").equals("true");
+	private final class OutEffector extends BaseInputOutputEffector {
+		private final boolean isOutEnabled;
 
 		private OutEffector(final Transduction transduction) {
-			super(transduction, "out");
+			super(transduction, Bytes.encode("out"));
+			this.isOutEnabled = System.getProperty("jrte.out.enabled", "true").equals("true");
 		}
 
 		@Override
-		public final int invoke() throws EffectorException {
-			INamedValue handle = super.getTarget().getSelectedValue();
-			char value[] = handle.getValue();
-			int length = handle.getLength();
-			for (int i = 0; i < length; i++) {
-				System.out.print(value[i]);
-			}
-			System.out.flush();
+		public int invoke() throws EffectorException {
 			return IEffector.RTE_EFFECT_NONE;
 		}
 
 		@Override
-		public final int invoke(final int parameterIndex) throws EffectorException {
-			if (OutEffector.isOutEnabled) {
-				for (final char[] chars : super.getParameter(parameterIndex)) {
-					System.out.print(chars);
-				}
-			}
-			return IEffector.RTE_EFFECT_NONE;
-		}
-	}
-
-	private final static class SaveEffector extends BaseParameterizedEffector<Transduction, int[]> {
-		private SaveEffector(final Transduction transduction) {
-			super(transduction, "save");
-		}
-
-		@Override
-		public void newParameters(final int parameterCount) {
-			super.setParameters(new int[parameterCount][]);
-		}
-
-		@Override
-		public final int invoke() throws EffectorException {
-			throw new EffectorException("The save effector requires parameters");
-		}
-
-		@Override
-		public void setParameter(final int parameterIndex, final byte[][] parameterList) throws TargetBindingException {
-			final int[] nameIndices = new int[parameterList.length];
-			for (int i = 0; i < parameterList.length; i++) {
-				final char[] valueName = super.decodeParameter(parameterList[i]);
-				if (parameterList[i][0] == Transduction.TYPE_REFERENCE_VALUE) {
-					final char[] referenceName = Arrays.copyOfRange(valueName, 1, valueName.length);
-					final Integer referenceIndex = super.getTarget().getNamedValueReference(referenceName, true);
-					if (referenceIndex != null) {
-						super.getTarget().ensureNamedValueCapacity(referenceIndex);
-						nameIndices[i] = referenceIndex;
+		public int invoke(final int parameterIndex) throws EffectorException {
+			if (this.isOutEnabled) {
+				for (final byte[] bytes : super.getParameter(parameterIndex)) {
+					byte[] parameter = Arrays.copyOf(bytes, bytes.length);
+					if (Base.isReferenceOrdinal(bytes)) {
+						assert Base.getReferenceType(bytes) == Base.TYPE_REFERENCE_VALUE;
+						int ordinal = Base.decodeReferenceOrdinal(Base.TYPE_REFERENCE_VALUE, bytes);
+						parameter = this.getTarget().getNamedValue(ordinal).copyValue();
 					} else {
-						throw new TargetBindingException(String.format("Unrecognized value reference `%1$s` for %2$s effector", new String(valueName), this.getName()));
+						parameter = Arrays.copyOf(bytes, bytes.length);
 					}
-				} else {
-					throw new TargetBindingException(String.format("Invalid value reference `%1$s` for %2$s effector, requires type indicator ('%3$c') before the value name", new String(valueName), this.getName(), Transduction.TYPE_REFERENCE_VALUE));
+					System.out.print(Charset.defaultCharset().decode(ByteBuffer.wrap(parameter)).toString());
 				}
 			}
-			super.setParameter(parameterIndex, nameIndices);
-		}
-
-		@Override
-		public final int invoke(final int parameterIndex) throws EffectorException {
-			return super.getTarget().save(super.getParameter(parameterIndex));
+			return IEffector.RTE_EFFECT_NONE;
 		}
 	}
 
-	private final static class CounterEffector extends BaseParameterizedEffector<Transduction, int[]> {
+	private final class CounterEffector extends BaseParameterizedEffector<Transduction, int[]> {
 		private CounterEffector(final Transduction transduction) {
-			super(transduction, "counter");
+			super(transduction, Bytes.encode("counter"));
 		}
-
+		
 		@Override
 		public void newParameters(final int parameterCount) {
-			super.setParameters(new int[parameterCount][]);
+			super.parameters = new int[parameterCount][];
 		}
 
 		@Override
-		public final int invoke() throws EffectorException {
+		public int invoke() throws EffectorException {
 			throw new EffectorException("The counter effector requires two parameters");
 		}
 
 		@Override
-		public void setParameter(final int parameterIndex, final byte[][] parameterList) throws TargetBindingException {
+		public int[] compileParameter(final int parameterIndex, final byte[][] parameterList) throws TargetBindingException {
 			if (parameterList.length != 2) {
 				throw new TargetBindingException("The counter effector requires two parameters");
 			}
-			final char[] signal = super.getTarget().getGearbox().getSignalReference(super.decodeParameter(parameterList[0]));
-			if (signal == null) {
-				throw new TargetBindingException(String.format("The counter signal '%1$s' is unrecognized", new String(signal)));
+			int count = -1;
+			assert !Base.isReferenceOrdinal(parameterList[0]) : "Reference ordinal presented for <count> to CounterEffector[<count> <signal>]";
+			byte type = Base.getReferenceType(parameterList[0]);
+			if (type == Base.TYPE_REFERENCE_VALUE) {
+				Bytes valueName = new Bytes(Base.getReferenceName(parameterList[0]));
+				int valueOrdinal = this.getTarget().getValueOrdinal(valueName);
+				INamedValue value = this.getTarget().getNamedValue(valueOrdinal);
+				try {
+					count = Integer.parseInt(value.toString());
+				} catch (NumberFormatException e) {
+					throw new TargetBindingException("Named value %1$s is not valid for counter effector: " + value.toString());
+				}
+			} else if (type == Base.TYPE_REFERENCE_NONE) {
+				count = Base.decodeInt(parameterList[0], parameterList[0].length);
 			}
-			final int ordinal = signal[0];
-			final String counterValue = new String(super.decodeParameter(parameterList[1]));
-			try {
-				super.setParameter(parameterIndex, new int[] { Integer.parseInt(counterValue), ordinal });
-			} catch (final NumberFormatException e) {
-				throw new TargetBindingException(String.format("The counter value '%1$s' is not numeric", counterValue));
+			if (count >= 0) {
+				assert !Base.isReferenceOrdinal(parameterList[1]) : "Reference ordinal presented for <signal> to CounterEffector[<count> <signal>]";
+				type = Base.getReferenceType(parameterList[1]);
+				if (type == Base.TYPE_REFERENCE_SIGNAL) {
+					Bytes signalName = new Bytes(Base.getReferenceName(parameterList[1]));
+					int signalOrdinal = super.getTarget().getGearbox().getSignalOrdinal(signalName);
+					super.setParameter(parameterIndex, new int[] { count, signalOrdinal });
+					return super.getParameter(parameterIndex);
+				} else {
+					throw new TargetBindingException("Invalid signal for counter effector: " + Bytes.decode(parameterList[1], parameterList[1].length));
+				}		
+			} else {
+				throw new TargetBindingException("Invalid count for counter effector: " + Bytes.decode(parameterList[0], parameterList[0].length));
 			}
 		}
 
 		@Override
-		public final int invoke(final int parameterIndex) throws EffectorException {
-			return super.getTarget().counter(super.getParameter(parameterIndex));
+		public int invoke(final int parameterIndex) throws EffectorException {
+			try {
+				return super.getTarget().counter(super.getParameter(parameterIndex));
+			} catch (InputException e) {
+				throw new EffectorException("Exception in CounterEffector", e);
+			}
 		}
 	}
 
-	private final static class StartEffector extends BaseParameterizedEffector<Transduction, Integer> {
+	private final class StartEffector extends BaseParameterizedEffector<Transduction, Integer> {
 		private StartEffector(final Transduction transduction) {
-			super(transduction, "start");
+			super(transduction, Bytes.encode("start"));
 		}
 
 		@Override
 		public void newParameters(final int parameterCount) {
-			super.setParameters(new Integer[parameterCount]);
+			super.parameters = new Integer[parameterCount];
 		}
 
 		@Override
-		public final int invoke() throws EffectorException {
+		public int invoke() throws EffectorException {
 			throw new EffectorException("The start effector requires a parameter");
 		}
 
 		@Override
-		public void setParameter(final int parameterIndex, final byte[][] parameterList) throws TargetBindingException {
+		public Integer compileParameter(final int parameterIndex, final byte[][] parameterList) throws TargetBindingException {
 			if (parameterList.length != 1) {
 				throw new TargetBindingException("The start effector accepts at most one parameter");
 			}
-			char[] parameter = super.decodeParameter(parameterList[0]);
-			String parameterString = new String(parameter);
-			if (parameterList[0][0] == Transduction.TYPE_REFERENCE_TRANSDUCER) {
-				final String transducerName = super.getTarget().getGearbox().getTransducerReference(parameter);
-				final Integer transducerOrdinal = (null != transducerName) ? super.getTarget().getGearbox().getTransducerOrdinal(transducerName) : null;
-				if (transducerOrdinal != null) {
-					super.setParameter(parameterIndex, transducerOrdinal);
+			assert !Base.isReferenceOrdinal(parameterList[0]);
+			if (Base.getReferenceType(parameterList[0]) == Base.TYPE_REFERENCE_TRANSDUCER) {
+				final Bytes name = new Bytes(Base.getReferenceName(parameterList[0]));
+				final int ordinal = super.getTarget().getGearbox().getTransducerOrdinal(name);
+				if (ordinal >= 0) {
+					super.setParameter(parameterIndex, ordinal);
 				} else {
-					throw new TargetBindingException(String.format("Null transducer reference for start effector: %s", parameterString));
+					throw new TargetBindingException(String.format("Null transducer reference for start effector: %s", name.toString()));
 				}
+				return ordinal;
 			} else {
-				throw new TargetBindingException(String.format("Invalid transducer reference `$s` for start effector, requires type indicator ('$c') before the transducer name", parameterString, Transduction.TYPE_REFERENCE_TRANSDUCER));
+				throw new TargetBindingException(String.format("Invalid transducer reference `$s` for start effector, requires type indicator ('$c') before the transducer name", 
+					new Bytes(parameterList[0]).toString(), Base.TYPE_REFERENCE_TRANSDUCER));
 			}
 		}
 
 		@Override
-		public final int invoke(final int parameterIndex) throws EffectorException {
+		public int invoke(final int parameterIndex) throws EffectorException {
 			return super.getTarget().pushTransducer(super.getParameter(parameterIndex));
 		}
 	}
 
-	private final static class ShiftEffector extends BaseParameterizedEffector<Transduction, Integer> {
+	private final class ShiftEffector extends BaseParameterizedEffector<Transduction, Integer> {
 		private ShiftEffector(final Transduction transduction) {
-			super(transduction, "shift");
+			super(transduction, Bytes.encode("shift"));
 		}
 
 		@Override
 		public void newParameters(final int parameterCount) {
-			super.setParameters(new Integer[parameterCount]);
+			super.parameters = new Integer[parameterCount];
 		}
 
 		@Override
-		public final int invoke() throws EffectorException {
+		public int invoke() throws EffectorException {
 			throw new EffectorException("The shift effector requires a parameter");
 		}
 
 		@Override
-		public void setParameter(final int parameterIndex, final byte[][] parameterList) throws TargetBindingException {
+		public Integer compileParameter(final int parameterIndex, final byte[][] parameterList) throws TargetBindingException {
 			if (parameterList.length != 1) {
 				throw new TargetBindingException("The shift effector accepts at most one parameter");
 			}
-			char[] parameter = super.decodeParameter(parameterList[0]);
-			String parameterString = new String(parameter);
-			if (parameterList[0][0] == Transduction.TYPE_REFERENCE_TRANSDUCER) {
-				final String transducerName = super.getTarget().getGearbox().getTransducerReference(parameter);
-				final Integer transducerOrdinal = (null != transducerName) ? super.getTarget().getGearbox().getTransducerOrdinal(transducerName) : null;
-				if (transducerOrdinal != null) {
-					super.setParameter(parameterIndex, transducerOrdinal);
+			if (Base.getReferenceType(parameterList[0]) == Base.TYPE_REFERENCE_TRANSDUCER) {
+				assert !Base.isReferenceOrdinal(parameterList[0]);
+				final Bytes name = new Bytes(Base.getReferenceName(parameterList[0]));
+				final int ordinal = super.getTarget().getGearbox().getTransducerOrdinal(name);
+				if (ordinal >0) {
+					super.setParameter(parameterIndex, ordinal);
+					return ordinal;
 				} else {
-					throw new TargetBindingException(String.format("Null transducer reference for shift effector: %s", parameterString));
+					throw new TargetBindingException(String.format("Null transducer reference for shift effector: %s", name.toString()));
 				}
 			} else {
-				throw new TargetBindingException(String.format("Invalid transducer reference `$s` for shift effector, requires type indicator ('$c') before the transducer name", parameterString, Transduction.TYPE_REFERENCE_TRANSDUCER));
+				throw new TargetBindingException(String.format(
+					"Invalid transducer reference `$s` for shift effector, requires type indicator ('$c') before the transducer name", 
+					new Bytes(Base.getReferenceName(parameterList[0])).toString(), Base.TYPE_REFERENCE_TRANSDUCER));
 			}
 		}
 
 		@Override
-		public final int invoke(final int parameterIndex) throws EffectorException {
+		public int invoke(final int parameterIndex) throws EffectorException {
 			return super.getTarget().shiftTransducer(super.getParameter(parameterIndex));
 		}
 	}
 
-	private final static class PauseEffector extends BaseEffector<Transduction> {
+	private final class PauseEffector extends BaseEffector<Transduction> {
 		private PauseEffector(final Transduction transduction) {
-			super(transduction, "pause");
+			super(transduction, Bytes.encode("pause"));
 		}
 
 		@Override
-		public final int invoke() throws EffectorException {
+		public int invoke() throws EffectorException {
 			return IEffector.RTE_EFFECT_PAUSE;
 		}
 	}
 
-	private final static class StopEffector extends BaseEffector<Transduction> {
+	private final class StopEffector extends BaseEffector<Transduction> {
 		private StopEffector(final Transduction transduction) {
-			super(transduction, "stop");
+			super(transduction, Bytes.encode("stop"));
 		}
 
 		@Override
-		public final int invoke() throws EffectorException {
+		public int invoke() throws EffectorException {
 			return this.getTarget().popTransducer();
 		}
 	}

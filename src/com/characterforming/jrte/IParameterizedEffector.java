@@ -1,9 +1,25 @@
-/**
- * Copyright (c) 2011,2017, Kim T Briggs, Hampton, NB.
+/***
+ * JRTE is a recursive transduction engine for Java
+ * 
+ * Copyright (C) 2011,2022 Kim Briggs
+ * 
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received copies of the GNU General Public License
+ * and GNU Lesser Public License along with this program.  See 
+ * LICENSE-lgpl-3.0 and LICENSE-gpl-3.0. If not, see 
+ * <http://www.gnu.org/licenses/>.
  */
-package com.characterforming.jrte;
 
-import com.characterforming.jrte.base.BaseParameterizedEffector;
+package com.characterforming.jrte;
 
 /**
  * Interface for parameterised effectors. Parameters are compiled from arrays of
@@ -21,26 +37,45 @@ public interface IParameterizedEffector<T extends ITarget, P> extends IEffector<
 	/**
 	 * Create a parameters array (P[]) with capacity for a specified number of P
 	 * instances and retain the resulting array to receive enumerated parameter
-	 * instances in subsequent calls to {@link #setParameter(int, byte[][])}.
+	 * instances in subsequent calls to {@link #compileParameter(int, byte[][])}.
 	 * 
 	 * @param parameterCount The size of the array to create
 	 */
 	public void newParameters(int parameterCount);
 
 	/**
+	 * This method is invoked at runtime to determine the number of compiled parameters
+	 * that are bound to the effector. Effectors that accept no parameters should return
+	 * zero.
+	 * 
+	 * @return The number of compiled parameters
+	 */
+	public int getParameterCount();
+
+	/**
 	 * Compile and set a parameter value from effector arguments specified in
 	 * gearbox transducers. The parameter value, which may be a scalar or an
 	 * array, is to be compiled from an array of byte arrays. The implementation
-	 * class must call {@link #setParameter(int, byte[][])} to set the result in
-	 * the P[] array instantiated in {@link #newParameters(int)}.
+	 * class must call {@link #setParameter(int, Object)} to set the result in  
+	 * the P[] array instantiated in the base class by {@link #newParameters(int)}.
 	 * 
 	 * @param parameterIndex The array index in the parameters array P[] to set
 	 *           with the parameter value
 	 * @param parameterList An array of parameters, where each parameter is an
 	 *           array of bytes.
+	 * @return the compiled parameter value object 
 	 * @throws TargetBindingException On error
 	 */
-	public void setParameter(int parameterIndex, byte[][] parameterList) throws TargetBindingException;
+	public P compileParameter(int parameterIndex, byte[][] parameterList) throws TargetBindingException;
+
+	/**
+	 * Set a precompiled parameter value 
+	 * 
+	 * @param parameterIndex The array index in the parameters array P[] to set
+	 *           with the parameter value
+	 * @param parameter the parameter value to set
+	 */
+	public void setParameter(int parameterIndex, Object parameter);
 
 	/**
 	 * Get a compiled parameter value

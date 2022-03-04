@@ -1,9 +1,11 @@
-.local/
-.svn/
 bin/
 build/
 doc/
 jars/*.jar
+local/
+.settings/
 *.gz
-/*.out
-/*.log
+*.out
+*.log*
+*.dfa
+*.pr

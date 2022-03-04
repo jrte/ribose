@@ -3,12 +3,16 @@
  */
 package com.characterforming.jrte.test;
 
+import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStreamReader;
+import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
-import java.util.Arrays;
+import java.nio.charset.Charset;
+import java.util.logging.FileHandler;
+import java.util.logging.Logger;
+import java.util.logging.SimpleFormatter;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -16,7 +20,9 @@ import com.characterforming.jrte.IInput;
 import com.characterforming.jrte.ITransduction;
 import com.characterforming.jrte.Jrte;
 import com.characterforming.jrte.RteException;
+import com.characterforming.jrte.base.Base;
 import com.characterforming.jrte.base.BaseTarget;
+import com.characterforming.jrte.base.Bytes;
 
 public class FileRunner {
 
@@ -48,14 +54,23 @@ public class FileRunner {
 			
 			long tjrte = 0, t0 = 0, t1 = 0;
 			final File f = new File(inputPath);
-			final InputStreamReader isr = new InputStreamReader(new FileInputStream(f));
+			final DataInputStream isr = new DataInputStream(new FileInputStream(f));
 			int clen = (int)f.length();
-			char[][] fchar = nil ? new char[][] {new String("!nil").toCharArray(), new char[clen]} : new char[][] {new char[clen]};
-			clen = isr.read(fchar[fchar.length - 1], 0, clen);
+			byte[] cbuf = new byte[clen];
+			clen = isr.read(cbuf, 0, clen);
 			isr.close();
 			
-			final Jrte jrte = new Jrte(new File(gearboxPath), "com.characterforming.jrte.base.BaseTarget");
-			final ITransduction t = jrte.transduction(new BaseTarget());
+			Logger rteLogger = Logger.getLogger(Base.RTE_LOGGER_NAME);
+			final FileHandler rteHandler = new FileHandler("jrte.log");
+			rteLogger.addHandler(rteHandler);
+			rteHandler.setFormatter(new SimpleFormatter());
+
+			BaseTarget target = new BaseTarget();
+			final Jrte jrte = new Jrte(new File(gearboxPath), target);
+			final ITransduction trex = jrte.transduction(target);
+			byte[][] input = nil
+				? new byte[][] { Base.encodeReferenceOrdinal(Base.TYPE_REFERENCE_SIGNAL, Base.Signal.nil.signal()), cbuf }
+				: new byte[][] { cbuf };
 			int loops;
 			if (!regexOutEnabled) {
 				if (!jrteOutEnabled) {
@@ -63,14 +78,27 @@ public class FileRunner {
 				}
 				loops = jrteOutEnabled ? 1 : 20;
 				for (int i = 0; i < loops; i++) {
-					t.start(transducerName);
-					final IInput[] inputs = new IInput[] { jrte.input(fchar) };
-					t.input(inputs);
+					trex.start(Bytes.encode(transducerName));
+					trex.input(new IInput[] { jrte.input(input) });
 					t0 = System.currentTimeMillis();
-					t.run();
+					do {
+						switch (trex.run()) {
+						case RUNNABLE:
+							break;
+						case PAUSED:
+						case STOPPED:
+							trex.stop();
+							break;
+						case NULL:
+						default:
+							assert false;
+							break;
+						}
+					}
+					while (trex.status() == ITransduction.Status.PAUSED);
 					t1 = System.currentTimeMillis() - t0;
 					if (!jrteOutEnabled) {
-						System.out.print(String.format("%6d", t1));
+						System.out.print(String.format("%4d", t1));
 					}
 					tjrte += t1;
 				}
@@ -86,8 +114,11 @@ public class FileRunner {
 				}
 				long tregex = 0;
 				loops = regexOutEnabled ? 1 : 20;
+				CharBuffer charInput = Charset.defaultCharset().decode(
+						ByteBuffer.wrap(input[input.length - 1], 0, input[input.length - 1].length)
+				);
 				for (int i = 0; i < loops; i++) {
-					Matcher matcher = pattern.matcher(CharBuffer.wrap(fchar[fchar.length - 1]));
+					Matcher matcher = pattern.matcher(charInput);
 					t0 = System.currentTimeMillis();
 					while (matcher.find()) {
 						if (regexOutEnabled) {
@@ -103,7 +134,7 @@ public class FileRunner {
 					}
 					t1 = System.currentTimeMillis() - t0;
 					if (!regexOutEnabled) {
-						System.out.print(String.format("%6d", t1));
+						System.out.print(String.format("%4d", t1));
 					}
 					tregex += t1;
 				}
@@ -117,6 +148,7 @@ public class FileRunner {
 		} finally {
 			System.out.flush();
 		}
+		System.exit(0);
 	}
 
 }

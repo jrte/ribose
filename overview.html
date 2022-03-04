@@ -98,7 +98,7 @@ transduce data from standard input or from a series of files. In more specialize
 be developed to present additional effectors to the transduction, and transducers can be produced to drive these 
 effectors in the Jrte runtime. 
 <h2>A Brief Tutorial Introduction to ginr+Jrte</h2>
-The ginr compiler was first developed by Dr J Howard Johnson and the University of Waterloo, primarily
+The ginr compiler was first developed by Dr J Howard Johnson at the University of Waterloo, primarily
 as a research tool. It was subsequently applied in diverse contexts, including a phonetic mapping and
 transduction, in one left-right pass, of the entire corpus of the Oxford English Dictionary from a 
 proprietary format to SGML. It is essentially a library for computing automata wrapped in an elementary 
@@ -122,11 +122,11 @@ Jrte relies on ginr to produce subsequential automata, each automaton T having 3
 For recognized input sequences these transducers will drive the target effectors to transform the
 target in some manner as determined completely by the input sequences and effector semantics. And 
 since all of the control structures that shape the transduction are embedded in the input pattern,
-so the scope and complexity of target effectors is minimized -- an effector is a function that 
+the scope and complexity of target effectors is minimized -- an effector is a function that 
 receives a single input symbol and incorporates it into the target in some manner. So effector
 semantics are generally very concise and limited in scope. 
 <p>
-The fundamental Jrte runtime element is a transduction, which is presented in Java as the 
+The fundamental Jrte runtime element is a transduction, which is presented in the 
 {@link com.characterforming.jrte.ITransduction} interface. A transduction binds an 
 {@link com.characterforming.jrte.IInput} stack, transducer stack, and an {@link com.characterforming.jrte.ITarget} 
 instance. When the run() method is called the transduction will read input ordinals from the top of the
@@ -292,7 +292,7 @@ collection of ginr transducers that require only these built-in effectors can be
 into a gearbox by specifying {@link com.characterforming.jrte.base.BaseTarget}
 as gearbox target class. Specialized {@link com.characterforming.jrte.ITarget}
 implementations can express additional effectors for domain-specific
-transduction capabilities in their {@link com.characterforming.jrte.ITarget#bind(ITransduction)}
+transduction capabilities in their {@link com.characterforming.jrte.ITarget#bindEffectors()}
 methods. The Jrte gearbox compiler will then bind the new effectors names to the
 respective names used in any ginr automata compiled for the gearbox/target. 
 <h4>Transduction Control Effectors</h4> The inclusion of a transducer call stack
@@ -331,7 +331,7 @@ including an anonymous value that can be used as a scratch pad for copying
 input. At any time, any value can be selected using the <b>select[..]</b>
 effector, providing the name of the value to be selected as a parameter. The 
 selected value is called the <i>selection</i>. The anonymous value is preselected 
-in the {@link com.characterforming.jrte.ITransduction#start(String)} method and 
+in the {@link com.characterforming.jrte.ITransduction#start(Bytes)} method and 
 can be reselected using the <b>select</b> effector with no parameter. It can be 
 explicitly referenced as an effector parameter using `~`. 
 <p>
@@ -467,7 +467,7 @@ and captured most of the same fields from each matched line. Java regex had trou
 group and printed null for these fields where Jrte captured the respective port number. This occurred for more than 
 half of the lines matched by regex. There were no exceptions thrown, with or without output enabled.
 <hr>
-<img src="resources/LinuxKernelLog.png"/>
+<img src="resources/LinuxKernelLog.png" alt="resources/LinuxKernelLog.png">
 <hr>
 <h2>Some Fun with Numbers</h2>
 For most text mining tasks like extracting IP information from kernel logs or identifying personal information 
@@ -621,7 +621,7 @@ the system, and like energy it comes at a cost. In the Fibonacci transducer C<su
 cost of computing intermediate and final results and the sequence {C<sub>i</sub>}<sub>0&le;i</sub> reflects 
 the nonlinear increase in cost relative to input length. 
 <hr>
-<img src="resources/FibonacciCost.png"/>
+<img src="resources/FibonacciCost.png" alt="resources/FibonacciCost.png">
 <hr>
 The ratio C<sub>n</sub>&nbsp;/&nbsp;F<sub>n</sub> is a measure of the efficiency of non-linear aspects of the transduction. The 
 chart above shows how quickly C<sub>n</sub> and F<sub>n</sub> grow with n and how the efficiency of the transduction 

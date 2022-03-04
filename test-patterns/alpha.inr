@@ -1,0 +1,158 @@
+# Associate each byte X with {nul, X}. Use (AnyOrNul* @ T) to admit nul input everywhere in T.
+AnyOrNul = {
+	(nul|'\x00','\x00'), (nul|'\x01','\x01'), (nul|'\x02','\x02'), (nul|'\x03','\x03'), 
+	(nul|'\x04','\x04'), (nul|'\x05','\x05'), (nul|'\x06','\x06'), (nul|'\x07','\x07'),
+	(nul|'\x08','\x08'), (nul|'\x09','\x09'), (nul|'\x0a','\x0a'), (nul|'\x0b','\x0b'),
+	(nul|'\x0c','\x0c'), (nul|'\x0d','\x0d'), (nul|'\x0e','\x0e'), (nul|'\x0f','\x0f'),
+	(nul|'\x10','\x10'), (nul|'\x11','\x11'), (nul|'\x12','\x12'), (nul|'\x13','\x13'),
+	(nul|'\x14','\x14'), (nul|'\x15','\x15'), (nul|'\x16','\x16'), (nul|'\x17','\x17'),
+	(nul|'\x18','\x18'), (nul|'\x19','\x19'), (nul|'\x1a','\x1a'), (nul|'\x1b','\x1b'),
+	(nul|'\x1c','\x1c'), (nul|'\x1d','\x1d'), (nul|'\x1e','\x1e'), (nul|'\x1f','\x1f'),
+	(nul|'\x20','\x20'), (nul|'\x21','\x21'), (nul|'\x22','\x22'), (nul|'\x23','\x23'), 
+	(nul|'\x24','\x24'), (nul|'\x25','\x25'), (nul|'\x26','\x26'), (nul|'\x27','\x27'),
+	(nul|'\x28','\x28'), (nul|'\x29','\x29'), (nul|'\x2a','\x2a'), (nul|'\x2b','\x2b'),
+	(nul|'\x2c','\x2c'), (nul|'\x2d','\x2d'), (nul|'\x2e','\x2e'), (nul|'\x2f','\x2f'),
+	(nul|'\x30','\x30'), (nul|'\x31','\x31'), (nul|'\x32','\x32'), (nul|'\x33','\x33'), 
+	(nul|'\x34','\x34'), (nul|'\x35','\x35'), (nul|'\x36','\x36'), (nul|'\x37','\x37'),
+	(nul|'\x38','\x38'), (nul|'\x39','\x39'), (nul|'\x3a','\x3a'), (nul|'\x3b','\x3b'),
+	(nul|'\x3c','\x3c'), (nul|'\x3d','\x3d'), (nul|'\x3e','\x3e'), (nul|'\x3f','\x3f'),
+	(nul|'\x40','\x40'), (nul|'\x41','\x41'), (nul|'\x42','\x42'), (nul|'\x43','\x43'), 
+	(nul|'\x44','\x44'), (nul|'\x45','\x45'), (nul|'\x46','\x46'), (nul|'\x47','\x47'),
+	(nul|'\x48','\x48'), (nul|'\x49','\x49'), (nul|'\x4a','\x4a'), (nul|'\x4b','\x4b'),
+	(nul|'\x4c','\x4c'), (nul|'\x4d','\x4d'), (nul|'\x4e','\x4e'), (nul|'\x4f','\x4f'),
+	(nul|'\x50','\x50'), (nul|'\x51','\x51'), (nul|'\x52','\x52'), (nul|'\x53','\x53'), 
+	(nul|'\x54','\x54'), (nul|'\x55','\x55'), (nul|'\x56','\x56'), (nul|'\x57','\x57'),
+	(nul|'\x58','\x58'), (nul|'\x59','\x59'), (nul|'\x5a','\x5a'), (nul|'\x5b','\x5b'),
+	(nul|'\x5c','\x5c'), (nul|'\x5d','\x5d'), (nul|'\x5e','\x5e'), (nul|'\x5f','\x5f'),
+	(nul|'\x60','\x60'), (nul|'\x61','\x61'), (nul|'\x62','\x62'), (nul|'\x63','\x63'), 
+	(nul|'\x64','\x64'), (nul|'\x65','\x65'), (nul|'\x66','\x66'), (nul|'\x67','\x67'),
+	(nul|'\x68','\x68'), (nul|'\x69','\x69'), (nul|'\x6a','\x6a'), (nul|'\x6b','\x6b'),
+	(nul|'\x6c','\x6c'), (nul|'\x6d','\x6d'), (nul|'\x6e','\x6e'), (nul|'\x6f','\x6f'),
+	(nul|'\x70','\x70'), (nul|'\x71','\x71'), (nul|'\x72','\x72'), (nul|'\x73','\x73'), 
+	(nul|'\x74','\x74'), (nul|'\x75','\x75'), (nul|'\x76','\x76'), (nul|'\x77','\x77'),
+	(nul|'\x78','\x78'), (nul|'\x79','\x79'), (nul|'\x7a','\x7a'), (nul|'\x7b','\x7b'),
+	(nul|'\x7c','\x7c'), (nul|'\x7d','\x7d'), (nul|'\x7e','\x7e'), (nul|'\x7f','\x7f')
+	(nul|'\x80','\x80'), (nul|'\x81','\x81'), (nul|'\x82','\x82'), (nul|'\x83','\x83'), 
+	(nul|'\x84','\x84'), (nul|'\x85','\x85'), (nul|'\x86','\x86'), (nul|'\x87','\x87'),
+	(nul|'\x88','\x88'), (nul|'\x89','\x89'), (nul|'\x8a','\x8a'), (nul|'\x8b','\x8b'),
+	(nul|'\x8c','\x8c'), (nul|'\x8d','\x8d'), (nul|'\x8e','\x8e'), (nul|'\x8f','\x8f'),
+	(nul|'\x90','\x90'), (nul|'\x91','\x91'), (nul|'\x92','\x92'), (nul|'\x93','\x93'), 
+	(nul|'\x94','\x94'), (nul|'\x95','\x95'), (nul|'\x96','\x96'), (nul|'\x97','\x97'),
+	(nul|'\x98','\x98'), (nul|'\x99','\x99'), (nul|'\x9a','\x9a'), (nul|'\x9b','\x9b'),
+	(nul|'\x9c','\x9c'), (nul|'\x9d','\x9d'), (nul|'\x9e','\x9e'), (nul|'\x9f','\x9f'),
+	(nul|'\xa0','\xa0'), (nul|'\xa1','\xa1'), (nul|'\xa2','\xa2'), (nul|'\xa3','\xa3'), 
+	(nul|'\xa4','\xa4'), (nul|'\xa5','\xa5'), (nul|'\xa6','\xa6'), (nul|'\xa7','\xa7'),
+	(nul|'\xa8','\xa8'), (nul|'\xa9','\xa9'), (nul|'\xaa','\xaa'), (nul|'\xab','\xab'),
+	(nul|'\xac','\xac'), (nul|'\xad','\xad'), (nul|'\xae','\xae'), (nul|'\xaf','\xaf'),
+	(nul|'\xb0','\xb0'), (nul|'\xb1','\xb1'), (nul|'\xb2','\xb2'), (nul|'\xb3','\xb3'), 
+	(nul|'\xb4','\xb4'), (nul|'\xb5','\xb5'), (nul|'\xb6','\xb6'), (nul|'\xb7','\xb7'),
+	(nul|'\xb8','\xb8'), (nul|'\xb9','\xb9'), (nul|'\xba','\xba'), (nul|'\xbb','\xbb'),
+	(nul|'\xbc','\xbc'), (nul|'\xbd','\xbd'), (nul|'\xbe','\xbe'), (nul|'\xbf','\xbf'),
+	(nul|'\xc0','\xc0'), (nul|'\xc1','\xc1'), (nul|'\xc2','\xc2'), (nul|'\xc3','\xc3'), 
+	(nul|'\xc4','\xc4'), (nul|'\xc5','\xc5'), (nul|'\xc6','\xc6'), (nul|'\xc7','\xc7'),
+	(nul|'\xc8','\xc8'), (nul|'\xc9','\xc9'), (nul|'\xca','\xca'), (nul|'\xcb','\xcb'),
+	(nul|'\xcc','\xcc'), (nul|'\xcd','\xcd'), (nul|'\xce','\xce'), (nul|'\xcf','\xcf'),
+	(nul|'\xd0','\xd0'), (nul|'\xd1','\xd1'), (nul|'\xd2','\xd2'), (nul|'\xd3','\xd3'), 
+	(nul|'\xd4','\xd4'), (nul|'\xd5','\xd5'), (nul|'\xd6','\xd6'), (nul|'\xd7','\xd7'),
+	(nul|'\xd8','\xd8'), (nul|'\xd9','\xd9'), (nul|'\xda','\xda'), (nul|'\xdb','\xdb'),
+	(nul|'\xdc','\xdc'), (nul|'\xdd','\xdd'), (nul|'\xde','\xde'), (nul|'\xdf','\xdf'),
+	(nul|'\xe0','\xe0'), (nul|'\xe1','\xe1'), (nul|'\xe2','\xe2'), (nul|'\xe3','\xe3'), 
+	(nul|'\xe4','\xe4'), (nul|'\xe5','\xe5'), (nul|'\xe6','\xe6'), (nul|'\xe7','\xe7'),
+	(nul|'\xe8','\xe8'), (nul|'\xe9','\xe9'), (nul|'\xea','\xea'), (nul|'\xeb','\xeb'),
+	(nul|'\xec','\xec'), (nul|'\xed','\xed'), (nul|'\xee','\xee'), (nul|'\xef','\xef'),
+	(nul|'\xf0','\xf0'), (nul|'\xf1','\xf1'), (nul|'\xf2','\xf2'), (nul|'\xf3','\xf3'), 
+	(nul|'\xf4','\xf4'), (nul|'\xf5','\xf5'), (nul|'\xf6','\xf6'), (nul|'\xf7','\xf7'),
+	(nul|'\xf8','\xf8'), (nul|'\xf9','\xf9'), (nul|'\xfa','\xfa'), (nul|'\xfb','\xfb'),
+	(nul|'\xfc','\xfc'), (nul|'\xfd','\xfd'), (nul|'\xfe','\xfe'), (nul|'\xff','\xff')
+};
+
+# any byte
+any = AnyOrNul$1;
+
+# illegal utf-8 bytes reserved for internal use (signaling)
+reserved = {'\xf8', '\xf9', '\xfa', '\xfb', '\xfc', '\xfd', '\xfe', '\xff'};
+
+# legal utf-8 bytes
+utf8 = any - reserved;
+
+# byte order mark
+bom = '\xEF\xBB\xBF';
+
+# Restrict PasteAny to any pattern P (T = P @@ PasteAny); T will paste P-matching input into current selection
+PasteAny = (utf8, paste)*;
+
+# Restrict AnyOrNul to exclude nul extension for nl, eg (PasteNotNl @@ T) ((nl, out[..] end) | (nul notnl* nl, end))
+PasteNotNl = AnyOrNul @@ (utf8 - '\x0a');
+
+# 7-bit control characters
+ctrl = (
+	'\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f'
+	'\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f'
+	'\x7f'
+):alph;
+
+# common names for printable 7-bit bytes
+space = ' ';
+dot='.';
+dash='-';
+comma=',';
+backslash = '\\';
+quote = '\'';
+digit = '0123456789':alph;
+punct = '!\"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~':alph;
+tab ='\t';
+nl = '\x0a';
+cr = '\x0d';
+letters = {
+	(a,A),
+	(b,B),
+	(c,C),
+	(d,D),
+	(e,E),
+	(f,F),
+	(g,G),
+	(h,H),
+	(i,I),
+	(j,J),
+	(k,K),
+	(l,L),
+	(m,M),
+	(n,N),
+	(o,O),
+	(p,P),
+	(q,Q),
+	(r,R),
+	(s,S),
+	(t,T),
+	(u,U),
+	(v,V),
+	(w,W),
+	(x,X),
+	(y,Y),
+	(z,Z)
+};
+lower = letters$0;
+upper = letters$1;
+alpha = lower | upper;
+alnum = alpha | digit;
+black = alnum | punct;
+white = space | tab;
+print = black | white;
+symbol = alnum | '_';
+notnl = utf8 - nl;
+notcr = utf8 - cr;
+
+# Restrict AnyOrNul to exclude nul extension for nl
+NotNlOrNul = AnyOrNul @@ notnl;
+
+# all utf8 bytes corresponding to single-byte (ASCII/UNICODE) characters 
+utf7 = {ctrl, punct, space, digit, lower, upper};
+
+hexlower = digit | 'abcdef':alph;
+hexupper = digit | 'ABCDEF':alph;
+hexbyte = (hexupper:2) | (hexlower:2);
+
+ipoctet = {digit, (digit - 0) digit, {1,2} digit digit};
+iphost = ((black - dot)+ dot)* (black - dot)+;
+ipV4 = ((ipoctet dot):3) ipoctet;
+ipV4OrHost = (ipV4 || iphost);

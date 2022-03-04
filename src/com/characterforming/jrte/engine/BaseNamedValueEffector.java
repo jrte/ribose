@@ -3,11 +3,11 @@
  */
 package com.characterforming.jrte.engine;
 
-import java.util.Arrays;
-
 import com.characterforming.jrte.EffectorException;
 import com.characterforming.jrte.TargetBindingException;
+import com.characterforming.jrte.base.Base;
 import com.characterforming.jrte.base.BaseParameterizedEffector;
+import com.characterforming.jrte.base.Bytes;
 
 /**
  * Base class for parameterised named value effectors, which can be invoked with
@@ -19,7 +19,7 @@ import com.characterforming.jrte.base.BaseParameterizedEffector;
  * @author kb
  */
 public abstract class BaseNamedValueEffector extends BaseParameterizedEffector<Transduction, Integer> {
-	protected BaseNamedValueEffector(final Transduction target, final String name) {
+	protected BaseNamedValueEffector(final Transduction target, final Bytes name) {
 		super(target, name);
 	}
 
@@ -43,8 +43,18 @@ public abstract class BaseNamedValueEffector extends BaseParameterizedEffector<T
 	 * com.characterforming.jrte.engine.IParameterizedEffector#newParameters()
 	 */
 	@Override
-	public final void newParameters(final int parameterCount) {
-		super.setParameters(new Integer[parameterCount]);
+	public void newParameters(int parameterCount) {
+		super.parameters = new Integer[parameterCount];
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * @see
+	 * com.characterforming.jrte.engine.IParameterizedEffector#newParameters()
+	 */
+	@Override
+	public Integer getParameter(int parameterOrdinal) {
+		return this.parameters[parameterOrdinal];
 	}
 
 	/*
@@ -54,21 +64,16 @@ public abstract class BaseNamedValueEffector extends BaseParameterizedEffector<T
 	 * byte[][])
 	 */
 	@Override
-	public void setParameter(final int parameterIndex, final byte[][] parameterList) throws TargetBindingException {
+	public Integer compileParameter(final int parameterIndex, final byte[][] parameterList) throws TargetBindingException {
 		if (parameterList.length != 1) {
 			throw new TargetBindingException(String.format("The %1$s effector accepts exactly one parameter", super.getName()));
+		} else if (parameterList[0].length > 0 && parameterList[0][0] != Base.TYPE_REFERENCE_VALUE) {
+			throw new TargetBindingException(String.format("The %1$s effector accepts only `~<value-name>` parameters, %2$s is not valid", 
+				super.getName(), new Bytes(parameterList[0]).toString()));
 		}
-		final char[] valueName = super.decodeParameter(parameterList[0]);
-		if ((valueName.length == 0) || (valueName[0] == Transduction.TYPE_REFERENCE_VALUE)) {
-			final char[] referenceName = (valueName.length > 0) ? Arrays.copyOfRange(valueName, 1, valueName.length) : valueName;
-			final Integer nameIndex = super.getTarget().getNamedValueReference(referenceName, true);
-			if (nameIndex != null) {
-				super.getTarget().ensureNamedValueCapacity(nameIndex);
-				super.setParameter(parameterIndex, nameIndex);
-				return;
-			}
-			throw new TargetBindingException(String.format("Unrecognized value reference `%1$s` for %2$s effector", new String(valueName), this.getName()));
-		}
-		throw new TargetBindingException(String.format("Invalid value reference `%1$s` for %2$s effector, requires type indicator ('%3$c') before the value name", new String(valueName), this.getName(), Transduction.TYPE_REFERENCE_VALUE));
+		final Bytes valueName = Bytes.getBytes(parameterList[0], 1, parameterList[0].length - 1);
+		final Integer valueOrdinal = super.getTarget().getValueOrdinal(valueName);
+		super.setParameter(parameterIndex, valueOrdinal);
+		return valueOrdinal;
 	}
 }

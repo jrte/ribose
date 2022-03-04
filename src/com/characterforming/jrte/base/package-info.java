@@ -1,11 +1,36 @@
+/*
+ * JRTE is a recursive transduction engine for Java
+ * 
+ * Copyright (C) 2011,2022 Kim Briggs
+ * 
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received copies of the GNU General Public License
+ * and GNU Lesser Public License along with this program.  See 
+ * LICENSE-lgpl-3.0 and LICENSE-gpl-3.0. If not, see 
+ * <http://www.gnu.org/licenses/>.
+ */
+
 /**
  * Base package provides the base classes that define the main application extension 
- * points for Jrte. Client applications can extend Jrte by subclassing {@link com.characterforming.jrte.base.BaseTarget}
+ * points for Jrte. Client applications can extend Jrte by implementing {@link com.characterforming.jrte.ITarget},
+ * along with an enumerated collection of {@link com.characterforming.jrte.IEffector} classes.
+ * 
+ * parameterizing the implementation with a class that can be instantiated from a byte[][] array
+ * presented as parameters to 
  * and defining new anonymous inner classes that subclass one of the base effector classes.
  * Typically, the target class serves as a factory to produce objects that are assembled
  * from the transduced input through the actions of the target effectors. 
  * <h3>Targets</h3>
- * The {@link com.characterforming.jrte.base.BaseTarget} base class implements the 
+ * The {@link BaseTarget} base class implements the 
  * {@link com.characterforming.jrte.ITarget} interface and provides the main extension point
  * for the Jrte framework. The BaseTarget class provides a set of simple effectors that assemble 
  * named values, where the value names are determined by the names supplied to the copy[] and cut[] 
@@ -14,7 +39,7 @@
  * additional fields, methods, and effectors as required to suit application-specific requirements.
  * <p>
  * To create a target extension, simply subclass BaseTarget or a BaseTarget subclass 
- * and override the {@link com.characterforming.jrte.base.BaseTarget#bind(ITransduction)} 
+ * and override the {@link BaseTarget#bindEffectors()} 
  * method. The overridden bind(ITransduction) method must call super.bind(ITransduction)
  * and may add new anonymous inner effector classes to the list of effectors returned by
  * the superclass as required to suit application requirements. Additionally, the extension
@@ -53,8 +78,8 @@
  * This skeletal example shows how to extend a base ITarget implementation class and define 
  * additional effectors. 
  * <p>
- * Each gearbox is associated with a specific target extension class when the gearbox is compiled. 
- * A proxy target instantiated during gearbox compilation contexts to allow the compiler to 
+ * Each gearbox is associated with a ITransductionspecific target extension class when the gearbox is compiled. 
+ * A proxy target insom.characterforming.jrte.base.tantiated during gearbox compilation contexts to allow the compiler to 
  * enumerate the names of the effectors available in the target class. The gearbox compiler will 
  * invoke the bind(ITransduction) method on the proxy target instance with a null ITransduction 
  * parameter and will call the {@link com.characterforming.jrte.IEffector#getName()} method for 
@@ -69,7 +94,7 @@
  * objects for all of the parameterized effectors defined for the target class, as described in 
  * some detail below. This proxy instance is also discarded as soon as the target has been validated
  * and the effector parameter objects have been compiled. This effector validation and parameter 
- * object compilation process is performed in the {@link com.characterforming.jrte.Jrte#Jrte(File, String)}
+ * object compilation process is performed in the {@link com.characterforming.jrte.Jrte#Jrte(File, om.characterforming.jrte.ITarget)}
  * constructor.
  * <p>
  * Once the gearbox has been loaded and the target class has been validated for runtime use, 
@@ -79,7 +104,7 @@
  * effective for the lifetime of the transduction. 
  * <p>
  * Once the target has been bound to a transduction, the transduction can be started and run 
- * using the {@link com.characterforming.jrte.ITransduction#start(String)} and 
+ * using the {@link com.characterforming.jrte.ITransduction#start(Bytes)} and 
  * {@link com.characterforming.jrte.ITransduction#input(IInput[])} methods. The run() method will 
  * return normally when the input stack is exhausted, or the transducer stack is empty, 
  * or an effector returns {@link com.characterforming.jrte.base.BaseEffector#RTE_EFFECT_PAUSE}. 

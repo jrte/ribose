@@ -1,13 +1,35 @@
-/**
+/***
+ * JRTE is a recursive transduction engine for Java
  * 
+ * Copyright (C) 2011,2022 Kim Briggs
+ * 
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received copies of the GNU General Public License
+ * and GNU Lesser Public License along with this program.  See 
+ * LICENSE-lgpl-3.0 and LICENSE-gpl-3.0. If not, see 
+ * <http://www.gnu.org/licenses/>.
  */
+
 package com.characterforming.jrte;
 
+import com.characterforming.jrte.base.Bytes;
+
 /**
- * Snapshot wrapper for named values. These contain a direct reference
- * to the value buffer as of the time of the call, and should be treated
- * as transient objects (assign to stack variables, use in stack based
- * collections, etc, only).
+ * Snapshot wrapper for volatile named values. These contain direct references
+ * to the transduction value buffers and their length and content will change 
+ * according to transducer actions. ITarget instance may retain INamedValue
+ * instances for the entire lifetime of an ITransduction instance and query 
+ * them periodically when they synchronize with the transduction process under
+ * effector direction.
  * 
  * @author kb
  */
@@ -17,29 +39,33 @@ public interface INamedValue {
 	 * 
 	 * @return The value name
 	 */
-	public String getName();
+	public Bytes getName();
 
 	/**
-	 * Get the value index.
+	 * Get the value ordinal.
 	 * 
 	 * @return The value index
 	 */
-	public int getIndex();
+	public int getOrdinal();
 
 	/**
-	 * Get a reference to the value. Use {@link #getLength()} to determine the
-	 * actual number of <code>char</code> in the returned array reference.
+	 * Get the number of bytes in the value array as of the time of the call
 	 * 
-	 * @return A direct reference to the value array as of the time of the call
-	 */
-	public char[] getValue();
-
-	/**
-	 * Get the actual number of <code>char</code> in the value array as of the
-	 * time of the call
-	 * 
-	 * @return The actual number of <code>char</code> in the value array as of
-	 *         the time of the call
+	 * @return The number of bytes in the value array
 	 */
 	public int getLength();
+
+	/**
+	 * Decode a UTF-8 encoded value using default charset.
+	 * 
+	 * @return A Unicode char[] array holding the decoded value
+	 */
+	public char[] decodeValue();
+
+	/**
+	 * Get a copy the value, trimmed to actual length.
+	 * 
+	 * @return A copy of the contents of the value array
+	 */
+	public byte[] copyValue();
 }

@@ -9,14 +9,14 @@ import java.util.EmptyStackException;
 /**
  * @author kb
  */
-public final class TransducerStack {
-	private Transduction.TransducerState[] stack;
+final class TransducerStack {
+	private TransducerState[] stack;
 	private int tos;
 
-	public TransducerStack(final int initialSize) {
-		this.stack = new Transduction.TransducerState[initialSize];
+	TransducerStack(final int initialSize) {
+		this.stack = new TransducerState[initialSize];
 		for (int i = initialSize - 1; i >= 0; i--) {
-			this.stack[i] = new Transduction.TransducerState(0, null);
+			this.stack[i] = new TransducerState(0, null);
 		}
 		this.tos = - 1;
 	}
@@ -33,7 +33,7 @@ public final class TransducerStack {
 	 * 
 	 * @return the index of the top of stack
 	 */
-	public int tos() {
+	int tos() {
 		return this.tos;
 	}
 
@@ -42,7 +42,7 @@ public final class TransducerStack {
 	 * 
 	 * @param transducer The transducer to push
 	 */
-	public void push(final Transducer transducer) {
+	void push(final Transducer transducer) {
 		this.stackcheck(1);
 		this.stack[this.tos].transducer = transducer;
 		this.stack[this.tos].state = 0;
@@ -53,7 +53,7 @@ public final class TransducerStack {
 	 * 
 	 * @return The transducer on the top of the stack, or null if empty
 	 */
-	public Transduction.TransducerState peek() {
+	TransducerState peek() {
 		if (this.tos >= 0) {
 			return this.stack[this.tos];
 		} else {
@@ -66,10 +66,10 @@ public final class TransducerStack {
 	 * 
 	 * @return The item on top of the stack after the pop
 	 */
-	public Transduction.TransducerState pop() {
+	TransducerState pop() {
 		if (this.tos >= 0) {
-			this.stack[this.tos].reset(0, null);
-			return --this.tos >= 0 ? this.stack[this.tos] : null;
+			this.stack[this.tos--].reset(0, null);
+			return this.tos >= 0 ? this.stack[this.tos] : null;
 		} else {
 			throw new EmptyStackException();
 		}
@@ -81,7 +81,7 @@ public final class TransducerStack {
 	 * @param index The index of the item to get
 	 * @return The Nth item from the stack
 	 */
-	public Transduction.TransducerState get(final int index) {
+	TransducerState get(final int index) {
 		if (index >= 0 && index <= this.tos) {
 			return this.stack[index];
 		} else {
@@ -94,7 +94,7 @@ public final class TransducerStack {
 	 * 
 	 * @return the number of items on the stack
 	 */
-	public int size() {
+	int size() {
 		return this.tos + 1;
 	}
 
@@ -103,7 +103,7 @@ public final class TransducerStack {
 	 * 
 	 * @return True if the stack is empty
 	 */
-	public boolean isEmpty() {
+	boolean isEmpty() {
 		return this.tos < 0;
 	}
 }

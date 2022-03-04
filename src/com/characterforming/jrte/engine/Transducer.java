@@ -8,14 +8,14 @@ import com.characterforming.jrte.GearboxException;
 /**
  * @author kb
  */
-public final class Transducer {
+final class Transducer {
 	private final String name;
 	private final String targetName;
 	private final int[] inputFilter;
 	private final int[][] transitionMatrix;
 	private final int[] effectorVector;
 
-	public Transducer(final String name, final String targetName, final int[] inputFilter, final int[][] transitionMatrix, final int[] effectorVector) throws GearboxException {
+	Transducer(final String name, final String targetName, final int[] inputFilter, final int[][] transitionMatrix, final int[] effectorVector) throws GearboxException {
 		this.name = name;
 		this.targetName = targetName;
 		this.inputFilter = inputFilter;
@@ -23,23 +23,23 @@ public final class Transducer {
 		this.effectorVector = effectorVector;
 	}
 
-	public String getName() {
+	String getName() {
 		return this.name;
 	}
 
-	public String getTargetName() {
+	String getTargetName() {
 		return this.targetName;
 	}
 
-	public int[][] getTransitionMatrix() {
+	int[][] getTransitionMatrix() {
 		return this.transitionMatrix;
 	}
 
-	public int[] getInputFilter() {
+	int[] getInputFilter() {
 		return this.inputFilter;
 	}
 
-	public int[] getEffectorVector() {
+	int[] getEffectorVector() {
 		return this.effectorVector;
 	}
 }

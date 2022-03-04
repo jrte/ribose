@@ -3,33 +3,32 @@
  */
 package com.characterforming.jrte.engine;
 
-import java.util.Arrays;
-
 import com.characterforming.jrte.EffectorException;
 import com.characterforming.jrte.TargetBindingException;
+import com.characterforming.jrte.base.Base;
 import com.characterforming.jrte.base.BaseParameterizedEffector;
+import com.characterforming.jrte.base.Bytes;
 
 /**
  * @author kb
  */
-public abstract class BaseInputOutputEffector extends BaseParameterizedEffector<Transduction, char[][]> {
-	private boolean hasBufferReferences;
-
-	protected BaseInputOutputEffector(final Transduction target, final String name) {
-		super(target, name);
-		this.hasBufferReferences = false;
+public abstract class BaseInputOutputEffector extends BaseParameterizedEffector<Transduction, byte[][]> {
+	protected BaseInputOutputEffector(Transduction transduction, Bytes name) {
+		super(transduction, name);
 	}
 
 	/*
 	 * (non-Javadoc)
 	 * @see com.characterforming.jrte.engine.IParameterizedEffector#invoke(int)
 	 */
+	@Override
 	public abstract int invoke(int parameterIndex) throws EffectorException;
 
 	/*
 	 * (non-Javadoc)
 	 * @see com.characterforming.jrte.engine.IParameterizedEffector#invoke()
 	 */
+	@Override
 	public int invoke() throws EffectorException {
 		throw new EffectorException(String.format("The %1$s effector requires at least one parameter", super.getName()));
 	}
@@ -39,58 +38,37 @@ public abstract class BaseInputOutputEffector extends BaseParameterizedEffector<
 	 * @see
 	 * com.characterforming.jrte.engine.IParameterizedEffector#newParameters()
 	 */
+	@Override
 	public final void newParameters(final int parameterCount) {
-		super.setParameters(new char[parameterCount][][]);
+		super.parameters = new byte[parameterCount][][];
 	}
 
 	/*
 	 * (non-Javadoc)
 	 * @see com.characterforming.jrte.engine.IParameterizedEffector#setParameter(int, byte[][])
 	 */
-	public void setParameter(final int parameterIndex, final byte[][] parameterList) throws TargetBindingException {
+	@Override
+	public byte[][] compileParameter(final int parameterIndex, final byte[][] parameterList) throws TargetBindingException {
 		if (parameterList.length < 1) {
-			throw new TargetBindingException(String.format("The %1$s effector requires at leat one parameter", super.getName()));
+			throw new TargetBindingException(String.format("The %1$s effector requires at least one parameter", super.getName()));
 		}
-		final char[][] parameter = new char[parameterList.length][];
+		final byte[][] parameter = new byte[parameterList.length][];
 		for (int i = 0; i < parameterList.length; i++) {
-			parameter[i] = super.decodeParameter(parameterList[i]);
-			if (parameter[i][0] == Transduction.TYPE_REFERENCE_VALUE) {
-				final char[] referenceName = Arrays.copyOfRange(parameter[i], 1, parameter[i].length);
-				final Integer nameIndex = super.getTarget().getNamedValueReference(referenceName, true);
-				if (nameIndex != null) {
-					super.getTarget().ensureNamedValueCapacity(nameIndex);
-					parameter[i] = new char[] { Character.MAX_VALUE, (char) nameIndex.intValue() };
-					this.hasBufferReferences = true;
-				} else {
-					throw new TargetBindingException(String.format("Unrecognized value reference `%1$s` for %2$s effector", new String(parameter[i]), this.getName()));
-				}
-			} else if (parameter[i][0] == Transduction.TYPE_REFERENCE_SIGNAL) {
-				parameter[i] = super.getTarget().getGearbox().getSignalReference(parameter[i]);
-				if (parameter[i] == null) {
-					throw new TargetBindingException(String.format("Unrecognized signal reference `%1$s` for %2$s effector", new String(parameter[i]), this.getName()));
-				}
+			assert !Base.isReferenceOrdinal(parameterList[i]);
+			byte type = Base.getReferenceType(parameterList[i]);
+			if (type == Base.TYPE_REFERENCE_VALUE) {
+				final Bytes valueName = new Bytes(Base.getReferenceName(parameterList[i]));
+				final Integer nameIndex = super.getTarget().getValueOrdinal(valueName);
+				parameter[i] = Base.encodeReferenceOrdinal(Base.TYPE_REFERENCE_VALUE, nameIndex);
+			} else if (type == Base.TYPE_REFERENCE_SIGNAL) {
+				final Bytes valueName = new Bytes(Base.getReferenceName(parameterList[i]));
+				final Integer signalOrdinal = super.getTarget().getGearbox().getSignalOrdinal(valueName);
+				parameter[i] = Base.encodeReferenceOrdinal(Base.TYPE_REFERENCE_SIGNAL, signalOrdinal);
+			} else {
+				parameter[i] = parameterList[i];
 			}
 		}
-		super.setParameter(parameterIndex, parameter);
-	}
-
-	/*
-	 * (non-Javadoc)
-	 * @see
-	 * com.characterforming.jrte.engine.IParameterizedEffector#getParameter(int,
-	 * byte[][])
-	 */
-	public char[][] getParameter(final int parameterIndex) {
-		char[][] parameter = super.getParameter(parameterIndex);
-		if (this.hasBufferReferences) {
-			parameter = Arrays.copyOf(parameter, parameter.length);
-			for (int i = 0; i < parameter.length; i++) {
-				if (parameter[i][0] == Character.MAX_VALUE) {
-					int namedValueIndex = (int)parameter[i][1];
-					parameter[i] = super.getTarget().copyNamedValue(namedValueIndex);
-				}
-			}
-		}
+		this.parameters[parameterIndex] = parameter;
 		return parameter;
 	}
 }

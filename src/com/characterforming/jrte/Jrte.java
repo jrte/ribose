@@ -1,29 +1,46 @@
-/**
- * Copyright (c) 2011,2017, Kim T Briggs, Hampton, NB.
+/***
+ * JRTE is a recursive transduction engine for Java
+ * 
+ * Copyright (C) 2011,2022 Kim Briggs
+ * 
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received copies of the GNU General Public License
+ * and GNU Lesser Public License along with this program.  See 
+ * LICENSE-lgpl-3.0 and LICENSE-gpl-3.0. If not, see 
+ * <http://www.gnu.org/licenses/>.
  */
+
 package com.characterforming.jrte;
 
+import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.Reader;
-import java.nio.charset.Charset;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
+import com.characterforming.jrte.base.Base;
 import com.characterforming.jrte.base.BaseTarget;
+import com.characterforming.jrte.base.Bytes;
 import com.characterforming.jrte.engine.Gearbox;
+import com.characterforming.jrte.engine.Gearbox.Gear;
 import com.characterforming.jrte.engine.Transduction;
-import com.characterforming.jrte.engine.input.ReaderInput;
-import com.characterforming.jrte.engine.input.SignalInput;
-import com.characterforming.jrte.engine.input.StreamInput;
 
 /**
  * This is the Jrte main runtime transduction factory class. It opens a transducer gearbox and
  * enumerates the target and effector namespaces on instantiation. The target and effector
  * namespaces must be identical to the target and effector namespaces used to build the gearbox.
  * <p>
- * Use {@link #transduction(ITarget)} to instantiate a transduction for runtime application. To transduce the input starting with a specific transducer, call the {@link ITransduction#start(String)} and {@link ITransduction#input(IInput[])}
+ * Use {@link #transduction(ITarget)} to instantiate a transduction for runtime application. To transduce the input starting with a specific transducer, call the {@link ITransduction#start(Bytes)} and {@link ITransduction#input(IInput[])}
  * methods.
  * <p>
  * This class is threadsafe, but ITransduction instances obtained from runtime instances of this class are not. Each ITransduction instance is expected to run on a single thread; otherwise, references to the instance must be synchronized by
@@ -32,6 +49,7 @@ import com.characterforming.jrte.engine.input.StreamInput;
  * @author kb
  */
 public final class Jrte {
+	private final static Logger rteLogger = Logger.getLogger(Base.RTE_LOGGER_NAME);
 	private final Gearbox gearbox;
 	
 	/**
@@ -46,50 +64,59 @@ public final class Jrte {
 	 * @throws InputException On error
 	 */
 	public static void main(final String[] args) 
-			throws SecurityException, IOException, RteException, GearboxException, TargetBindingException, InputException {
-		if ((args.length < 3) || (args.length > 4)) {
+			throws SecurityException, IOException, RteException, GearboxException {
+		int argc = args.length;
+		final boolean nil = (argc > 0) ? (args[0].compareTo("--nil") == 0) : false;
+		if (nil) {
+			--argc;
+		}
+		if (argc != 3) {
 			for (int i = 0; i < args.length; i++) {System.out.printf("%d: %s\n", i, args[i]); } 
 			System.out.println(String.format("Usage: java -cp <classpath> [-Djrte.out.enabled=false] [--nil] <transducer-name> <input-path> <gearbox-path>"));
 			System.exit(1);
 		}
-		final boolean nil = args[0].compareTo("--nil") == 0;
 		int arg = nil ? 1 : 0;
 		final String transducerName = args[arg++];
 		final String inputPath = args[arg++];
 		final String gearboxPath = args[arg++];
 
 		try {
-			Jrte jrte = new Jrte(new File(gearboxPath), "com.characterforming.jrte.base.BaseTarget");
-//			System.out.format("Opened %s\n", gearboxPath);
 			final File f = new File(inputPath);
-			final InputStreamReader isr = new InputStreamReader(new FileInputStream(f));
+			final DataInputStream isr = new DataInputStream(new FileInputStream(f));
 			int clen = (int)f.length();
-			char[] chars = new char[clen];
-			clen = isr.read(chars, 0, clen);
+			byte[] bytes = new byte[clen];
+			clen = isr.read(bytes, 0, clen);
 			isr.close();
 
-			IInput[] inputs = nil
-					? new IInput[] { (SignalInput) jrte.input(new char[][] {new String("!nil").toCharArray(), chars}) }
-					: new IInput[] { (SignalInput) jrte.input(new char[][] {chars}) };
-
-//			System.out.format("Inputs.length %d\n", inputs.length);
 			ITarget baseTarget = new BaseTarget();
-//			System.out.format("Target %s\n", baseTarget.getClass().getName());
+			Jrte jrte = new Jrte(new File(gearboxPath), baseTarget);	
 			ITransduction transduction = jrte.transduction(baseTarget);
-//			System.out.format("Transduction %s\n", transduction.getClass().getName());
-			transduction.start(transducerName);
-//			System.out.format("Transducer %s\n", transducerName);
-			transduction.input(inputs);
-//			for (int i = 0; i < inputs.length; i++) {
-//				System.out.format("Inputs[$d] %s\n", i, inputs[i].getClass().getName());
-//			}
-			while (transduction.status() == ITransduction.RUNNABLE) {
-//				System.out.format("Running...\n");
-				transduction.run();
-			} 
-		} catch (Exception e) {
-			System.out.print(e);
+			transduction.start(Bytes.encode(transducerName));
+			transduction.input(nil
+				? new IInput[] { (ByteInput) jrte.input(new byte[][] { Base.encodeReferenceOrdinal(Base.TYPE_REFERENCE_SIGNAL, Base.Signal.nil.signal()), bytes }) }
+				: new IInput[] { (ByteInput) jrte.input(new byte[][] { bytes }) }
+			);
+			do {
+				switch (transduction.run()) {
+				case RUNNABLE:
+					break;
+				case PAUSED:
+				case STOPPED:
+					transduction.stop();
+					break;
+				case NULL:
+				default:
+					assert false;
+					break;
+				}
+			}
+			while (transduction.status() == ITransduction.Status.PAUSED);
+		} catch (final Exception e) {
+			rteLogger.log(Level.SEVERE, String.format("Caught Exception running transducer '%1$s' from gearbox '%2$s'",
+					transducerName, gearboxPath), e);
+			System.exit(1);
 		}
+		System.exit(0);
 	}
 
 	/**
@@ -101,26 +128,20 @@ public final class Jrte {
 	 * The proxy target instance is discarded after enumerating the target and effector namespace.
 	 * 
 	 * @param gearboxPath The path to the gearbox
-	 * @param targetClassName The fully qualified Java class name of the target class to bind to the transduction stack
+	 * @param target The target instance to bind to the transduction 
 	 * @throws GearboxException On error
 	 * @throws TargetBindingException On error
 	 */
-	public Jrte(final File gearboxPath, final String targetClassName) throws GearboxException, TargetBindingException {
+	public Jrte(final File gearboxPath, final ITarget target) throws GearboxException {
 		try {
-			this.gearbox = new Gearbox(gearboxPath, (ITarget) Class.forName(targetClassName).newInstance());
-		} catch (final InstantiationException e) {
-			throw new TargetBindingException(String.format("Unable to instantiate class '%1$s'", targetClassName), e);
-		} catch (final IllegalAccessException e) {
-			throw new TargetBindingException(String.format("Unable to access class '%1$s'", targetClassName), e);
-		} catch (final ClassNotFoundException e) {
-			throw new TargetBindingException(String.format("Unable to find class '%1$s'", targetClassName), e);
+			this.gearbox = new Gearbox(Gear.run, gearboxPath, target);
 		} catch (final Exception e) {
 			throw new GearboxException("Unable to instantiate Jrte", e);
 		}
 	}
 
 	/**
-	 * Bind an unbound target instance to a new transduction. Use the {@link ITransduction#start(String)}
+	 * Bind an unbound target instance to a new transduction. Use the {@link ITransduction#start(Bytes)}
 	 * and {@link ITransduction#run()} methods to set up and run the transduction.
 	 * 
 	 * @param target The ITarget instance to bind to the transduction
@@ -130,56 +151,33 @@ public final class Jrte {
 	 * @throws GearboxException On error
 	 * @throws TargetNotFoundException On error
 	 */
-	public ITransduction transduction(final ITarget target) throws TargetBindingException, TargetNotFoundException, GearboxException, RteException {
-		if (target.getClass().equals(this.gearbox.getTarget().getClass())) {
-			return new Transduction(this.gearbox, target, false);
-		} else {
+	public ITransduction transduction(final ITarget target) throws GearboxException, RteException {
+		Class<? extends ITarget> targetClass = target.getClass();
+		Class<? extends ITarget> gearboxClass = this.gearbox.getTarget().getClass();
+		if (!gearboxClass.isAssignableFrom(targetClass)) {
 			throw new TargetNotFoundException(String.format("Cannot bind instance of target class '%1$s', can only bind to gearbox target class '%2$s'", target.getClass().getName(), this.gearbox.getTarget().getName()));
 		}
+		Transduction trex = this.gearbox.bindTransduction(target);
+		assert trex != null && trex.status() != ITransduction.Status.NULL;
+		return trex;
 	}
 
 	/**
-	 * Set up a transduction input source with a sequence of Unicode and signal ordinals.
-	 * Each signal reference in the input array is mapped to the respective signal
-	 * ordinal. Other tokens in the input array are treated as text Unicode ordinals.
+	 * Set up a transduction input source with a sequence of UTF-8 and signal ordinals.
+	 * Each signal reference in the input array is mapped to the respective signal ordinal
+	 * encoded separately in input[][] as {0xFF,'!',hi,lo} encoding the 16-bit signal 
+	 * ordinal as (hi &lt;&lt; 8) | lo. Other tokens in the input array are treated
+	 * as sequences of 8-bit byte (binary 0x0..0xff).
+	 * 
+	 * Note that this limits the range of unreserved tokens available to ginr patterns 
+	 * for jrte to {@code (0x00..0xff)* - 0xff('!'|'~'|'@')(0x00..0xff)(0x00..0xff)}. 
 	 * 
 	 * @param input The symbolic names for the signals and text segments to include in LIFO order (input[0] is last out)
 	 * @return An IInput containing the signal sequence
 	 * @throws GearboxException On error
 	 * @throws InputException On error
 	 */
-	public IInput input(final char[][] input) throws GearboxException, InputException {
-		int n = 0;
-		final char[][] array = new char[input.length][];
-		for (final char[] chars : input) {
-			final char[] signal = this.gearbox.getSignalReference(chars);
-			array[n++] = signal != null ? signal : chars;
-		}
-		return new SignalInput(array);
-	}
-
-	/**
-	 * Set up a transduction input source with a text file as input source.
-	 * 
-	 * @param infile The text input source
-	 * @return An IInput wrapping the input source
-	 * @throws GearboxException On error
-	 * @throws InputException On error
-	 */
-	public IInput input(final Reader infile) throws GearboxException, InputException {
-		return new ReaderInput(infile);
-	}
-
-	/**
-	 * Set up a transduction input source with a raw file and charset decoder as input source.
-	 * 
-	 * @param infile The raw input source
-	 * @param charset The Charset to decode the raw input with
-	 * @return An IInput wrapping the input source
-	 * @throws GearboxException On error
-	 * @throws InputException On error
-	 */
-	public IInput input(final InputStream infile, final Charset charset) throws GearboxException, InputException {
-		return new StreamInput(infile, charset);
+	public IInput input(final byte[][] input) throws GearboxException, InputException {
+		return new ByteInput(input);
 	}
 }

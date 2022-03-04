@@ -1,11 +1,10 @@
 /**
  * Copyright (c) 2011,2017, Kim T Briggs, Hampton, NB.
  */
-package com.characterforming.jrte.compile;
+package com.characterforming.jrte.engine;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -14,41 +13,26 @@ import java.util.Map;
 
 import com.characterforming.jrte.CompilationException;
 import com.characterforming.jrte.GearboxException;
-import com.characterforming.jrte.compile.array.Ints;
-import com.characterforming.jrte.compile.array.IntsArray;
-import com.characterforming.jrte.engine.BaseNamedValueEffector;
-import com.characterforming.jrte.engine.Gearbox;
-import com.characterforming.jrte.engine.Transduction;
+import com.characterforming.jrte.base.Bytes;
 
 public final class TransducerCompiler extends Automaton {
-	private final Gearbox gearbox;
-	private final TargetCompiler targetCompiler;
 	private final HashMap<Ints, Integer> effectorVectorMap;
 	private final ArrayList<Integer> effectorVectorList;
 	private int[][][] kernelMatrix;
 	private int[] inputEquivalenceIndex;
 
-	public TransducerCompiler(final String name, final Charset charset, final Gearbox gearbox, final TargetCompiler targetCompiler) {
-		super(name, charset);
-		this.gearbox = gearbox;
-		this.targetCompiler = targetCompiler;
+	public TransducerCompiler(final Bytes name, final Gearbox gearbox) {
+		super(name, gearbox);
 		this.effectorVectorMap = new HashMap<Ints, Integer>(1024);
 		this.effectorVectorList = new ArrayList<Integer>(8196);
 		this.inputEquivalenceIndex = null;
 	}
 
-	public void load(final File inrfile) throws IOException, CompilationException {
-		super.load(inrfile);
+	@Override
+	public Bytes load(final File inrfile) throws IOException, CompilationException {
+		Bytes inrVersion = super.load(inrfile);
 		if (super.getErrors().size() > 0) {
-			throw new CompilationException(String.format("Unable to load %1$s, call Automaton.getErrors() to view problems", super.getName()));
-		}
-
-		final byte[][] inputBytes = super.getSymbolBytes(0);
-		for (final byte[] inputByte : inputBytes) {
-			final char[] inputChars = super.getChars(inputByte);
-			if (inputChars.length > 1) {
-				this.gearbox.putSignalOrdinal(new String(inputChars));
-			}
+			throw new CompilationException("Unable to load " + super.getName());
 		}
 
 		final Integer[] inrInputStates = super.getInrStates(0);
@@ -64,32 +48,34 @@ public final class TransducerCompiler extends Automaton {
 		this.effectorVectorList.add(0);
 		for (final Integer inrInputState : inrInputStates) {
 			for (final Transition t : super.getInrTransitions(inrInputState)) {
-				if (t.getTape() == 0) {
-					final int rteState = super.getRteState(0, t.getInS());
-					final int inputOrdinal = this.gearbox.putInputOrdinal(t.getString());
-					final Chain chain = this.chain(t);
-					if (chain != null) {
-						final int[] effectVector = chain.getEffectVector();
-						transitionMatrix[inputOrdinal][rteState][0] = super.getRteState(0, chain.getOutS());
-						if (chain.isEmpty()) {
-							transitionMatrix[inputOrdinal][rteState][1] = 1;
-						} else if (chain.isScalar()) {
-							transitionMatrix[inputOrdinal][rteState][1] = effectVector[0];
-						} else {
-							final Ints vector = new Ints(effectVector);
-							Integer v = this.effectorVectorMap.get(vector);
-							if (v == null) {
-								v = this.effectorVectorList.size();
-								for (final int element : effectVector) {
-									this.effectorVectorList.add(element);
+				if (!t.isFinal()) {
+					if (t.getTape() == 0) {
+						final int rteState = super.getRteState(0, t.getInS());
+						final int inputOrdinal = this.gearbox.getInputOrdinal(t.getBytes());
+						final Chain chain = this.chain(t);
+						if (chain != null) {
+							final int[] effectVector = chain.getEffectVector();
+							transitionMatrix[inputOrdinal][rteState][0] = super.getRteState(0, chain.getOutS());
+							if (chain.isEmpty()) {
+								transitionMatrix[inputOrdinal][rteState][1] = 1;
+							} else if (chain.isScalar()) {
+								transitionMatrix[inputOrdinal][rteState][1] = effectVector[0];
+							} else {
+								Ints vector = new Ints(effectVector);
+								Integer vectorOrdinal = this.effectorVectorMap.get(vector);
+								if (vectorOrdinal == null) {
+									vectorOrdinal = this.effectorVectorList.size();
+									for (final int element : effectVector) {
+										this.effectorVectorList.add(element);
+									}
+									this.effectorVectorMap.put(vector, vectorOrdinal);
 								}
-								this.effectorVectorMap.put(vector,  v);
+								transitionMatrix[inputOrdinal][rteState][1] = -vectorOrdinal;
 							}
-							transitionMatrix[inputOrdinal][rteState][1] = -v;
 						}
-					}
-				} else if (!t.isFinal()) {
-					super.error(String.format("Ambiguous state %1$d", t.getInS()));
+					} else {
+						super.error(String.format("Ambiguous state %1$d", t.getInS()));
+					} 
 				}
 			}
 		}
@@ -99,6 +85,7 @@ public final class TransducerCompiler extends Automaton {
 		if (super.getErrors().size() > 0) {
 			throw new CompilationException(String.format("Unable to load %1$s, call Automaton.getErrors() to view problems", super.getName()));
 		}
+		return inrVersion;
 	}
 
 	public void save(final Gearbox gearbox, final String targetName) throws GearboxException {
@@ -148,7 +135,11 @@ public final class TransducerCompiler extends Automaton {
 	}
 
 	private Chain chain(final Transition transition) {
-		assert (transition.getTape() == 0) : String.format("Invalid tape number for chain(Transition) : %1$d)", transition.getTape());
+		assert transition.isValid() : "Invalid transition for chain(Transition) : " + transition.toString();
+		assert transition.getTape() != 1 && transition.getTape() != 2 : "Invalid tape number for chain(Transition) : " + transition.toString();
+		if (transition.isFinal()) {
+			return null;
+		}
 		int effectorOrdinal = -1;
 		int effectorPos = 0;
 		int[] effectorVector = new int[8];
@@ -163,21 +154,25 @@ public final class TransducerCompiler extends Automaton {
 						effectorVector = Arrays.copyOf(effectorVector, (effectorVector.length * 3) >> 1);
 					}
 					if (parameterPos > 0) {
-						assert((effectorPos >= 0) && (effectorOrdinal == effectorVector[effectorPos - 1])); 
-						final byte[][] parameters = Arrays.copyOf(parameterList, parameterPos);
+						assert((effectorPos > 0) && (effectorOrdinal == effectorVector[effectorPos - 1])); 
 						effectorVector[effectorPos - 1] *= -1;
-						effectorVector[effectorPos++] = this.targetCompiler.getParametersIndex(effectorOrdinal, parameters);
+						final byte[][] parameters = Arrays.copyOf(parameterList, parameterPos);
+						int parameterOrdinal = this.gearbox.compileParameters(effectorOrdinal, parameters);
+						effectorVector[effectorPos] = parameterOrdinal;
 						parameterList = new byte[8][];
 						parameterPos = 0;
+						++effectorPos;
 					}
-					effectorOrdinal = this.targetCompiler.getEffectorOrdinal(t.getString());
-					effectorVector[effectorPos++] = effectorOrdinal;
+					effectorOrdinal = this.gearbox.getEffectorOrdinal(new Bytes(t.getBytes()));
+					effectorVector[effectorPos] = effectorOrdinal;
+					++effectorPos;
 					break;
 				case 2:
 					if (parameterPos >= parameterList.length) {
 						parameterList = Arrays.copyOf(parameterList, (parameterList.length * 3) >> 1);
 					}
-					parameterList[parameterPos++] = compileParameterTransition(effectorOrdinal, t.getBytes());
+					parameterList[parameterPos] = t.getBytes();
+					++parameterPos;
 					break;
 				default:
 					super.error(String.format("Invalid tape number in transducer : %1$s", t.toString()));
@@ -185,17 +180,26 @@ public final class TransducerCompiler extends Automaton {
 			}
 			outT = super.getInrTransitions(t.getOutS());
 		}
-		if ((effectorPos + 2) >= effectorVector.length) {
-			effectorVector = Arrays.copyOf(effectorVector, effectorPos + 2);
+		assert effectorPos > 0 || parameterPos == 0;
+		assert parameterPos == 0 || effectorPos > 0;
+		int vectorLength = effectorPos + 1;
+		if (effectorPos > 0 && parameterPos > 0) {
+			++vectorLength;
+		}
+		if (vectorLength != effectorVector.length) {
+			effectorVector = Arrays.copyOf(effectorVector, vectorLength);
 		}
 		if (parameterPos > 0) {
-			final int parameterizedEffectorOrdinal = effectorVector[effectorPos - 1];
+			assert((effectorPos > 0) && (effectorOrdinal == effectorVector[effectorPos - 1])); 
 			final byte[][] parameters = Arrays.copyOf(parameterList, parameterPos);
+			int parameterOrdinal = this.gearbox.compileParameters(effectorOrdinal, parameters);
+			effectorVector[effectorPos] = parameterOrdinal;
 			effectorVector[effectorPos - 1] *= -1;
-			effectorVector[effectorPos++] = this.targetCompiler.getParametersIndex(parameterizedEffectorOrdinal, parameters);
+			++effectorPos;
 		}
-		if (effectorPos > 1) {
-			effectorVector[effectorPos++] = 0;
+		if (effectorPos > 0) {
+			effectorVector[effectorPos] = 0;
+			++effectorPos;
 		}
 		if (outT == null || outT.size() == 0 || outT.size() == 1 && outT.get(0).isFinal()) {
 			return new Chain(Arrays.copyOf(effectorVector, effectorPos), 0);
@@ -211,21 +215,14 @@ public final class TransducerCompiler extends Automaton {
 					outS = t.getInS();
 				}
 			}
-			return errors == 0 ? new Chain(Arrays.copyOf(effectorVector, effectorPos), outS) : null;
+			if (errors == 0) {
+				return new Chain(Arrays.copyOf(effectorVector, effectorPos), outS);
+			}
 		} else {
 			for (final Transition t : outT) {
 				super.error(String.format("Ambiguous state %1$d", t.getInS()));
 			}
-			return null;
 		}
-	}
-
-	public byte[] compileParameterTransition(int effectorOrdinal, byte[] bytes) {
-		if (this.targetCompiler.getEffector(effectorOrdinal) instanceof BaseNamedValueEffector) {
-			if ((bytes.length == 1)&& (bytes[0]== Transduction.ANONYMOUS_VALUE_COMPILER[0][0])) {
-				return Transduction.ANONYMOUS_VALUE_RUNTIME[0]; 
-			}
-		}
-		return bytes;
+		return null;
 	}
 }

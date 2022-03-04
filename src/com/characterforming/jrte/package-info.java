@@ -1,10 +1,31 @@
+/*
+ * JRTE is a recursive transduction engine for Java
+ * 
+ * Copyright (C) 2011,2022 Kim Briggs
+ * 
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received copies of the GNU General Public License
+ * and GNU Lesser Public License along with this program.  See 
+ * LICENSE-lgpl-3.0 and LICENSE-gpl-3.0. If not, see 
+ * <http://www.gnu.org/licenses/>.
+ */
+
 /**
  * Main package provides the transduction factory class Jrte and the interfaces that 
  * define the application integration points.
  * <p>
  * <img alt="Jrte" src="{@docRoot}/resources/Jrte.png">
  * <p>
- * Client applications use the {@link com.characterforming.jrte.Jrte#Jrte(File, String)} 
+ * Client applications use the {@link com.characterforming.jrte.Jrte#Jrte(File, ITarget)} 
  * constructor to load a Gearbox compiled from ginr automata. The Gearbox instantiates 
  * a proxy instance of an {@link com.characterforming.jrte.ITarget} implementation 
  * class to verify that the target class and its effectors match the target class 
@@ -21,14 +42,11 @@
  * target effectors to invoke.
  * <p>
  * The {@link com.characterforming.jrte.base} package provides three IInput 
- * implementations. The {@link com.characterforming.jrte.Jrte#input(char[][])}
- * method receives an array of char[] arrays, each containing either a signal name
+ * implementations. The {@link com.characterforming.jrte.Jrte#input(byte[][])}
+ * method receives an array of byte[] arrays, each containing either a signal name
  * or a text sequence. It maps signal names to corresponding signal ordinals and 
  * copies text ordinals from text sequences to produce a single char[] array as
- * the input source. The {@link com.characterforming.jrte.Jrte#input(Reader)}
- * method receives a Reader as the input source, and 
- * {@link com.characterforming.jrte.Jrte#input(InputStream, Charset)} receives a 
- * raw input stream and decodes it to text using a specified Charset.
+ * the input source. 
  * <p>
  * For example, it is sometimes useful to provide an initial nil signal to a 
  * transduction to provide a starting transition that sets up the transduction:
@@ -51,7 +69,7 @@
  * To continue the example above:
  * <pre class="code">
  * 
- * ITarget target = new BaseTarget();
+ * ITarget target = new BaseTarget(false);
  * ITransduction transduction = jrte.bind(target);
  * transduction.start("HelloWorld");
  * transduction.input(inputs);
