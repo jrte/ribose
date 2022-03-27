@@ -75,6 +75,16 @@
 	<target name="init">
 		<tstamp/>
 		<echo message="${ant.version}" />
+		<echo>java -version</echo>
+		<java fork="true" dir ="." classname="com.characterforming.jrte.test.FileRunner" classpathref="test.classpath">
+				<jvmarg line="-version"/>
+		</java>		
+		<echo>lscpu</echo>
+		<exec failonerror="false" executable="lscpu" output="/tmp/lscpu.out"/>
+		<exec failonerror="false" executable="grep" input="/tmp/lscpu.out">
+			<arg line="-v '^\(Vulnerability\|Flags\)'"/>
+		</exec>
+		<delete failonerror="false" file="/tmp/lscpu.out"/>
 		<mkdir dir="${build.java.classes}"/>
 		<mkdir dir="${build.java.test}"/>
 		<mkdir dir="${build.patterns.automata}"/>
@@ -176,7 +186,7 @@
 
 	<target name="compile-test" depends="package-java">
 		<javac fork="true" includeantruntime="false" srcdir="${java.test.dir}" destdir="${build.java.test}" release="11"
-		 debug="true" debuglevel="lines,vars,source">
+			debug="true" debuglevel="lines,vars,source">
 			<classpath refid="test.classpath"/>
 		</javac>
 	</target>
@@ -196,10 +206,6 @@
 	</target>
 	
 	<target name="test" depends="package-java,package-test,package-patterns">
-		<echo>java -version</echo>
-		<java fork="true" dir ="." classname="com.characterforming.jrte.test.FileRunner" classpathref="test.classpath">
-				<jvmarg line="-version"/>
-		</java>		
 		<echo>TestRunner (benchmarking simple fsts driving base transduction effectors):</echo>
 		<java fork="true" dir ="." classname="com.characterforming.jrte.test.TestRunner" classpathref="test.classpath" failonerror="true">
 				<jvmarg line="-ea -Djrte.out.enabled=false -Dregex.out.enabled=false"/>
