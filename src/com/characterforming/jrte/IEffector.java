@@ -87,6 +87,18 @@ public interface IEffector<T extends ITarget> {
 	public Bytes getName();
 
 	/**
+	 * Receive an IOutput view of transduction named values. Named values are
+	 * arrays of bytes extracted from transduction input. The transduction 
+	 * will typically call an effector method to indicate when the value is
+	 * available and the effector will use IOutput methods to extract the 
+	 * value and assimilate the value into the target.
+	 * 
+	 * @param output A object that provides a view or transduction runtime values
+	 */
+	public void setOutput(IOutput output);
+
+
+	/**
 	 * This method is invoked at runtime when triggered by an input transition.
 	 * 
 	 * @return User-defined effectors should return 0

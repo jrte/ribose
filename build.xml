@@ -21,7 +21,7 @@
 
 <project name="jrte" default="all-clean" basedir="." xmlns:if="ant:if" xmlns:unless="ant:unless">
 	<property name="jrte.version" value="0.0.0"/>
-	<property name="jrte.version.revision" value="${jrte.version}.HEAD"/>
+	<property name="jrte.version.revision" value="HEAD"/>
 	<property name="java.source.dir" value="src"/>
 	<property name="pattern.source.dir" value="test-patterns"/>
 	<property name="java.test.dir" value="test"/>
@@ -86,8 +86,8 @@
 	</target>
 		
 	<target name="compile-java" depends="init">
-		<!--  debug="true" debuglevel="lines,vars,source" -->
-		<javac fork="true" includeantruntime="false" srcdir="${java.source.dir}" destdir="${build.java.classes}" release="11">
+		<javac fork="true" includeantruntime="false" srcdir="${java.source.dir}" destdir="${build.java.classes}" release="11"
+			 debug="true" debuglevel="lines,vars,source">
 			<classpath refid="java.classpath"/>
 			<compilerarg value="-Xlint"/>
 		</javac>
@@ -175,7 +175,8 @@
 	</target>
 
 	<target name="compile-test" depends="package-java">
-		<javac fork="true" includeantruntime="false" srcdir="${java.test.dir}" destdir="${build.java.test}">
+		<javac fork="true" includeantruntime="false" srcdir="${java.test.dir}" destdir="${build.java.test}" release="11"
+		 debug="true" debuglevel="lines,vars,source">
 			<classpath refid="test.classpath"/>
 		</javac>
 	</target>
@@ -366,7 +367,7 @@
 		<jar basedir="doc" destfile="${jars.dir}/${ant.project.name}-${jrte.version.revision}-javadoc.jar"/>
 	</target>
 
-	<target name="tar-source" depends="package-java,package-patterns,package-test" unless:set="ginr.fail" >
+	<target name="tar-source" depends="clean">
 		<delete quiet="true" file="jrte-source.tar.gz"/>
 		<tar destfile="jrte-source.tar.gz" compression="gzip">
 		<fileset dir=".">

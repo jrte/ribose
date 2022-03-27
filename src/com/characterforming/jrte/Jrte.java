@@ -158,7 +158,7 @@ public final class Jrte {
 			throw new TargetNotFoundException(String.format("Cannot bind instance of target class '%1$s', can only bind to gearbox target class '%2$s'", target.getClass().getName(), this.gearbox.getTarget().getName()));
 		}
 		Transduction trex = this.gearbox.bindTransduction(target);
-		assert trex != null && trex.status() != ITransduction.Status.NULL;
+		assert trex != null;
 		return trex;
 	}
 

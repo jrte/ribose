@@ -146,28 +146,4 @@ public interface ITransduction extends ITarget {
 	 * @see #status()
 	 */
 	public Status stop() throws InputException;
-
-	/**
-	 * Get the numeric index for a defined named value
-	 * 
-	 * @param valueName The name of the value (UTF-8 bytes)
-	 * @return The numeric index of the value
-	 * @throws TargetBindingException On error
-	 */
-	public int getValueOrdinal(Bytes valueName) throws TargetBindingException;
-
-	/**
-	 * Get a copy of the current value for a named value
-	 * 
-	 * @param valueOrdinal The numeric index of the named value to get
-	 * @return The named value wrapped in an {@link INamedValue} instance
-	 */
-	public INamedValue getNamedValue(int valueOrdinal);
-
-	/**
-	 * Get a copy of the current selected value
-	 * 
-	 * @return The selected value wrapped in an {@link INamedValue} instance
-	 */
-	public INamedValue getSelectedValue();
 }

@@ -22,6 +22,7 @@ import java.util.logging.SimpleFormatter;
 import com.characterforming.jrte.CompilationException;
 import com.characterforming.jrte.GearboxException;
 import com.characterforming.jrte.IEffector;
+import com.characterforming.jrte.IOutput;
 import com.characterforming.jrte.IParameterizedEffector;
 import com.characterforming.jrte.ITarget;
 import com.characterforming.jrte.TargetBindingException;
@@ -412,7 +413,7 @@ public final class Gearbox  implements AutoCloseable {
 		return parametersIndex;
 	}
 
-	public void bindParameters(IEffector<?>[] runtimeEffectors) {
+	public void bindParameters(IOutput output, IEffector<?>[] runtimeEffectors) {
 		assert runtimeEffectors.length == this.modelEffectors.length;
 		for (int i = 0; i < this.modelEffectors.length; i++) {
 			if (this.modelEffectors[i] instanceof IParameterizedEffector<?,?>) {
@@ -423,6 +424,7 @@ public final class Gearbox  implements AutoCloseable {
 				for (int j = 0; j < parameterCount; j++) {
 					boundEffector.setParameter(j, modelEffector.getParameter(j));
 				}
+				boundEffector.setOutput(output);
 			}
 		}
 	}
@@ -931,7 +933,7 @@ public final class Gearbox  implements AutoCloseable {
 		System.arraycopy(trexFx, 0, boundFx, 0, trexFx.length);
 		System.arraycopy(targetFx, 0, boundFx, trexFx.length, targetFx.length);
 		trex.setNamedValueOrdinalMap(this.getNamedValueOrdinalMap());
-		this.bindParameters(boundFx);
+		this.bindParameters(trex, boundFx);
 		trex.setEffectors(boundFx);
 		return trex;
 	}

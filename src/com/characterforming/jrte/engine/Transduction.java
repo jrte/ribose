@@ -36,6 +36,7 @@ import com.characterforming.jrte.GearboxException;
 import com.characterforming.jrte.IEffector;
 import com.characterforming.jrte.IInput;
 import com.characterforming.jrte.INamedValue;
+import com.characterforming.jrte.IOutput;
 import com.characterforming.jrte.IParameterizedEffector;
 import com.characterforming.jrte.ITarget;
 import com.characterforming.jrte.ITransduction;
@@ -63,7 +64,7 @@ import com.characterforming.jrte.base.Bytes;
  * 
  * @author kb
  */
-public final class Transduction implements ITransduction, ITarget {
+public final class Transduction implements ITransduction, ITarget, IOutput {
 	private static final boolean isOutEnabled = System.getProperty("jrte.out.enabled", "true").equals("true");
 	private final static Logger logger = Logger.getLogger(Base.RTE_LOGGER_NAME);
 
@@ -512,20 +513,38 @@ T:		while (this.status() == ITransduction.Status.RUNNABLE) {
 
 	/*
 	 * (non-Javadoc)
-	 * @see com.characterforming.jrte.engine.ITransduction#getValueNameIndex()
+	 * @see com.characterforming.jrte.engine.IOutput#getValueOrdinal(Bytes)
 	 */
 	@Override
-	public int getValueOrdinal(final Bytes valueName) throws TargetBindingException {
-		return this.namedValueOrdinalMap.get(valueName);
+	public int getValueOrdinal(final Bytes valueName) {
+		assert this.namedValueHandles != null;
+		if (this.namedValueHandles != null
+		&& this.namedValueOrdinalMap.containsKey(valueName)) {
+			return this.namedValueOrdinalMap.get(valueName);
+		}
+		return -1;
 	}
 
 	/*
 	 * (non-Javadoc)
-	 * @see com.characterforming.jrte.engine.ITransduction#getNamedValue()
+	 * @see com.characterforming.jrte.engine.IOutput#getSelectedOrdinal()
+	 */
+	@Override
+	public int getSelectedOrdinal() {
+		assert this.selected != null;
+		return (this.selected != null) ? this.selected.getOrdinal() : -1;
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * @see com.characterforming.jrte.engine.IOutput#getNamedValue(int)
 	 */
 	@Override
 	public INamedValue getNamedValue(final int nameOrdinal) {
-		if (nameOrdinal < this.namedValueHandles.length && this.namedValueHandles[nameOrdinal] != null) {
+		assert this.namedValueHandles != null;
+		if (this.namedValueHandles != null
+		&& nameOrdinal < this.namedValueHandles.length
+		&& this.namedValueHandles[nameOrdinal] != null) {
 			return new NamedValue(this.namedValueHandles[nameOrdinal]);
 		} else {
 			return null;
@@ -534,11 +553,12 @@ T:		while (this.status() == ITransduction.Status.RUNNABLE) {
 
 	/*
 	 * (non-Javadoc)
-	 * @see com.characterforming.jrte.engine.ITransduction#getSelectedValue()
+	 * @see com.characterforming.jrte.engine.IOutput#getSelectedValue()
 	 */
 	@Override
 	public INamedValue getSelectedValue() {
-		return new NamedValue(this.selected);
+		assert this.selected != null;
+		return (this.selected != null) ? new NamedValue(this.selected) : null;
 	}
 
 	/*

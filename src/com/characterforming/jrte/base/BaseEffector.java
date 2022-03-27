@@ -23,6 +23,7 @@ package com.characterforming.jrte.base;
 
 import com.characterforming.jrte.EffectorException;
 import com.characterforming.jrte.IEffector;
+import com.characterforming.jrte.IOutput;
 import com.characterforming.jrte.ITarget;
 
 /**
@@ -34,12 +35,24 @@ import com.characterforming.jrte.ITarget;
  */
 public abstract class BaseEffector<T extends ITarget> implements IEffector<T> {
 	private final Bytes name;
+	protected IOutput output;
 	protected  T target;
 
 	public BaseEffector(final T target, final Bytes name) {
 		this.target = target;
+		this.output = null;
 		this.name = name;
 	}
+	
+	/*
+	 * (non-Javadoc)
+	 * @see com.characterforming.jrte.base.IEffector#getName()
+	 */
+	@Override
+	public void setOutput(IOutput output) {
+		this.output = output;
+	}
+
 
 	/*
 	 * (non-Javadoc)
