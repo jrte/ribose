@@ -23,7 +23,7 @@ public final class InputStack {
 	private void stackcheck(final int itemCount) {
 		this.tos += itemCount;
 		if (this.tos >= this.stack.length) {
-			this.stack = Arrays.copyOf(this.stack, this.tos > 2 ? (this.tos * 3) >> 1 : 4);
+			this.stack = Arrays.copyOf(this.stack, Math.max((this.tos * 5) >> 2, this.tos << 1));
 		}
 	}
 	

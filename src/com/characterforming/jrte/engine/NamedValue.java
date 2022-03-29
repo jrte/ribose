@@ -46,7 +46,11 @@ class NamedValue implements INamedValue {
 	/**
 	 * Constructor
 	 */
-	NamedValue(final Bytes name, final int ordinal, final byte[] value, final int length) {
+	NamedValue(Bytes name, int ordinal, byte[] value, int length) {
+		if (value == null) {
+			value = new byte[Math.min(INITIAL_NAMED_VALUE_BYTES, length)];
+		}
+		assert value.length >= length;
 		this.name = name;
 		this.ordinal = ordinal;
 		this.value = value;
@@ -58,7 +62,7 @@ class NamedValue implements INamedValue {
 		this.ordinal = namedValue.ordinal;
 		this.length = namedValue.length;
 		this.value = new byte[this.length];
-		System.arraycopy(namedValue.value, 0, this.value, 0, this.length);
+		System.arraycopy(namedValue.value, 0, this.value, 0, namedValue.length);
 	}
 
 	/*
@@ -101,19 +105,22 @@ class NamedValue implements INamedValue {
 		return chars;
 	}
 
-	void setLength(int length) {
-		assert length <= this.value.length;
-		this.length = length;
+	void clear() {
+		this.length = 0;
+assert this.value.length <= 256 && this.length <= this.value.length;
 	}
 
 	byte[] getValue() {
 		return this.value;
 	}
 
-	byte[] growValue(int minIncrement) {
-		int increment = ((this.length * 5) >> 2) - this.length;
-		this.value = Arrays.copyOf(this.value, Math.max(minIncrement, increment));
-		return this.value;
+	void growValue(int size) {
+		if ((this.length + size) > this.value.length) {
+			byte v[] = new byte[((this.length + size) * 5) >> 2];
+			System.arraycopy(this.value, 0, v, 0, this.length);
+			this.value = v;
+		}
+assert this.value.length <= 256 && this.length <= this.value.length;
 	}
 
 	void append(byte next) {
@@ -121,19 +128,26 @@ class NamedValue implements INamedValue {
 		if (this.length >= this.value.length) {
 			this.value = Arrays.copyOf(this.value, (this.length * 5) >> 2);
 		}
+		growValue(1);
 		this.value[this.length] = next;
-		++this.length;
+		this.length += 1;
+assert this.value.length <= 256 && this.length <= this.value.length;
 	}
 
 	void append(byte next[]) {
-		if (this.value == null) {
-			this.value = new byte[Math.max(next.length, INITIAL_NAMED_VALUE_BYTES)];
-			this.length = 0;
-		} else if ((this.length + next.length) > this.value.length) {
-			this.value = Arrays.copyOf(this.value, ((this.length + next.length) * 5) >> 2);
-		}
+		assert this.value != null;
+		growValue(next.length);
 		System.arraycopy(next, 0, this.value, this.length, next.length);
 		this.length += next.length;
+assert this.value.length <= 256 && this.length <= this.value.length;
+	}
+
+	public void append(NamedValue next) {
+		assert this.value != null;
+		growValue(next.length);
+		System.arraycopy(next.value, 0, this.value, this.length, next.length);
+		this.length += next.length;
+assert this.value.length <= 256 && this.length <= this.value.length;
 	}
 
 	/*

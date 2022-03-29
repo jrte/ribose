@@ -21,7 +21,7 @@ final class Chain {
 	}
 
 	public boolean isScalar() {
-		return this.effectVector.length == 1;
+		return this.effectVector.length == 2 && this.effectVector[1] == 0;
 	}
 
 	public boolean isEmpty() {

@@ -12,6 +12,7 @@ import java.util.logging.SimpleFormatter;
 import com.characterforming.jrte.ByteInput;
 import com.characterforming.jrte.IInput;
 import com.characterforming.jrte.ITransduction;
+import com.characterforming.jrte.ITransduction.Status;
 import com.characterforming.jrte.Jrte;
 import com.characterforming.jrte.RteException;
 import com.characterforming.jrte.base.Base;
@@ -53,34 +54,35 @@ public class TestRunner {
 		for (int i = 0; i < achars.length; i++) {
 			achars[i] = (byte)((i % 10 != 9) ? 'a' : 'b');
 		}
-		BaseTarget target = new BaseTarget();
+		String[] tests = new String[] {
+			"NilSpeedTest", "PasteSpeedTest", "NilPauseTest", "PastePauseTest", "PasteCutTest", "SelectPasteTest", "PasteCountTest", "CounterTest", "StackTest"
+		};
+		final BaseTarget target = new BaseTarget();
 		final Jrte jrte = new Jrte(new File(gearboxPath), target);
 		final ITransduction trex = jrte.transduction(target);
-		final ByteInput nilinput = (ByteInput) jrte.input(new byte[][] {Base.encodeReferenceOrdinal(Base.TYPE_REFERENCE_SIGNAL, Base.Signal.nil.signal()), achars});
-		ByteInput[] inputs = new ByteInput[] {
-			nilinput, nilinput, nilinput, nilinput, nilinput, nilinput, nilinput, nilinput, nilinput
-		};
-		String[] tests = new String[] {
-				"NilSpeedTest", "PasteSpeedTest", "NilPauseTest", "PastePauseTest", "PasteCutTest", "SelectPasteTest", "CounterTest", "PasteCountTest", "StackTest"
-		};
-		int n = 0;
+		final ByteInput nilinput = (ByteInput) jrte.input(new byte[][] {
+			Base.encodeReferenceOrdinal(Base.TYPE_REFERENCE_SIGNAL, Base.Signal.nil.signal()), 
+			achars});
 		for (final String test : tests) {
 			long t1 = 0, t2 = 0;
 			System.out.format("%20s: ", test);
 			for (int i = 0; i < 20; i++) {
-				trex.input(new IInput[] { inputs[n] });
+				assert !nilinput.isEmpty();
+				assert trex.status() == Status.STOPPED;
+				trex.input(new IInput[] { nilinput });
 				trex.start(Bytes.encode(test));
+				assert trex.status() == Status.RUNNABLE;
 				t1 = System.currentTimeMillis();
 				do {
 					trex.run();
 				}
-				while (trex.status().equals(ITransduction.Status.RUNNABLE));
+				while (trex.status().equals(Status.RUNNABLE));
 				t2 = System.currentTimeMillis() - t1;
 				trex.stop();
+				assert trex.status() == Status.STOPPED;
 				System.out.print(String.format("%4d", t2));
 			}
 			System.out.println(t2 > 0 ? String.format(" : %,12d bytes/s (%,d)", (long)10000000*1000 / t2, achars.length) : "");
-			n++;
 		}
 	}
 

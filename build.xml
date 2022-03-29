@@ -60,7 +60,6 @@
 		<delete dir="${build.java}" quiet="true"/>
 		<delete dir="${build.java.test}" quiet="true"/>
 		<delete dir="${javadoc.dir}" quiet="true"/>
-		<delete dir="${build.test}" quiet="true"/>
 		<delete failonerror="false">
 		  <fileset dir="${jars.dir}" includes="*.jar"/>
 		</delete>
@@ -70,21 +69,17 @@
 		<delete dir="${build.patterns}" quiet="true"/>
 	</target>
 
-	<target name="clean" depends="clean-java,clean-patterns"/>
+	<target name="clean-test">
+		<delete failonerror="false">
+		  <fileset dir="${build.test}" includes="*.out"/>
+		</delete>
+	</target>
+
+	<target name="clean" depends="clean-java,clean-patterns,clean-test"/>
 
 	<target name="init">
 		<tstamp/>
 		<echo message="${ant.version}" />
-		<echo>java -version</echo>
-		<java fork="true" dir ="." classname="com.characterforming.jrte.test.FileRunner" classpathref="test.classpath">
-				<jvmarg line="-version"/>
-		</java>		
-		<echo>lscpu</echo>
-		<exec failonerror="false" executable="lscpu" output="/tmp/lscpu.out"/>
-		<exec failonerror="false" executable="grep" input="/tmp/lscpu.out">
-			<arg line="-v '^\(Vulnerability\|Flags\)'"/>
-		</exec>
-		<delete failonerror="false" file="/tmp/lscpu.out"/>
 		<mkdir dir="${build.java.classes}"/>
 		<mkdir dir="${build.java.test}"/>
 		<mkdir dir="${build.patterns.automata}"/>
@@ -205,7 +200,17 @@
 		<jar basedir="${java.source.dir}" destfile="${jars.dir}/${ant.project.name}-${jrte.version.revision}-source.jar"/>
 	</target>
 	
-	<target name="test" depends="package-java,package-test,package-patterns">
+	<target name="test-ci" depends="clean-test,package-java,package-test,package-patterns">
+		<echo>Fibonacci:</echo>
+		<java fork="true" dir ="." classname="com.characterforming.jrte.Jrte" classpathref="jrte.classpath" failonerror="true">
+			<jvmarg line="-ea -Djrte.out.enabled=true"/>
+			<arg line="--nil Fibonacci test-patterns/inputs/fib.txt ${build.patterns}/Jrte.gears"/>
+		</java>
+		<echo>DateExtractor:</echo>
+		<java fork="true" dir ="." classname="com.characterforming.jrte.Jrte" classpathref="jrte.classpath" failonerror="true">
+			<jvmarg line="-ea -Djrte.out.enabled=true"/>
+			<arg line="--nil DateExtractor test-patterns/inputs/dates.txt ${build.patterns}/Jrte.gears"/>
+		</java>
 		<echo>TestRunner (benchmarking simple fsts driving base transduction effectors):</echo>
 		<java fork="true" dir ="." classname="com.characterforming.jrte.test.TestRunner" classpathref="test.classpath" failonerror="true">
 				<jvmarg line="-ea -Djrte.out.enabled=false -Dregex.out.enabled=false"/>
@@ -290,9 +295,8 @@
 				<filesmatch file1="${build.test}/Sintervals.jrte.out" file2="${build.test}/Tintervals.jrte.out"/>
 			</and>
 		</condition>
-		<fail unless="intervals.match">Not equivalent:&#xA;   ${build.test}/Tintervals.jrte.out&#xA;   ${build.test}/Sintervals.jrte.out&#xA;   ${build.test}/Tintervals.regex.out</fail>
-		<echo>Equivalent:&#xA;   ${build.test}/Tintervals.jrte.out&#xA;   ${build.test}/Sintervals.jrte.out&#xA;   ${build.test}/Tintervals.regex.out</echo>
-
+		<fail unless="intervals.match" message="^^^Not equivalent"/>
+		<echo message="^^^ Equivalent"/>
 		<delete quiet="true" file="${build.test}/LinuxKernel.jrte.out"/>
 		<delete quiet="true" file="${build.test}/LinuxKernelLoose.jrte.out"/>
 		<delete quiet="true" file="${build.test}/LinuxKernelStrict.jrte.out"/>
@@ -323,22 +327,39 @@
 				<filesmatch file1="${build.test}/LinuxKernelLoose.jrte.out" file2="${build.test}/LinuxKernelStrict.jrte.out"/>
 			</and>
 		</condition>
-		<fail unless="kernel.match">Not equivalent:&#xA;   ${build.test}/LinuxKernel.jrte.out&#xA;   ${build.test}/LinuxKernelLoose.jrte.out&#xA;   ${build.test}/LinuxKernelStrict.jrte.out</fail>
-		<echo>Equivalent:&#xA;   ${build.test}/LinuxKernel.jrte.out&#xA;   ${build.test}/LinuxKernelLoose.jrte.out&#xA;   ${build.test}/LinuxKernelStrict.jrte.out</echo>
-<!--		
-		<echo>Fibonacci:</echo>
-		<java fork="true" dir ="." classname="com.characterforming.jrte.Jrte" classpathref="jrte.classpath" failonerror="true">
-			<jvmarg line="-ea -Djrte.out.enabled=true"/>
-			<arg line="\-\-nil Fibonacci test-patterns/inputs/fib.txt ${build.patterns}/Jrte.gears"/>
-		</java>
-		<echo>DateExtractor:</echo>
-		<java fork="true" dir ="." classname="com.characterforming.jrte.Jrte" classpathref="jrte.classpath" failonerror="true">
-			<jvmarg line="-ea -Djrte.out.enabled=true"/>
-			<arg line="\-\-nil DateExtractor test-patterns/inputs/dates.txt ${build.patterns}/Jrte.gears"/>
-		</java>
--->
+		<fail unless="kernel.match" message="^^^ Not equivalent"/>
+		<echo message="^^^ Equivalent"/>
+		<echo>java -version</echo>
+		<java fork="true" dir ="." classname="com.characterforming.jrte.Jrte" classpathref="test.classpath">
+				<jvmarg line="-version"/>
+		</java>		
+		<echo>lscpu</echo>
+		<exec failonerror="false" executable="lscpu" output="/tmp/lscpu.out"/>
+		<exec failonerror="false" executable="grep" input="/tmp/lscpu.out">
+			<arg line="-v '^\(Vulnerability\|Flags\)'"/>
+		</exec>
+		<delete failonerror="false" file="/tmp/lscpu.out"/>
 	</target>
 	
+	<target name="test-gc" depends="clean-test,package-java,package-test,package-patterns">
+		<echo>JVM Heap (see memory leakage in simple fsts driving base transduction effectors):</echo>
+		<java fork="true" dir ="." classname="com.characterforming.jrte.test.TestRunner" classpathref="test.classpath" failonerror="true">
+				<jvmarg line="-ea -Xms12m -Xlog:gc=trace:file=${build.test}/TestRunner-gc.out -Djrte.out.enabled=false -Dregex.out.enabled=false"/>
+				<arg line="${build.patterns}/Jrte.gears"/>
+		</java>
+		<echo message="^^^ TestRunner *: -Xms12m -Xlog:gc=trace:file=${build.test}/TestRunner-gc.out"/>
+		<java fork="true" dir ="." classname="com.characterforming.jrte.Jrte" classpathref="jrte.classpath" failonerror="true">
+				<jvmarg line="-ea -Xms22m -Xlog:gc=trace:file=${build.test}/LinuxKernel-gc.out -Djrte.out.enabled=false"/>
+				<arg line="--nil LinuxKernel test-patterns/inputs/kern-10.log ${build.patterns}/Jrte.gears"/>
+		</java>
+		<echo message="^^^ LinuxKernel *: -Xms22m -Xlog:gc=trace:file=${build.test}/LinuxKernel-gc.out"/>
+		<java fork="true" dir ="." classname="com.characterforming.jrte.Jrte" classpathref="jrte.classpath" failonerror="true">
+				<jvmarg line="-ea -Xms10m -Xlog:gc=trace:file=${build.test}/Tintervals-gc.out -Djrte.out.enabled=false"/>
+				<arg line="--nil Tintervals test-patterns/inputs/verbosegc.vgc ${build.patterns}/Jrte.gears"/>
+		</java>
+		<echo message="^^^ Tintervals *: -Xms10m -Xlog:gc=trace:file=${build.test}/Tintervals-gc.out"/>
+	</target>
+		
 	 <target name="check-package-javadoc">
 		 <uptodate targetfile="${jars.dir}/${ant.project.name}-${jrte.version.revision}-javadoc.jar" property="javadoc-packaged">
 			 <srcfiles dir="${build.java.classes}" includes="**/*.class"/>
@@ -389,7 +410,7 @@
 		<tar basedir="." destfile="jrte.project.tar.gz" compression="gzip" defaultexcludes="false" excludes="local,build,*.log*,*.tar.gz"/>
 	</target>
 
-	<target name="all-clean" depends="clean,test" description="Full build for java and patterns"/>
+	<target name="all-clean" depends="clean,test-ci" description="Full build for java and patterns"/>
 	
 	<target name="defaultexcludes">
 	<defaultexcludes echo="true"/>

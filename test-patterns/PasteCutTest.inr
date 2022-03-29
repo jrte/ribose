@@ -1,2 +1,2 @@
-PasteCutTest = nil? ((a, paste)* (b, select[`~buffer`] cut select))* (`eos`, clear[`~*`] stop);
+PasteCutTest = nil? ((a, paste)* (b, select[`~buffer`] clear cut select))* (`eos`, clear[`~*`] stop);
 PasteCutTest :save `PasteCutTest.dfa`;

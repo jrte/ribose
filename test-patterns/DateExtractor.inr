@@ -25,8 +25,8 @@ numericDate = (
 zday = (
 	(digit, paste)
 	(
-		(digit, paste select[`~dz`] cut in[`~eol`])
-	|	(white, select[`~dz`] paste[`#0`] cut in[`~eol`])
+		(digit, paste select[`~dz`] cut in[`!eol`])
+	|	(white, select[`~dz`] paste[`#0`] cut in[`!eol`])
 	)
 );
 
@@ -72,34 +72,16 @@ conjoint = (a0 & a1) | (a0 & a2) | (a1 & a2);
 
 '*** DateExtractor tape alphabets must be disjoint' conjoint:enum;
 
-signul = {
-	((nul|_mdy), _mdy),
-	((nul|_dmy), _dmy),
-	((nul|_ymd), _ymd),
-	((nul|_ydm), _ydm),
-	((nul|eol), eol)
+SignalOrNul = {
+	({nul, _mdy}, _mdy),
+	({nul, _dmy}, _dmy),
+	({nul, _ymd}, _ymd),
+	({nul, _ydm}, _ydm),
+	({nul,  eol},  eol)
 };
 
-nullify = AnyOrNul | signul;
+nullify = AnyOrNul | SignalOrNul;
 prefix = a0 & (date$0:pref);
-map = {
-	(NL, nl)
-	(SLASH, '/')
-	(`#0`, '0')
-	(`#01`, '01')
-	(`#02`, '02')
-	(`#03`, '03')
-	(`#04`, '04')
-	(`#05`, '05')
-	(`#06`, '06')
-	(`#07`, '07')
-	(`#08`, '08')
-	(`#09`, '09')
-	(`#10`, '10')
-	(`#11`, '11')
-	(`#12`, '12')
-};
-
 notextract = (
 	(
 		((nullify* @ extract)$(0 1 2))
@@ -110,7 +92,27 @@ notextract = (
 	(a0 - prefix)*
 );
 
-DateExtractor = nil? (extract* notextract*)* @ (((a2 - (map$0))$(0,0))* map*)*;
+map = {
+	(NL, ` `),
+	(SLASH, `/`),
+	(`#0`, `0`),
+	(`#01`, `01`),
+	(`#02`, `02`),
+	(`#03`, `03`),
+	(`#04`, `04`),
+	(`#05`, `05`),
+	(`#06`, `06`),
+	(`#07`, `07`),
+	(`#08`, `08`),
+	(`#09`, `09`),
+	(`#10`, `10`),
+	(`#11`, `11`),
+	(`#12`, `12`)
+};
+
+identity = (a2 - (map$0))$(0,0);
+
+DateExtractor = nil? (extract* notextract*)* @ (identity* map*)*;
 
 DateExtractor:dfamin:pr `DateExtractor.pr`;
 DateExtractor:dfamin:save `DateExtractor.dfa`;
