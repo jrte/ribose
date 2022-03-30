@@ -36,7 +36,7 @@ import com.characterforming.jrte.TargetBindingException;
  * @param <T> The effector target type
  * @param <P> The effector parameter type, constructible from byte[][] (eg new
  *           P(byte[][]))
- * @author kb
+ * @author Kim Briggs
  */
 public abstract class BaseParameterizedEffector<T extends ITarget, P> extends BaseEffector<T> implements IParameterizedEffector<T, P> {
 	protected P[] parameters = null;

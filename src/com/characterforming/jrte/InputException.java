@@ -24,7 +24,7 @@ package com.characterforming.jrte;
 /**
  * Thrown when there is a problem with the input
  * 
- * @author kb
+ * @author Kim Briggs
  */
 public class InputException extends RteException {
 	private static final long serialVersionUID = 1L;

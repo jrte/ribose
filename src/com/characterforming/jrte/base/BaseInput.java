@@ -32,7 +32,7 @@ import com.characterforming.jrte.InputException;
  * Subclasses must implement {@link #get()} to return the next
  * sequential block of input.
  * 
- * @author kb
+ * @author Kim Briggs
  */
 public abstract class BaseInput implements IInput {
 	private ArrayList<ByteBuffer> marked;

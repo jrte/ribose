@@ -10,7 +10,7 @@ import com.characterforming.jrte.base.BaseParameterizedEffector;
 import com.characterforming.jrte.base.Bytes;
 
 /**
- * @author kb
+ * @author Kim Briggs
  */
 public abstract class BaseInputOutputEffector extends BaseParameterizedEffector<Transduction, byte[][]> {
 	protected BaseInputOutputEffector(Transduction transduction, Bytes name) {

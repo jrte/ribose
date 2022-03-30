@@ -8,7 +8,7 @@ import java.util.Arrays;
 /**
  * Wraps an array of BytesArray
  * 
- * @author kb
+ * @author Kim Briggs
  */
 public final class BytesArrays {
 	private final BytesArray[] bytesArrays;

@@ -24,7 +24,7 @@ package com.characterforming.jrte;
 /**
  * Thrown by the gearbox compiler when an error is found during gearbox compilation
  * 
- * @author kb
+ * @author Kim Briggs
  */
 public class CompilationException extends Exception {
 	private static final long serialVersionUID = 1L;

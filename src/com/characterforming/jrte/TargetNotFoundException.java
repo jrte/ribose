@@ -24,7 +24,7 @@ package com.characterforming.jrte;
 /**
  * Thrown when the target class cannot be instantitated using a default constructor
  * 
- * @author kb
+ * @author Kim Briggs
  */
 public class TargetNotFoundException extends GearboxException {
 	private static final long serialVersionUID = 1L;

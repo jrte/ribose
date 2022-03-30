@@ -31,7 +31,7 @@ import com.characterforming.jrte.ITarget;
  * implemented by subclasses.
  * 
  * @param <T> The effector target type
- * @author kb
+ * @author Kim Briggs
  */
 public abstract class BaseEffector<T extends ITarget> implements IEffector<T> {
 	private final Bytes name;

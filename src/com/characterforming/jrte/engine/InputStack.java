@@ -9,7 +9,7 @@ import com.characterforming.jrte.IInput;
 import com.characterforming.jrte.InputException;
 
 /**
- * @author kb
+ * @author Kim Briggs
  */
 public final class InputStack {
 	private IInput[] stack;

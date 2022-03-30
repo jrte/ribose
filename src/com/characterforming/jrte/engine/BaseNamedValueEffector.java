@@ -16,7 +16,7 @@ import com.characterforming.jrte.base.Bytes;
  * invoke(int) methods
  * must be implemented by subclasses.
  * 
- * @author kb
+ * @author Kim Briggs
  */
 public abstract class BaseNamedValueEffector extends BaseParameterizedEffector<Transduction, Integer> {
 	protected BaseNamedValueEffector(final Transduction target, final Bytes name) {

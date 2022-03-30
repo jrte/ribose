@@ -30,7 +30,7 @@ import java.nio.ByteBuffer;
  * client application calls setPosition(position) with position = limit, indicating
  * that the client has exhausted the previous result and needs a new char[].
  * 
- * @author kb
+ * @author Kim Briggs
  */
 public interface IInput {
 	/**

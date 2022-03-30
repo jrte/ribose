@@ -43,7 +43,7 @@ package com.characterforming.jrte;
  * inputs. The target effectors update the target state when the transduction is
  * run.
  * 
- * @author kb
+ * @author Kim Briggs
  */
 public interface ITarget {
 	/**

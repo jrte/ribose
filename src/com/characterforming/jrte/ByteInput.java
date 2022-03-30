@@ -28,7 +28,7 @@ import com.characterforming.jrte.base.BaseInput;
 /**
  * Wraps an input array that contains mixed text and signal ordinals.
  * 
- * @author kb
+ * @author Kim Briggs
  */
 public final class ByteInput extends BaseInput {
 	private ByteBuffer[] input;
@@ -51,11 +51,22 @@ public final class ByteInput extends BaseInput {
 	 * @param inputs Array of @code byte[]} to input in sequence
 	 * @throws InputException On error
 	 */
-	public ByteInput(final byte[][] inputs) throws InputException {
+	public ByteInput(final byte[][] inputs) {
 		this.input = new ByteBuffer[inputs.length];
 		for (int i = 0; i < this.input.length; i++) {
 			this.input[i] = ByteBuffer.wrap(inputs[i]);
 		}
+		this.buffer = 0;
+	}
+
+	/**
+	 * Constructor 
+	 * 
+	 * @param input Array of {@code byte[]} to input in sequence
+	 * @throws InputException On error
+	 */
+	public ByteInput(final byte[] input) throws InputException {
+		this.input[0] = ByteBuffer.wrap(input);
 		this.buffer = 0;
 	}
 

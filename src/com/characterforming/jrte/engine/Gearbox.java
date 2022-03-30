@@ -31,9 +31,9 @@ import com.characterforming.jrte.base.Base;
 import com.characterforming.jrte.base.Bytes;
 
 /**
- * @author kb
+ * @author Kim Briggs
  */
-public final class Gearbox  implements AutoCloseable {
+public final class Gearbox implements AutoCloseable {
 	private final static Logger rteLogger = Logger.getLogger(Base.RTE_LOGGER_NAME);
 	private final static Logger rtcLogger = Logger.getLogger(Base.RTC_LOGGER_NAME);
 
@@ -49,8 +49,8 @@ public final class Gearbox  implements AutoCloseable {
 	private ArrayList<HashMap<BytesArray, Integer>> effectorParametersMaps;
 	private String ioMode;
 
+	private volatile Transducer transducerObjectIndex[];
 	private Bytes transducerNameIndex[];
-	private Transducer transducerObjectIndex[];
 	private long transducerOffsetIndex[];
 
 	private boolean deleteOnClose;
@@ -400,8 +400,10 @@ public final class Gearbox  implements AutoCloseable {
 		byte[][] parameters = parameterBytes;
 		if ((this.modelEffectors[effectorOrdinal] instanceof BaseNamedValueEffector)
 		|| (this.modelEffectors[effectorOrdinal] instanceof BaseInputOutputEffector)) {
-			if (Base.isAnonymousValueReference(parameterBytes[0])) {
-				parameters = Base.ANONYMOUS_VALUE_PARAMETER; 
+			for (int i = 0; i < parameterBytes.length; i++) {
+				if (Base.isAnonymousValueReference(parameterBytes[i])) {
+					parameters[i] = Base.ANONYMOUS_VALUE_REFERENCE;
+				} 
 			}
 		}
 		final BytesArray parametersArray = new BytesArray(parameters);
@@ -438,7 +440,7 @@ public final class Gearbox  implements AutoCloseable {
 				throw new GearboxException("Unable to close gearbox file %1$s " + this.gearboxPath.getPath(), e);
 			} finally {
 				if (this.deleteOnClose && this.gearboxPath.exists() && !this.gearboxPath.delete()) {
-						Gearbox.rteLogger.warning("Unable to delete invalid gearbox file %1$s " + this.gearboxPath.getPath());
+					Gearbox.rteLogger.warning("Unable to delete invalid gearbox file %1$s " + this.gearboxPath.getPath());
 				}
 			}
 		}
@@ -559,23 +561,23 @@ public final class Gearbox  implements AutoCloseable {
 
 	Transducer loadTransducer(final Integer transducerOrdinal) throws TransducerNotFoundException, GearboxException {
 		if ((0 <= transducerOrdinal) && (transducerOrdinal < this.transducerOrdinalMap.size())) {
-			synchronized (this) {
 				if (this.transducerObjectIndex[transducerOrdinal] == null) {
-					try {
-						this.io.seek(transducerOffsetIndex[transducerOrdinal]);
-						final String name = this.getString();
-						final String targetName = this.getString();
-						final int[] inputFilter = this.getIntArray();
-						final int[][] transitionMatrix = this.getTransitionMatrix();
-						final int[] effectorVector = this.getIntArray();
-						this.transducerObjectIndex[transducerOrdinal] = new Transducer(name, targetName, inputFilter, transitionMatrix, effectorVector);
-					} catch (final IOException e) {
-						throw new GearboxException(
-							String.format("Gearbox.loadTransducer(%d) caught an IOException after seek to %d", transducerOrdinal, transducerOffsetIndex[transducerOrdinal]), e);
-					} 
+					synchronized (this) {
+						try {
+							this.io.seek(transducerOffsetIndex[transducerOrdinal]);
+							final String name = this.getString();
+							final String targetName = this.getString();
+							final int[] inputFilter = this.getIntArray();
+							final int[][] transitionMatrix = this.getTransitionMatrix();
+							final int[] effectorVector = this.getIntArray();
+							this.transducerObjectIndex[transducerOrdinal] = new Transducer(name, targetName, inputFilter, transitionMatrix, effectorVector);
+						} catch (final IOException e) {
+							throw new GearboxException(
+								String.format("Gearbox.loadTransducer(%d) caught an IOException after seek to %d", transducerOrdinal, transducerOffsetIndex[transducerOrdinal]), e);
+						} 
+					}
 				}
 				return this.transducerObjectIndex[transducerOrdinal];
-			}
 		} else {
 			return null;
 		}

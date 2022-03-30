@@ -6,7 +6,7 @@ package com.characterforming.jrte.engine;
 import com.characterforming.jrte.GearboxException;
 
 /**
- * @author kb
+ * @author Kim Briggs
  */
 final class Transducer {
 	private final String name;

@@ -57,14 +57,14 @@ import com.characterforming.jrte.base.Bytes;
  * will simply stop and ({@link status()} will return 
  * {@link Status#STOPPED}).
  * 
- * @author kb
+ * @author Kim Briggs
  */
 public interface ITransduction extends ITarget {
 	
 	/**
 	 * Transduction status.
 	 * 
-	 * @author rex ex ossibus meis
+	 * @author Kim Briggs
 	 */
 	enum Status {
 		/**
@@ -135,6 +135,15 @@ public interface ITransduction extends ITarget {
 	 * @throws RteException On error
 	 */
 	public Status run() throws RteException;
+	
+	/**
+	 * Return the number of domain errors counted in the most recent run() call. A
+	 * domain error occurs when no transition is defined from current state for 
+	 * current input. 
+	 * 
+	 * @return the number of domain errors counted in the most recent run() call.
+	 */
+	public int getErrorCount();
 
 	/**
 	 * Clear input and transduction stacks. A {@code stop()} will be sent

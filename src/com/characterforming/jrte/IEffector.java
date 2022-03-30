@@ -28,7 +28,7 @@ import com.characterforming.jrte.base.Bytes;
  * transduction instance. They are typically anonymous inner classes defined in ITarget.bind().
  * 
  * @param <T> The effector target type
- * @author kb
+ * @author Kim Briggs
  */
 public interface IEffector<T extends ITarget> {
 	/**

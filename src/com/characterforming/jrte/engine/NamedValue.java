@@ -32,7 +32,7 @@ import com.characterforming.jrte.base.Bytes;
 /**
  * Wrapper for named value snapshots.
  * 
- * @author kb
+ * @author Kim Briggs
  */
 class NamedValue implements INamedValue {
 	private static final int INITIAL_NAMED_VALUE_BYTES = 256;
@@ -125,9 +125,6 @@ assert this.value.length <= 256 && this.length <= this.value.length;
 
 	void append(byte next) {
 		assert this.value != null;
-		if (this.length >= this.value.length) {
-			this.value = Arrays.copyOf(this.value, (this.length * 5) >> 2);
-		}
 		growValue(1);
 		this.value[this.length] = next;
 		this.length += 1;

@@ -4,10 +4,9 @@
 package com.characterforming.jrte.engine;
 
 import java.util.Arrays;
-import java.util.EmptyStackException;
 
 /**
- * @author kb
+ * @author Kim Briggs
  */
 final class TransducerStack {
 	private TransducerState[] stack;
@@ -54,11 +53,17 @@ final class TransducerStack {
 	 * @return The transducer on the top of the stack, or null if empty
 	 */
 	TransducerState peek() {
-		if (this.tos >= 0) {
-			return this.stack[this.tos];
-		} else {
-			return null;
-		}
+		return (this.tos >= 0) ? this.stack[this.tos] : null;
+	}
+
+	/**
+	 * Get the Nth transducer relative to bottom of the stack
+	 * 
+	 * @param index The index of the item to get
+	 * @return The Nth item from the stack
+	 */
+	TransducerState peek(final int index) {
+		return (index >= 0 && index <= this.tos) ? this.stack[index] : null;
 	}
 
 	/**
@@ -69,24 +74,8 @@ final class TransducerStack {
 	TransducerState pop() {
 		if (this.tos >= 0) {
 			this.stack[this.tos--].reset(0, null);
-			return this.tos >= 0 ? this.stack[this.tos] : null;
-		} else {
-			throw new EmptyStackException();
 		}
-	}
-
-	/**
-	 * Get the Nth item from the stack
-	 * 
-	 * @param index The index of the item to get
-	 * @return The Nth item from the stack
-	 */
-	TransducerState get(final int index) {
-		if (index >= 0 && index <= this.tos) {
-			return this.stack[index];
-		} else {
-			return null;
-		}
+		return this.peek();
 	}
 
 	/**

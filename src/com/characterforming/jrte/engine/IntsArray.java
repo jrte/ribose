@@ -8,7 +8,7 @@ import java.util.Arrays;
 /**
  * Wraps an array of Ints
  * 
- * @author kb
+ * @author Kim Briggs
  */
 public final class IntsArray {
 	private final Ints[] intsArray;

@@ -57,32 +57,35 @@ Jrte is a mature WIP and interested parties are encouraged to use the discussion
 
 The base target effectors are:
 
-| Effector[`Parameter` ...] | Description |
-| --- | --- |
-|start[`@transducer`]|Push a named transducer onto the transducer stack|
-|stop|Stop the current transducer and pop the transducer stack|
-|shift[`@transducer`]|Replace current transducer on top of transducer stack with a named transducer|
-|select|Select the anonymous value as current selection|
-|select[`~name`]|Select a named value as current selection|
-|paste|Extend the current selection by appending the current input character|
-|paste[`text`]|Extend the current selection by appending text|
-|copy[`~name`]|Extend the current selection by appending a named value|
-|cut[`~name`]|Extend the current selection by appending a named value and clear the named value|
-|clear|Clear the current selection|
-|clear[`~name`]|Clear the named value|
-|counter[`!signal` `digit+`]|Set up a counter signal and initial counter value|
-|count|Decrement the counter and push `!signal` onto the input stack when result is 0|
-|in|Push current selection onto the input stack|
-|in[...]|Push onto the input stack a signal or a sequence of mixed text and named values|
-|mark|Mark a position in the current input|
-|reset|Resets the input to the last mark|
-|end|Pops the input stack|
-|out|Write value of current selection to System.out|
-|out[...]|Write a sequence of mixed text and named values to System.out|
+| Effector[`Parameter` ... ] | Description |
+| --------------------------- |:----------- |
+| 0 | Null effector halts and throws DomainException |
+| 0 | Nil effector does nothing (no-op) |
+| paste | Extend the current selection by appending the current input character |
+| paste[`text`] | Extend the current selection by appending text |
+| select | Select the anonymous value as current selection |
+| select[`~name`] | Select a named value as current selection |
+| copy | Extend the current selection by appending the anonymous named value |
+| copy[`~name`] | Extend the current selection by appending and clearing a named value |
+| cut | Extend the current selection by appending and clearing the anonymous named value |
+| cut[`~name`] | Extend the current selection by appending a named value and clear the named value |
+| clear | Clear the current selection |
+| clear[`~name`] | Clear the named value |
+| count[`digit+` `!signal`] | Set up a counter signal and initial counter value |
+| count | Decrement the counter and push `!signal` onto the input stack when result is 0 |
+| in | Push current selection onto the input stack |
+| in[...] | Push onto the input stack a signal or a sequence of mixed text and named values |
+| out | Write value of current selection to System.out |
+| out[...] | Write a sequence of mixed text and named values to System.out |
+| mark | Mark a position in the current input |
+| reset | Resets the input to the last mark |
+| start[`@transducer`] | Push a named transducer onto the transducer stack |
+| pause | Pause the transduction loop and return from run() method |
+| stop | Stop the current transducer and pop the transducer stack |
 
 Each `ITarget` implementation must provide a nullary constructor that will instantiate a model target to be used by the gearbox compiler to enumerate and instantiate model effectors. The gearbox compiler instantiates and binds the model target and effector instances to a model `ITransduction` instance. The model effectors are used in compilation and runtime context only to compile parameters per effector to complete the gearbox model -- in the runtime the pre-compiled model parameters are available for fast runtime binding of actual transductions. Model effector instances must be capable of compiling parameters only and are never otherwise invoked in compilation context. In the runtime each invocation of a parameterized effectoc receives an ordinal number that selects a precompiled parameter to apply. 
 
-Jrte text transductions run on raw UTF-8 encoded byte streams, obviating the cost of decoding and widening from 8-bit to 16-bit inputs. Effector parameters in jrte patterns are always presented to ginr as a series of tokens with backquotes, which may include plain 7-bit ASCII or multi-byte UTF-8 encoded characters or binary `\xHH` bytes. These are compiled to an array of byte arrays for each parameterized effector call in ginr source. When the target is bound to a transduction the runtime will call the the effector's `newParameters(int)` method to indicate the number of enumerated parameters. The effector is expected to instantiate an array of specified capacity to receive compiled parameter objects. The gearbox will then call each effector's `setParameter(int, byte[][])` method once for each enumerated parameter, passing the enumerator and an array of byte arrays to be compiled to a parameter object, eg `([byte[]] -> String -> DateFormatter)` for `date[mm\dd\yyyy]` or `([byte[] byte[]] -> [int int])` for `counter[~length !nil]`. The `BaseParameterizedEffector.decodeParameter(byte[])` method is available to decode UTF-8 bytes in parameter lists to `char[]` array, which can be wrapped as `String` if required for parameter object construction. 
+Jrte text transductions run on raw UTF-8 encoded byte streams, obviating the cost of decoding and widening from 8-bit to 16-bit inputs. Effector parameters in jrte patterns are always presented to ginr as a series of tokens with backquotes, which may include plain 7-bit ASCII or multi-byte UTF-8 encoded characters or binary `\xHH` bytes. These are compiled to an array of byte arrays for each parameterized effector call in ginr source. When the target is bound to a transduction the runtime will call the the effector's `newParameters(int)` method to indicate the number of enumerated parameters. The effector is expected to instantiate an array of specified capacity to receive compiled parameter objects. The gearbox will then call each effector's `setParameter(int, byte[][])` method once for each enumerated parameter, passing the enumerator and an array of byte arrays to be compiled to a parameter object, eg `([byte[]] -> String -> DateFormatter)` for `date[mm\dd\yyyy]` or `([byte[] byte[]] -> [int int])` for `count[~length !nil]`. The `BaseParameterizedEffector.decodeParameter(byte[])` method is available to decode UTF-8 bytes in parameter lists to `char[]` array, which can be wrapped as `String` if required for parameter object construction. 
 
 The gearbox produced by the jrte gearbox compiler includes collections of compiled transducers, signals, and value names. Transducers and signals are immutable in the jrte runtime. Mutable named values are localized per `Transduction` instance and are globally available to all transducers on the transduction stack.  The names selected for these artifacts must be prefixed by a special symbol, eg `@Transducer`, `~NamedValue`, `!Signal`, which acts as a poor man's namespace. The intention is to ensure that these names do not clash with effector names or input tokens, so that each tape (`(input-tape, effector-tape[parameter-tape])`) has symbols that are disjoint with respect to other tapes. This allows compiled transducers to be edited in ginr, for example, to harden them against domain errors (input with no defined transition is current state). See the `Tintervals` transducer in the test suite to see how this is done. 
 

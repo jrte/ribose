@@ -24,7 +24,7 @@ package com.characterforming.jrte;
 /**
  * Thrown by the runtime engine when an effector throws an exception
  * 
- * @author kb
+ * @author Kim Briggs
  */
 public class EffectorException extends RteException {
 	private static final long serialVersionUID = 1L;

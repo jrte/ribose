@@ -1,2 +1,2 @@
-CounterTest = (nil, counter[9 `!zero`]) ((a, count)* (zero b, counter[9 `!zero`]))* (eos, stop);
+CounterTest = (nil, count[9 `!zero`]) ((a, count)* (zero b, count[9 `!zero`]))* (eos, stop);
 CounterTest :save `CounterTest.dfa`;

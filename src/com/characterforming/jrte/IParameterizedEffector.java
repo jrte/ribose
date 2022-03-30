@@ -28,7 +28,7 @@ package com.characterforming.jrte;
  * index in the resulting array. At runtime, the invoke(int) method is called
  * with the parameter index to indicate which P[] to apply to the invocation.
  * 
- * @author kb
+ * @author Kim Briggs
  * @param <T> The effector target type
  * @param <P> The effector parameter type, constructible from byte[][] (eg new
  *           P(byte[][]))

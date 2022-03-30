@@ -27,7 +27,7 @@ import com.characterforming.jrte.base.Bytes;
  * Implementation provides a view of named values (data extracted by the transduction) to 
  * IEffector instances bound to the transaction.
  * 
- * @author kb
+ * @author Kim Briggs
  *
  */
 public interface IOutput {

@@ -62,12 +62,11 @@ import com.characterforming.jrte.base.Bytes;
  * <li>the transduction throws an exception.
  * </ol>
  * 
- * @author kb
+ * @author Kim Briggs
  */
 public final class Transduction implements ITransduction, ITarget, IOutput {
 	private static final boolean isOutEnabled = System.getProperty("jrte.out.enabled", "true").equals("true");
 	private final static Logger logger = Logger.getLogger(Base.RTE_LOGGER_NAME);
-
 
 	static int INITIAL_NAMED_VALUE_BUFFERS = 256;
 	static int INITIAL_NAMED_VALUE_BYTES = 256;
@@ -75,20 +74,18 @@ public final class Transduction implements ITransduction, ITarget, IOutput {
 	public static final int RTE_EFFECTOR_NUL = 0;
 	public static final int RTE_EFFECTOR_NIL = 1;
 	public static final int RTE_EFFECTOR_PASTE = 2;
-	public static final int RTE_EFFECTOR_COUNT = 3;
-	public static final int RTE_EFFECTOR_MARK = 4;
-	public static final int RTE_EFFECTOR_RESET = 5;
-	public static final int RTE_EFFECTOR_SELECT = 6;
-	public static final int RTE_EFFECTOR_COPY = 7;
-	public static final int RTE_EFFECTOR_CUT = 8;
-	public static final int RTE_EFFECTOR_CLEAR = 9;
-	public static final int RTE_EFFECTOR_IN = 10;
-	public static final int RTE_EFFECTOR_OUT = 11;
-	public static final int RTE_EFFECTOR_COUNTER = 12;
-	public static final int RTE_EFFECTOR_START = 13;
-	public static final int RTE_EFFECTOR_SHIFT = 14;
-	public static final int RTE_EFFECTOR_PAUSE = 15;
-	public static final int RTE_EFFECTOR_STOP = 16;
+	public static final int RTE_EFFECTOR_SELECT = 3;
+	public static final int RTE_EFFECTOR_COPY = 4;
+	public static final int RTE_EFFECTOR_CUT = 5;
+	public static final int RTE_EFFECTOR_CLEAR = 6;
+	public static final int RTE_EFFECTOR_COUNT = 7;
+	public static final int RTE_EFFECTOR_IN = 8;
+	public static final int RTE_EFFECTOR_OUT = 9;
+	public static final int RTE_EFFECTOR_MARK = 10;
+	public static final int RTE_EFFECTOR_RESET = 11;
+	public static final int RTE_EFFECTOR_START = 12;
+	public static final int RTE_EFFECTOR_PAUSE = 13;
+	public static final int RTE_EFFECTOR_STOP = 14;
 
 	private final Gearbox gearbox;
 	private IEffector<?>[] effectors;
@@ -97,6 +94,7 @@ public final class Transduction implements ITransduction, ITarget, IOutput {
 	private InputStack inputStack;
 	private TransducerStack transducerStack;
 	private NamedValue selected;
+	private int errorCount;
 	private int effect;
 	
 	/**
@@ -113,6 +111,8 @@ public final class Transduction implements ITransduction, ITarget, IOutput {
 		this.inputStack = null;
 		this.transducerStack = null;
 		this.selected = null;
+		this.errorCount = 0;
+		this.effect = RTE_EFFECTOR_NUL;
 	}
 
 	void setEffectors(IEffector<?>[] effectors) {
@@ -142,20 +142,18 @@ public final class Transduction implements ITransduction, ITarget, IOutput {
 	/* 0*/	new InlineEffector(this, Bytes.encode("0")),
 	/* 1*/	new InlineEffector(this, Bytes.encode("1")),
 	/* 2*/	new PasteEffector(this),
-	/* 3*/	new InlineEffector(this, Bytes.encode("count")),
-	/* 4*/	new InlineEffector(this, Bytes.encode("mark")),
-	/* 5*/	new InlineEffector(this, Bytes.encode("reset")),
-	/* 6*/	new SelectEffector(this),
-	/* 7*/	new CopyEffector(this),
-	/* 8*/	new CutEffector(this),
-	/* 9*/	new ClearEffector(this),
-	/*10*/	new InEffector(this),
-	/*11*/	new OutEffector(this),
-	/*12*/	new CounterEffector(this),
-	/*13*/	new StartEffector(this),
-	/*14*/	new ShiftEffector(this),
-	/*15*/	new PauseEffector(this),
-	/*16*/	new StopEffector(this)
+	/* 3*/	new SelectEffector(this),
+	/* 4*/	new CopyEffector(this),
+	/* 5*/	new CutEffector(this),
+	/* 6*/	new ClearEffector(this),
+	/* 7*/	new CountEffector(this),
+	/* 8*/	new InEffector(this),
+	/* 9*/	new OutEffector(this),
+	/*10*/	new InlineEffector(this, Bytes.encode("mark")),
+	/*11*/	new InlineEffector(this, Bytes.encode("reset")),
+	/*12*/	new StartEffector(this),
+	/*13*/	new PauseEffector(this),
+	/*14*/	new StopEffector(this)
 		};
 	}
 
@@ -271,6 +269,7 @@ public final class Transduction implements ITransduction, ITarget, IOutput {
 		}
 		final int nulSignal = Base.Signal.nul.signal();
 		final int eosSignal = Base.Signal.eos.signal();
+		int errorCount = this.errorCount = 0;
 		ByteBuffer inputBuffer = null;
 		int position = 0, limit = 0;
 		String debug = null;
@@ -346,20 +345,30 @@ T:		while (this.status() == ITransduction.Status.RUNNABLE) {
 					
 					int action = RTE_EFFECTOR_NUL;
 					int index = 0;
-					do {
+I:				do {
 						// Filter input to equivalence ordinal and map ordinal and state to next state and action
 						final int transition = state + inputFilter[currentInput];
 						state = transitionMatrix[transition][0];
 						action = transitionMatrix[transition][1];
-						if ((action != RTE_EFFECTOR_NIL) || (position >= limit)) {
+						switch (action) {
+						case RTE_EFFECTOR_NIL:
+							break;
+						case RTE_EFFECTOR_PASTE:
+							this.selected.append((byte)currentInput);
+							break;
+						default:
 							if (action < RTE_EFFECTOR_NUL) {
 								index = -action;
 								action = effectorVector[index++];
 							} 
-							break;
+							break I;
 						}
-						currentInput = inputArray[position++];
-					} while (position <= limit);
+						if (position < limit) {
+							currentInput = inputArray[position++];
+						} else {
+							action = RTE_EFFECTOR_NIL;
+						}
+					} while (position < limit);
 					
 					// Invoke a vector of 1 or more effectors and record side effects on transduction and input stacks 
 					effect = IEffector.RTE_EFFECT_NONE;
@@ -380,6 +389,7 @@ T:		while (this.status() == ITransduction.Status.RUNNABLE) {
 							} else if (currentInput != eosSignal) {
 								errorInput = currentInput;
 								signalInput = nulSignal;
+								++errorCount;
 							}
 							break;
 						case RTE_EFFECTOR_NIL:
@@ -388,12 +398,37 @@ T:		while (this.status() == ITransduction.Status.RUNNABLE) {
 							assert currentInput >= Byte.MIN_VALUE && currentInput <= Byte.MAX_VALUE;
 							this.selected.append((byte)currentInput);
 							break;
+						case RTE_EFFECTOR_SELECT:
+							this.selected = this.namedValueHandles[Base.ANONYMOUS_VALUE_ORDINAL];
+							assert this.selected != null;
+							break;
+						case RTE_EFFECTOR_COPY:
+							this.selected.append(this.namedValueHandles[Base.ANONYMOUS_VALUE_ORDINAL]);
+							break;
+						case RTE_EFFECTOR_CUT:
+							this.selected.append(this.namedValueHandles[Base.ANONYMOUS_VALUE_ORDINAL]);
+							this.namedValueHandles[Base.ANONYMOUS_VALUE_ORDINAL].clear();
+							break;
+						case RTE_EFFECTOR_CLEAR:
+							this.selected.clear();
+							break;
 						case RTE_EFFECTOR_COUNT:
 							if (--transducerState.countdown[0] <= 0) {
 								effect |= this.in(transducerState.countdown[1]);
 								transducerState.countdown[0] = 0;
 							}
 							break;
+						case RTE_EFFECTOR_IN:
+							this.inputStack.push(new ByteInput(copyNamedValue()));
+							effect |=  IEffector.RTE_EFFECT_PUSH;
+							break;
+						case RTE_EFFECTOR_OUT: {
+							if (Transduction.isOutEnabled && this.selected.getLength() > 0) {
+								System.out.print(Charset.defaultCharset().decode(ByteBuffer.wrap(selected.getValue(), 0, selected.getLength())).toString());
+								System.out.flush();
+							}
+							break;
+						}
 						case RTE_EFFECTOR_MARK:
 							inputBuffer.position(position);
 							IInput input = inputStack.peek();
@@ -430,31 +465,6 @@ T:		while (this.status() == ITransduction.Status.RUNNABLE) {
 								position = inputBuffer.position();
 							}
 							break;
-						case RTE_EFFECTOR_SELECT:
-							this.selected = this.namedValueHandles[Base.ANONYMOUS_VALUE_ORDINAL];
-							assert this.selected != null;
-							break;
-						case RTE_EFFECTOR_COPY:
-							this.selected.append(this.namedValueHandles[Base.ANONYMOUS_VALUE_ORDINAL]);
-							break;
-						case RTE_EFFECTOR_CUT: {
-							this.selected.append(this.namedValueHandles[Base.ANONYMOUS_VALUE_ORDINAL]);
-							this.namedValueHandles[Base.ANONYMOUS_VALUE_ORDINAL].clear();
-							break;
-						}
-						case RTE_EFFECTOR_CLEAR:
-							this.selected.clear();
-							break;
-						case RTE_EFFECTOR_IN:
-							in(new byte[][] { copyNamedValue() });
-							break;
-						case RTE_EFFECTOR_OUT: {
-							if (Transduction.isOutEnabled && this.selected.getLength() > 0) {
-								System.out.print(Charset.defaultCharset().decode(ByteBuffer.wrap(selected.getValue(), 0, selected.getLength())).toString());
-								System.out.flush();
-							}
-							break;
-						}
 						case RTE_EFFECTOR_PAUSE:
 							effect |= IEffector.RTE_EFFECT_PAUSE;
 							break;
@@ -476,14 +486,14 @@ T:		while (this.status() == ITransduction.Status.RUNNABLE) {
 						if (effect != IEffector.RTE_EFFECT_NONE) {
 							status = this.status();
 							
-							// Input pushed, popped, marked or reset, or transducer stack pushed, popped, or shifted?
+							// Input pushed, popped, marked or reset, or transducer stack pushed, popped?
 							if (0 != (effect & (IEffector.RTE_EFFECT_PUSH | IEffector.RTE_EFFECT_POP))) {
 								limit = -1; 
 							}
 							
-							if (0 != (effect & (IEffector.RTE_EFFECT_START | IEffector.RTE_EFFECT_STOP | IEffector.RTE_EFFECT_SHIFT))) {
+							if (0 != (effect & (IEffector.RTE_EFFECT_START | IEffector.RTE_EFFECT_STOP))) {
 								if (0 != (effect & IEffector.RTE_EFFECT_START)) {
-									this.transducerStack.get(this.transducerStack.tos() - 1).state = state;
+									this.transducerStack.peek(this.transducerStack.tos() - 1).state = state;
 								}
 								limit = -1; 
 								break;
@@ -523,7 +533,13 @@ T:		while (this.status() == ITransduction.Status.RUNNABLE) {
 		}
 		
 		// Transduction is paused or stopped; if paused it will resume on next call to run()
+		this.errorCount = errorCount;
 		return this.status();
+	}
+
+	@Override
+	public int getErrorCount() {
+		return this.errorCount;
 	}
 
 	/*
@@ -625,7 +641,7 @@ T:		while (this.status() == ITransduction.Status.RUNNABLE) {
 		return IEffector.RTE_EFFECT_NONE;
 	}
 
-	private int counter(final int[] countdown) throws InputException {
+	private int count(final int[] countdown) throws InputException {
 		assert countdown.length == 2;
 		if (countdown[0] == 0) {
 			this.in(countdown[1]);
@@ -660,19 +676,6 @@ T:		while (this.status() == ITransduction.Status.RUNNABLE) {
 		}
 	}
 
-	private int shiftTransducer(final int transducerOrdinal) throws EffectorException {
-		final TransducerState transducerState = this.transducerStack.peek();
-		try {
-			transducerState.state = 0;
-			transducerState.transducer = this.gearbox.loadTransducer(transducerOrdinal);
-			return IEffector.RTE_EFFECT_SHIFT;
-		} catch (final TransducerNotFoundException e) {
-			throw new EffectorException(String.format("The shift effector failed to load %1$s", this.gearbox.getTransducerName(transducerOrdinal)), e);
-		} catch (final GearboxException e) {
-			throw new EffectorException(String.format("The shift effector failed to load %1$s", this.gearbox.getTransducerName(transducerOrdinal)), e);
-		}
-	}
-
 	private int popTransducer() {
 		this.transducerStack.pop();
 		if (this.transducerStack.isEmpty()) {
@@ -686,7 +689,7 @@ T:		while (this.status() == ITransduction.Status.RUNNABLE) {
 		String error = "\n\tTransducer stack:\n";
 		this.transducerStack.peek().state = state;
 		for (int t = this.transducerStack.tos(); t >= 0; t--) {
-			TransducerState transducerState = this.transducerStack.get(t);
+			TransducerState transducerState = this.transducerStack.peek(t);
 			int errorState = transducerState.state / transducerState.transducer.getInputFilter().length;
 			error += String.format("\t\t%1$s (state %2$d, input %3$d)\n", transducerState.transducer.getName(), errorState, errorInput);
 		}
@@ -908,9 +911,9 @@ T:		while (this.status() == ITransduction.Status.RUNNABLE) {
 		}
 	}
 
-	private final class CounterEffector extends BaseParameterizedEffector<Transduction, int[]> {
-		private CounterEffector(final Transduction transduction) {
-			super(transduction, Bytes.encode("counter"));
+	private final class CountEffector extends BaseParameterizedEffector<Transduction, int[]> {
+		private CountEffector(final Transduction transduction) {
+			super(transduction, Bytes.encode("count"));
 		}
 		
 		@Override
@@ -920,16 +923,16 @@ T:		while (this.status() == ITransduction.Status.RUNNABLE) {
 
 		@Override
 		public int invoke() throws EffectorException {
-			throw new EffectorException("The counter effector requires two parameters");
+			throw new EffectorException(String.format("Cannot invoke inline effector '%1$s'", super.getName()));
 		}
 
 		@Override
 		public int[] compileParameter(final int parameterIndex, final byte[][] parameterList) throws TargetBindingException {
 			if (parameterList.length != 2) {
-				throw new TargetBindingException("The counter effector requires two parameters");
+				throw new TargetBindingException("The count effector requires two parameters");
 			}
 			int count = -1;
-			assert !Base.isReferenceOrdinal(parameterList[0]) : "Reference ordinal presented for <count> to CounterEffector[<count> <signal>]";
+			assert !Base.isReferenceOrdinal(parameterList[0]) : "Reference ordinal presented for <count> to CountEffector[<count> <signal>]";
 			byte type = Base.getReferenceType(parameterList[0]);
 			if (type == Base.TYPE_REFERENCE_VALUE) {
 				Bytes valueName = new Bytes(Base.getReferenceName(parameterList[0]));
@@ -938,13 +941,13 @@ T:		while (this.status() == ITransduction.Status.RUNNABLE) {
 				try {
 					count = Integer.parseInt(value.toString());
 				} catch (NumberFormatException e) {
-					throw new TargetBindingException("Named value %1$s is not valid for counter effector: " + value.toString());
+					throw new TargetBindingException("Named value %1$s is not valid for count effector: " + value.toString());
 				}
 			} else if (type == Base.TYPE_REFERENCE_NONE) {
 				count = Base.decodeInt(parameterList[0], parameterList[0].length);
 			}
 			if (count >= 0) {
-				assert !Base.isReferenceOrdinal(parameterList[1]) : "Reference ordinal presented for <signal> to CounterEffector[<count> <signal>]";
+				assert !Base.isReferenceOrdinal(parameterList[1]) : "Reference ordinal presented for <signal> to CountEffector[<count> <signal>]";
 				type = Base.getReferenceType(parameterList[1]);
 				if (type == Base.TYPE_REFERENCE_SIGNAL) {
 					Bytes signalName = new Bytes(Base.getReferenceName(parameterList[1]));
@@ -952,19 +955,19 @@ T:		while (this.status() == ITransduction.Status.RUNNABLE) {
 					super.setParameter(parameterIndex, new int[] { count, signalOrdinal });
 					return super.getParameter(parameterIndex);
 				} else {
-					throw new TargetBindingException("Invalid signal for counter effector: " + Bytes.decode(parameterList[1], parameterList[1].length));
+					throw new TargetBindingException("Invalid signal for count effector: " + Bytes.decode(parameterList[1], parameterList[1].length));
 				}		
 			} else {
-				throw new TargetBindingException("Invalid count for counter effector: " + Bytes.decode(parameterList[0], parameterList[0].length));
+				throw new TargetBindingException("Invalid count for count effector: " + Bytes.decode(parameterList[0], parameterList[0].length));
 			}
 		}
 
 		@Override
 		public int invoke(final int parameterIndex) throws EffectorException {
 			try {
-				return super.getTarget().counter(super.getParameter(parameterIndex));
+				return super.getTarget().count(super.getParameter(parameterIndex));
 			} catch (InputException e) {
-				throw new EffectorException("Exception in CounterEffector", e);
+				throw new EffectorException("Exception in CountEffector", e);
 			}
 		}
 	}
@@ -1008,49 +1011,6 @@ T:		while (this.status() == ITransduction.Status.RUNNABLE) {
 		@Override
 		public int invoke(final int parameterIndex) throws EffectorException {
 			return super.getTarget().pushTransducer(super.getParameter(parameterIndex));
-		}
-	}
-
-	private final class ShiftEffector extends BaseParameterizedEffector<Transduction, Integer> {
-		private ShiftEffector(final Transduction transduction) {
-			super(transduction, Bytes.encode("shift"));
-		}
-
-		@Override
-		public void newParameters(final int parameterCount) {
-			super.parameters = new Integer[parameterCount];
-		}
-
-		@Override
-		public int invoke() throws EffectorException {
-			throw new EffectorException("The shift effector requires a parameter");
-		}
-
-		@Override
-		public Integer compileParameter(final int parameterIndex, final byte[][] parameterList) throws TargetBindingException {
-			if (parameterList.length != 1) {
-				throw new TargetBindingException("The shift effector accepts at most one parameter");
-			}
-			if (Base.getReferenceType(parameterList[0]) == Base.TYPE_REFERENCE_TRANSDUCER) {
-				assert !Base.isReferenceOrdinal(parameterList[0]);
-				final Bytes name = new Bytes(Base.getReferenceName(parameterList[0]));
-				final int ordinal = super.getTarget().getGearbox().getTransducerOrdinal(name);
-				if (ordinal >0) {
-					super.setParameter(parameterIndex, ordinal);
-					return ordinal;
-				} else {
-					throw new TargetBindingException(String.format("Null transducer reference for shift effector: %s", name.toString()));
-				}
-			} else {
-				throw new TargetBindingException(String.format(
-					"Invalid transducer reference `$s` for shift effector, requires type indicator ('$c') before the transducer name", 
-					new Bytes(Base.getReferenceName(parameterList[0])).toString(), Base.TYPE_REFERENCE_TRANSDUCER));
-			}
-		}
-
-		@Override
-		public int invoke(final int parameterIndex) throws EffectorException {
-			return super.getTarget().shiftTransducer(super.getParameter(parameterIndex));
 		}
 	}
 

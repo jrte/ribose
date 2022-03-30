@@ -29,7 +29,7 @@ import java.util.Arrays;
 /**
  * Wraps an array of byte
  * 
- * @author kb
+ * @author Kim Briggs
  */
 public final class Bytes {
 	private static final char[] HEX = "0123456789ABCDEF".toCharArray();

@@ -35,11 +35,11 @@ _interval = (
 	(
 		space+
 		(
-			('intervalms="', select[`~interval`] clear)
-			(digit, paste)+ ('.', paste) (digit, paste)+
-			('"', out[`~interval` NL] )
+				('intervalms="', select clear)
+				(digit, paste)+ ('.', paste) (digit, paste)+
+				('"', out[ANON NL] )
 		||	((lower* '="') - 'intervalms="')
-			(utf8 - '"')* '"'
+				(utf8 - '"')* '"'
 		)
 	)*
 	space* '/>' (utf8 - '<')*
@@ -62,7 +62,7 @@ _notinterval = (
 	((utf8 - '>')* nul*)* '>' (utf8 - '<')*
 );
 
-Sintervals = (_notinterval* _interval*)* @ (((l2 - NL)$(0,0))* (NL, nl)*)*;
+Sintervals = (_notinterval* _interval*)* @ (((l2 - {ANON, NL})$(0,0))* (ANON, `~`)* (NL, nl)*)*;
 
 Sintervals$(0,1 2):prsseq `Sintervals.pr`;
 Sintervals:save `Sintervals.dfa`;

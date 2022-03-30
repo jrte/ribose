@@ -24,7 +24,7 @@ package com.characterforming.jrte;
 /**
  * Base class for runtime exceptions
  * 
- * @author kb
+ * @author Kim Briggs
  */
 public class RteException extends Exception {
 	/**

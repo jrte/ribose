@@ -156,19 +156,10 @@
 	</target>
 
 	<target name="package-patterns" depends="package-java,compile-patterns,check-package-patterns" unless="patterns-packaged">
-		<java resultproperty="gearbox-result" fork="true" dir ="." classname="com.characterforming.jrte.GearboxCompiler" classpathref="jrte.classpath" failonerror="true">
+		<java resultproperty="gearbox-result" fork="true" dir ="." classname="com.characterforming.ribose.Ribose" classpathref="jrte.classpath" failonerror="true">
 			<jvmarg line="-showversion -ea"/>
 			<arg line="--target com.characterforming.jrte.base.BaseTarget ${build.patterns.automata} ${build.patterns}/Jrte.gears"/>
 		</java>
-<!--
-		<condition property="gearbox-fail" else="gearbox-success">
-			<isfailure code="${gearbox-result}"/>
-		</condition>
-		<echo if:set="gearbox-fail" message="fail: gearbox result = ${gearbox-result}"/>
-		<echo if:set="gearbox-success" message="success: gearbox result = [${gearbox-result}]"/>
-		<delete if:set="gearbox-fail" file="${build.patterns}/Jrte.gears" failonerror="false"/>
-		<fail if:set="gearbox-fail"/>
--->
 	</target>
 	
 	 <target name="check-package-test">
@@ -200,12 +191,12 @@
 	
 	<target name="test-ci" depends="clean-test,package-java,package-test,package-patterns">
 		<echo>Fibonacci:</echo>
-		<java fork="true" dir ="." classname="com.characterforming.jrte.Jrte" classpathref="jrte.classpath" failonerror="true">
+		<java fork="true" dir ="." classname="com.characterforming.ribose.RiboseRuntime" classpathref="jrte.classpath" failonerror="true">
 			<jvmarg line="-ea -Djrte.out.enabled=true"/>
 			<arg line="--nil Fibonacci test-patterns/inputs/fib.txt ${build.patterns}/Jrte.gears"/>
 		</java>
 		<echo>DateExtractor:</echo>
-		<java fork="true" dir ="." classname="com.characterforming.jrte.Jrte" classpathref="jrte.classpath" failonerror="true">
+		<java fork="true" dir ="." classname="com.characterforming.ribose.RiboseRuntime" classpathref="jrte.classpath" failonerror="true">
 			<jvmarg line="-ea -Djrte.out.enabled=true"/>
 			<arg line="--nil DateExtractor test-patterns/inputs/dates.txt ${build.patterns}/Jrte.gears"/>
 		</java>
@@ -214,7 +205,7 @@
 				<jvmarg line="-ea -Djrte.out.enabled=false -Dregex.out.enabled=false"/>
 				<arg line="${build.patterns}/Jrte.gears 1"/>
 		</java>
-		<echo>Jrte (benchmarking fsts for extracting data from noisy inputs, vs similar regex, output muted):</echo>
+		<echo>Ribose (benchmarking fsts for extracting data from noisy inputs, vs similar regex, output muted):</echo>
 		<exec failonerror="false" dir="test-patterns/inputs" executable="wc">
 			<arg line="kern-10.log"/>
 		</exec>
@@ -249,20 +240,7 @@
 				<jvmarg line="-ea -Djrte.out.enabled=false -Dregex.out.enabled=false"/>
 				<arg line="--nil Tintervals test-patterns/inputs/verbosegc.vgc ${build.patterns}/Jrte.gears cycle-start.id=.*type=.*contextid=.*timestamp=.*intervalms=.([0-9]+'.'[0-9]+)[^0-9]"/>
 		</java>
-		<java fork="true" dir ="." classname="com.characterforming.jrte.Jrte" classpathref="jrte.classpath" failonerror="true" output="/dev/null">
-				<jvmarg line="-ea -Djrte.out.enabled=true"/>
-				<arg line="--nil Tintervals test-patterns/inputs/verbosegc.vgc ${build.patterns}/Jrte.gears"/>
-		</java>
-		<java fork="true" dir ="." classname="com.characterforming.jrte.Jrte" classpathref="jrte.classpath" failonerror="true" output="/dev/null">
-				<jvmarg line="-ea -Djrte.out.enabled=true"/>
-				<arg line="--nil Sintervals test-patterns/inputs/verbosegc.vgc ${build.patterns}/Jrte.gears"/>
-		</java>
-		<java fork="true" dir ="." classname="com.characterforming.jrte.Jrte" classpathref="jrte.classpath" failonerror="true" output="/dev/null">
-				<jvmarg line="-ea -Djrte.out.enabled=true"/>
-				<arg line="--nil Tintervals test-patterns/inputs/verbosegc.vgc ${build.patterns}/Jrte.gears"/>
-		</java>
-		
-		<echo>Jrte (output equivalence tests):</echo>
+		<echo>Ribose (output equivalence tests):</echo>
 		<delete quiet="true" file="${build.test}/Tintervals.regex.out"/>
 		<delete quiet="true" file="${build.test}/Tintervals.jrte.out"/>
 		<delete quiet="true" file="${build.test}/Sintervals.jrte.out"/>
@@ -299,28 +277,28 @@
 		<delete quiet="true" file="${build.test}/LinuxKernel.jrte.out"/>
 		<delete quiet="true" file="${build.test}/LinuxKernelLoose.jrte.out"/>
 		<delete quiet="true" file="${build.test}/LinuxKernelStrict.jrte.out"/>
-		<java fork="true" dir ="." classname="com.characterforming.jrte.Jrte" classpathref="jrte.classpath" failonerror="true" output="${build.test}/LinuxKernel.regex.out">
+		<java fork="true" dir ="." classname="com.characterforming.ribose.RiboseRuntime" classpathref="jrte.classpath" failonerror="true" output="${build.test}/LinuxKernel.regex.out">
 				<jvmarg line="-ea -Dregex.out.enabled=true"/>
 				<arg line="--nil LinuxKernel test-patterns/inputs/kern-10.log ${build.patterns}/Jrte.gears"/>
 		</java>
 		<exec failonerror="true" executable="/usr/bin/wc">
 			<arg line="${build.test}/LinuxKernel.regex.out"/>
 		</exec>		
-		<java fork="true" dir ="." classname="com.characterforming.jrte.Jrte" classpathref="jrte.classpath" failonerror="true" output="${build.test}/LinuxKernel.jrte.out">
+		<java fork="true" dir ="." classname="com.characterforming.ribose.RiboseRuntime" classpathref="jrte.classpath" failonerror="true" output="${build.test}/LinuxKernel.jrte.out">
 				<jvmarg line="-ea -Djrte.out.enabled=true"/>
 				<arg line="--nil LinuxKernel test-patterns/inputs/kern-10.log ${build.patterns}/Jrte.gears"/>
 		</java>
 		<exec failonerror="true" executable="/usr/bin/wc">
 			<arg line="${build.test}/LinuxKernel.jrte.out"/>
 		</exec>		
-		<java fork="true" dir ="." classname="com.characterforming.jrte.Jrte" classpathref="jrte.classpath" failonerror="true" output="${build.test}/LinuxKernelLoose.jrte.out">
+		<java fork="true" dir ="." classname="com.characterforming.ribose.RiboseRuntime" classpathref="jrte.classpath" failonerror="true" output="${build.test}/LinuxKernelLoose.jrte.out">
 				<jvmarg line="-ea -Djrte.out.enabled=true"/>
 				<arg line="--nil LinuxKernelLoose test-patterns/inputs/kern-10.log ${build.patterns}/Jrte.gears"/>
 		</java>
 		<exec failonerror="true" executable="/usr/bin/wc">
 			<arg line="${build.test}/LinuxKernelLoose.jrte.out"/>
 		</exec>		
-		<java fork="true" dir ="." classname="com.characterforming.jrte.Jrte" classpathref="jrte.classpath" failonerror="true" output="${build.test}/LinuxKernelStrict.jrte.out">
+		<java fork="true" dir ="." classname="com.characterforming.ribose.RiboseRuntime" classpathref="jrte.classpath" failonerror="true" output="${build.test}/LinuxKernelStrict.jrte.out">
 				<jvmarg line="-ea -Djrte.out.enabled=true"/>
 				<arg line="--nil LinuxKernelStrict test-patterns/inputs/kern-10.log ${build.patterns}/Jrte.gears"/>
 		</java>
@@ -337,7 +315,7 @@
 		<fail unless="kernel.match" message="^^^ Not identical"/>
 		<echo message="^^^ Identical"/>
 		<echo>java -version</echo>
-		<java fork="true" dir ="." classname="com.characterforming.jrte.Jrte" classpathref="test.classpath">
+		<java fork="true" dir ="." classname="com.characterforming.ribose.RiboseRuntime" classpathref="test.classpath">
 				<jvmarg line="-version"/>
 		</java>		
 		<echo>lscpu</echo>
@@ -355,12 +333,12 @@
 				<arg line="${build.patterns}/Jrte.gears"/>
 		</java>
 		<echo message="^^^ TestRunner *: -Xms12m -Xlog:gc=trace:file=${build.test}/TestRunner-gc.out"/>
-		<java fork="true" dir ="." classname="com.characterforming.jrte.Jrte" classpathref="jrte.classpath" failonerror="true">
+		<java fork="true" dir ="." classname="com.characterforming.ribose.RiboseRuntime" classpathref="jrte.classpath" failonerror="true">
 				<jvmarg line="-ea -Xms22m -Xlog:gc=trace:file=${build.test}/LinuxKernel-gc.out -Djrte.out.enabled=false"/>
 				<arg line="--nil LinuxKernel test-patterns/inputs/kern-10.log ${build.patterns}/Jrte.gears"/>
 		</java>
 		<echo message="^^^ LinuxKernel *: -Xms22m -Xlog:gc=trace:file=${build.test}/LinuxKernel-gc.out"/>
-		<java fork="true" dir ="." classname="com.characterforming.jrte.Jrte" classpathref="jrte.classpath" failonerror="true">
+		<java fork="true" dir ="." classname="com.characterforming.ribose.RiboseRuntime" classpathref="jrte.classpath" failonerror="true">
 				<jvmarg line="-ea -Xms10m -Xlog:gc=trace:file=${build.test}/Tintervals-gc.out -Djrte.out.enabled=false"/>
 				<arg line="--nil Tintervals test-patterns/inputs/verbosegc.vgc ${build.patterns}/Jrte.gears"/>
 		</java>

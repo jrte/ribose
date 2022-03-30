@@ -4,6 +4,7 @@ doc/
 jars/*.jar
 local/
 .settings/
+java_pid*
 *.gz
 *.out
 *.log*

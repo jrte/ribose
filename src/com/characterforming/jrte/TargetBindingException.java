@@ -27,7 +27,7 @@ import java.util.List;
 /**
  * Thrown when there is a problem binding target effectors to a transduction
  * 
- * @author kb
+ * @author Kim Briggs
  */
 public class TargetBindingException extends GearboxException {
 

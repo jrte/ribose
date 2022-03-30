@@ -93,9 +93,13 @@ ctrl = (
 
 # common names for printable 7-bit bytes
 space = ' ';
-dot='.';
-dash='-';
-comma=',';
+dot = '.';
+dash = '-';
+comma = ',';
+pipe = '|';
+equals = '=';
+lt = '<';
+gt = '>';
 backslash = '\\';
 quote = '\'';
 digit = '0123456789':alph;

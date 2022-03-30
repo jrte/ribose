@@ -28,7 +28,7 @@ import com.characterforming.jrte.base.Bytes;
 /**
  * Wraps an array of Bytes
  * 
- * @author kb
+ * @author Kim Briggs
  */
 public final class BytesArray {
 	private final Bytes[] bytesArray;

@@ -24,28 +24,20 @@ package com.characterforming.jrte.base;
 import com.characterforming.jrte.IEffector;
 import com.characterforming.jrte.ITarget;
 import com.characterforming.jrte.TargetBindingException;
+import com.characterforming.jrte.engine.Transduction;
 
 /**
  * Base {@link ITarget} implementation class exports no effectors. It serves only 
- * as a public proxy for the core transduction target that provides the built-in 
- * effectors. It can be subclassed by specialized targets that implement 
- * {@link ITarget} to define additional effectors.
+ * as a public proxy for the inline transduction effectors paste/cut/copy etc. 
  * 
- * Specialized targets present their effectors by overriding the 
- * {@link #bindEffectors()} method, and these may serve as subclasses for 
- * additional extensions. Each subclass override must call super.bind() and
- * include the superclass effectors as predecessors of its own in the returned
- * list. In that context you should consider using a List&lt;IEffector&lt;?&gt;&gt; to 
- * accumulate subclass effectors and call List&lt;..&gt;.toArray() to obtain 
- * top-level bindings to return.
+ * This class is used as target in {@link com.characterforming.ribose.Ribose#main(String[])}
+ * and can be used as target for collections of utf8- or byte-oriented transducers
+ * that use only the inline transduction effectors.  
  * 
- * NOTE: BaseTarget presents no effectors because the core transduction effectors 
- * are implmented inline in Transduction class, which binds them to itself before
- * calling domain target bind() to bind itself to target effectors.
- * 
- * @author kb
+ * @author Kim Briggs
+ * @see {@link Transduction#bindEffectors()}
  */
-public class BaseTarget implements ITarget {
+public final class BaseTarget implements ITarget {
 	public BaseTarget() {
 	}
 

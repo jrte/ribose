@@ -24,7 +24,7 @@ package com.characterforming.jrte;
 /**
  * Thrown when a named transducer cannot be found in the gearbox
  * 
- * @author kb
+ * @author Kim Briggs
  */
 public class TransducerNotFoundException extends RteException {
 	private static final long serialVersionUID = 1L;

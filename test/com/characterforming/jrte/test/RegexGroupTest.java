@@ -1,35 +1,54 @@
-/**
- * Copyright (c) 2011,2017, Kim T Briggs, Hampton, NB.
+/***
+ * JRTE is a recursive transduction engine for Java
+ * 
+ * Copyright (C) 2011,2022 Kim Briggs
+ * 
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received copies of the GNU General Public License
+ * and GNU Lesser Public License along with this program.  See 
+ * LICENSE-lgpl-3.0 and LICENSE-gpl-3.0. If not, see 
+ * <http://www.gnu.org/licenses/>.
  */
+
 package com.characterforming.jrte.test;
 
 import java.nio.CharBuffer;
-import java.util.Arrays;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class RegexGroupTest {
+	private final char[] input;
 
-	public void testRun() {
-		Pattern regex = Pattern.compile("(a{9}b)");
-		char[] achars = new char[10000000];
-		Arrays.fill(achars, 'a');
-		for (int i = 9; i < achars.length; i += 10) {
-			achars[i] = 'b';
-		}
-		int count = 0;
-		long t0 = 0, t1 = 0;
-		for (int i = 0; i < 20; i++) {
-			Matcher matcher = regex.matcher(CharBuffer.wrap(achars));
-			t0 = System.currentTimeMillis();
-			while (matcher.find()) {
-				count++;
-			}
-			t1 = System.currentTimeMillis() - t0;
-			System.out.print(String.format("%4d", t1));
-		}
-		assert count == (achars.length * 2);
-		System.out.println(t1 > 0 ? String.format(" : %,12d chars/s (%,d)", (long)10000000*1000 / t1, achars.length) : "");
+	public RegexGroupTest(char[] achars) {
+		input = achars;
 	}
 
+	public void testRun() {
+		int count = 0;
+		long t0 = 0, t1 = 0, t2 = 0;
+		Pattern regex = Pattern.compile("(a{9}b)");
+		for (int i = 0; i < 20; i++) {
+			Matcher matcher = regex.matcher(CharBuffer.wrap(input));
+			t0 = System.currentTimeMillis();
+			while (matcher.find()) {
+				count += matcher.groupCount();
+			}
+			t1 = System.currentTimeMillis() - t0;
+			System.out.print(String.format("%4d", (count > 0) ? t1 : -1));
+			if (i >= 10) {
+				t2 += t1;
+			}
+		}
+		double mbps = (t2 > 0) ? ((double)(10000000) / (double)(t2*1024*1024)) * (10*1000) : -1;
+		System.out.println(String.format(" : %7.3f mb/s (chars)", mbps));
+	}
 }

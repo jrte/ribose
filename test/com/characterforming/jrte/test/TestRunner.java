@@ -1,6 +1,24 @@
-/**
- * Copyright (c) 2011,2017, Kim T Briggs, Hampton, NB.
+/***
+ * JRTE is a recursive transduction engine for Java
+ * 
+ * Copyright (C) 2011,2022 Kim Briggs
+ * 
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received copies of the GNU General Public License
+ * and GNU Lesser Public License along with this program.  See 
+ * LICENSE-lgpl-3.0 and LICENSE-gpl-3.0. If not, see 
+ * <http://www.gnu.org/licenses/>.
  */
+
 package com.characterforming.jrte.test;
 
 import java.io.File;
@@ -13,11 +31,11 @@ import com.characterforming.jrte.ByteInput;
 import com.characterforming.jrte.IInput;
 import com.characterforming.jrte.ITransduction;
 import com.characterforming.jrte.ITransduction.Status;
-import com.characterforming.jrte.Jrte;
 import com.characterforming.jrte.RteException;
 import com.characterforming.jrte.base.Base;
 import com.characterforming.jrte.base.BaseTarget;
 import com.characterforming.jrte.base.Bytes;
+import com.characterforming.ribose.RiboseRuntime;
 
 public class TestRunner {
 
@@ -41,30 +59,36 @@ public class TestRunner {
 		
 		final String gearboxPath = args[0];
 		final long arg = args.length > 1 ? Long.parseLong(args[1]) : 0;
+		final char[] achars = new char[10000000];
+		for (int i = 0; i < achars.length; i++) {
+			achars[i] = (i % 10 != 9) ? 'a' : 'b';
+		}
+		final byte[] abytes = new byte[10000000];
+		for (int i = 0; i < abytes.length; i++) {
+			abytes[i] = (byte)((i % 10 != 9) ? 'a' : 'b');
+		}		
+
 		Thread.sleep(arg);
 		if (arg == 1) {
-			final RegexTest regex = new RegexTest();
+			final RegexTest regex = new RegexTest(achars);
 			System.out.printf("%20s: ", "RegexTest");
 			regex.testRun();
-			final RegexGroupTest regexGroup = new RegexGroupTest();
+			final RegexGroupTest regexGroup = new RegexGroupTest(achars);
 			System.out.printf("%20s: ", "RegexGroupTest");
 			regexGroup.testRun();
 		}
-		final byte[] achars = new byte[10000000];
-		for (int i = 0; i < achars.length; i++) {
-			achars[i] = (byte)((i % 10 != 9) ? 'a' : 'b');
-		}
+		
 		String[] tests = new String[] {
-			"NilSpeedTest", "PasteSpeedTest", "NilPauseTest", "PastePauseTest", "PasteCutTest", "SelectPasteTest", "PasteCountTest", "CounterTest", "StackTest"
+				"NilSpeedTest", "PasteSpeedTest", "NilPauseTest", "PastePauseTest", "PasteCutTest", "SelectPasteTest", "PasteCountTest", "CounterTest", "StackTest"
 		};
 		final BaseTarget target = new BaseTarget();
-		final Jrte jrte = new Jrte(new File(gearboxPath), target);
-		final ITransduction trex = jrte.transduction(target);
-		final ByteInput nilinput = (ByteInput) jrte.input(new byte[][] {
+		final RiboseRuntime ribose = new RiboseRuntime(new File(gearboxPath), target);
+		final ITransduction trex = ribose.newTransduction(target);
+		final ByteInput nilinput = (ByteInput) ribose.input(new byte[][] {
 			Base.encodeReferenceOrdinal(Base.TYPE_REFERENCE_SIGNAL, Base.Signal.nil.signal()), 
-			achars});
+			abytes});
 		for (final String test : tests) {
-			long t1 = 0, t2 = 0;
+			long t0 = 0, t1 = 0, t2 = 0;
 			System.out.format("%20s: ", test);
 			for (int i = 0; i < 20; i++) {
 				assert !nilinput.isEmpty();
@@ -72,17 +96,21 @@ public class TestRunner {
 				trex.input(new IInput[] { nilinput });
 				trex.start(Bytes.encode(test));
 				assert trex.status() == Status.RUNNABLE;
-				t1 = System.currentTimeMillis();
+				t0 = System.currentTimeMillis();
 				do {
 					trex.run();
 				}
 				while (trex.status().equals(Status.RUNNABLE));
-				t2 = System.currentTimeMillis() - t1;
+				t1 = System.currentTimeMillis() - t0;
 				trex.stop();
 				assert trex.status() == Status.STOPPED;
-				System.out.print(String.format("%4d", t2));
+				System.out.print(String.format("%4d", t1));
+				if (i >= 10) {
+					t2 += t1;
+				}
 			}
-			System.out.println(t2 > 0 ? String.format(" : %,12d bytes/s (%,d)", (long)10000000*1000 / t2, achars.length) : "");
+			double mbps = (t2 > 0) ? ((double)(10000000) / (double)(t2*1024*1024)) * (10*1000) : -1;
+			System.out.println(String.format(" : %7.3f mb/s (bytes)", mbps));
 		}
 	}
 

@@ -1,6 +1,24 @@
-/**
- * Copyright (c) 2011,2017, Kim T Briggs, Hampton, NB.
+/***
+ * JRTE is a recursive transduction engine for Java
+ * 
+ * Copyright (C) 2011,2022 Kim Briggs
+ * 
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received copies of the GNU General Public License
+ * and GNU Lesser Public License along with this program.  See 
+ * LICENSE-lgpl-3.0 and LICENSE-gpl-3.0. If not, see 
+ * <http://www.gnu.org/licenses/>.
  */
+
 package com.characterforming.jrte.test;
 
 import java.io.DataInputStream;
@@ -18,11 +36,12 @@ import java.util.regex.Pattern;
 
 import com.characterforming.jrte.IInput;
 import com.characterforming.jrte.ITransduction;
-import com.characterforming.jrte.Jrte;
 import com.characterforming.jrte.RteException;
 import com.characterforming.jrte.base.Base;
 import com.characterforming.jrte.base.BaseTarget;
 import com.characterforming.jrte.base.Bytes;
+import com.characterforming.ribose.IRiboseRuntime;
+import com.characterforming.ribose.RiboseRuntime;
 
 public class FileRunner {
 
@@ -52,7 +71,7 @@ public class FileRunner {
 				System.exit(1);
 			}
 			
-			long tjrte = 0, t0 = 0, t1 = 0;
+			long ejrte = 0, tjrte = 0, t0 = 0, t1 = 0;
 			final File f = new File(inputPath);
 			final DataInputStream isr = new DataInputStream(new FileInputStream(f));
 			int clen = (int)f.length();
@@ -66,8 +85,8 @@ public class FileRunner {
 			rteHandler.setFormatter(new SimpleFormatter());
 
 			BaseTarget target = new BaseTarget();
-			final Jrte jrte = new Jrte(new File(gearboxPath), target);
-			final ITransduction trex = jrte.transduction(target);
+			final IRiboseRuntime ribose = new RiboseRuntime(new File(gearboxPath), target);
+			final ITransduction trex = ribose.newTransduction(target);
 			byte[][] input = nil
 				? new byte[][] { Base.encodeReferenceOrdinal(Base.TYPE_REFERENCE_SIGNAL, Base.Signal.nil.signal()), cbuf }
 				: new byte[][] { cbuf };
@@ -79,7 +98,7 @@ public class FileRunner {
 				loops = jrteOutEnabled ? 1 : 20;
 				for (int i = 0; i < loops; i++) {
 					trex.start(Bytes.encode(transducerName));
-					trex.input(new IInput[] { jrte.input(input) });
+					trex.input(new IInput[] { ribose.input(input) });
 					t0 = System.currentTimeMillis();
 					do {
 						switch (trex.run()) {
@@ -100,11 +119,15 @@ public class FileRunner {
 					if (!jrteOutEnabled) {
 						System.out.print(String.format("%4d", t1));
 					}
-					tjrte += t1;
+					if ((loops == 1) || (i >= 10)) {
+						tjrte += t1;
+						ejrte += trex.getErrorCount();
+					}
 				}
 				if (!jrteOutEnabled) {
-					System.out.println(
-							String.format(" : %,12d (%dx%,d)", (((long) clen * loops * 1000) / tjrte), loops, clen));
+					double epkb = (double)(ejrte*1024) / (double)10000000;
+					double mbps = (tjrte > 0) ? ((double)(clen) / (double)(tjrte*1024*1024)) * (Math.min(loops,10)*1000) : -1;
+					System.out.println(String.format(" : %7.3f mb/s %7.3f nul/kb", mbps, epkb));
 				} 
 			}
 			if (!jrteOutEnabled && !regex.isEmpty()) {
@@ -139,12 +162,15 @@ public class FileRunner {
 					if (!regexOutEnabled) {
 						System.out.print(String.format("%4d", count > 0 ? t1 : -1));
 					}
-					tregex += t1;
+					if ((loops == 1) || (i >= 10)) {
+						tregex += t1;
+					}
 				}
 				if (!regexOutEnabled) {
-					double tr = (double) tregex / tjrte;
-					System.out.println(String.format(" : %,12d (%dx%,d) %3.2f", (((long)clen * loops * 1000) / tregex), loops, clen, tr));
-				}
+					double tr = (tjrte > 0) ? (double) tregex / tjrte : -1;
+					double mbps = (tjrte > 0) ? ((double)(clen) / (double)(tregex*1024*1024)) * (Math.min(loops,10)*1000) : -1;
+					System.out.println(String.format(" : %7.3f mb/s %7.3f ribose:regex", mbps, tr));
+				} 
 			}
 		} catch (Exception e) {
 			e.printStackTrace();

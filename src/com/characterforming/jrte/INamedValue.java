@@ -31,7 +31,7 @@ import com.characterforming.jrte.base.Bytes;
  * them periodically when they synchronize with the transduction process under
  * effector direction.
  * 
- * @author kb
+ * @author Kim Briggs
  */
 public interface INamedValue {
 	/**
