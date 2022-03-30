@@ -120,6 +120,7 @@ public class FileRunner {
 				for (int i = 0; i < loops; i++) {
 					Matcher matcher = pattern.matcher(charInput);
 					t0 = System.currentTimeMillis();
+					int count = 0;
 					while (matcher.find()) {
 						if (regexOutEnabled) {
 							int k = matcher.groupCount();
@@ -130,11 +131,13 @@ public class FileRunner {
 								System.out.printf("%s", matcher.group(k));
 								System.out.println();
 							}
+						} else {
+							count += matcher.groupCount();
 						}
 					}
 					t1 = System.currentTimeMillis() - t0;
 					if (!regexOutEnabled) {
-						System.out.print(String.format("%4d", t1));
+						System.out.print(String.format("%4d", count > 0 ? t1 : -1));
 					}
 					tregex += t1;
 				}

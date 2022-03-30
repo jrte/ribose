@@ -34,8 +34,7 @@
 	<property name="build.patterns" value="build/patterns"/>
 	<property name="build.patterns.automata" value="build/patterns/automata"/>
 	<property name="build.test" value="build/patterns/test"/>
-	<property name="javadoc.dir" value="build/doc"/>
-	<property name="regex.linux.kernel" value="([JFMASOND][a-z]+ [0-9]+ ([0-9]+:)+[0-9]+) ([-.:A-Za-z_0-9]*) kernel: \\[[ ]*[0-9]+\\.[0-9]+\\] (DROPPED|ABORTED|LIMITED) IN=([-.:A-Za-z_0-9]*) OUT=([-.:A-Za-z_0-9]*)( MAC=([-.:A-Za-z_0-9]*))? SRC=([-.:A-Za-z_0-9]*) DST=([-.:A-Za-z_0-9]*).* PROTO=([-.:A-Za-z_0-9]*)(.* SPT=([-.:A-Za-z_0-9]*) DPT=([-.:A-Za-z_0-9]*))?.*\n"/>
+	<property name="regex.linux.kernel" value="([JFMASOND][a-z]+ [0-9]+ ([0-9]+:)+[0-9]+) ([-.:A-Za-z_0-9]*) kernel: \[[ ]*[0-9]+\.[0-9]+\] (DROPPED|ABORTED|LIMITED) IN=([-.:A-Za-z_0-9]*) OUT=([-.:A-Za-z_0-9]*)( MAC=([-.:A-Za-z_0-9]*))? SRC=([-.:A-Za-z_0-9]*) DST=([-.:A-Za-z_0-9]*).* PROTO=([-.:A-Za-z_0-9]*)(.* SPT=([-.:A-Za-z_0-9]*) DPT=([-.:A-Za-z_0-9]*))?"/>
 
 	<condition property="archive" value="${user.home}/archive">
 		<available type="dir" file="${user.home}/archive"/>
@@ -59,7 +58,6 @@
 		<delete dir="${bin.dir}/com" quiet="true"/>
 		<delete dir="${build.java}" quiet="true"/>
 		<delete dir="${build.java.test}" quiet="true"/>
-		<delete dir="${javadoc.dir}" quiet="true"/>
 		<delete failonerror="false">
 		  <fileset dir="${jars.dir}" includes="*.jar"/>
 		</delete>
@@ -295,11 +293,19 @@
 				<filesmatch file1="${build.test}/Sintervals.jrte.out" file2="${build.test}/Tintervals.jrte.out"/>
 			</and>
 		</condition>
-		<fail unless="intervals.match" message="^^^Not equivalent"/>
-		<echo message="^^^ Equivalent"/>
+		<fail unless="intervals.match" message="^^^Not identical"/>
+		<echo message="^^^ Identical"/>
+		<delete quiet="true" file="${build.test}/LinuxKernel.regex.out"/>
 		<delete quiet="true" file="${build.test}/LinuxKernel.jrte.out"/>
 		<delete quiet="true" file="${build.test}/LinuxKernelLoose.jrte.out"/>
 		<delete quiet="true" file="${build.test}/LinuxKernelStrict.jrte.out"/>
+		<java fork="true" dir ="." classname="com.characterforming.jrte.Jrte" classpathref="jrte.classpath" failonerror="true" output="${build.test}/LinuxKernel.regex.out">
+				<jvmarg line="-ea -Dregex.out.enabled=true"/>
+				<arg line="--nil LinuxKernel test-patterns/inputs/kern-10.log ${build.patterns}/Jrte.gears"/>
+		</java>
+		<exec failonerror="true" executable="/usr/bin/wc">
+			<arg line="${build.test}/LinuxKernel.regex.out"/>
+		</exec>		
 		<java fork="true" dir ="." classname="com.characterforming.jrte.Jrte" classpathref="jrte.classpath" failonerror="true" output="${build.test}/LinuxKernel.jrte.out">
 				<jvmarg line="-ea -Djrte.out.enabled=true"/>
 				<arg line="--nil LinuxKernel test-patterns/inputs/kern-10.log ${build.patterns}/Jrte.gears"/>
@@ -323,12 +329,13 @@
 		</exec>		
 		<condition property="kernel.match">
 			<and>
+				<filesmatch file1="${build.test}/LinuxKernel.regex.out" file2="${build.test}/LinuxKernel.jrte.out"/>
 				<filesmatch file1="${build.test}/LinuxKernel.jrte.out" file2="${build.test}/LinuxKernelLoose.jrte.out"/>
 				<filesmatch file1="${build.test}/LinuxKernelLoose.jrte.out" file2="${build.test}/LinuxKernelStrict.jrte.out"/>
 			</and>
 		</condition>
-		<fail unless="kernel.match" message="^^^ Not equivalent"/>
-		<echo message="^^^ Equivalent"/>
+		<fail unless="kernel.match" message="^^^ Not identical"/>
+		<echo message="^^^ Identical"/>
 		<echo>java -version</echo>
 		<java fork="true" dir ="." classname="com.characterforming.jrte.Jrte" classpathref="test.classpath">
 				<jvmarg line="-version"/>
@@ -360,40 +367,6 @@
 		<echo message="^^^ Tintervals *: -Xms10m -Xlog:gc=trace:file=${build.test}/Tintervals-gc.out"/>
 	</target>
 		
-	 <target name="check-package-javadoc">
-		 <uptodate targetfile="${jars.dir}/${ant.project.name}-${jrte.version.revision}-javadoc.jar" property="javadoc-packaged">
-			 <srcfiles dir="${build.java.classes}" includes="**/*.class"/>
-	 	</uptodate>
-	</target>
-
-	<target name="javadoc" depends="compile-java,check-package-javadoc" unless="javadoc-packaged">
-		<copy todir="build/doc/resources">
-			<fileset dir="etc/javadoc/api/resources">
-				<include name="*"/>
-			</fileset>
-			<fileset dir="etc/javadoc">
-				<include name="*.png"/>
-			</fileset>
-		</copy>
-		<javadoc windowtitle="The General Idea" nonavbar="false" splitindex="true"
-			author="true" destdir="${javadoc.dir}" source="1.6" sourcepath="src" access="protected" version="true"
-			nodeprecated="false" nodeprecatedlist="false" noindex="false" notree="false" use="true">
-			<doctitle>
-				&lt;img src="resources/a-b-gears-white.gif" class="TextWrap"&gt;&lt;center&gt;The General Idea&lt;/center&gt;
-			</doctitle>
-			<bottom>
-				&lt;b&gt;Copyright (c) 2011,2022 Kim T Briggs, Fredericton, NB&lt;/b&gt;
-			</bottom>
-			<link href="http://download.oracle.com/javase/8/docs/api/"/>
-			<package name="com.characterforming.ribose"/>
-			<package name="com.characterforming.jrte"/>
-			<package name="com.characterforming.jrte.base"/>
-			<excludepackage name="com.characterforming.jrte.compile"/>
-			<excludepackage name="com.characterforming.jrte.engine"/>
-		</javadoc>
-		<jar basedir="doc" destfile="${jars.dir}/${ant.project.name}-${jrte.version.revision}-javadoc.jar"/>
-	</target>
-
 	<target name="tar-source" depends="clean">
 		<delete quiet="true" file="jrte-source.tar.gz"/>
 		<tar destfile="jrte-source.tar.gz" compression="gzip">

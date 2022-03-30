@@ -3,19 +3,14 @@
  */
 package com.characterforming.ribose;
 
-import java.io.File;
-
 import com.characterforming.jrte.ITarget;
+import com.characterforming.jrte.ITransduction;
 
 /**
- * @author rex ex ossibus meis
+ * @author Kim Briggs
  *
  */
 public interface IRiboseRuntime {
 	
-	public IRiboseRuntime load(File jrteGearboxFile, String targetClassname);
-	
-	public IRiboseRuntime bind(ITarget target);
-	
-	public void close();
+	public ITransduction newTransduction(ITarget target);
 }

@@ -103,7 +103,6 @@ public final class Transduction implements ITransduction, ITarget, IOutput {
 	 *  Constructor
 	 *
 	 * @param gearbox The gearbox 
-	 * @param target The transduction target
 	 */
 	public Transduction(final Gearbox gearbox) {
 		super();

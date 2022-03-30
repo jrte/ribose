@@ -8,11 +8,10 @@ import java.io.File;
 import com.characterforming.jrte.ITarget;
 
 /**
- * @author rex ex ossibus meis
+ * @author Kim Briggs
  *
  */
 public interface IRiboseCompiler {
 	
-	void compileModelInstance(ITarget target, File dfaDirectory, File gearboxFile);
-
+	void compileModelInstance(Class<ITarget> targetClass, File dfaDirectory, File gearboxFile);
 }

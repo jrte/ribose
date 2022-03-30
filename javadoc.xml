@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<project name="javadoc" default="javadoc">
+  <target name="javadoc">
+    <javadoc access="protected" overview="overview.html" source="11" sourcepath="src" destdir="doc" splitindex="false" 
+			use="true" version="true" nodeprecated="false" nodeprecatedlist="false" noindex="false" nonavbar="false" notree="false" 
+      packagenames="com.characterforming.jrte,com.characterforming.jrte.base,com.characterforming.ribose"
+    	doctitle="The General Idea">
+      <group title="Ribose" packages="com.characterforming.ribose"/>
+      <group title="Jrte" packages="com.characterforming.jrte*"/>
+			<link href="file:/media/kb/SSD-T7/Ubuntu/git/jrte/doc/"/>
+			<link href="https://docs.oracle.com/en/java/javase/11/docs/api/"/>
+    </javadoc>
+		<jar basedir="doc" destfile="jars/${ant.project.name}-API.jar"/>
+  </target>
+</project>
