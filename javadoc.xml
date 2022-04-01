@@ -10,6 +10,14 @@
 			<link href="file:/media/kb/SSD-T7/Ubuntu/git/jrte/doc/"/>
 			<link href="https://docs.oracle.com/en/java/javase/11/docs/api/"/>
     </javadoc>
+		<copy todir="doc/resources">
+			<fileset dir="etc/javadoc/api/resources">
+				<include name="*"/>
+			</fileset>
+			<fileset dir="etc/javadoc">
+				<include name="*.png"/>
+			</fileset>
+		</copy>
 		<jar basedir="doc" destfile="jars/${ant.project.name}-API.jar"/>
   </target>
 </project>

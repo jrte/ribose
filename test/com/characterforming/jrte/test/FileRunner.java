@@ -53,21 +53,21 @@ public class FileRunner {
 	 */
 	public static void main(final String[] args) throws InterruptedException, RteException, IOException {
 		if ((args.length < 3) || (args.length > 5)) {
-			System.out.println(String.format("Usage: java -cp <classpath> [-Djrte.out.enabled=true ^|^ -Dregex.out.enabled=true] %s [--nil] <transducer-name> <input-path> <gearbox-path>", FileRunner.class.getName()));
+			System.out.println(String.format("Usage: java -cp <classpath> [-Djrte.out.enabled=true ^|^ -Dregex.out.enabled=true] %s [--nil] <transducer-name> <input-path> <model-path>", FileRunner.class.getName()));
 			System.exit(1);
 		}
 		final boolean nil = args[0].compareTo("--nil") == 0;
 		int arg = nil ? 1 : 0;
 		final String transducerName = args[arg++];
 		final String inputPath = args[arg++];
-		final String gearboxPath = args[arg++];
+		final String modelPath = args[arg++];
 		final String regex = (args.length > arg) ? args[arg++] : "";
 		
 		try {
 			final boolean jrteOutEnabled = System.getProperty("jrte.out.enabled", "false").equals("true");
 			final boolean regexOutEnabled = !regex.isEmpty() && System.getProperty("regex.out.enabled", "false").equals("true");
 			if (jrteOutEnabled && regexOutEnabled) {
-				System.out.println(String.format("Usage: java -cp <classpath> [-Djrte.out.enabled=true ^|^ -Dregex.out.enabled=true] %s [--nil] <transducer-name> <input-path> <gearbox-path>\n(jrteOutputEnabled and regexOutputEnabled can't both be true)", FileRunner.class.getName()));
+				System.out.println(String.format("Usage: java -cp <classpath> [-Djrte.out.enabled=true ^|^ -Dregex.out.enabled=true] %s [--nil] <transducer-name> <input-path> <model-path>\n(jrteOutputEnabled and regexOutputEnabled can't both be true)", FileRunner.class.getName()));
 				System.exit(1);
 			}
 			
@@ -85,7 +85,7 @@ public class FileRunner {
 			rteHandler.setFormatter(new SimpleFormatter());
 
 			BaseTarget target = new BaseTarget();
-			final IRiboseRuntime ribose = new RiboseRuntime(new File(gearboxPath), target);
+			final IRiboseRuntime ribose = new RiboseRuntime(new File(modelPath), target);
 			final ITransduction trex = ribose.newTransduction(target);
 			byte[][] input = nil
 				? new byte[][] { Base.encodeReferenceOrdinal(Base.TYPE_REFERENCE_SIGNAL, Base.Signal.nil.signal()), cbuf }

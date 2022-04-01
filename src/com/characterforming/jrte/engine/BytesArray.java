@@ -34,7 +34,7 @@ public final class BytesArray {
 	private final Bytes[] bytesArray;
 	private int hash;
 
-	public BytesArray(final byte[][] bytesArray) {
+	BytesArray(final byte[][] bytesArray) {
 		this.bytesArray = new Bytes[bytesArray.length];
 		for (int i = 0; i < this.bytesArray.length; i++) {
 			this.bytesArray[i] = new Bytes(bytesArray[i]);
@@ -42,7 +42,7 @@ public final class BytesArray {
 		this.hash = 0;
 	}
 
-	public byte[][] getBytes() {
+	byte[][] getBytes() {
 		final byte[][] bytes = new byte[this.bytesArray.length][];
 		for (int i = 0; i < bytes.length; i++) {
 			bytes[i] = this.bytesArray[i].getBytes();
@@ -50,7 +50,7 @@ public final class BytesArray {
 		return bytes;
 	}
 
-	public byte[] getBytes(final int index) {
+	byte[] getBytes(final int index) {
 		return this.bytesArray[index].getBytes();
 	}
 

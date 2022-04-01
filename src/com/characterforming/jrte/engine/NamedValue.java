@@ -105,22 +105,62 @@ class NamedValue implements INamedValue {
 		return chars;
 	}
 
+	@Override
+	public String asString() {
+		return Bytes.decode(this.value, this.getLength());
+	}
+	
+	@Override
+	public long asInteger() {
+		long value = 0;
+		for (int i = 0; i< this.length; i++) {
+			if (Character.getType(this.value[i]) == Character.DECIMAL_DIGIT_NUMBER) {
+				value *= 10;
+				value += (this.value[i] - 48);
+			} else {
+				throw new NumberFormatException(String.format(
+					"Not a numeric named value '%1$s'", this.toString())); 
+			}
+		}
+		return value;
+	}
+	
+	@Override
+	public double asReal() {
+		int a = 0, b = 0;
+		int pos = 0;
+		while (pos < this.length && this.value[pos] != '.') {
+			if (Character.getType(this.value[pos]) == Character.DECIMAL_DIGIT_NUMBER) {
+				a *= 10;
+				a += (this.value[pos] - 48);
+				pos++;
+			} else {
+				throw new NumberFormatException(String.format(
+					"Not a floating point named value '%1$s'", this.toString())); 
+			}
+		}
+		++pos;
+		int precision = 1;
+		while (pos < this.length) {
+			if (Character.getType(this.value[pos]) == Character.DECIMAL_DIGIT_NUMBER) {
+				precision *= 10;
+				b *= 10;
+				b += (this.value[pos] - 48);
+				pos++;
+			} else {
+				throw new NumberFormatException(String.format(
+					"Not a floating point named value '%1$s'", this.toString())); 
+			}
+		}
+		return a + ((double)b / (double)precision);
+	}
+
 	void clear() {
 		this.length = 0;
-assert this.value.length <= 256 && this.length <= this.value.length;
 	}
 
 	byte[] getValue() {
 		return this.value;
-	}
-
-	void growValue(int size) {
-		if ((this.length + size) > this.value.length) {
-			byte v[] = new byte[((this.length + size) * 5) >> 2];
-			System.arraycopy(this.value, 0, v, 0, this.length);
-			this.value = v;
-		}
-assert this.value.length <= 256 && this.length <= this.value.length;
 	}
 
 	void append(byte next) {
@@ -128,7 +168,6 @@ assert this.value.length <= 256 && this.length <= this.value.length;
 		growValue(1);
 		this.value[this.length] = next;
 		this.length += 1;
-assert this.value.length <= 256 && this.length <= this.value.length;
 	}
 
 	void append(byte next[]) {
@@ -136,15 +175,21 @@ assert this.value.length <= 256 && this.length <= this.value.length;
 		growValue(next.length);
 		System.arraycopy(next, 0, this.value, this.length, next.length);
 		this.length += next.length;
-assert this.value.length <= 256 && this.length <= this.value.length;
 	}
 
-	public void append(NamedValue next) {
+	void append(NamedValue next) {
 		assert this.value != null;
 		growValue(next.length);
 		System.arraycopy(next.value, 0, this.value, this.length, next.length);
 		this.length += next.length;
-assert this.value.length <= 256 && this.length <= this.value.length;
+	}
+
+	private void growValue(int size) {
+		if ((this.length + size) > this.value.length) {
+			byte v[] = new byte[((this.length + size) * 5) >> 2];
+			System.arraycopy(this.value, 0, v, 0, this.length);
+			this.value = v;
+		}
 	}
 
 	/*
@@ -153,7 +198,7 @@ assert this.value.length <= 256 && this.length <= this.value.length;
 	 */
 	@Override
 	public String toString() {
-		String value = this.value != null ? Charset.defaultCharset().decode(ByteBuffer.wrap(this.value, 0, this.length)).toString() : "null";
+		String value = this.value != null ? Bytes.decode(this.value, this.length) : "null";
 		return String.format("%s:%s", this.name.toString(), value);
 	}
 }

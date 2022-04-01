@@ -47,6 +47,10 @@ public final class Bytes {
 		this.hash = 0;
 	}
 
+	public static String decode(final byte[] bytes) {
+		return Charset.defaultCharset().decode(ByteBuffer.wrap(bytes).limit(bytes.length)).toString();
+	}
+
 	public static String decode(final byte[] bytes, final int length) {
 		return Charset.defaultCharset().decode(ByteBuffer.wrap(bytes).limit(Math.min(length, bytes.length))).toString();
 	}
@@ -72,7 +76,7 @@ public final class Bytes {
 		return new Bytes(bytes);
 	}
 	
-	public int length() {
+	public int getLength() {
 		int length = 0;
 		while (length < bytes.length && this.bytes[length] != 0) {
 			++length;
@@ -86,18 +90,18 @@ public final class Bytes {
 
 	@Override
 	public String toString() {
-		return Bytes.decode(this.getBytes(), this.length());
+		return Bytes.decode(this.getBytes(), this.getLength());
 	}
 	
 	public String toHexString() {
-	    char[] hex = new char[2 * this.bytes.length];
-	    for (int j = 0; j < this.bytes.length && this.bytes[j] != 0; j++) {
-	        int k = this.bytes[j] & 0xFF;
-	        hex[j * 2] = HEX[k >> 4];
-	        hex[j * 2 + 1] = HEX[k & 0x0F];
-	    }
-	    assert hex[hex.length - 1] != 0;
-	    return new String(hex);
+    char[] hex = new char[2 * this.bytes.length];
+    for (int j = 0; j < this.bytes.length && this.bytes[j] != 0; j++) {
+      int k = this.bytes[j] & 0xFF;
+      hex[j * 2] = HEX[k >> 4];
+      hex[j * 2 + 1] = HEX[k & 0x0F];
+    }
+    assert hex[hex.length - 1] != 0;
+    return new String(hex);
 	}
 
 	private int hash() {

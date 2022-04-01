@@ -1,6 +1,24 @@
-/**
- * Copyright (c) 2011,2017, Kim T Briggs, Hampton, NB.
+/***
+ * JRTE is a recursive transduction engine for Java
+ * 
+ * Copyright (C) 2011,2022 Kim Briggs
+ * 
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received copies of the GNU General Public License
+ * and GNU Lesser Public License along with this program.  See 
+ * LICENSE-lgpl-3.0 and LICENSE-gpl-3.0. If not, see 
+ * <http://www.gnu.org/licenses/>.
  */
+
 package com.characterforming.jrte.engine;
 
 import java.util.Arrays;
@@ -22,7 +40,7 @@ public final class IntsArray {
 		this.hash = 0;
 	}
 
-	public int[][] getInts() {
+	int[][] getInts() {
 		final int[][] ints = new int[this.intsArray.length][];
 		for (int i = 0; i < ints.length; i++) {
 			ints[i] = this.intsArray[i].getInts();
@@ -30,7 +48,7 @@ public final class IntsArray {
 		return ints;
 	}
 
-	public int[] getInts(final int index) {
+	int[] getInts(final int index) {
 		return this.intsArray[index].getInts();
 	}
 
@@ -53,7 +71,7 @@ public final class IntsArray {
 	@Override
 	public boolean equals(final Object other) {
 		return other == this || other != null && other instanceof IntsArray
-				&& ((IntsArray) other).hashCode() == this.hashCode()
-				&& Arrays.equals(((IntsArray) other).intsArray, this.intsArray);
+			&& ((IntsArray) other).hashCode() == this.hashCode()
+			&& Arrays.equals(((IntsArray) other).intsArray, this.intsArray);
 	}
 }

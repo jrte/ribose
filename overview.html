@@ -1,7 +1,7 @@
 <html>
 <body>
-<a href="https://github.com/jrte/ribose"><img src="resources/a-b-gears-white.gif"/></a>
-<a href="https://github.com/jrte/ribose"><b>Ribose</b></a> is about inversion of control 
+<a href="https://github.com/jrte/ribose" target="_blank"><img src="resources/a-b-gears-white.gif"/></a>
+<a href="https://github.com/jrte/ribose" target="_blank"><b>Ribose</b></a> is about inversion of control 
 for high-volume text analysis and information extraction and transformation. It is a 
 ship-in-bottle implementation of a runtime that is driven not so much by complex algorithms
 that attempt to deal with text in traditional programming languages (or build on top of
@@ -20,7 +20,7 @@ It wants data-driven machines controlled by patterns that transduce sequential
 information streams onto sequences of instructions to drive RAM and arithmetic
 number-crunching circuits. Transducers that can stop and wait quietly when the input
 stream runs dry and pick up where they left off when things get wet again. A compiler
-like <a href=https://github.com/ntozubod/ginr> <b>ginr</b></a> to compile nested regular
+like <a href=https://github.com/ntozubod/ginr target="_blank"><b>ginr</b></a> to compile nested regular
 syntactic patterns to stacked transducers mapping input to code snippets (effectors)
 that reduce input data into specific target domains. And a runtime like ribose to host
 transduction stacks to extract information from sequential inputs and assimilate it into
@@ -63,9 +63,9 @@ $ for n in '' 0 00 000 0000 00000 000000 0000000 00000000 000000000; do echo $n 
 1111111111111111111111111111111111
 </pre>
 The ribose compiler performs some transition-minimizing transformations on ginr automata to build 
-transducers and package them in a persistent store (gearbox) for runtime use. See the package
+transducers and package them in a persistent store (model) for runtime use. See the package
 documentation for ribose, jrte and base for more guidance on using the ribose compiler to
-marshal transducers into a gearbox and loading the ribose runtime. The ribose runtime 
+marshal transducers into a model and loading the ribose runtime. The ribose runtime 
 creates {@link com.characterforming.jrte.ITransduction} instances and binds them to domain-specific
 target instances. Sequential input read by the transduction drives target effectors to reduce
 and assimilate features extracted from input into the bound target. {@link com.characterforming.jrte.ITransduction}

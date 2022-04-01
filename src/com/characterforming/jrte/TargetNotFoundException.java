@@ -26,7 +26,7 @@ package com.characterforming.jrte;
  * 
  * @author Kim Briggs
  */
-public class TargetNotFoundException extends GearboxException {
+public class TargetNotFoundException extends ModelException {
 	private static final long serialVersionUID = 1L;
 
 	public TargetNotFoundException() {

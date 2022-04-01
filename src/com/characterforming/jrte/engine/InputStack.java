@@ -1,6 +1,24 @@
-/**
- * Copyright (c) 2011,2017, Kim T Briggs, Hampton, NB.
+/***
+ * JRTE is a recursive transduction engine for Java
+ * 
+ * Copyright (C) 2011,2022 Kim Briggs
+ * 
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received copies of the GNU General Public License
+ * and GNU Lesser Public License along with this program.  See 
+ * LICENSE-lgpl-3.0 and LICENSE-gpl-3.0. If not, see 
+ * <http://www.gnu.org/licenses/>.
  */
+
 package com.characterforming.jrte.engine;
 
 import java.util.Arrays;
@@ -15,7 +33,7 @@ public final class InputStack {
 	private IInput[] stack;
 	private int tos;
 
-	public InputStack(final int initialSize) {
+	InputStack(final int initialSize) {
 		this.stack = new IInput[initialSize];
 		this.tos = -1;
 	}
@@ -32,7 +50,7 @@ public final class InputStack {
 	 * 
 	 * @return the index of the top of stack
 	 */
-	public int tos() {
+	int tos() {
 		return this.tos;
 	}
 
@@ -41,7 +59,7 @@ public final class InputStack {
 	 * 
 	 * @param item The item to push
 	 */
-	public void push(final IInput item) {
+	void push(final IInput item) {
 		this.stackcheck(1);
 		this.stack[this.tos] = item;
 	}
@@ -51,7 +69,7 @@ public final class InputStack {
 	 * 
 	 * @param item The item to put
 	 */
-	public void put(final IInput item) {
+	void put(final IInput item) {
 		this.stackcheck(1);
 		System.arraycopy(this.stack, 0, this.stack, 1, this.tos);
 		this.stack[0] = item;
@@ -63,7 +81,7 @@ public final class InputStack {
 	 * 
 	 * @param items The items to put
 	 */
-	public void put(final IInput[] items) {
+	void put(final IInput[] items) {
 		this.stackcheck(items.length);
 		System.arraycopy(this.stack, 0, this.stack, items.length, 1 + this.tos - items.length);
 		System.arraycopy(items, 0, this.stack, 0, items.length);
@@ -74,7 +92,7 @@ public final class InputStack {
 	 * 
 	 * @return The item on the top of the stack, or null if empty
 	 */
-	public IInput peek() {
+	IInput peek() {
 		if (this.tos >= 0) {
 			return this.stack[this.tos];
 		} else {
@@ -88,7 +106,7 @@ public final class InputStack {
 	 * @return The item on top of the stack after the pop
 	 * @throws InputException 
 	 */
-	public IInput pop() throws InputException {
+	IInput pop() throws InputException {
 		if (this.tos >= 0) {
 			this.stack[this.tos].stop();
 			this.stack[this.tos] = null;
@@ -105,7 +123,7 @@ public final class InputStack {
 	 * @param index The index of the item to get
 	 * @return The Nth item from the stack
 	 */
-	public IInput get(final int index) {
+	IInput get(final int index) {
 		if (index >= 0 && index <= this.tos) {
 			return this.stack[index];
 		} else {
@@ -118,7 +136,7 @@ public final class InputStack {
 	 * 
 	 * @return the number of items on the stack
 	 */
-	public int size() {
+	int size() {
 		return this.tos + 1;
 	}
 
@@ -127,7 +145,7 @@ public final class InputStack {
 	 * 
 	 * @return True if the stack is empty
 	 */
-	public boolean isEmpty() {
+	boolean isEmpty() {
 		return this.tos < 0;
 	}
 }

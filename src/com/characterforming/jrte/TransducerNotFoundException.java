@@ -22,7 +22,7 @@
 package com.characterforming.jrte;
 
 /**
- * Thrown when a named transducer cannot be found in the gearbox
+ * Thrown when a named transducer cannot be found in the model
  * 
  * @author Kim Briggs
  */

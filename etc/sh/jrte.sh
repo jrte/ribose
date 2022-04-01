@@ -5,7 +5,7 @@ while [[ "$1" =~ ^[-][^-] ]]; do
 	shift
 done
 if (($#<2)) || (($#>4)); then
-	echo -e "Usage:\tjrte.sh [<vm-arg ...] [--nil] <transducer-name> <input-path> [<gearbox-path>]\n\tDefault gearbox is build/patterns/Jrte.gears"
+	echo -e "Usage:\tjrte.sh [<vm-arg ...] [--nil] <transducer-name> <input-path> [<model-path>]"
 fi
 nil=""
 if [[ "$1" == "--nil" ]]; then
@@ -20,18 +20,17 @@ if (($#>0)); then
 	input="$1"
 	shift
 fi
-gearbox="build/patterns/Jrte.gears"
 if (($#>0)); then
-	gearbox="$1"
+	model="$1"
 	shift
 fi
-if [[ -f "$input" && -f "$gearbox" ]]; then
-	java $vmargs -cp jars/jrte-HEAD.jar com.characterforming.jrte.Jrte $nil $transducer $input $gearbox
+if [[ -f "$input" && -f "$model" ]]; then
+	java $vmargs -cp jars/ribose-0.0.0.jar com.characterforming.ribose.RiboseRuntime $nil $transducer $input $model
 else
 	if [[ ! -f "$input" ]]; then
-		echo "No file $input
+		echo "No file $input"
 	fi
-	if [[ ! -f "$gearbox" ]]; then
-		echo "No gearbox $gearbox
+	if [[ ! -f "$model" ]]; then
+		echo "No model $model"
 	fi
 fi

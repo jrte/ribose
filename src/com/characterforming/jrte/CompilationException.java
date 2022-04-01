@@ -22,7 +22,7 @@
 package com.characterforming.jrte;
 
 /**
- * Thrown by the gearbox compiler when an error is found during gearbox compilation
+ * Thrown by the model compiler when an error is found during model compilation
  * 
  * @author Kim Briggs
  */

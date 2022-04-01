@@ -48,7 +48,7 @@ public class TestRunner {
 	 */
 	public static void main(final String[] args) throws InterruptedException, RteException, SecurityException, IOException {
 		if (args.length == 0) {
-			System.out.println(String.format("Usage: java -cp <classpath> %1$s <gearbox-path> [wait-ms]", TestRunner.class.getName()));
+			System.out.println(String.format("Usage: java -cp <classpath> %1$s <model-path> [wait-ms]", TestRunner.class.getName()));
 			System.exit(1);
 		}
 		
@@ -57,7 +57,7 @@ public class TestRunner {
 		rteLogger.addHandler(rteHandler);
 		rteHandler.setFormatter(new SimpleFormatter());
 		
-		final String gearboxPath = args[0];
+		final String modelPath = args[0];
 		final long arg = args.length > 1 ? Long.parseLong(args[1]) : 0;
 		final char[] achars = new char[10000000];
 		for (int i = 0; i < achars.length; i++) {
@@ -82,7 +82,7 @@ public class TestRunner {
 				"NilSpeedTest", "PasteSpeedTest", "NilPauseTest", "PastePauseTest", "PasteCutTest", "SelectPasteTest", "PasteCountTest", "CounterTest", "StackTest"
 		};
 		final BaseTarget target = new BaseTarget();
-		final RiboseRuntime ribose = new RiboseRuntime(new File(gearboxPath), target);
+		final RiboseRuntime ribose = new RiboseRuntime(new File(modelPath), target);
 		final ITransduction trex = ribose.newTransduction(target);
 		final ByteInput nilinput = (ByteInput) ribose.input(new byte[][] {
 			Base.encodeReferenceOrdinal(Base.TYPE_REFERENCE_SIGNAL, Base.Signal.nil.signal()), 

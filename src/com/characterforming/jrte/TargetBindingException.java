@@ -29,7 +29,7 @@ import java.util.List;
  * 
  * @author Kim Briggs
  */
-public class TargetBindingException extends GearboxException {
+public class TargetBindingException extends ModelException {
 
 	private static final long serialVersionUID = 1L;
 	private List<String> unboundEffectorList = null;

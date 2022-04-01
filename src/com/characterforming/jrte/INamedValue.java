@@ -68,4 +68,25 @@ public interface INamedValue {
 	 * @return A copy of the contents of the value array
 	 */
 	public byte[] copyValue();
+	
+	/**
+	 * Extract value as String
+	 * 
+	 * @return A string representation of the value
+	 */
+	public String asString();
+	
+	/**
+	 * Extract value as long integer
+	 * 
+	 * @return A integral representation of the value
+	 */
+	public long asInteger();
+	
+	/**
+	 * Extract value as floating point number
+	 * 
+	 * @return A floating point representation of the value
+	 */
+	public double asReal();
 }

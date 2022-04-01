@@ -21,7 +21,7 @@
 
 package com.characterforming.ribose;
 
-import com.characterforming.jrte.GearboxException;
+import com.characterforming.jrte.ModelException;
 import com.characterforming.jrte.IInput;
 import com.characterforming.jrte.ITarget;
 import com.characterforming.jrte.ITransduction;
@@ -37,7 +37,7 @@ public interface IRiboseRuntime {
 	
 	public IInput input(byte[][] bytesInput);
 	
-	public ITransduction newTransduction(ITarget target) throws GearboxException, RteException;
+	public ITransduction newTransduction(ITarget target) throws ModelException, RteException;
 	
-	public void close() throws GearboxException;
+	public void close() throws ModelException;
 }

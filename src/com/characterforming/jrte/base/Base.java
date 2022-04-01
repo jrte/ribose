@@ -22,10 +22,10 @@
 package com.characterforming.jrte.base;
 
 public class Base {
-	public static String RTE_VERSION = "jrte-HEAD";
+	public static String RTE_VERSION = "ribose-HEAD";
 
-	public static final String RTE_LOGGER_NAME = "jrte";
-	public static final String RTC_LOGGER_NAME = "jrtc";
+	public static final String RTE_LOGGER_NAME = "ribose-runtime";
+	public static final String RTC_LOGGER_NAME = "ribose-compile";
 	
 	public final static String AUTOMATON_FILE_SUFFIX = ".dfa";
 	

@@ -1,6 +1,24 @@
-/**
- * Copyright (c) 2011,2017, Kim T Briggs, Hampton, NB.
+/***
+ * JRTE is a recursive transduction engine for Java
+ * 
+ * Copyright (C) 2011,2022 Kim Briggs
+ * 
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received copies of the GNU General Public License
+ * and GNU Lesser Public License along with this program.  See 
+ * LICENSE-lgpl-3.0 and LICENSE-gpl-3.0. If not, see 
+ * <http://www.gnu.org/licenses/>.
  */
+
 package com.characterforming.jrte.engine;
 
 import java.io.File;
@@ -20,11 +38,11 @@ import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
 
 import com.characterforming.jrte.CompilationException;
-import com.characterforming.jrte.GearboxException;
 import com.characterforming.jrte.IEffector;
 import com.characterforming.jrte.IOutput;
 import com.characterforming.jrte.IParameterizedEffector;
 import com.characterforming.jrte.ITarget;
+import com.characterforming.jrte.ModelException;
 import com.characterforming.jrte.TargetBindingException;
 import com.characterforming.jrte.TransducerNotFoundException;
 import com.characterforming.jrte.base.Base;
@@ -33,12 +51,15 @@ import com.characterforming.jrte.base.Bytes;
 /**
  * @author Kim Briggs
  */
-public final class Gearbox implements AutoCloseable {
+public final class RuntimeModel implements AutoCloseable {
 	private final static Logger rteLogger = Logger.getLogger(Base.RTE_LOGGER_NAME);
 	private final static Logger rtcLogger = Logger.getLogger(Base.RTC_LOGGER_NAME);
 
+	public enum Mode { none, compile, run; }
+	
 	private RandomAccessFile io;
-	private File gearboxPath;
+	private File modelPath;
+	private boolean deleteOnClose;
 	private ITarget modelTarget;
 	private IEffector<?>[] modelEffectors;
 	private Transduction modelTransduction;
@@ -48,82 +69,80 @@ public final class Gearbox implements AutoCloseable {
 	private HashMap<Bytes, Integer> effectorOrdinalMap;
 	private ArrayList<HashMap<BytesArray, Integer>> effectorParametersMaps;
 	private String ioMode;
+	private Mode mode;
 
 	private volatile Transducer transducerObjectIndex[];
 	private Bytes transducerNameIndex[];
 	private long transducerOffsetIndex[];
-
-	private boolean deleteOnClose;
-
+	private Logger logger;
 	
-	public enum Gear { compile, run; }
-	
-	private void initialize() throws TargetBindingException {
-		try {
-			Logger rteLogger = Logger.getLogger(Base.RTE_LOGGER_NAME);
-			final FileHandler rteHandler = new FileHandler("jrte.log");
-			rteHandler.setFormatter(new SimpleFormatter());
-			rteLogger.addHandler(rteHandler);
-			Logger rtcLogger = Logger.getLogger(Base.RTE_LOGGER_NAME);
-			final FileHandler rtcHandler = new FileHandler("jrtc.log");
-			rtcHandler.setFormatter(new SimpleFormatter());
-			rtcLogger.addHandler(rtcHandler);
-		} catch (SecurityException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-
-		IEffector<?>[] trexFx = this.modelTransduction.bindEffectors();
-		IEffector<?>[] targetFx = this.modelTarget.bindEffectors();
-		this.modelEffectors = new IEffector<?>[trexFx.length + targetFx.length];
-		System.arraycopy(trexFx, 0, this.modelEffectors, 0, trexFx.length);
-		System.arraycopy(targetFx, 0, this.modelEffectors, trexFx.length, targetFx.length);
-		this.effectorOrdinalMap = new HashMap<Bytes, Integer>((this.modelEffectors.length * 5) / 4);
-		this.effectorParametersMaps = new ArrayList<HashMap<BytesArray, Integer>>(this.modelEffectors.length);
-		this.namedValueOrdinalMap = new HashMap<Bytes, Integer>(256);
-		this.modelTransduction.setNamedValueOrdinalMap(Collections.unmodifiableMap(this.namedValueOrdinalMap));
-		this.modelTransduction.setEffectors(this.modelEffectors);
-		for (int effectorOrdinal = 0; effectorOrdinal < this.modelEffectors.length; effectorOrdinal++) {
-			this.effectorParametersMaps.add(null);
-			this.effectorOrdinalMap.put(this.modelEffectors[effectorOrdinal].getName(), effectorOrdinal);
-		}
-	}
-
-	public Gearbox(Gear compileOrRun, final File gearboxPath, final ITarget target) throws GearboxException {
+	public RuntimeModel(Mode mode, final File modelPath, final ITarget target) throws ModelException {
+		this.mode = mode;
 		this.modelTarget = target;
-		this.gearboxPath = gearboxPath;
+		this.modelPath = modelPath;
 		this.modelTransduction = new Transduction(this);
 		this.deleteOnClose = false;
 		this.initialize();
-		if (compileOrRun == Gear.run) {
+		if (this.mode == Mode.run) {
 			this.bind(target);
 		}
 	}
 
+	public Transduction bindTransduction(ITarget target) throws ModelException {
+		Transduction trex = new Transduction(this);
+		IEffector<?>[] trexFx = trex.bindEffectors();
+		IEffector<?>[] targetFx = target.bindEffectors();
+		IEffector<?>[] boundFx = new IEffector<?>[trexFx.length + targetFx.length];
+		System.arraycopy(trexFx, 0, boundFx, 0, trexFx.length);
+		System.arraycopy(targetFx, 0, boundFx, trexFx.length, targetFx.length);
+		trex.setNamedValueOrdinalMap(this.getNamedValueOrdinalMap());
+		this.bindParameters(trex, boundFx);
+		trex.setEffectors(boundFx);
+		return trex;
+	}
+
+	public ITarget getModelTarget() {
+		return this.modelTarget;
+	}
+
+	public IEffector<?>[] getModelEffectors() {
+		return this.modelEffectors;
+	}
+
+	public Map<Bytes, Integer> getNamedValueOrdinalMap() {
+		return Collections.unmodifiableMap(this.namedValueOrdinalMap);
+	}
+
 	/**
 	 * @param target
-	 * @return 
-	 * @throws GearboxException
+	 * @return true unless unable to bind model
+	 * @throws 
+	 * @throws ModelException
 	 */
-	boolean bind(final ITarget target) throws GearboxException {
+	boolean bind(final ITarget target) throws ModelException {
 		boolean abort = true;
+		if (this.mode != Mode.run) {
+			throw new ModelException("Model is not open for runtime binding");
+		}
+		if (this.ioMode != null) {
+			throw new ModelException("Model is already bound to runtime");
+		}
 		try {
 			this.ioMode = "rw";
-			this.io = new RandomAccessFile(this.gearboxPath, this.ioMode);
+			this.io = new RandomAccessFile(this.modelPath, this.ioMode);
 		} catch (final IOException e) {
-			throw new GearboxException(String.format("Gearbox caught an IOException attempting to open '%1$s'",
-				this.gearboxPath.getPath()), e);
+			throw new ModelException(String.format("Model caught an IOException attempting to open '%1$s'",
+				this.modelPath.getPath()), e);
 		}
 		try {
 			long indexPosition = this.getLong();
 			final String fileVersion = this.getString();
 			if (!fileVersion.equals(Base.RTE_VERSION)) {
-				throw new GearboxException(String.format("Current this version '%1$s' does not match version string '%2$s' from file '%3$s'", Base.RTE_VERSION, fileVersion, this.gearboxPath.getPath()));
+				throw new ModelException(String.format("Current this version '%1$s' does not match version string '%2$s' from file '%3$s'", Base.RTE_VERSION, fileVersion, this.modelPath.getPath()));
 			}
 			final String targetClassname = this.getString();
 			if (target == null || !targetClassname.equals(target.getClass().getName())) {
-				throw new GearboxException(String.format("Wrong target class name '%1$s' -- target class is '%2$s' in this file '%3$s'", target != null ? target.getName() : "null", targetClassname, this.gearboxPath.getPath()));
+				throw new ModelException(String.format("Wrong target class name '%1$s' -- target class is '%2$s' in this file '%3$s'", target != null ? target.getName() : "null", targetClassname, this.modelPath.getPath()));
 			}
 			this.modelTarget = target;
 			try {
@@ -134,7 +153,7 @@ public final class Gearbox implements AutoCloseable {
 				assert this.effectorOrdinalMap.size() == this.modelEffectors.length;
 				this.transducerOrdinalMap = this.getOrdinalMap(); 
 				if (!this.transducerOrdinalMap.containsKey(Bytes.encode(this.modelTarget.getName()))) {
-					throw new GearboxException(String.format("Target name '%1$s' not found in name offset map for this file '%2$s'", this.modelTarget.getName(), this.gearboxPath.getPath()));
+					throw new ModelException(String.format("Target name '%1$s' not found in name offset map for this file '%2$s'", this.modelTarget.getName(), this.modelPath.getPath()));
 				}
 				int transducerCount = this.transducerOrdinalMap.size();
 				this.transducerNameIndex = new Bytes[transducerCount];
@@ -161,50 +180,58 @@ public final class Gearbox implements AutoCloseable {
 					}
 				}
 			} catch (final IOException e) {
-				throw new GearboxException(String.format("Gearbox caught an IOException attempting to seek to file position %1$d in this file '%2$s'",
-					indexPosition, this.gearboxPath.getPath()), e);
+				throw new ModelException(String.format("Model caught an IOException attempting to seek to file position %1$d in this file '%2$s'",
+					indexPosition, this.modelPath.getPath()), e);
 			} catch (final Exception e) {
-				long position = -1;
-				try { position = this.io.getFilePointer(); } catch (IOException io) { }
-				throw new GearboxException(String.format("Gearbox caught an Exception at file position %1$d attempting to load gearbox file '%2$s'",
-						position, this.gearboxPath.getPath()), e);
+				if (!(e instanceof ModelException)) {
+					long position = -2;
+					try { position = this.io.getFilePointer(); } catch (IOException io) { }
+					throw new ModelException(String.format(
+						"Exception caught at file position %1$d reading model file '%2$s'",
+						position, this.modelPath.getPath()), e);
+				}
+				throw (ModelException)e;
 			}
 			abort = false;
 		} finally {
-			if (abort && this.io != null) {
-				try {
-					this.io.close();
-				} catch (final IOException e) {
-					e.printStackTrace(System.err);
-				}
+			if (abort) {
+				this.close();
 			}
 		}
 		return !abort;
 	}
 
 	/**
-	 * @return false if compibindlation fails
-	 * @throws GearboxException
+	 * @return false if compilation fails
+	 * @throws ModelException
 	 */
-	public boolean compile(File inrAutomataDirectory) throws GearboxException {
+	public boolean compile(File inrAutomataDirectory) throws ModelException {
+		if (this.mode != Mode.compile) {
+			throw new ModelException("Model is not open for compiling");
+		}
+		if (this.ioMode != null) {
+			throw new ModelException("Model is already bound to runtime");
+		}
 		if (!inrAutomataDirectory.isDirectory()) {
-			throw new GearboxException(String.format("Not an automata directory '%1$s'",
-				inrAutomataDirectory));			
+			throw new ModelException(String.format("Not a directory :'%1$s'",	inrAutomataDirectory));			
 		}
+		
 		try {
-			if (this.gearboxPath.exists()) {
-				this.gearboxPath.delete();
-			}
 			this.ioMode = "rw";
-			this.gearboxPath.createNewFile();
-			this.io = new RandomAccessFile(this.gearboxPath, this.ioMode);
+			if (this.modelPath.exists()) {
+				this.modelPath.delete();
+			}
+			this.modelPath.createNewFile();
+			this.io = new RandomAccessFile(this.modelPath, this.ioMode);
+			this.setDeleteOnClose(true);
 		} catch (final IOException e) {
-			throw new GearboxException(String.format("Gearbox caught an IOException attempting to open '%1$s'",
-				this.gearboxPath.getPath()), e);
+			if (this.modelPath.exists()) {
+				this.modelPath.delete();
+			}
+			throw new ModelException(String.format("Model caught an IOException attempting to open '%1$s'",
+				this.modelPath.getPath()), e);
 		}
-		this.putLong(0);
-		this.putString(Base.RTE_VERSION);
-		this.putString(this.modelTarget.getClass().getName());
+		
 		this.signalOrdinalMap = new HashMap<Bytes, Integer>(Base.RTE_SIGNAL_BASE + 256);
 		for (int ordinal = 0; ordinal < Base.RTE_SIGNAL_BASE; ordinal++) {
 			Bytes name = new Bytes(new byte[] { 0, (byte)ordinal });
@@ -223,9 +250,11 @@ public final class Gearbox implements AutoCloseable {
 		this.transducerObjectIndex = new Transducer[256];
 		this.transducerOffsetIndex = new long[256];
 		this.transducerNameIndex = new Bytes[256];
+		
 		try {
-//			this.gearboxCompiler.compile(this.modelTarget, this.modelEffectors);
-			this.gearboxPath.createNewFile();
+			this.putLong(0);
+			this.putString(Base.RTE_VERSION);
+			this.putString(this.modelTarget.getClass().getName());
 			final ArrayList<String> errors = new ArrayList<String>(32);
 			for (final String filename : inrAutomataDirectory.list()) {
 				if (!filename.endsWith(Base.AUTOMATON_FILE_SUFFIX)) {
@@ -237,86 +266,136 @@ public final class Gearbox implements AutoCloseable {
 					final Bytes transducerToken = Bytes.encode(transducerFilename);
 					errors.addAll(this.compileTransducer(transducerToken, inrAutomatonFile));
 				} catch (Exception e) {
-					String msg = String.format("Caught Exception compiling transducer '%1$s'", filename);
-					Gearbox.rtcLogger.log(Level.SEVERE, msg, e);
+					String msg = String.format("Exception caught compiling transducer '%1$s'", filename);
 					errors.add(msg);
 				}
 			}
-
-			this.deleteOnClose &= (errors.size() == 0);
-			if (!this.deleteOnClose) {
-				try {
-					this.deleteOnClose = true;
-					long filePosition = this.seek(-1);
-					int targetOrdinal = this.addTransducer(new Bytes(this.modelTarget.getName().getBytes()));
-					this.setTransducerOffset(targetOrdinal, filePosition);
-					long indexPosition = this.io.getFilePointer();
-					assert indexPosition == this.io.length();
-					this.putOrdinalMap(signalOrdinalMap);
-					this.putOrdinalMap(namedValueOrdinalMap);
-					this.putOrdinalMap(effectorOrdinalMap);
-					this.putOrdinalMap(transducerOrdinalMap);
-					int transducerCount = this.transducerOrdinalMap.size();
-					for (int index = 0; index < transducerCount; index++) {
-						assert this.transducerOffsetIndex[index] > 0;
-						this.putBytes(this.transducerNameIndex[index]);
-						this.putLong(this.transducerOffsetIndex[index]);
-					}
-					this.compileModelParameters();
-					this.seek(0);
-					this.putLong(indexPosition);
-					this.deleteOnClose = false;
-					saveMapFile(new File(this.gearboxPath.getPath().replaceAll(".gears", ".map")));
-					System.out.println(String.format("Target class %1$s: %2$d text ordinals, %3$d signal ordinals, %4$d  effectors",
-						this.modelTarget.getName(), Base.RTE_SIGNAL_BASE, this.getSignalCount(), this.effectorOrdinalMap.size()));
-					System.out.println(String.format("Target package %1$s", 
-						this.modelTarget.getClass().getPackage().getName()));
-				} catch (GearboxException e) {
-					String msg = String.format("Caught GearboxException compiling target for '%1$s'", this.gearboxPath.getPath());
-					Gearbox.rtcLogger.log(Level.SEVERE, msg, e);
-					throw e;
-				} finally {
-					setDeleteOnClose(!errors.isEmpty());
+			if (errors.size() == 0) {
+				long filePosition = this.seek(-1);
+				int targetOrdinal = this.addTransducer(new Bytes(this.modelTarget.getName().getBytes()));
+				this.setTransducerOffset(targetOrdinal, filePosition);
+				long indexPosition = this.io.getFilePointer();
+				assert indexPosition == this.io.length();
+				this.putOrdinalMap(signalOrdinalMap);
+				this.putOrdinalMap(namedValueOrdinalMap);
+				this.putOrdinalMap(effectorOrdinalMap);
+				this.putOrdinalMap(transducerOrdinalMap);
+				int transducerCount = this.transducerOrdinalMap.size();
+				for (int index = 0; index < transducerCount; index++) {
+					assert this.transducerOffsetIndex[index] > 0;
+					this.putBytes(this.transducerNameIndex[index]);
+					this.putLong(this.transducerOffsetIndex[index]);
 				}
+				this.compileModelParameters();
+				this.seek(0);
+				this.putLong(indexPosition);
+				this.setDeleteOnClose(false);
+				saveMapFile(new File(this.modelPath.getPath().replaceAll(".model", ".map")));
+				System.out.println(String.format("Target class %1$s: %2$d text ordinals, %3$d signal ordinals, %4$d  effectors",
+					this.modelTarget.getName(), Base.RTE_SIGNAL_BASE, this.getSignalCount(), this.effectorOrdinalMap.size()));
+				System.out.println(String.format("Target package %1$s", this.modelTarget.getClass().getPackage().getName()));
 			} else {
 				for (final String error : errors) {
-					Gearbox.rtcLogger.log(Level.SEVERE, error);
+					this.logger.log(Level.SEVERE, error);
 				}
-				setDeleteOnClose(true);
-				throw new GearboxException(String.format("Build failed for gearbox '%1$s'", this.gearboxPath.getPath()));
+				throw new ModelException(String.format("Build failed for model '%1$s'", this.modelPath.getPath()));
 			}
-		} catch (final IOException e) {
-			throw new GearboxException("Gearbox caught an IOException attempting to close '%1$s' " + this.gearboxPath.getPath(), e);
+		} catch (Exception e) {
+			if (!(e instanceof ModelException)) {
+				String msg = String.format("Exception caught compiling target for '%1$s'", this.modelPath.getPath());
+				throw new ModelException(msg, e);
+			}
+			throw (ModelException)e;
+		} finally {
+			this.close();
 		}
 		return true;
 	}
 
-	public void saveMapFile(File mapFile) {
+	@Override
+	public void close() throws ModelException {
+		if (this.io != null) {
+			try {
+				this.io.close();
+			} catch (IOException e) {
+				throw new ModelException("Unable to close model file %1$s " + this.modelPath.getPath(), e);
+			} finally {
+				if (this.deleteOnClose && this.modelPath.exists() && !this.modelPath.delete()) {
+					RuntimeModel.rtcLogger.warning("Unable to delete invalid model file %1$s " + this.modelPath.getPath());
+				}
+			}
+		}
+	}
+
+	private void initialize() throws ModelException {
+		try {
+			final FileHandler rteHandler = new FileHandler(Base.RTE_LOGGER_NAME + "log", true);
+			rteHandler.setFormatter(new SimpleFormatter());
+			RuntimeModel.rteLogger.addHandler(rteHandler);
+			final FileHandler rtcHandler = new FileHandler(Base.RTC_LOGGER_NAME + ".log", true);
+			rtcHandler.setFormatter(new SimpleFormatter());
+			RuntimeModel.rtcLogger.addHandler(rtcHandler);
+		} catch (SecurityException e) {
+			throw new ModelException("SecurityException caught while initializing logs", e);
+		} catch (IOException e) {
+			throw new ModelException("IOException caught while initializing logs", e);
+		}
+		this.logger = (this.mode == Mode.compile) ? RuntimeModel.rtcLogger : RuntimeModel.rteLogger;
+
+		IEffector<?>[] trexFx = this.modelTransduction.bindEffectors();
+		IEffector<?>[] targetFx = this.modelTarget.bindEffectors();
+		this.modelEffectors = new IEffector<?>[trexFx.length + targetFx.length];
+		System.arraycopy(trexFx, 0, this.modelEffectors, 0, trexFx.length);
+		System.arraycopy(targetFx, 0, this.modelEffectors, trexFx.length, targetFx.length);
+		this.effectorOrdinalMap = new HashMap<Bytes, Integer>((this.modelEffectors.length * 5) / 4);
+		this.effectorParametersMaps = new ArrayList<HashMap<BytesArray, Integer>>(this.modelEffectors.length);
+		this.namedValueOrdinalMap = new HashMap<Bytes, Integer>(256);
+		this.modelTransduction.setNamedValueOrdinalMap(Collections.unmodifiableMap(this.namedValueOrdinalMap));
+		this.modelTransduction.setEffectors(this.modelEffectors);
+		for (int effectorOrdinal = 0; effectorOrdinal < this.modelEffectors.length; effectorOrdinal++) {
+			this.effectorParametersMaps.add(null);
+			this.effectorOrdinalMap.put(this.modelEffectors[effectorOrdinal].getName(), effectorOrdinal);
+		}
+	}
+
+	private void saveMapFile(File mapFile) {
 		PrintWriter mapWriter = null;
 		try {
 			mapWriter = new PrintWriter(mapFile);
 			mapWriter.println(String.format("target\t%1$s\t#[T=%2$d;S=%3$d;E=%4$d;V=%4$d]",
 				this.modelTarget.getName(), this.transducerOrdinalMap.size(), this.signalOrdinalMap.size() - Base.RTE_SIGNAL_BASE,
 				this.effectorOrdinalMap.size(), this.namedValueOrdinalMap.size()));
+			Bytes[] transducerIndex = new Bytes[this.transducerOrdinalMap.size()];
 			for (Map.Entry<Bytes, Integer> m : this.transducerOrdinalMap.entrySet()) {
-				if (m.getValue() != (this.transducerOrdinalMap.size() - 1)) {
-					mapWriter.println("transducer\t" + m.getKey() + "\t" + m.getValue());
-				}
+				transducerIndex[m.getValue()] = m.getKey(); 
 			}
+			for (int i = 0; i < (transducerIndex.length - 1); i++) {
+				mapWriter.println("transducer\t" + transducerIndex[i] + "\t" + i);
+			}
+			Bytes[] signalIndex = new Bytes[this.signalOrdinalMap.size()];
 			for (Map.Entry<Bytes, Integer> m : this.signalOrdinalMap.entrySet()) {
-				if (m.getValue() > 255) {
-					mapWriter.println("signal\t" + m.getKey() + "\t" + m.getValue());
-				}
+				signalIndex[m.getValue()] = m.getKey(); 
 			}
+			for (int i = Base.RTE_SIGNAL_BASE; i < signalIndex.length; i++) {
+				mapWriter.println("signal\t" + signalIndex[i] + "\t" + i);
+			}
+			Bytes[] effectorIndex = new Bytes[this.effectorOrdinalMap.size()];
 			for (Map.Entry<Bytes, Integer> m : this.effectorOrdinalMap.entrySet()) {
-				mapWriter.println("effector\t" + m.getKey() + "\t" + m.getValue());
+				effectorIndex[m.getValue()] = m.getKey(); 
 			}
+			for (int i = 0; i < effectorIndex.length; i++) {
+				mapWriter.println("effector\t" + effectorIndex[i] + "\t" + i);
+			}
+			Bytes[] valueIndex = new Bytes[this.namedValueOrdinalMap.size()];
 			for (Map.Entry<Bytes, Integer> m : this.namedValueOrdinalMap.entrySet()) {
-				mapWriter.println("value" + m.getKey() + "\t" + m.getValue());
+				valueIndex[m.getValue()] = m.getKey(); 
+			}
+			for (int i = 0; i < valueIndex.length; i++) {
+				mapWriter.println("value\t" + valueIndex[i] + "\t" + i);
 			}
 			mapWriter.flush();
 		} catch (final IOException e) {
-			Gearbox.rtcLogger.log(Level.SEVERE, "Gearbox unable to create map file " + mapFile.getPath(), e);
+			this.logger.log(Level.SEVERE, "Model unable to create map file " + mapFile.getPath(), e);
 		} finally {
 			if (mapWriter != null) {
 				mapWriter.close();
@@ -324,7 +403,7 @@ public final class Gearbox implements AutoCloseable {
 		}
 	}
 
-	private ArrayList<String> compileTransducer(Bytes transducerName, File inrAutomatonFile) throws IOException, GearboxException {
+	private ArrayList<String> compileTransducer(Bytes transducerName, File inrAutomatonFile) throws IOException, ModelException {
 		final TransducerCompiler transducerCompiler = new TransducerCompiler(transducerName, this);
 		try {
 			transducerCompiler.load(inrAutomatonFile);
@@ -338,7 +417,7 @@ public final class Gearbox implements AutoCloseable {
 		return new ArrayList<String>(0);
 	}
 
-	private void compileModelParameters() throws GearboxException {
+	private void compileModelParameters() throws ModelException {
 		final Map<Bytes, Integer> effectorOrdinalMap = this.getEffectorOrdinalMap();
 		final IEffector<?>[] effectors = this.getModelEffectors();
 		final ArrayList<String> unbound = new ArrayList<String>();
@@ -361,7 +440,7 @@ public final class Gearbox implements AutoCloseable {
 						} catch (TargetBindingException x) {
 							final String message = String.format("Unable to compile parameters for effector '%1$s'",
 								parameterizedEffector.getName());
-							Gearbox.rtcLogger.log(Level.SEVERE, message, x);
+							this.logger.log(Level.SEVERE, message, x);
 							unbound.add(message);
 						}
 					}
@@ -369,7 +448,7 @@ public final class Gearbox implements AutoCloseable {
 				} else if (parameters.size() > 0) {
 					final String message = String.format("%1$s.%2$s: effector does not accept parameters\n",
 						this.modelTarget.getName(), effector.getName());
-					Gearbox.rtcLogger.severe(message);
+					RuntimeModel.rtcLogger.severe(message);
 					unbound.add(message);
 				} else {
 					this.putInt(-1);
@@ -390,8 +469,7 @@ public final class Gearbox implements AutoCloseable {
 		}
 	}
 
-
-	public int compileParameters(final int effectorOrdinal, final byte[][] parameterBytes) {
+	int compileParameters(final int effectorOrdinal, final byte[][] parameterBytes) {
 		HashMap<BytesArray, Integer> parametersMap = this.effectorParametersMaps.get(effectorOrdinal);
 		if (parametersMap == null) {
 			parametersMap = new HashMap<BytesArray, Integer>(10);
@@ -415,7 +493,7 @@ public final class Gearbox implements AutoCloseable {
 		return parametersIndex;
 	}
 
-	public void bindParameters(IOutput output, IEffector<?>[] runtimeEffectors) {
+	private void bindParameters(IOutput output, IEffector<?>[] runtimeEffectors) {
 		assert runtimeEffectors.length == this.modelEffectors.length;
 		for (int i = 0; i < this.modelEffectors.length; i++) {
 			if (this.modelEffectors[i] instanceof IParameterizedEffector<?,?>) {
@@ -430,27 +508,12 @@ public final class Gearbox implements AutoCloseable {
 			}
 		}
 	}
-
-	@Override
-	public void close() throws GearboxException {
-		if (this.io != null) {
-			try {
-				this.io.close();
-			} catch (IOException e) {
-				throw new GearboxException("Unable to close gearbox file %1$s " + this.gearboxPath.getPath(), e);
-			} finally {
-				if (this.deleteOnClose && this.gearboxPath.exists() && !this.gearboxPath.delete()) {
-					Gearbox.rteLogger.warning("Unable to delete invalid gearbox file %1$s " + this.gearboxPath.getPath());
-				}
-			}
-		}
-	}
 	
 	Map<Bytes, Integer> getEffectorOrdinalMap() {
 		return Collections.unmodifiableMap(this.effectorOrdinalMap);
 	}
 
-	public int getEffectorOrdinal(Bytes bytes) {
+	int getEffectorOrdinal(Bytes bytes) {
 		return this.effectorOrdinalMap.getOrDefault(bytes, -1);
 	}
 
@@ -464,11 +527,11 @@ public final class Gearbox implements AutoCloseable {
 		return strings.toString();
 	}
 
-	File getGearboxPath() {
-		return this.gearboxPath;
+	File getModelPath() {
+		return this.modelPath;
 	}
 
-	public Integer getInputOrdinal(final byte[] input) {
+	Integer getInputOrdinal(final byte[] input) {
 		if (input.length == 1) {
 			return Byte.toUnsignedInt(input[0]);
 		} else if (input[0] == Base.TYPE_REFERENCE_SIGNAL){
@@ -478,11 +541,11 @@ public final class Gearbox implements AutoCloseable {
 		}
 	}
 
-	public int getSignalCount() {
+	int getSignalCount() {
 		return this.signalOrdinalMap.size();
 	}
 
-	public int getSignalLimit() {
+	int getSignalLimit() {
 		return this.signalOrdinalMap.size();
 	}
 
@@ -490,19 +553,11 @@ public final class Gearbox implements AutoCloseable {
 		return this.signalOrdinalMap.get(name);
 	}
 
-	public IEffector<?>[] getModelEffectors() {
-		return this.modelEffectors;
-	}
-
 	Map<Bytes,Integer> getNamedValueMap() {
 		return Collections.unmodifiableMap(this.namedValueOrdinalMap);
 	}
 
-	public ITarget getTarget() {
-		return this.modelTarget;
-	}
-
-	public int addNamedValue(Bytes valueName) {
+	int addNamedValue(Bytes valueName) {
 		Integer ordinal = this.namedValueOrdinalMap.get(valueName);
 		if (ordinal == null) {
 			ordinal = this.namedValueOrdinalMap.size();
@@ -511,7 +566,7 @@ public final class Gearbox implements AutoCloseable {
 		return ordinal;
 	}
 
-	public int addSignal(Bytes signalName) {
+	int addSignal(Bytes signalName) {
 		Integer ordinal = this.signalOrdinalMap.get(signalName);
 		if (ordinal == null) {
 			ordinal = this.getSignalLimit();
@@ -520,7 +575,7 @@ public final class Gearbox implements AutoCloseable {
 		return ordinal;
 	}
 
-	public int addTransducer(Bytes transducerName) {
+	int addTransducer(Bytes transducerName) {
 		Integer ordinal = this.transducerOrdinalMap.get(transducerName);
 		if (ordinal == null) {
 			ordinal = this.transducerOrdinalMap.size();
@@ -559,7 +614,7 @@ public final class Gearbox implements AutoCloseable {
 		return (transducerOrdinal < this.transducerObjectIndex.length) ? this.transducerObjectIndex[transducerOrdinal] : null;
 	}
 
-	Transducer loadTransducer(final Integer transducerOrdinal) throws TransducerNotFoundException, GearboxException {
+	Transducer loadTransducer(final Integer transducerOrdinal) throws TransducerNotFoundException, ModelException {
 		if ((0 <= transducerOrdinal) && (transducerOrdinal < this.transducerOrdinalMap.size())) {
 				if (this.transducerObjectIndex[transducerOrdinal] == null) {
 					synchronized (this) {
@@ -572,8 +627,8 @@ public final class Gearbox implements AutoCloseable {
 							final int[] effectorVector = this.getIntArray();
 							this.transducerObjectIndex[transducerOrdinal] = new Transducer(name, targetName, inputFilter, transitionMatrix, effectorVector);
 						} catch (final IOException e) {
-							throw new GearboxException(
-								String.format("Gearbox.loadTransducer(%d) caught an IOException after seek to %d", transducerOrdinal, transducerOffsetIndex[transducerOrdinal]), e);
+							throw new ModelException(
+								String.format("RuntimeModel.loadTransducer(%d) caught an IOException after seek to %d", transducerOrdinal, transducerOffsetIndex[transducerOrdinal]), e);
 						} 
 					}
 				}
@@ -583,29 +638,29 @@ public final class Gearbox implements AutoCloseable {
 		}
 	}
 
-	int getInt() throws GearboxException {
+	int getInt() throws ModelException {
 		long position = 0;
 		try {
 			position = this.io.getFilePointer();
 			return this.io.readInt();
 		} catch (final IOException e) {
-			throw new GearboxException(String.format(
-				"Gearbox.getInt caught an IOException reading int at file position %1$d", position), e);
+			throw new ModelException(String.format(
+				"RuntimeModel.getInt caught an IOException reading int at file position %1$d", position), e);
 		}
 	}
 
-	long getLong() throws GearboxException {
+	long getLong() throws ModelException {
 		long position = 0;
 		try {
 			position = this.io.getFilePointer();
 			return this.io.readLong();
 		} catch (final IOException e) {
-			throw new GearboxException(String.format(
-				"Gearbox.getInt caught an IOException reading long at file position %1$d", position), e);
+			throw new ModelException(String.format(
+				"RuntimeModel.getInt caught an IOException reading long at file position %1$d", position), e);
 		}
 	}
 
-	int[] getIntArray() throws GearboxException {
+	int[] getIntArray() throws ModelException {
 		int[] ints = null;
 		long position = 0;
 		try {
@@ -615,14 +670,14 @@ public final class Gearbox implements AutoCloseable {
 				ints[i] = this.io.readInt();
 			}
 		} catch (final IOException e) {
-			throw new GearboxException(String.format(
-				"Gearbox.getBytes caught an IOException reading %1$d bytes at file position %2$d  after file position %3$d",
+			throw new ModelException(String.format(
+				"RuntimeModel.getBytes caught an IOException reading %1$d bytes at file position %2$d  after file position %3$d",
 				ints.length, position, this.getSafeFilePosition()), e);
 		}
 		return ints;
 	}
 
-	public void putTransitionMatrix(final int[][][] matrix) throws GearboxException {
+	void putTransitionMatrix(final int[][][] matrix) throws ModelException {
 		final long position = this.getSafeFilePosition();
 		try {
 			final int rows = matrix.length;
@@ -646,13 +701,13 @@ public final class Gearbox implements AutoCloseable {
 				}
 			}
 		} catch (final IOException e) {
-			throw new GearboxException(String.format(
-				"Gearbox.putTransitionMatrix caught an IOException writing transition matrix starting at file position %1$d after file position %2$d",
+			throw new ModelException(String.format(
+				"RuntimeModel.putTransitionMatrix caught an IOException writing transition matrix starting at file position %1$d after file position %2$d",
 				position, this.getSafeFilePosition()), e);
 		}
 	}
 
-	int[][] getTransitionMatrix() throws GearboxException {
+	int[][] getTransitionMatrix() throws ModelException {
 		int[][] matrix;
 		long position = 0;
 		try {
@@ -681,14 +736,14 @@ public final class Gearbox implements AutoCloseable {
 				}
 			}
 		} catch (final IOException e) {
-			throw new GearboxException(String.format(
-				"Gearbox.getTransitionMatrix caught an IOException reading transition matrix starting at file position %1$d after file position %2$d",
+			throw new ModelException(String.format(
+				"RuntimeModel.getTransitionMatrix caught an IOException reading transition matrix starting at file position %1$d after file position %2$d",
 				position, this.getSafeFilePosition()), e);
 		}
 		return matrix;
 	}
 
-	byte[] getBytes() throws GearboxException {
+	byte[] getBytes() throws ModelException {
 		byte[] bytes = null;
 		long position = 0;
 		int read = -1;
@@ -700,19 +755,19 @@ public final class Gearbox implements AutoCloseable {
 				read = this.io.read(bytes);
 			}
 		} catch (final IOException e) {
-			throw new GearboxException(String.format(
-				"Gearbox.getBytes caught an IOException reading %1$d bytes at file position %2$d  after file position %3$d",
+			throw new ModelException(String.format(
+				"RuntimeModel.getBytes caught an IOException reading %1$d bytes at file position %2$d  after file position %3$d",
 				bytes.length, position, this.getSafeFilePosition()), e);
 		}
 		if (read >= 0 && read != bytes.length) {
-			throw new GearboxException(String.format(
-				"Gearbox.getBytes expected %1$d bytes at file position %2$d but read only %3$d", bytes.length,
+			throw new ModelException(String.format(
+				"RuntimeModel.getBytes expected %1$d bytes at file position %2$d but read only %3$d", bytes.length,
 				position, read));
 		}
 		return bytes;
 	}
 
-	byte[][] getBytesArray() throws GearboxException {
+	byte[][] getBytesArray() throws ModelException {
 		byte[][] bytesArray = null;
 		long position = 0;
 		try {
@@ -725,14 +780,14 @@ public final class Gearbox implements AutoCloseable {
 				}
 			}
 		} catch (final IOException e) {
-			throw new GearboxException(String.format(
-				"Gearbox.getBytesArray caught an IOException reading bytes array starting at file position %2$d",
+			throw new ModelException(String.format(
+				"RuntimeModel.getBytesArray caught an IOException reading bytes array starting at file position %2$d",
 				position, this.getSafeFilePosition()), e);
 		}
 		return bytesArray;
 	}
 
-	HashMap<Bytes, Integer> getOrdinalMap() throws GearboxException {
+	HashMap<Bytes, Integer> getOrdinalMap() throws ModelException {
 		byte[][] bytesArray = this.getBytesArray();
 		int capacity = (bytesArray != null) ? (bytesArray.length * 5) / 4 : 256;
 		HashMap<Bytes, Integer> map = new HashMap<Bytes, Integer>(capacity);
@@ -744,7 +799,7 @@ public final class Gearbox implements AutoCloseable {
 		return map;
 	}
 
-	byte[][][] getBytesArrays() throws GearboxException {
+	byte[][][] getBytesArrays() throws ModelException {
 		byte[][][] bytesArrays = null;
 		long position = 0;
 		try {
@@ -757,19 +812,19 @@ public final class Gearbox implements AutoCloseable {
 				}
 			}
 		} catch (final IOException e) {
-			throw new GearboxException(String.format(
-				"Gearbox.getBytesArray caught an IOException reading bytes array starting at file position after file position %2$d",
+			throw new ModelException(String.format(
+				"RuntimeModel.getBytesArray caught an IOException reading bytes array starting at file position after file position %2$d",
 				position, this.getSafeFilePosition()), e);
 		}
 		return (bytesArrays != null) ? bytesArrays : new byte[][][] {};
 	}
 
-	String getString() throws GearboxException {
+	String getString() throws ModelException {
 		byte bytes[] = this.getBytes();
 		return Bytes.decode(bytes, bytes.length);
 	}
 
-	String[] getStringArray() throws GearboxException {
+	String[] getStringArray() throws ModelException {
 		final byte[][] bytesArray = this.getBytesArray();
 		final String[] stringArray = new String[bytesArray.length];
 		for (int i = 0; i < bytesArray.length; i++) {
@@ -786,7 +841,7 @@ public final class Gearbox implements AutoCloseable {
 		}
 	}
 
-	void putBytes(final byte[] bytes) throws GearboxException {
+	void putBytes(final byte[] bytes) throws ModelException {
 		final long position = this.getSafeFilePosition();
 		try {
 			if (bytes != null) {
@@ -796,17 +851,17 @@ public final class Gearbox implements AutoCloseable {
 				this.io.writeInt(-1);
 			}
 		} catch (final IOException e) {
-			throw new GearboxException(String.format(
-				"Gearbox.putBytes caught an IOException writing %1$d bytes at file position %2$d after file position %3$d",
+			throw new ModelException(String.format(
+				"RuntimeModel.putBytes caught an IOException writing %1$d bytes at file position %2$d after file position %3$d",
 				bytes.length, position, this.getSafeFilePosition()), e);
 		}
 	}
 
-	void putBytes(final Bytes bytes) throws GearboxException {
+	void putBytes(final Bytes bytes) throws ModelException {
 		this.putBytes((bytes != null) ? bytes.getBytes() : null);
 	}
 
-	void putBytes(final ByteBuffer byteBuffer) throws GearboxException {
+	void putBytes(final ByteBuffer byteBuffer) throws ModelException {
 		byte bytes[] = null;
 		if (byteBuffer != null) {
 			bytes = new byte[byteBuffer.limit() - byteBuffer.position()];
@@ -815,7 +870,7 @@ public final class Gearbox implements AutoCloseable {
 		this.putBytes(bytes);
 	}
 
-	void putBytesArray(final Bytes[] bytesArray) throws GearboxException {
+	void putBytesArray(final Bytes[] bytesArray) throws ModelException {
 		final long position = this.getSafeFilePosition();
 		try {
 			if (bytesArray != null) {
@@ -827,13 +882,13 @@ public final class Gearbox implements AutoCloseable {
 				this.io.writeInt(-1);
 			}
 		} catch (final IOException e) {
-			throw new GearboxException(String.format(
-				"Gearbox.putBytesArray caught an IOException writing bytes array starting at file position after file position %2$d",
+			throw new ModelException(String.format(
+				"RuntimeModel.putBytesArray caught an IOException writing bytes array starting at file position after file position %2$d",
 				position, this.getSafeFilePosition()), e);
 		}
 	}
 
-	void putBytesArray(final byte[][] bytesArray) throws GearboxException {
+	void putBytesArray(final byte[][] bytesArray) throws ModelException {
 		final long position = this.getSafeFilePosition();
 		try {
 			if (bytesArray != null) {
@@ -845,13 +900,13 @@ public final class Gearbox implements AutoCloseable {
 				this.io.writeInt(-1);
 			}
 		} catch (final IOException e) {
-			throw new GearboxException(String.format(
-				"Gearbox.putBytesArray caught an IOException writing bytes array starting at file position after file position %2$d",
+			throw new ModelException(String.format(
+				"RuntimeModel.putBytesArray caught an IOException writing bytes array starting at file position after file position %2$d",
 				position, this.getSafeFilePosition()), e);
 		}
 	}
 
-	void putBytesArrays(final byte[][][] bytesArrays) throws GearboxException {
+	void putBytesArrays(final byte[][][] bytesArrays) throws ModelException {
 		final long position = this.getSafeFilePosition();
 		try {
 			if (bytesArrays != null) {
@@ -863,13 +918,13 @@ public final class Gearbox implements AutoCloseable {
 				this.io.writeInt(-1);
 			}
 		} catch (final IOException e) {
-			throw new GearboxException(String.format(
-				"Gearbox.putBytesArrays caught an IOException writing bytes arrays starting at file position after file position %2$d",
+			throw new ModelException(String.format(
+				"RuntimeModel.putBytesArrays caught an IOException writing bytes arrays starting at file position after file position %2$d",
 				position, this.getSafeFilePosition()), e);
 		}
 	}
 
-	void putOrdinalMap(final Map<Bytes, Integer> map) throws GearboxException {
+	void putOrdinalMap(final Map<Bytes, Integer> map) throws ModelException {
 		byte names[][] = new byte[map.size()][];
 		for (Entry<Bytes, Integer> entry : map.entrySet()) {
 			names[entry.getValue()] = entry.getKey().getBytes();
@@ -877,29 +932,29 @@ public final class Gearbox implements AutoCloseable {
 		this.putBytesArray(names);
 	}
 
-	void putInt(final int i) throws GearboxException {
+	void putInt(final int i) throws ModelException {
 		final long position = this.getSafeFilePosition();
 		try {
 			this.io.writeInt(i);
 		} catch (final IOException e) {
-			throw new GearboxException(String.format(
-				"Gearbox.putInt caught an IOException writing %1$d at file position %2$d after file position %3$d",
+			throw new ModelException(String.format(
+				"RuntimeModel.putInt caught an IOException writing %1$d at file position %2$d after file position %3$d",
 				i, position, this.getSafeFilePosition()), e);
 		}
 	}
 
-	void putLong(final long i) throws GearboxException {
+	void putLong(final long i) throws ModelException {
 		final long position = this.getSafeFilePosition();
 		try {
 			this.io.writeLong(i);
 		} catch (final IOException e) {
-			throw new GearboxException(String.format(
-				"Gearbox.putLong caught an IOException writing %1$d at file position %2$d after file position %3$d",
+			throw new ModelException(String.format(
+				"RuntimeModel.putLong caught an IOException writing %1$d at file position %2$d after file position %3$d",
 				i, position, this.getSafeFilePosition()), e);
 		}
 	}
 
-	public void putIntArray(final int[] ints) throws GearboxException {
+	public void putIntArray(final int[] ints) throws ModelException {
 		final long position = this.getSafeFilePosition();
 		try {
 			this.io.writeInt(ints.length);
@@ -907,44 +962,27 @@ public final class Gearbox implements AutoCloseable {
 				this.putInt(j);
 			}
 		} catch (final IOException e) {
-			throw new GearboxException(String.format(
-				"Gearbox.putIntArray caught an IOException writing int array starting at file position after file position %2$d",
+			throw new ModelException(String.format(
+				"RuntimeModel.putIntArray caught an IOException writing int array starting at file position after file position %2$d",
 				position, this.getSafeFilePosition()), e);
 		}
 	}
 
-	public void putString(final String s) throws GearboxException {
+	public void putString(final String s) throws ModelException {
 		this.putBytes(Bytes.encode(s));
 	}
 
-	public long seek(final long filePosition) throws GearboxException {
+	public long seek(final long filePosition) throws ModelException {
 		try {
 			this.io.seek(filePosition != -1 ? filePosition : this.io.length());
 			return this.io.getFilePointer();
 		} catch (final IOException e) {
-			throw new GearboxException(String.format(
-				"Gearbox.seek caught an IOException seeking to file posiiton %1$d", filePosition), e);
+			throw new ModelException(String.format(
+				"RuntimeModel.seek caught an IOException seeking to file posiiton %1$d", filePosition), e);
 		}
 	}
 
-	public Transduction bindTransduction(ITarget target) throws GearboxException {
-		Transduction trex = new Transduction(this);
-		IEffector<?>[] trexFx = trex.bindEffectors();
-		IEffector<?>[] targetFx = target.bindEffectors();
-		IEffector<?>[] boundFx = new IEffector<?>[trexFx.length + targetFx.length];
-		System.arraycopy(trexFx, 0, boundFx, 0, trexFx.length);
-		System.arraycopy(targetFx, 0, boundFx, trexFx.length, targetFx.length);
-		trex.setNamedValueOrdinalMap(this.getNamedValueOrdinalMap());
-		this.bindParameters(trex, boundFx);
-		trex.setEffectors(boundFx);
-		return trex;
-	}
-
-	public Map<Bytes, Integer> getNamedValueOrdinalMap() {
-		return Collections.unmodifiableMap(this.namedValueOrdinalMap);
-	}
-
-	public void setDeleteOnClose(boolean deletaOnClose) {
-		this.deleteOnClose = deletaOnClose;
+	private void setDeleteOnClose(boolean deleteOnClose) {
+		this.deleteOnClose = deleteOnClose;
 	}
 }

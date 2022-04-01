@@ -28,10 +28,10 @@ package com.characterforming.jrte;
  * <p>
  * Target classes must present a public default constructor with no arguments. A
  * proxy instance of the target implementation class is instantiated during
- * gearbox compilation to determine the names and types of the target effectors.
+ * model compilation to determine the names and types of the target effectors.
  * <p>
  * The {@link #bindEffectors()} method will be called on the proxy target at
- * the end of the gearbox compilation process to verify effector binding and
+ * the end of the model compilation process to verify effector binding and
  * effector parameter compilation. At that time the
  * {@link IParameterizedEffector#newParameters(int)} and
  * {@link IParameterizedEffector#compileParameter(int, byte[][])} methods will be

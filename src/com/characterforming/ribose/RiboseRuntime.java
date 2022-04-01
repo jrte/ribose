@@ -29,19 +29,19 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import com.characterforming.jrte.ByteInput;
-import com.characterforming.jrte.GearboxException;
 import com.characterforming.jrte.IInput;
 import com.characterforming.jrte.ITarget;
 import com.characterforming.jrte.ITransduction;
 import com.characterforming.jrte.InputException;
+import com.characterforming.jrte.ModelException;
 import com.characterforming.jrte.RteException;
 import com.characterforming.jrte.TargetBindingException;
 import com.characterforming.jrte.TargetNotFoundException;
 import com.characterforming.jrte.base.Base;
 import com.characterforming.jrte.base.BaseTarget;
 import com.characterforming.jrte.base.Bytes;
-import com.characterforming.jrte.engine.Gearbox;
-import com.characterforming.jrte.engine.Gearbox.Gear;
+import com.characterforming.jrte.engine.RuntimeModel;
+import com.characterforming.jrte.engine.RuntimeModel.Mode;
 import com.characterforming.jrte.engine.Transduction;
 
 /**
@@ -56,8 +56,8 @@ import com.characterforming.jrte.engine.Transduction;
  * @author Kim Briggs
  */
 public final class RiboseRuntime implements IRiboseRuntime, AutoCloseable {
-	private final static Logger rteLogger = Logger.getLogger(Base.RTE_LOGGER_NAME);
-	private final Gearbox gearbox;
+	final static Logger rteLogger = Logger.getLogger(Base.RTE_LOGGER_NAME);
+	private final RuntimeModel model;
 	
 	/**
 	 * Constructor sets up the runtime as an ITransduction factory. This will instantiate a proxy instance of the
@@ -67,17 +67,24 @@ public final class RiboseRuntime implements IRiboseRuntime, AutoCloseable {
 	 * <p>
 	 * The proxy target instance is discarded after enumerating the target and effector namespace.
 	 * 
-	 * @param runtimePath The path to the runtime gearbox file
+	 * @param runtimePath The path to the runtime model file
 	 * @param target The target instance to bind to the transduction 
-	 * @throws GearboxException On error
+	 * @throws ModelException On error
 	 * @throws TargetBindingException On error
 	 */
-	public RiboseRuntime(final File runtimePath, final ITarget target) throws GearboxException {
+	public RiboseRuntime(final File runtimePath, final ITarget target) throws ModelException {
+		RuntimeModel model = null;
 		try {
-			this.gearbox = new Gearbox(Gear.run, runtimePath, target);
+			model = new RuntimeModel(Mode.run, runtimePath, target);
 		} catch (final Exception e) {
-			throw new GearboxException("Unable to instantiate Jrte", e);
+			if (!(e instanceof ModelException)) {
+				String msg = String.format("Exception opening runtime model '%1$s'", runtimePath.getPath());
+				RiboseRuntime.rteLogger.log(Level.SEVERE, msg, e);
+				throw new ModelException("Unable to instantiate ribose runtime from " + runtimePath, e);
+			}
+			throw e;
 		}
+		this.model = model;
 	}
 
 	/**
@@ -88,18 +95,27 @@ public final class RiboseRuntime implements IRiboseRuntime, AutoCloseable {
 	 * @return The bound Transduction instance
 	 * @throws TargetBindingException On error
 	 * @throws TargetNotFoundException On error
-	 * @throws GearboxException On error
+	 * @throws ModelException On error
 	 * @throws TargetNotFoundException On error
 	 */
 	@Override
-	public ITransduction newTransduction(final ITarget target) throws GearboxException, RteException {
-		Class<? extends ITarget> targetClass = target.getClass();
-		Class<? extends ITarget> gearboxClass = this.gearbox.getTarget().getClass();
-		if (!gearboxClass.isAssignableFrom(targetClass)) {
-			throw new TargetNotFoundException(String.format("Cannot bind instance of target class '%1$s', can only bind to gearbox target class '%2$s'", target.getClass().getName(), this.gearbox.getTarget().getName()));
+	public ITransduction newTransduction(final ITarget target) throws ModelException, RteException {
+		Transduction trex = null;
+		try {
+			Class<? extends ITarget> targetClass = target.getClass();
+			Class<? extends ITarget> modelClass = this.model.getModelTarget().getClass();
+			if (!modelClass.isAssignableFrom(targetClass)) {
+				throw new ModelException(String.format("Cannot bind instance of target class '%1$s', can only bind to model target class '%2$s'", target.getClass().getName(), this.model.getModelTarget().getName()));
+			}
+			trex = this.model.bindTransduction(target);
+		} catch (Exception e) {
+			if (!(e instanceof ModelException)) {
+				String msg = String.format("Exception creating new transduction");
+				RiboseRuntime.rteLogger.log(Level.SEVERE, msg, e);
+				throw new ModelException("Unable to instantiate transduction", e);
+			}
+			throw e;
 		}
-		Transduction trex = this.gearbox.bindTransduction(target);
-		assert trex != null;
 		return trex;
 	}
 
@@ -122,8 +138,8 @@ public final class RiboseRuntime implements IRiboseRuntime, AutoCloseable {
 	}
 
 	@Override
-	public void close() throws GearboxException {
-		this.gearbox.close();
+	public void close() throws ModelException {
+		this.model.close();
 	}
 	
 	/**
@@ -133,12 +149,12 @@ public final class RiboseRuntime implements IRiboseRuntime, AutoCloseable {
 	 * @throws SecurityException On error
 	 * @throws IOException On error
 	 * @throws RteException On error
-	 * @throws GearboxException On error
+	 * @throws ModelException On error
 	 * @throws TargetBindingException On error
 	 * @throws InputException On error
 	 */
 	public static void main(final String[] args) 
-			throws SecurityException, IOException, RteException, GearboxException {
+			throws SecurityException, IOException, RteException, ModelException {
 		int argc = args.length;
 		final boolean nil = (argc > 0) ? (args[0].compareTo("--nil") == 0) : false;
 		if (nil) {
@@ -158,6 +174,7 @@ public final class RiboseRuntime implements IRiboseRuntime, AutoCloseable {
 		ITarget baseTarget = new BaseTarget();
 		IRiboseRuntime ribose = null;
 		DataInputStream isr = null;
+		int exitCode = 0;
 		try {
 			int clen = (int)f.length();
 			byte[] bytes = new byte[clen];
@@ -187,13 +204,16 @@ public final class RiboseRuntime implements IRiboseRuntime, AutoCloseable {
 			}
 			while (transduction.status() == ITransduction.Status.PAUSED);
 		} catch (final Exception e) {
-			rteLogger.log(Level.SEVERE, String.format("Caught Exception running transducer '%1$s' from gearbox '%2$s'",
-				transducerName, runtimePath), e);
-			System.exit(1);
+			System.out.println("Runtime instantiation failed, see log for details.");
+			exitCode = 1;
 		} finally {
-			ribose.close();
-			isr.close();
+			if (ribose != null) {
+				ribose.close();
+			}
+			if (isr != null) {
+				isr.close();
+			}
 		}
-		System.exit(0);
+		System.exit(exitCode);
 	}
 }

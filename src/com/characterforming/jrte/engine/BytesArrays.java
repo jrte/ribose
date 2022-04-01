@@ -1,6 +1,24 @@
-/**
- * Copyright (c) 2011,2017, Kim T Briggs, Hampton, NB.
+/***
+ * JRTE is a recursive transduction engine for Java
+ * 
+ * Copyright (C) 2011,2022 Kim Briggs
+ * 
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received copies of the GNU General Public License
+ * and GNU Lesser Public License along with this program.  See 
+ * LICENSE-lgpl-3.0 and LICENSE-gpl-3.0. If not, see 
+ * <http://www.gnu.org/licenses/>.
  */
+
 package com.characterforming.jrte.engine;
 
 import java.util.Arrays;
@@ -14,7 +32,7 @@ public final class BytesArrays {
 	private final BytesArray[] bytesArrays;
 	private int hash;
 
-	public BytesArrays(final byte[][][] bytesArrays) {
+	BytesArrays(final byte[][][] bytesArrays) {
 		this.bytesArrays = new BytesArray[bytesArrays.length];
 		for (int i = 0; i < this.bytesArrays.length; i++) {
 			this.bytesArrays[i] = new BytesArray(bytesArrays[i]);
@@ -22,7 +40,7 @@ public final class BytesArrays {
 		this.hash = 0;
 	}
 
-	public byte[][][] getBytesArrays() {
+	byte[][][] getBytesArrays() {
 		final byte[][][] bytes = new byte[this.bytesArrays.length][][];
 		for (int i = 0; i < bytes.length; i++) {
 			bytes[i] = this.bytesArrays[i].getBytes();
@@ -30,16 +48,8 @@ public final class BytesArrays {
 		return bytes;
 	}
 
-	public byte[][] getBytesArray(final int index) {
+	byte[][] getBytesArray(final int index) {
 		return this.bytesArrays[index].getBytes();
-	}
-
-	@Override
-	public int hashCode() {
-		if (this.hash == 0) {
-			this.hash = this.hash();
-		}
-		return this.hash;
 	}
 
 	private int hash() {
@@ -48,6 +58,14 @@ public final class BytesArrays {
 			h = h * 31 + bytesArray.hashCode();
 		}
 		return h != 0 ? h : -1;
+	}
+
+	@Override
+	public int hashCode() {
+		if (this.hash == 0) {
+			this.hash = this.hash();
+		}
+		return this.hash;
 	}
 
 	@Override

@@ -54,7 +54,7 @@ public interface IParameterizedEffector<T extends ITarget, P> extends IEffector<
 
 	/**
 	 * Compile and set a parameter value from effector arguments specified in
-	 * gearbox transducers. The parameter value, which may be a scalar or an
+	 * model transducers. The parameter value, which may be a scalar or an
 	 * array, is to be compiled from an array of byte arrays. The implementation
 	 * class must call {@link #setParameter(int, Object)} to set the result in  
 	 * the P[] array instantiated in the base class by {@link #newParameters(int)}.

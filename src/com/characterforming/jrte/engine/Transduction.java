@@ -32,7 +32,6 @@ import java.util.logging.Logger;
 import com.characterforming.jrte.ByteInput;
 import com.characterforming.jrte.DomainErrorException;
 import com.characterforming.jrte.EffectorException;
-import com.characterforming.jrte.GearboxException;
 import com.characterforming.jrte.IEffector;
 import com.characterforming.jrte.IInput;
 import com.characterforming.jrte.INamedValue;
@@ -41,6 +40,7 @@ import com.characterforming.jrte.IParameterizedEffector;
 import com.characterforming.jrte.ITarget;
 import com.characterforming.jrte.ITransduction;
 import com.characterforming.jrte.InputException;
+import com.characterforming.jrte.ModelException;
 import com.characterforming.jrte.RteException;
 import com.characterforming.jrte.TargetBindingException;
 import com.characterforming.jrte.TransducerNotFoundException;
@@ -50,11 +50,10 @@ import com.characterforming.jrte.base.BaseParameterizedEffector;
 import com.characterforming.jrte.base.Bytes;
 
 /**
- * Runtime transduction instances are instantiated using Jrte.bind(). Client
- * applications
- * drive the transduction using the Transduction.run() method, which processes
- * the bound
- * IInput stack until one of the following conditions is satisfied: <br>
+ * Runtime transduction instances are instantiated using {@link IRiboserRuntime#newTransaction(ITarget)}.
+ * Client applications drive the transduction using the Transduction.run() method, 
+ * which processes the bound IInput stack until one of the following conditions is 
+ * satisfied: <br>
  * <ol>
  * <li>the input stack is empty
  * <li>the transducer stack is empty
@@ -87,7 +86,7 @@ public final class Transduction implements ITransduction, ITarget, IOutput {
 	public static final int RTE_EFFECTOR_PAUSE = 13;
 	public static final int RTE_EFFECTOR_STOP = 14;
 
-	private final Gearbox gearbox;
+	private final RuntimeModel model;
 	private IEffector<?>[] effectors;
 	private NamedValue[] namedValueHandles;
 	private Map<Bytes, Integer> namedValueOrdinalMap;
@@ -100,11 +99,11 @@ public final class Transduction implements ITransduction, ITarget, IOutput {
 	/**
 	 *  Constructor
 	 *
-	 * @param gearbox The gearbox 
+	 * @param model The runtime model 
 	 */
-	public Transduction(final Gearbox gearbox) {
+	Transduction(final RuntimeModel model) {
 		super();
-		this.gearbox = gearbox;
+		this.model = model;
 		this.effectors = null;
 		this.namedValueHandles = null;
 		this.namedValueOrdinalMap = null;
@@ -216,7 +215,7 @@ public final class Transduction implements ITransduction, ITarget, IOutput {
 			if (this.effectors != null) {
 				assert this.transducerStack == null;
 				this.transducerStack = new TransducerStack(8);
-				this.transducerStack.push(this.gearbox.loadTransducer(this.gearbox.getTransducerOrdinal(transducerName)));
+				this.transducerStack.push(this.model.loadTransducer(this.model.getTransducerOrdinal(transducerName)));
 				this.select(Base.ANONYMOUS_VALUE_ORDINAL);
 				this.clear();
 			} else {
@@ -594,10 +593,10 @@ I:				do {
 
 	/*
 	 * (non-Javadoc)
-	 * @see com.characterforming.jrte.engine.ITarget#getGearbox()
+	 * @see com.characterforming.jrte.engine.ITransduction#getModel()
 	 */
-	Gearbox getGearbox() {
-		return this.gearbox;
+	RuntimeModel getModel() {
+		return this.model;
 	}
 
 	private int select(final int selectionIndex) {
@@ -667,12 +666,12 @@ I:				do {
 
 	private int pushTransducer(final Integer transducerOrdinal) throws EffectorException {
 		try {
-			this.transducerStack.push(this.gearbox.loadTransducer(transducerOrdinal));
+			this.transducerStack.push(this.model.loadTransducer(transducerOrdinal));
 			return IEffector.RTE_EFFECT_START;
 		} catch (final TransducerNotFoundException e) {
-			throw new EffectorException(String.format("The start effector failed to load %1$s", this.gearbox.getTransducerName(transducerOrdinal)), e);
-		} catch (final GearboxException e) {
-			throw new EffectorException(String.format("The start effector failed to load %1$s", this.gearbox.getTransducerName(transducerOrdinal)), e);
+			throw new EffectorException(String.format("The start effector failed to load %1$s", this.model.getTransducerName(transducerOrdinal)), e);
+		} catch (final ModelException e) {
+			throw new EffectorException(String.format("The start effector failed to load %1$s", this.model.getTransducerName(transducerOrdinal)), e);
 		}
 	}
 
@@ -856,7 +855,7 @@ I:				do {
 		public int invoke(final int parameterIndex) throws EffectorException {
 			final int nameIndex = super.getParameter(parameterIndex);
 			return super.getTarget().clear(nameIndex);
-		}
+		} 
 	}
 
 	private final class InEffector extends BaseInputOutputEffector {
@@ -951,7 +950,7 @@ I:				do {
 				type = Base.getReferenceType(parameterList[1]);
 				if (type == Base.TYPE_REFERENCE_SIGNAL) {
 					Bytes signalName = new Bytes(Base.getReferenceName(parameterList[1]));
-					int signalOrdinal = super.getTarget().getGearbox().getSignalOrdinal(signalName);
+					int signalOrdinal = super.getTarget().getModel().getSignalOrdinal(signalName);
 					super.setParameter(parameterIndex, new int[] { count, signalOrdinal });
 					return super.getParameter(parameterIndex);
 				} else {
@@ -995,7 +994,7 @@ I:				do {
 			assert !Base.isReferenceOrdinal(parameterList[0]);
 			if (Base.getReferenceType(parameterList[0]) == Base.TYPE_REFERENCE_TRANSDUCER) {
 				final Bytes name = new Bytes(Base.getReferenceName(parameterList[0]));
-				final int ordinal = super.getTarget().getGearbox().getTransducerOrdinal(name);
+				final int ordinal = super.getTarget().getModel().getTransducerOrdinal(name);
 				if (ordinal >= 0) {
 					super.setParameter(parameterIndex, ordinal);
 				} else {

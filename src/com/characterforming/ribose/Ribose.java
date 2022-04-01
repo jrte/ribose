@@ -26,11 +26,11 @@ import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import com.characterforming.jrte.GearboxException;
 import com.characterforming.jrte.ITarget;
+import com.characterforming.jrte.ModelException;
 import com.characterforming.jrte.base.Base;
-import com.characterforming.jrte.engine.Gearbox;
-import com.characterforming.jrte.engine.Gearbox.Gear;
+import com.characterforming.jrte.engine.RuntimeModel;
+import com.characterforming.jrte.engine.RuntimeModel.Mode;
 
 /**
  * 
@@ -43,28 +43,37 @@ import com.characterforming.jrte.engine.Gearbox.Gear;
 public final class Ribose {
 	private final static Logger rtcLogger = Logger.getLogger(Base.RTC_LOGGER_NAME);
 
-	public static void compileRiboseRuntime(Class<?> targetClass, File ginrAutomataDirectory, File riboseRuntimeFile) throws Exception {
-		Gearbox gearbox = null;
+	public static void compileRiboseRuntime(Class<?> targetClass, File ginrAutomataDirectory, File riboseRuntimeFile) throws ModelException {
+		RuntimeModel model = null;
 		try {
-			gearbox = new Gearbox(Gear.compile, riboseRuntimeFile, (ITarget)targetClass.getDeclaredConstructor().newInstance());
-			gearbox.compile(ginrAutomataDirectory);
-		} catch (Exception e) {
-			String msg = String.format("Caught Exception compiling gearbox '%1$s' from source directory '%2$s'",
+			model = new RuntimeModel(Mode.compile, riboseRuntimeFile, (ITarget)targetClass.getDeclaredConstructor().newInstance());
+			model.compile(ginrAutomataDirectory);
+		} catch (ModelException e) {
+			String msg = String.format("ModelException compiling model '%1$s' from source directory '%2$s'",
 				riboseRuntimeFile.getPath(), ginrAutomataDirectory.getPath());
 			Ribose.rtcLogger.log(Level.SEVERE, msg, e);
+			throw e;
+		} catch (Exception e) {
+			String msg = String.format("Exception compiling model '%1$s' from source directory '%2$s'",
+					riboseRuntimeFile.getPath(), ginrAutomataDirectory.getPath());
+				Ribose.rtcLogger.log(Level.SEVERE, msg, e);
+				ModelException m = new ModelException(msg, e);
+				throw m;
 		} finally {
-			gearbox.close();
+			if (model != null) {
+				model.close();
+			}
 		}
 	}
 
-	public static IRiboseRuntime loadRiboseRuntime(File riboseRuntimeFile, ITarget target) {
+	public static IRiboseRuntime loadRiboseRuntime(File riboseRuntimeFile, ITarget target) throws ModelException {
 		try {
 			return new RiboseRuntime(riboseRuntimeFile, target);
-		} catch (GearboxException e) {
-			String msg = String.format("Caught Exception loading gearbox " + riboseRuntimeFile.getPath());
-			Ribose.rtcLogger.log(Level.SEVERE, msg, e);
+		} catch (ModelException e) {
+			String msg = String.format("ModelException loading model '%1$s'", riboseRuntimeFile.getPath());
+			RiboseRuntime.rteLogger.log(Level.SEVERE, msg, e);
+			throw e;
 		}
-		return null;
 	}
 	
 	public static void main(final String[] args) throws SecurityException, IOException {
@@ -73,11 +82,9 @@ public final class Ribose {
 		String targetClassname = null;
 		Class<?> targetClass = null;
 
-		boolean argsOk = (args.length == 4);
+		boolean argsOk = (args.length == 4) && args[0].equals("--target");
 		if (argsOk) {
-			if (args[0].equals("--target")) {
-				targetClassname = args[1];
-			}
+			targetClassname = args[1];
 			ginrAutomataDirectory = new File(args[2]);
 			riboseRuntimeFile = new File(args[3]);
 		}
@@ -86,7 +93,7 @@ public final class Ribose {
 			try {
 				targetClass = Class.forName(targetClassname);
 			} catch (Exception e) {
-				Ribose.rtcLogger.log(Level.SEVERE, String.format("target-class '%1$s' could not be instantiated as ITarget", targetClassname), e);
+				Ribose.rtcLogger.log(Level.SEVERE, String.format("target-class '%1$s' could not be instantiated as model target", targetClassname), e);
 				argsOk = false;
 			}
 			if (!ginrAutomataDirectory.isDirectory()) {
@@ -94,31 +101,31 @@ public final class Ribose {
 				argsOk = false;
 			}
 			if (riboseRuntimeFile.isDirectory()) {
-				Ribose.rtcLogger.log(Level.SEVERE, String.format("gearbox-path '%1$s' is a directory", riboseRuntimeFile.getPath()));
+				Ribose.rtcLogger.log(Level.SEVERE, String.format("model-path '%1$s' is a directory", riboseRuntimeFile.getPath()));
 				argsOk = false;
 			}
 		}
 
 		if (!argsOk) {
 			System.out.println();
-			System.out.println("Usage: java [jvm-options] Ribose --target <target-class> <ginr-output-dir> <gearbox-path>");
+			System.out.println("Usage: java [jvm-options] Ribose --target <target-class> <ginr-output-dir> <model-path>");
 			System.out.println("   target-class     -- fully qualified name of class implementing ITarget");
 			System.out.println("   ginr-output-dir  -- path to directory containing transducer automata compiled by ginr");
-			System.out.println("   gearbox-path     -- path for output gearbox file gearbox");
+			System.out.println("   model-path       -- path for output model file");
 			System.out.println("The <target-class> container must be included in the classpath.");
 			System.out.println();
 			System.exit(1);
 		}
 
+		int exitCode = 0;
 		System.out.println(String.format("Ribose runtime compiler version %1$s%2$sCopyright (C) 2011,2022 Kim Briggs%2$sDistributed under GPLv3 (http://www.gnu.org/licenses/gpl-3.0.txt)", Base.RTE_VERSION, System.getProperty("line.separator")));
 		System.out.println(String.format("Compiling %1$s to runtime file %2$s", ginrAutomataDirectory.getPath(), riboseRuntimeFile.getPath()));
 		try {
 			Ribose.compileRiboseRuntime(targetClass, ginrAutomataDirectory, riboseRuntimeFile);
 		} catch (Exception e) {
 			System.out.println("Runtime compilation failed, see log for details.");
-			Ribose.rtcLogger.log(Level.SEVERE, "Runtime compilation from $1$s to '%2$s' failed.", e);
-			System.exit(1);
+			exitCode = 1;
 		}
-		System.exit(0);
+		System.exit(exitCode);
 	}	
 }

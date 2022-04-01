@@ -22,25 +22,25 @@
 package com.characterforming.jrte;
 
 /**
- * Thrown when there is a problem relating to the gearbox
+ * Thrown when there is a problem relating to the model
  * 
  * @author Kim Briggs
  */
-public class GearboxException extends RteException {
+public class ModelException extends RteException {
 	private static final long serialVersionUID = 1L;
 
-	public GearboxException() {
+	public ModelException() {
 	}
 
-	public GearboxException(final String message) {
+	public ModelException(final String message) {
 		super(message);
 	}
 
-	public GearboxException(final Throwable cause) {
+	public ModelException(final Throwable cause) {
 		super(cause);
 	}
 
-	public GearboxException(final String message, final Throwable cause) {
+	public ModelException(final String message, final Throwable cause) {
 		super(message, cause);
 	}
 

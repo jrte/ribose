@@ -1,6 +1,24 @@
-/**
- * Copyright (c) 2011,2017, Kim T Briggs, Hampton, NB.
+/***
+ * JRTE is a recursive transduction engine for Java
+ * 
+ * Copyright (C) 2011,2022 Kim Briggs
+ * 
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received copies of the GNU General Public License
+ * and GNU Lesser Public License along with this program.  See 
+ * LICENSE-lgpl-3.0 and LICENSE-gpl-3.0. If not, see 
+ * <http://www.gnu.org/licenses/>.
  */
+
 package com.characterforming.jrte.engine;
 
 import java.io.File;
@@ -12,7 +30,7 @@ import java.util.HashSet;
 import java.util.Map;
 
 import com.characterforming.jrte.CompilationException;
-import com.characterforming.jrte.GearboxException;
+import com.characterforming.jrte.ModelException;
 import com.characterforming.jrte.base.Bytes;
 
 public final class TransducerCompiler extends Automaton {
@@ -21,8 +39,8 @@ public final class TransducerCompiler extends Automaton {
 	private int[][][] kernelMatrix;
 	private int[] inputEquivalenceIndex;
 
-	public TransducerCompiler(final Bytes name, final Gearbox gearbox) {
-		super(name, gearbox);
+	public TransducerCompiler(final Bytes name, final RuntimeModel model) {
+		super(name, model);
 		this.effectorVectorMap = new HashMap<Ints, Integer>(1024);
 		this.effectorVectorList = new ArrayList<Integer>(8196);
 		this.inputEquivalenceIndex = null;
@@ -37,7 +55,7 @@ public final class TransducerCompiler extends Automaton {
 
 		final Integer[] inrInputStates = super.getInrStates(0);
 
-		final int[][][] transitionMatrix = new int[this.gearbox.getSignalLimit()][inrInputStates.length][2];
+		final int[][][] transitionMatrix = new int[this.model.getSignalLimit()][inrInputStates.length][2];
 		for (int i = 0; i < transitionMatrix.length; i++) {
 			for (int j = 0; j < inrInputStates.length; j++) {
 				transitionMatrix[i][j][0] = j;
@@ -51,7 +69,7 @@ public final class TransducerCompiler extends Automaton {
 				if (!t.isFinal()) {
 					if (t.getTape() == 0) {
 						final int rteState = super.getRteState(0, t.getInS());
-						final int inputOrdinal = this.gearbox.getInputOrdinal(t.getBytes());
+						final int inputOrdinal = this.model.getInputOrdinal(t.getBytes());
 						final Chain chain = this.chain(t);
 						if (chain != null) {
 							final int[] effectVector = chain.getEffectVector();
@@ -88,17 +106,17 @@ public final class TransducerCompiler extends Automaton {
 		return inrVersion;
 	}
 
-	public void save(final Gearbox gearbox, final String targetName) throws GearboxException {
+	void save(final RuntimeModel model, final String targetName) throws ModelException {
 		int effectIndex = 0;
 		final int[] effectorVector = new int[this.effectorVectorList.size()];
 		for (final int effect : this.effectorVectorList) {
 			effectorVector[effectIndex++] = effect;
 		}
-		gearbox.putString(super.getName());
-		gearbox.putString(targetName);
-		gearbox.putIntArray(this.inputEquivalenceIndex);
-		gearbox.putTransitionMatrix(this.kernelMatrix);
-		gearbox.putIntArray(effectorVector);
+		model.putString(super.getName());
+		model.putString(targetName);
+		model.putIntArray(this.inputEquivalenceIndex);
+		model.putTransitionMatrix(this.kernelMatrix);
+		model.putIntArray(effectorVector);
 		int transitions = 0;
 		for (final int[][] row : this.kernelMatrix) {
 			for (final int[] col : row) {
@@ -157,13 +175,13 @@ public final class TransducerCompiler extends Automaton {
 						assert((effectorPos > 0) && (effectorOrdinal == effectorVector[effectorPos - 1])); 
 						effectorVector[effectorPos - 1] *= -1;
 						final byte[][] parameters = Arrays.copyOf(parameterList, parameterPos);
-						int parameterOrdinal = this.gearbox.compileParameters(effectorOrdinal, parameters);
+						int parameterOrdinal = this.model.compileParameters(effectorOrdinal, parameters);
 						effectorVector[effectorPos] = parameterOrdinal;
 						parameterList = new byte[8][];
 						parameterPos = 0;
 						++effectorPos;
 					}
-					effectorOrdinal = this.gearbox.getEffectorOrdinal(new Bytes(t.getBytes()));
+					effectorOrdinal = this.model.getEffectorOrdinal(new Bytes(t.getBytes()));
 					effectorVector[effectorPos] = effectorOrdinal;
 					++effectorPos;
 					break;
@@ -192,7 +210,7 @@ public final class TransducerCompiler extends Automaton {
 		if (parameterPos > 0) {
 			assert((effectorPos > 0) && (effectorOrdinal == effectorVector[effectorPos - 1])); 
 			final byte[][] parameters = Arrays.copyOf(parameterList, parameterPos);
-			int parameterOrdinal = this.gearbox.compileParameters(effectorOrdinal, parameters);
+			int parameterOrdinal = this.model.compileParameters(effectorOrdinal, parameters);
 			effectorVector[effectorPos] = parameterOrdinal;
 			effectorVector[effectorPos - 1] *= -1;
 			++effectorPos;

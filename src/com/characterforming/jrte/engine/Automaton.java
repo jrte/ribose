@@ -1,6 +1,24 @@
-/**
- * Copyright (c) 2011,2017, Kim T Briggs, Hampton, NB.
+/***
+ * JRTE is a recursive transduction engine for Java
+ * 
+ * Copyright (C) 2011,2022 Kim Briggs
+ * 
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received copies of the GNU General Public License
+ * and GNU Lesser Public License along with this program.  See 
+ * LICENSE-lgpl-3.0 and LICENSE-gpl-3.0. If not, see 
+ * <http://www.gnu.org/licenses/>.
  */
+
 package com.characterforming.jrte.engine;
 
 import java.io.DataInputStream;
@@ -20,7 +38,7 @@ import com.characterforming.jrte.base.Base;
 import com.characterforming.jrte.base.Bytes;
 
 class Automaton {
-	protected final Gearbox gearbox;
+	protected final RuntimeModel model;
 	private final Bytes name;
 	private final HashMap<Integer, Integer>[] stateMaps;
 	private final HashSet<Bytes>[] symbolMaps;
@@ -31,9 +49,9 @@ class Automaton {
 	private final static Logger logger = Logger.getLogger(Base.RTC_LOGGER_NAME);
 
 	@SuppressWarnings("unchecked")
-	public Automaton(final Bytes name, final Gearbox gearbox) {
+	Automaton(final Bytes name, final RuntimeModel model) {
 		this.name = name;
-		this.gearbox = gearbox;
+		this.model = model;
 		this.stateMaps = (HashMap<Integer, Integer>[])new HashMap<?,?>[10];
 		this.symbolMaps = (HashSet<Bytes>[])new HashSet<?>[10];
 		this.transitions = new HashMap<Integer, ArrayList<Transition>>(10 << 10);
@@ -41,7 +59,7 @@ class Automaton {
 		this.errors = new ArrayList<String>();
 	}
 
-	public Bytes load(final File inrfile) throws IOException, CompilationException {
+	Bytes load(final File inrfile) throws IOException, CompilationException {
 		DataInputStream f = null;
 		byte input = 0;
 		try {
@@ -141,7 +159,7 @@ class Automaton {
 	private byte[] compileInputToken(byte[] bytes) throws CompilationException {
 		if (bytes.length > 1) {
 			if (Base.TYPE_REFERENCE_NONE == Base.getReferenceType(bytes)) {
-				this.gearbox.addSignal(new Bytes(bytes));
+				this.model.addSignal(new Bytes(bytes));
 			} else {
 				String type = null;
 				switch(bytes[0]) {
@@ -170,13 +188,13 @@ class Automaton {
 		if (bytes.length > 1) {
 			switch(bytes[0]) {
 			case Base.TYPE_REFERENCE_TRANSDUCER:
-				this.gearbox.addTransducer(Bytes.getBytes(bytes, 1, bytes.length));
+				this.model.addTransducer(Bytes.getBytes(bytes, 1, bytes.length));
 				break;
 			case Base.TYPE_REFERENCE_VALUE:
-				this.gearbox.addNamedValue(Bytes.getBytes(bytes, 1, bytes.length));
+				this.model.addNamedValue(Bytes.getBytes(bytes, 1, bytes.length));
 				break;
 			case Base.TYPE_REFERENCE_SIGNAL:
-				this.gearbox.addSignal(Bytes.getBytes(bytes, 1, bytes.length));
+				this.model.addSignal(Bytes.getBytes(bytes, 1, bytes.length));
 				break;
 			default:
 				break;
@@ -185,7 +203,7 @@ class Automaton {
 		return bytes;
 	}
 
-	public int getRteState(final int tape, final int inrState) throws CompilationException {
+	int getRteState(final int tape, final int inrState) throws CompilationException {
 		final Integer rteInS = tape < this.stateMaps.length && this.stateMaps[tape] != null ? this.stateMaps[tape].get(inrState) : null;
 		if (rteInS == null) {
 			throw new CompilationException(String.format("No RTE state for INR tape %1$d state %2$d", tape, inrState));
@@ -193,7 +211,7 @@ class Automaton {
 		return rteInS;
 	}
 
-	public Integer[] getInrStates(final int tape) {
+	Integer[] getInrStates(final int tape) {
 		final HashMap<Integer, Integer> inrRteStateMap = tape < this.stateMaps.length && this.stateMaps[tape] != null ? this.stateMaps[tape] : null;
 		if (inrRteStateMap != null) {
 			Integer[] inrStates = new Integer[inrRteStateMap.size()];
@@ -204,7 +222,7 @@ class Automaton {
 		return null;
 	}
 
-	public Bytes[] getSymbolBytes(final int tape) {
+	Bytes[] getSymbolBytes(final int tape) {
 		final HashSet<Bytes> symbolBytes = tape < this.stateMaps.length && this.symbolMaps[tape] != null ? this.symbolMaps[tape] : null;
 		if (symbolBytes != null) {
 			return symbolBytes.toArray(new Bytes[symbolBytes.size()]);
@@ -212,25 +230,25 @@ class Automaton {
 		return null;
 	}
 
-	public boolean isInrStateFinal(final int inrState) {
+	boolean isInrStateFinal(final int inrState) {
 		return this.finalStates.contains(inrState);
 	}
 
-	public ArrayList<Transition> getInrTransitions(final int inrState) {
+	ArrayList<Transition> getInrTransitions(final int inrState) {
 		return this.transitions.get(inrState);
 	}
 
-	public String getName() {
+	String getName() {
 		return this.name.toString();
 	}
 
-	public void error(final String message) {
+	void error(final String message) {
 		if (!this.errors.contains(message)) {
 			this.errors.add(message);
 		}
 	}
 
-	public ArrayList<String> getErrors() {
+	ArrayList<String> getErrors() {
 		return this.errors;
 	}
 }
