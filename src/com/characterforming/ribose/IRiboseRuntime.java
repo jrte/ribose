@@ -21,10 +21,10 @@
 
 package com.characterforming.ribose;
 
-import com.characterforming.jrte.ModelException;
 import com.characterforming.jrte.IInput;
 import com.characterforming.jrte.ITarget;
 import com.characterforming.jrte.ITransduction;
+import com.characterforming.jrte.ModelException;
 import com.characterforming.jrte.RteException;
 
 /**
@@ -35,9 +35,28 @@ import com.characterforming.jrte.RteException;
  */
 public interface IRiboseRuntime {
 	
+	/** 
+	 * Construct an IInput object to feed into a transduciton.
+	 * 
+	 * @param bytesInput An array of arrays of bytes to be transduced sequentially.
+	 * @return An IInput object
+	 */
 	public IInput input(byte[][] bytesInput);
 	
+	/**
+	 * Instantiate a new transduction stack. 
+	 * 
+	 * @param target The target instance to bind to the transduciton.
+	 * @return A new transduction
+	 * @throws ModelException
+	 * @throws RteException
+	 */
 	public ITransduction newTransduction(ITarget target) throws ModelException, RteException;
 	
+	/**
+	 * Close the runtime model and file.
+	 * 
+	 * @throws ModelException
+	 */
 	public void close() throws ModelException;
 }

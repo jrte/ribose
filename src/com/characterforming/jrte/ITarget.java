@@ -23,26 +23,21 @@ package com.characterforming.jrte;
 
 /**
  * Interface for transduction target classes, which express IEffector instances
- * that are invoked from runtime transductions. Target implementations must
- * subclass and extend BaseTarget with specialized effectors.
+ * that are invoked from runtime transductions. Target implementations supplement
+ * BaseTarget with specialized effectors.
  * <p>
  * Target classes must present a public default constructor with no arguments. A
  * proxy instance of the target implementation class is instantiated during
- * model compilation to determine the names and types of the target effectors.
- * <p>
- * The {@link #bindEffectors()} method will be called on the proxy target at
- * the end of the model compilation process to verify effector binding and
- * effector parameter compilation. At that time the
- * {@link IParameterizedEffector#newParameters(int)} and
+ * model compilation to determine the names and types of the target effectors
+ * and to compile and validate effector parameters. At that time the
+ * {@link IParameterizedEffector#newParameters(int)} will be called first and then
  * {@link IParameterizedEffector#compileParameter(int, byte[][])} methods will be
  * called for each IParameterizedEffector.
  * <p>
  * At runtime, targets are bound only once to a transduction and the binding
- * persists for the lifetime of the target object. Applications use the
- * transduction to start and restart transducers and run them against available
- * inputs. The target effectors update the target state when the transduction is
- * run.
- * 
+ * persists for the lifetime of the transduction stack. Note that transduction
+ * stacks are restartable and reuseable and may serially transduce more than
+ * one input stream.   
  * @author Kim Briggs
  */
 public interface ITarget {
@@ -60,24 +55,15 @@ public interface ITarget {
 	 * by the target class and to bind the target effectors and effector
 	 * parameters to the transduction.
 	 * <p>
-	 * Subclasses must include their effectors in the IEffector array returned.
-	 * Each subclass in the target class hierarchy rooted in BaseTarget must
-	 * add the number of effectors exported by the subclass to the count of 
-	 * effectors exported by all of its subclasses and report the result to
-	 * its superclass. BaseTarget class will allocate IEffector array and 
-	 * fill in base transduction effectors, subclasses install their effectors
-	 * on top of the superclass effectors, as shown below.
+	 * Implementation classes must include their effectors in the IEffector 
+	 * array returned. Targets may be composite, arranged in an inhetritance
+	 * chain or encapsulated in discrete component classes, or a mixture of
+	 * these. In any case, a top-level target class is responsible for gathering
+	 * effectors from all involved target instances and it is this target that 
+	 * must be presented for effector binding. 
 	 * 
-	 * public IEffector&lt;?&gt;[] bindEffectors(int effectorCount) {
-	 *    effectorCount += this.effectors.length;
-	 *    IEffector&lt;?&gt;[] effectors = super.bindEffectors(effectorCount);
-	 *    int effectorBase = effectors.length - effectorCount;
-	 *    System.arrayCopy(this.effectors, 0, effectors, effectorBase, this.effectors.length);
-	 *    return effectors; 
-	 * }
-	 * 
-	 * After runtime binding, effectors are invoked when triggered by input
-	 * transitions.
+	 * After runtime binding, is complete effectors are invoked when triggered
+	 * by the transduction is response to cues in the input stream..
 	 * 
 	 * @return An array of IEffector instances bound to the target instance
 	 * @throws TargetBindingException if an effector fails to bind

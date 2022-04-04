@@ -32,7 +32,6 @@ import com.characterforming.jrte.ByteInput;
 import com.characterforming.jrte.IInput;
 import com.characterforming.jrte.ITarget;
 import com.characterforming.jrte.ITransduction;
-import com.characterforming.jrte.InputException;
 import com.characterforming.jrte.ModelException;
 import com.characterforming.jrte.RteException;
 import com.characterforming.jrte.TargetBindingException;
@@ -48,7 +47,7 @@ import com.characterforming.jrte.engine.Transduction;
  * Ribose runtime transduction factory. Use {@link newTransduction(ITarget)} to instantiate a 
  * transduction and call {@link com.characterforming.jrte.ITransduction#start(Bytes)} and 
  * {@link com.characterforming.jrte.ITransduction#input(IInput[])} to set up the initial 
- * input and transducer stacks, the drive the tranduction to an endpoint by calling 
+ * input and transducer stacks, then drive the tranduction to an endpoint by calling 
  * {@link com.characterforming.jrte.ITransduction#run()} until 
  * {@link com.characterforming.jrte.ITransduction#status()} returns
  * {@link com.characterforming.jrte.ITransduction.Status#STOPPED}.
@@ -60,17 +59,30 @@ public final class RiboseRuntime implements IRiboseRuntime, AutoCloseable {
 	private final RuntimeModel model;
 	
 	/**
-	 * Constructor sets up the runtime as an ITransduction factory. This will instantiate a proxy instance of the
-	 * target class for effector binding as follows:
+	 * Constructor sets up the runtime as an ITransduction factory. This will instantiate a 
+	 * model instance of the target class for effector binding as follows:
 	 * <p>
-	 * <code>Target.Target(); Target.getName(); bind(null); (Effector.getName())*</code>
+	 * <code>
+	 * 	t = new Target(); 
+	 * 	t.getName(); 
+	 * 	t.bindEffectors();
+	 *  (
+	 *  	Effector.getName()
+	 *  	(
+	 *  	 Effector.newParamameters(count)
+	 *  	 Effector.compileParameter(byte[][])*
+	 *  	)?
+	 *  )*
+	 *  </code>
 	 * <p>
-	 * The proxy target instance is discarded after enumerating the target and effector namespace.
+	 * The model target instance is discarded after enumerating the target and effector namespace.
+	 * the model effectors remain bound to the model to provide live effectors with precompiled
+	 * parameters when new transductions are instantiated. 
 	 * 
 	 * @param runtimePath The path to the runtime model file
 	 * @param target The target instance to bind to the transduction 
-	 * @throws ModelException On error
-	 * @throws TargetBindingException On error
+	 * @throws ModelException
+	 * @throws TargetBindingException
 	 */
 	public RiboseRuntime(final File runtimePath, final ITarget target) throws ModelException {
 		RuntimeModel model = null;
@@ -93,10 +105,10 @@ public final class RiboseRuntime implements IRiboseRuntime, AutoCloseable {
 	 * 
 	 * @param target The ITarget instance to bind to the transduction
 	 * @return The bound Transduction instance
-	 * @throws TargetBindingException On error
-	 * @throws TargetNotFoundException On error
-	 * @throws ModelException On error
-	 * @throws TargetNotFoundException On error
+	 * @throws TargetBindingException
+	 * @throws TargetNotFoundException
+	 * @throws ModelException
+	 * @throws TargetNotFoundException
 	 */
 	@Override
 	public ITransduction newTransduction(final ITarget target) throws ModelException, RteException {
@@ -146,12 +158,8 @@ public final class RiboseRuntime implements IRiboseRuntime, AutoCloseable {
 	 * Default ribose runtime transduces System.in to System.out, with an optional nil signal as input prefix. 
 	 * <pre class="code">Usage: java -cp Jrte.jar com.characterforming.ribose.RiboseRuntime [--nil] &lt;transducer-name&gt; &lt;runtime-path&gt;</pre>
 	 * @param args [--nil] &lt;transducer-name&gt; &lt;runtime-path&gt;
-	 * @throws SecurityException On error
-	 * @throws IOException On error
-	 * @throws RteException On error
-	 * @throws ModelException On error
-	 * @throws TargetBindingException On error
-	 * @throws InputException On error
+	 * 
+	 * @throws ModelException
 	 */
 	public static void main(final String[] args) 
 			throws SecurityException, IOException, RteException, ModelException {
@@ -161,7 +169,6 @@ public final class RiboseRuntime implements IRiboseRuntime, AutoCloseable {
 			--argc;
 		}
 		if (argc != 3) {
-			for (int i = 0; i < args.length; i++) {System.out.printf("%d: %s\n", i, args[i]); } 
 			System.out.println(String.format("Usage: java -cp <classpath> [-Djrte.out.enabled=false] [--nil] <transducer-name> <input-path> <runtime-path>"));
 			System.exit(1);
 		}
@@ -169,17 +176,27 @@ public final class RiboseRuntime implements IRiboseRuntime, AutoCloseable {
 		final String transducerName = args[arg++];
 		final String inputPath = args[arg++];
 		final String runtimePath = args[arg++];
-
-		final File f = new File(inputPath);
+		
+		final File input = new File(inputPath);
+		if (!input.exists()) {
+			System.out.println("No input file found at " + inputPath);
+			System.exit(1);
+		}
+		final File model = new File(runtimePath);
+		if (!model.exists()) {
+			System.out.println("No ribose model file found at " + runtimePath);
+			System.exit(1);
+		}
+		
 		ITarget baseTarget = new BaseTarget();
 		IRiboseRuntime ribose = null;
 		DataInputStream isr = null;
 		int exitCode = 0;
 		try {
-			int clen = (int)f.length();
+			int clen = (int)input.length();
 			byte[] bytes = new byte[clen];
-			ribose = Ribose.loadRiboseRuntime(new File(runtimePath), baseTarget);
-			isr = new DataInputStream(new FileInputStream(f));
+			ribose = Ribose.loadRiboseRuntime(model, baseTarget);
+			isr = new DataInputStream(new FileInputStream(input));
 			clen = isr.read(bytes, 0, clen);
 
 			ITransduction transduction = ribose.newTransduction(baseTarget);

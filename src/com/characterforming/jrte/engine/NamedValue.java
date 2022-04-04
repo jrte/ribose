@@ -112,47 +112,43 @@ class NamedValue implements INamedValue {
 	
 	@Override
 	public long asInteger() {
-		long value = 0;
+		long integer = 0;
 		for (int i = 0; i< this.length; i++) {
 			if (Character.getType(this.value[i]) == Character.DECIMAL_DIGIT_NUMBER) {
-				value *= 10;
-				value += (this.value[i] - 48);
+				integer *= 10;
+				integer += (this.value[i] - 48);
 			} else {
 				throw new NumberFormatException(String.format(
-					"Not a numeric named value '%1$s'", this.toString())); 
+					"Not a numeric value '%1$s'", this.toString())); 
 			}
 		}
-		return value;
+		return integer;
 	}
 	
 	@Override
 	public double asReal() {
-		int a = 0, b = 0;
-		int pos = 0;
-		while (pos < this.length && this.value[pos] != '.') {
-			if (Character.getType(this.value[pos]) == Character.DECIMAL_DIGIT_NUMBER) {
-				a *= 10;
-				a += (this.value[pos] - 48);
-				pos++;
+		int mark = 0;
+		int index[] = new int[] {0, 0};
+		int parts[] = new int[] {0, 0};
+		while (index[0] < this.length) {
+			if (Character.getType(this.value[index[0]]) == Character.DECIMAL_DIGIT_NUMBER) {
+				parts[index[1]] *= 10;
+				parts[index[1]] += (this.value[index[0]] - 48);
+			} else if (this.value[index[0]] == '.') {
+				mark = index[0];
+				index[1] = 1;
 			} else {
 				throw new NumberFormatException(String.format(
-					"Not a floating point named value '%1$s'", this.toString())); 
+					"Not a floating point value '%1$s'", this.toString())); 
 			}
+			index[0] += 1;
 		}
-		++pos;
-		int precision = 1;
-		while (pos < this.length) {
-			if (Character.getType(this.value[pos]) == Character.DECIMAL_DIGIT_NUMBER) {
-				precision *= 10;
-				b *= 10;
-				b += (this.value[pos] - 48);
-				pos++;
-			} else {
-				throw new NumberFormatException(String.format(
-					"Not a floating point named value '%1$s'", this.toString())); 
-			}
+		double real = parts[0];
+		if (this.length > mark) {
+			double fraction = 1.0 / Math.pow(10, this.length - mark);
+			real += parts[1] * fraction;
 		}
-		return a + ((double)b / (double)precision);
+		return real;
 	}
 
 	void clear() {
@@ -198,7 +194,6 @@ class NamedValue implements INamedValue {
 	 */
 	@Override
 	public String toString() {
-		String value = this.value != null ? Bytes.decode(this.value, this.length) : "null";
-		return String.format("%s:%s", this.name.toString(), value);
+		return String.format("%s:%s", this.name.toString(), this.asString());
 	}
 }

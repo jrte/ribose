@@ -28,9 +28,9 @@ import com.characterforming.jrte.IInput;
 import com.characterforming.jrte.InputException;
 
 /**
- * Base {@link IInput} implementation class implements mark() and reset().
- * Subclasses must implement {@link #get()} to return the next
- * sequential block of input.
+ * Base {@link IInput} implementation class implements mark(), 
+ * reset() and current(). Subclasses must implement {@link #get()} 
+ * to return the next sequential block of input.
  * 
  * @author Kim Briggs
  */
@@ -50,7 +50,7 @@ public abstract class BaseInput implements IInput {
 
 	/**
 	 * Subclasses must call this from their get() method passing the buffer (or
-	 * null) to be returned from get(). Has no effect unless this has a mark.
+	 * null) to be returned from get().
 	 * 
 	 * @param buffer The buffer to be returned from get() 
 	 */

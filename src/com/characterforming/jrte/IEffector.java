@@ -80,7 +80,8 @@ public interface IEffector<T extends ITarget> {
 	public T getTarget();
 
 	/**
-	 * Returns the effector name. The name of the effector is the token used to reference it in transducer definitions.
+	 * Returns the effector name. The name of the effector is the token 
+	 * used to reference it in transducer definitions.
 	 * 
 	 * @return The effector name.
 	 */

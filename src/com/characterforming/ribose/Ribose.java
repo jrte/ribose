@@ -22,7 +22,6 @@
 package com.characterforming.ribose;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -42,41 +41,72 @@ import com.characterforming.jrte.engine.RuntimeModel.Mode;
  */
 public final class Ribose {
 	private final static Logger rtcLogger = Logger.getLogger(Base.RTC_LOGGER_NAME);
-
-	public static void compileRiboseRuntime(Class<?> targetClass, File ginrAutomataDirectory, File riboseRuntimeFile) throws ModelException {
-		RuntimeModel model = null;
-		try {
-			model = new RuntimeModel(Mode.compile, riboseRuntimeFile, (ITarget)targetClass.getDeclaredConstructor().newInstance());
-			model.compile(ginrAutomataDirectory);
-		} catch (ModelException e) {
-			String msg = String.format("ModelException compiling model '%1$s' from source directory '%2$s'",
-				riboseRuntimeFile.getPath(), ginrAutomataDirectory.getPath());
-			Ribose.rtcLogger.log(Level.SEVERE, msg, e);
-			throw e;
-		} catch (Exception e) {
-			String msg = String.format("Exception compiling model '%1$s' from source directory '%2$s'",
-					riboseRuntimeFile.getPath(), ginrAutomataDirectory.getPath());
-				Ribose.rtcLogger.log(Level.SEVERE, msg, e);
-				ModelException m = new ModelException(msg, e);
-				throw m;
-		} finally {
-			if (model != null) {
-				model.close();
+	
+/**
+ * Compile a collection of DFAs from an automata directort into a ribose model file
+ * and bind them to a Target class. 
+ * 
+ * @param targetClass the ITarget implementation class will be instantiated as model target
+ * @param ginrAutomataDirectory directory containing DFAs compiled by ginr
+ * @param riboseRuntimeFile path indicating where to create the model file and file name
+ * @returns false if compilation fails
+ * @throws ModelException
+ */
+	public static boolean compileRiboseRuntime(Class<?> targetClass, File ginrAutomataDirectory, File riboseRuntimeFile) {
+		for (Class<?> targetImplemenation : targetClass.getInterfaces()) {
+			if (targetImplemenation.toString().equals(ITarget.class.toString())) {
+				RuntimeModel model = null;
+				try {
+					model = new RuntimeModel(Mode.compile, riboseRuntimeFile, (ITarget)targetClass.getDeclaredConstructor().newInstance());
+					return model.compile(ginrAutomataDirectory);
+				} catch (Exception e) {
+					String msg = String.format("Exception compiling model '%1$s' from source directory '%2$s'",
+						riboseRuntimeFile.getPath(), ginrAutomataDirectory.getPath());
+					Ribose.rtcLogger.log(Level.SEVERE, msg, e);
+				} finally {
+					if (model != null) {
+						try {
+							model.close();
+						} catch (ModelException e) {
+							String msg = String.format("Exception closing model '%1$s'",
+								riboseRuntimeFile.getPath());
+							Ribose.rtcLogger.log(Level.SEVERE, msg, e);
+						}
+					}
+				}
 			}
+			return false;
 		}
+		String msg = String.format("Can't compile ribose model, %1$s does not implement ITarget", 
+			targetClass.getName());
+		Ribose.rtcLogger.log(Level.SEVERE, msg);
+		return false;
 	}
 
-	public static IRiboseRuntime loadRiboseRuntime(File riboseRuntimeFile, ITarget target) throws ModelException {
+	/**
+	 * Load a ribose runtime model from persistent store. The model can be 
+	 * used to instantiate transduction stacks.
+	 * 
+	 * @param riboseRuntimeFile path to the runtime model to load
+	 * @param target the live target instance to bind to the runtime model
+	 * @return a live ribose runtime model instance
+	 */
+	public static IRiboseRuntime loadRiboseRuntime(File riboseRuntimeFile, ITarget target) {
 		try {
 			return new RiboseRuntime(riboseRuntimeFile, target);
-		} catch (ModelException e) {
-			String msg = String.format("ModelException loading model '%1$s'", riboseRuntimeFile.getPath());
+		} catch (Exception e) {
+			String msg = String.format("Exception loading model '%1$s'", riboseRuntimeFile.getPath());
 			RiboseRuntime.rteLogger.log(Level.SEVERE, msg, e);
-			throw e;
 		}
+		return null;
 	}
 	
-	public static void main(final String[] args) throws SecurityException, IOException {
+	/**
+	 * Main method runs the ribose runtime compiler.
+	 * 
+	 * @param args [--nil] &lt;automata-directory-path&gt; &lt;runtime-model-path&gt; &lt;target-classname&gt;
+	 */
+	public static void main(final String[] args) {
 		File ginrAutomataDirectory = null;
 		File riboseRuntimeFile = null;
 		String targetClassname = null;
@@ -97,7 +127,7 @@ public final class Ribose {
 				argsOk = false;
 			}
 			if (!ginrAutomataDirectory.isDirectory()) {
-				Ribose.rtcLogger.log(Level.SEVERE, String.format("ginr-output-dir '%1$s' is not a directory", ginrAutomataDirectory.getPath()));
+				Ribose.rtcLogger.log(Level.SEVERE, String.format("ginr-automata-dir '%1$s' is not a directory", ginrAutomataDirectory.getPath()));
 				argsOk = false;
 			}
 			if (riboseRuntimeFile.isDirectory()) {
@@ -116,15 +146,20 @@ public final class Ribose {
 			System.out.println();
 			System.exit(1);
 		}
-
-		int exitCode = 0;
 		System.out.println(String.format("Ribose runtime compiler version %1$s%2$sCopyright (C) 2011,2022 Kim Briggs%2$sDistributed under GPLv3 (http://www.gnu.org/licenses/gpl-3.0.txt)", Base.RTE_VERSION, System.getProperty("line.separator")));
 		System.out.println(String.format("Compiling %1$s to runtime file %2$s", ginrAutomataDirectory.getPath(), riboseRuntimeFile.getPath()));
+		
+		int exitCode = 0;
 		try {
-			Ribose.compileRiboseRuntime(targetClass, ginrAutomataDirectory, riboseRuntimeFile);
+			if (!Ribose.compileRiboseRuntime(targetClass, ginrAutomataDirectory, riboseRuntimeFile)) {
+				exitCode = 1;
+			}
 		} catch (Exception e) {
-			System.out.println("Runtime compilation failed, see log for details.");
 			exitCode = 1;
+		} finally {
+			if (exitCode != 0) {
+				System.out.println("Runtime compilation failed, see log for details.");
+			}
 		}
 		System.exit(exitCode);
 	}	

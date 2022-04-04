@@ -23,7 +23,7 @@ package com.characterforming.jrte;
 
 /**
  * Interface for parameterised effectors. Parameters are compiled from arrays of
- * bytes into an array of some parameter type P that is constructible from one
+ * byte arrays into an array of some parameter type P that is constructible from one
  * or more arrays of bytes. Compiled parameter values are referenced by their
  * index in the resulting array. At runtime, the invoke(int) method is called
  * with the parameter index to indicate which P[] to apply to the invocation.
@@ -86,12 +86,11 @@ public interface IParameterizedEffector<T extends ITarget, P> extends IEffector<
 	public P getParameter(int parameterIndex);
 
 	/**
-	 * This method is invoked at runtime when triggered by an input transition,
-	 * passing a parameter index to indicate which parameter object is to be
-	 * used in the invocation.
+	 * This method is invoked at runtime when triggered by an input transition.
+	 * The parameter index indicates which parameter object to apply for the 
+	 * invocation.
 	 * 
-	 * @param parameterIndex This index of the parameter object to be used in the
-	 *           invocation
+	 * @param parameterIndex The index of the parameter object to be applied
 	 * @return User-defined effectors should return 0
 	 * @throws EffectorException On error
 	 */

@@ -25,10 +25,7 @@ import java.nio.ByteBuffer;
 
 /**
  * Interface for input sources that can be included on the input stack of a running
- * Transduction instance. Inputs are stackable, and implementation classes must
- * retain the result of each get() call (including position and limit) until the
- * client application calls setPosition(position) with position = limit, indicating
- * that the client has exhausted the previous result and needs a new char[].
+ * Transduction. 
  * 
  * @author Kim Briggs
  */
@@ -43,9 +40,7 @@ public interface IInput {
 	
 	/**
 	 * Get the next block of input from the source. The returned buffer may contain
-	 * mixed text (Unicode) and signal ordinal values. If the position returned with
-	 * the previous call is less than the limit returned from that call, the previous
-	 * buffer should be returned and with the updated position and limit.
+	 * text (UTF-8) or a signal may not mix signals with text.
 	 * 
 	 * @return The next block of input char, or null
 	 * @throws InputException On error
@@ -53,8 +48,8 @@ public interface IInput {
 	public ByteBuffer get() throws InputException;
 	
 	/**
-	 * Peek at the current buffer. Implementations must retain this reference to the most 
-	 * recent return from get().
+	 * Peek at the current buffer. Implementations must retain this reference to the 
+	 * buffer most recently returned from get() until its position reaches the limit.
 	 * 
 	 * @return The current buffer, which may be spent, or null if get() not yet called.
 	 */
@@ -89,7 +84,6 @@ public interface IInput {
 	
 	/***
 	 * Stop() message received from transduction when input is popped.
-	 * @throws InputException 
 	 */
-	public void stop() throws InputException;
+	public void stop();
 }

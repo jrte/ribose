@@ -1,0 +1,28 @@
+#! /bin/bash
+vmargs=""
+while [[ "$1" =~ ^[-][^-] ]]; do
+	vmargs="$vmargs $1";
+	shift
+done
+nil=""
+if [[ "$1" == "--nil" ]]; then
+	nil=$1
+	shift
+fi
+if (($#!=3)); then
+	echo -e "Usage:\tjrte.sh [<vm-arg ...] [--nil] <transducer-name> <input-path> <model-path>"
+	exit 1
+elif [[ ! -f "$2" || ! -f "$3" ]]; then
+	if [[ ! -f "$2" ]]; then
+		echo "No file found at $2"
+	fi
+	if [[ ! -f "$3" ]]; then
+		echo "No model found at $3"
+	fi
+	exit 1
+fi
+transducer=$1
+input="$2"
+model="$3"
+java $vmargs -cp jars/ribose-0.0.0.jar com.characterforming.ribose.RiboseRuntime $nil $transducer $input $model
+

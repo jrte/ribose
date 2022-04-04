@@ -43,7 +43,6 @@ import com.characterforming.jrte.InputException;
 import com.characterforming.jrte.ModelException;
 import com.characterforming.jrte.RteException;
 import com.characterforming.jrte.TargetBindingException;
-import com.characterforming.jrte.TransducerNotFoundException;
 import com.characterforming.jrte.base.Base;
 import com.characterforming.jrte.base.BaseEffector;
 import com.characterforming.jrte.base.BaseParameterizedEffector;
@@ -185,11 +184,10 @@ public final class Transduction implements ITransduction, ITarget, IOutput {
 	 * @see com.characterforming.jrte.engine.ITransduction#input(IInput[])
 	 */
 	@Override
-	public Status input(final IInput[] inputs) throws RteException {
+	public Status input(final IInput[] inputs) {
 		if (this.status() == ITransduction.Status.NULL) {
-			RteException rtx = new RteException("input: Transaction is MODEL and inoperable");
-			logger.log(Level.SEVERE, rtx.getMessage(), rtx);
-			throw rtx;
+			logger.log(Level.SEVERE, "Transduction not bound to target");
+			return this.status();
 		}
 		if (this.inputStack == null) {
 			this.inputStack = new InputStack(inputs.length);
@@ -205,29 +203,25 @@ public final class Transduction implements ITransduction, ITarget, IOutput {
 	 * @see com.characterforming.jrte.engine.ITransduction#start(String)
 	 */
 	@Override
-	public Status start(final Bytes transducerName) throws RteException {
-		if (this.status() == ITransduction.Status.NULL) {
-			RteException rtx = new RteException("start: Transaction is MODEL and inoperable");
-			logger.log(Level.SEVERE, rtx.getMessage(), rtx);
-			throw rtx;
-		}
-		try {
-			if (this.effectors != null) {
-				assert this.transducerStack == null;
-				this.transducerStack = new TransducerStack(8);
-				this.transducerStack.push(this.model.loadTransducer(this.model.getTransducerOrdinal(transducerName)));
+	public Status start(final Bytes transducerName) throws ModelException {
+		if (this.status() != ITransduction.Status.NULL) {
+			int transducerOrdinal = this.model.getTransducerOrdinal(transducerName);
+			Transducer transducer = null;
+			transducer = this.model.loadTransducer(transducerOrdinal);
+			if (transducer != null) {
+				if (this.transducerStack == null) {
+					this.transducerStack = new TransducerStack(8);
+				}
+				this.transducerStack.push(transducer);
 				this.select(Base.ANONYMOUS_VALUE_ORDINAL);
 				this.clear();
 			} else {
-				throw new RteException(
-					String.format("Transduction %1$s not bound to target", transducerName.toString()));
+				logger.log(Level.SEVERE, String.format("No transducer named %1$s", 
+						transducerName.toString()));
 			}
-		} catch (Exception e) {
-			String msg = String.format("start: Unexpected exception loading %1$s", transducerName.toString());
-			RteException rtx = new RteException(msg, e);
-			logger.log(Level.SEVERE, rtx.getMessage(), rtx);
-			throw rtx;
-		} 
+		} else {
+			logger.log(Level.SEVERE, "Transduction not bound to target");
+		}
 		return this.status();
 	}
 
@@ -236,7 +230,7 @@ public final class Transduction implements ITransduction, ITarget, IOutput {
 	 * @see com.characterforming.jrte.engine.ITransduction#stop()
 	 */
 	@Override
-	public Status stop() throws InputException {
+	public Status stop() {
 		if (this.inputStack != null) {
 			while (!this.inputStack.isEmpty()) {
 				this.inputStack.pop();
@@ -252,6 +246,7 @@ public final class Transduction implements ITransduction, ITarget, IOutput {
 		for (NamedValue value : this.namedValueHandles) {
 			value.clear();
 		}
+		this.selected = this.namedValueHandles[Base.ANONYMOUS_VALUE_ORDINAL];
 		return this.status();
 	}
 
@@ -260,7 +255,7 @@ public final class Transduction implements ITransduction, ITarget, IOutput {
 	 * @see com.characterforming.jrte.engine.ITransduction#run()
 	 */
 	@Override
-	public Status run() throws RteException {
+	public Status run() throws RteException, DomainErrorException {
 		if (this.status() == ITransduction.Status.NULL) {
 			RteException rtx = new RteException("run: Transaction is MODEL and inoperable");
 			logger.log(Level.SEVERE, rtx.getMessage(), rtx);
@@ -512,9 +507,8 @@ I:				do {
 				}
 			}
 		} catch (Exception e) {
-			String msg = String.format("run: Unexpected exception (%s)", e.toString());
-			RteException rtx = new RteException(msg, e);
-			logger.log(Level.SEVERE, msg, rtx);
+			RteException rtx = new RteException("Unexpected exception in run()", e);
+			logger.log(Level.SEVERE, rtx.getMessage(), rtx);
 			throw rtx;
 		} finally {
 			
@@ -668,8 +662,6 @@ I:				do {
 		try {
 			this.transducerStack.push(this.model.loadTransducer(transducerOrdinal));
 			return IEffector.RTE_EFFECT_START;
-		} catch (final TransducerNotFoundException e) {
-			throw new EffectorException(String.format("The start effector failed to load %1$s", this.model.getTransducerName(transducerOrdinal)), e);
 		} catch (final ModelException e) {
 			throw new EffectorException(String.format("The start effector failed to load %1$s", this.model.getTransducerName(transducerOrdinal)), e);
 		}
@@ -792,7 +784,8 @@ I:				do {
 
 		@Override
 		public int invoke(final int parameterIndex) throws EffectorException {
-			return super.getTarget().select(super.getParameter(parameterIndex));
+			int valueOrdinal = super.getParameter(parameterIndex);
+			return (valueOrdinal != 1) ? super.getTarget().select(valueOrdinal) : IEffector.RTE_EFFECT_NONE;
 		}
 	}
 
@@ -809,7 +802,8 @@ I:				do {
 
 		@Override
 		public int invoke(final int parameterIndex) throws EffectorException {
-			return super.getTarget().copy(super.getParameter(parameterIndex));
+			int valueOrdinal = super.getParameter(parameterIndex);
+			return (valueOrdinal != 1) ? super.getTarget().copy(valueOrdinal) : IEffector.RTE_EFFECT_NONE;
 		}
 	}
 
@@ -825,7 +819,8 @@ I:				do {
 
 		@Override
 		public int invoke(final int parameterIndex) throws EffectorException {
-			return super.getTarget().cut(super.getParameter(parameterIndex));
+			int valueOrdinal = super.getParameter(parameterIndex);
+			return (valueOrdinal != 1) ? super.getTarget().cut(valueOrdinal) : IEffector.RTE_EFFECT_NONE;
 		}
 	}
 

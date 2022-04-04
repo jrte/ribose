@@ -21,6 +21,12 @@
 
 package com.characterforming.jrte.base;
 
+/**
+ * This {@code Base} class provides commonly used defintions that are
+ * used across the ribose framework.
+ * 
+ * @author kb
+ */
 public class Base {
 	public static String RTE_VERSION = "ribose-HEAD";
 

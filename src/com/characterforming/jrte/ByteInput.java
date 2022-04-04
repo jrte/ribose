@@ -108,7 +108,7 @@ public final class ByteInput extends BaseInput {
 	 * @see com.characterforming.jrte.base.BaseInput#rewind()
 	 */
 	@Override
-	public IInput rewind() throws InputException {
+	public IInput rewind() {
 		while (this.buffer >= 0) {
 			if (this.buffer < this.input.length) {
 				this.input[this.buffer].rewind();
@@ -125,7 +125,7 @@ public final class ByteInput extends BaseInput {
 	 * @see com.characterforming.jrte.base.BaseInput#stop()
 	 */
 	@Override
-	public void stop() throws InputException {
+	public void stop() {
 		this.rewind();
 	}
 }

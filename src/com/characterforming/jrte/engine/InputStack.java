@@ -24,7 +24,6 @@ package com.characterforming.jrte.engine;
 import java.util.Arrays;
 
 import com.characterforming.jrte.IInput;
-import com.characterforming.jrte.InputException;
 
 /**
  * @author Kim Briggs
@@ -104,9 +103,8 @@ public final class InputStack {
 	 * Pop the stack
 	 * 
 	 * @return The item on top of the stack after the pop
-	 * @throws InputException 
 	 */
-	IInput pop() throws InputException {
+	IInput pop() {
 		if (this.tos >= 0) {
 			this.stack[this.tos].stop();
 			this.stack[this.tos] = null;

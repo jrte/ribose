@@ -44,7 +44,6 @@ import com.characterforming.jrte.IParameterizedEffector;
 import com.characterforming.jrte.ITarget;
 import com.characterforming.jrte.ModelException;
 import com.characterforming.jrte.TargetBindingException;
-import com.characterforming.jrte.TransducerNotFoundException;
 import com.characterforming.jrte.base.Base;
 import com.characterforming.jrte.base.Bytes;
 
@@ -78,6 +77,7 @@ public final class RuntimeModel implements AutoCloseable {
 	
 	public RuntimeModel(Mode mode, final File modelPath, final ITarget target) throws ModelException {
 		this.mode = mode;
+		this.ioMode = null;
 		this.modelTarget = target;
 		this.modelPath = modelPath;
 		this.modelTransduction = new Transduction(this);
@@ -291,9 +291,18 @@ public final class RuntimeModel implements AutoCloseable {
 				this.putLong(indexPosition);
 				this.setDeleteOnClose(false);
 				saveMapFile(new File(this.modelPath.getPath().replaceAll(".model", ".map")));
-				System.out.println(String.format("Target class %1$s: %2$d text ordinals, %3$d signal ordinals, %4$d  effectors",
-					this.modelTarget.getName(), Base.RTE_SIGNAL_BASE, this.getSignalCount(), this.effectorOrdinalMap.size()));
-				System.out.println(String.format("Target package %1$s", this.modelTarget.getClass().getPackage().getName()));
+				String msg = 	String.format("Ribose model %1$s: target class %2$s",
+					this.modelPath.getPath(), this.modelTarget.getClass().getName());
+				RuntimeModel.rtcLogger.log(Level.INFO, msg);
+				msg = String.format("Ribose model %1$s: %2$d transducers; %3$d text ordinals; %4$d signal ordinals; %5$d effectors",
+					this.modelPath.getPath(), this.transducerOrdinalMap.size() - 1, Base.RTE_SIGNAL_BASE, this.getSignalCount(), 
+					this.effectorOrdinalMap.size());
+				RuntimeModel.rtcLogger.log(Level.INFO, msg);
+				if (this.transducerOrdinalMap.size() <= 1) {
+					msg = String.format("No transducers compiled from %1$s to %2$s",
+						inrAutomataDirectory.getPath(), this.modelPath.getPath());
+					RuntimeModel.rtcLogger.log(Level.WARNING, msg);
+				}
 			} else {
 				for (final String error : errors) {
 					this.logger.log(Level.SEVERE, error);
@@ -315,6 +324,7 @@ public final class RuntimeModel implements AutoCloseable {
 	@Override
 	public void close() throws ModelException {
 		if (this.io != null) {
+			this.ioMode = null;
 			try {
 				this.io.close();
 			} catch (IOException e) {
@@ -329,7 +339,7 @@ public final class RuntimeModel implements AutoCloseable {
 
 	private void initialize() throws ModelException {
 		try {
-			final FileHandler rteHandler = new FileHandler(Base.RTE_LOGGER_NAME + "log", true);
+			final FileHandler rteHandler = new FileHandler(Base.RTE_LOGGER_NAME + ".log", true);
 			rteHandler.setFormatter(new SimpleFormatter());
 			RuntimeModel.rteLogger.addHandler(rteHandler);
 			final FileHandler rtcHandler = new FileHandler(Base.RTC_LOGGER_NAME + ".log", true);
@@ -542,7 +552,7 @@ public final class RuntimeModel implements AutoCloseable {
 	}
 
 	int getSignalCount() {
-		return this.signalOrdinalMap.size();
+		return this.signalOrdinalMap.size() - Base.RTE_SIGNAL_BASE;
 	}
 
 	int getSignalLimit() {
@@ -614,10 +624,11 @@ public final class RuntimeModel implements AutoCloseable {
 		return (transducerOrdinal < this.transducerObjectIndex.length) ? this.transducerObjectIndex[transducerOrdinal] : null;
 	}
 
-	Transducer loadTransducer(final Integer transducerOrdinal) throws TransducerNotFoundException, ModelException {
+	Transducer loadTransducer(final Integer transducerOrdinal) throws ModelException {
 		if ((0 <= transducerOrdinal) && (transducerOrdinal < this.transducerOrdinalMap.size())) {
-				if (this.transducerObjectIndex[transducerOrdinal] == null) {
-					synchronized (this) {
+			if (this.transducerObjectIndex[transducerOrdinal] == null) {
+				synchronized (this) {
+					if (this.transducerObjectIndex[transducerOrdinal] == null) {
 						try {
 							this.io.seek(transducerOffsetIndex[transducerOrdinal]);
 							final String name = this.getString();
@@ -625,18 +636,20 @@ public final class RuntimeModel implements AutoCloseable {
 							final int[] inputFilter = this.getIntArray();
 							final int[][] transitionMatrix = this.getTransitionMatrix();
 							final int[] effectorVector = this.getIntArray();
-							this.transducerObjectIndex[transducerOrdinal] = new Transducer(name, targetName, inputFilter, transitionMatrix, effectorVector);
+							this.transducerObjectIndex[transducerOrdinal] = new Transducer(name, targetName,
+								inputFilter, transitionMatrix, effectorVector);
 						} catch (final IOException e) {
-							throw new ModelException(
-								String.format("RuntimeModel.loadTransducer(%d) caught an IOException after seek to %d", transducerOrdinal, transducerOffsetIndex[transducerOrdinal]), e);
+							RuntimeModel.rteLogger.log(Level.SEVERE,
+								String.format("RuntimeModel.loadTransducer(%d) caught an IOException after seek to %d",
+									transducerOrdinal, transducerOffsetIndex[transducerOrdinal]), e);
 						} 
-					}
+					} 
 				}
-				return this.transducerObjectIndex[transducerOrdinal];
-		} else {
-			return null;
+			}
+			return this.transducerObjectIndex[transducerOrdinal];
 		}
-	}
+		return null;
+}
 
 	int getInt() throws ModelException {
 		long position = 0;

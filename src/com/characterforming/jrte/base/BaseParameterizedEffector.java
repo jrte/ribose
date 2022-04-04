@@ -31,7 +31,7 @@ import com.characterforming.jrte.TargetBindingException;
  * {@link #newParameters(int)} {@link #compileParameter(int, byte[][])},
  * {@link #invoke()}, and {@link #invoke(int)} methods must be implemented by
  * subclasses. Subclasses can use {@link Bytes#decode(byte[], int)} to decode UTF-8
- * strings from parameter byte arrays using the default Charset.
+ * byte[] to char[] or String from parameter byte arrays using the default Charset.
  * 
  * @param <T> The effector target type
  * @param <P> The effector parameter type, constructible from byte[][] (eg new

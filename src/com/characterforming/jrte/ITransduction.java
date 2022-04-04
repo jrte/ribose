@@ -43,8 +43,8 @@ import com.characterforming.jrte.base.Bytes;
  * <p>
  * Domain errors (inputs with no transition defined) are handled by emitting a
  * nul signal, giving the transduction an opportunity to handle it with an
- * explicit transition on nul. For most text transducers, domain errors can be avoided
- * entirely by transducing the transducer. For example, with line-oriented text, 
+ * explicit transition on nul. For most text transducers, domain errors can be 
+ * handled by transducing the transducer. For example, with line-oriented text, 
  * all possible interleavings of domain errors in the input can be modeled by replacing
  * each non-nl input (x) with (x|nul) in the original transducer definition. The 
  * resulting transducer can then be pruned to produce a hardened transducer that accepts
@@ -90,16 +90,13 @@ public interface ITransduction extends ITarget {
 	/**
 	 * Test the status of the transduction's input and transducer stacks.
 	 * 
-	 * A PAUSED transduction can be resumed by calling run() after new input() is pushed onto   
-	 * the input stack. Transducers may deliberately to break out of run() with transducer and input
-	 * stacks not empty and allow the caller to determine future course, in which case transduction 
-	 * can be run() again immediately and status() will remain RUNNABLE until paused again or 
-	 * stopped. 
-	 * 
-	 * A STOPPED transduction should be reset to factory state by calling stop(). It can then be set
-	 * up to run() again after start() and input() have pushed new transducer and input onto the
-	 * respective stacks. Calling stop() on a RUNNABLE or PAUSED transduction will free any resources 
-	 * bound to the transduction and reset it to factory state for reuse. 
+	 * A RUNNABLE transduction can be resumed immediately by calling run(). A PAUSED 
+	 * transduction can be resumed when new input is pushed. Transducers may deliberately
+	 * invoke the {@code pause} effector to break out of run() with transducer and input
+	 * stacks not empty to allow the caller to take some action before calling run() to 
+	 * resume the transduction. A STOPPED transduction can be reused to start a new 
+	 * transduction with a different transducer stack and new input after calling stop()
+	 * to reset the transduction stack to its original bound state.
 	 * 
 	 * @return Transduction status
 	 */
@@ -107,23 +104,22 @@ public interface ITransduction extends ITarget {
 	
 	/**
 	 * Set up or reset a transduction with a specified transducer at its start
-	 * state on top of the transducer stack. To process input, call the
-	 * {@link #input(IInput[])} method.
+	 * state on top of the transducer stack. To provide input, call the
+	 * {@link #input(IInput[])} method before running the transduction.
 	 * 
 	 * @param transducer The name of the transducer to start
 	 * @return Run status of transduction at point of return 
-	 * @throws RteException On error
+	 * @throws ModelException 
 	 */
-	public Status start(Bytes transducer) throws RteException;
+	public Status start(Bytes transducer) throws ModelException;
 
 	/**
 	 * Set up transduction inputs.
 	 * 
 	 * @param inputs Initial (or additional) inputs in LIFO order, inputs[0] is last out
 	 * @return Run status of transduction at point of return 
-	 * @throws RteException On error
 	 */
-	public Status input(IInput[] inputs) throws RteException;
+	public Status input(IInput[] inputs);
 
 	/**
 	 * Run the transduction with current input until the input or transduction
@@ -131,9 +127,10 @@ public interface ITransduction extends ITarget {
 	 * 
 	 * @return Run status of transduction at point of return 
 	 * @see #status()
-	 * @throws RteException On error
+	 * @throws RteException 
+	 * @throws DomainErrorException 
 	 */
-	public Status run() throws RteException;
+	public Status run() throws RteException, DomainErrorException;
 	
 	/**
 	 * Return the number of domain errors counted in the most recent run() call. A
@@ -150,8 +147,7 @@ public interface ITransduction extends ITarget {
 	 * the transduction to original factory state ready for reuse.
 	 * 
 	 * @return {@link Status#STOPPED} 
-	 * @throws InputException 
 	 * @see #status()
 	 */
-	public Status stop() throws InputException;
+	public Status stop();
 }

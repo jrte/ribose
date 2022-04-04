@@ -27,12 +27,11 @@ import com.characterforming.jrte.TargetBindingException;
 import com.characterforming.jrte.engine.Transduction;
 
 /**
- * Base {@link ITarget} implementation class exports no effectors. It serves only 
- * as a public proxy for the inline transduction effectors paste/cut/copy etc. 
- * 
- * This class is used as target in {@link com.characterforming.ribose.Ribose#main(String[])}
- * and can be used as target for collections of utf8- or byte-oriented transducers
- * that use only the inline transduction effectors.  
+ * This class is used as target for collections of utf8- or byte-oriented
+ * transducers that use only the inline transduction effectors. These effectors
+ * are availabhle to all transductions and are emunerated by the transduction
+ * itself. They and need not be included in the enumeration of user-defined 
+ * target effectors for {@link ITaget#bindEffector()}.
  * 
  * @author Kim Briggs
  * @see {@link Transduction#bindEffectors()}

@@ -28,11 +28,9 @@ import com.characterforming.jrte.base.BaseParameterizedEffector;
 import com.characterforming.jrte.base.Bytes;
 
 /**
- * Base class for parameterised named value effectors, which can be invoked with
- * value name
- * parameters. The setParamater(int, charset, byte[][]), invoke(), and
- * invoke(int) methods
- * must be implemented by subclasses.
+ * Base class for parameterised named value effectors, which are invoked with
+ * value name parameters. The setParamater(int, charset, byte[][]), invoke(), and
+ * invoke(int) methods must be implemented by subclasses.
  * 
  * @author Kim Briggs
  */

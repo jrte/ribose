@@ -56,7 +56,7 @@ public interface INamedValue {
 	public int getLength();
 
 	/**
-	 * Decode a UTF-8 encoded value using default charset.
+	 * Decode a UTF-8 encoded value using the default charset.
 	 * 
 	 * @return A Unicode char[] array holding the decoded value
 	 */

@@ -27,7 +27,7 @@ import java.nio.charset.Charset;
 import java.util.Arrays;
 
 /**
- * Wraps an array of byte
+ * Wraps an array of bytes
  * 
  * @author Kim Briggs
  */
