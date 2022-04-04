@@ -31,7 +31,7 @@ import com.characterforming.jrte.engine.Transduction;
  * transducers that use only the inline transduction effectors. These effectors
  * are availabhle to all transductions and are emunerated by the transduction
  * itself. They and need not be included in the enumeration of user-defined 
- * target effectors for {@link ITaget#bindEffector()}.
+ * target effectors for {@link ITarget#bindEffectors()}.
  * 
  * @author Kim Briggs
  * @see {@link Transduction#bindEffectors()}
