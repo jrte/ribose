@@ -61,7 +61,11 @@ public class Base {
 	public static final byte[] ANONYMOUS_VALUE_REFERENCE = { TYPE_REFERENCE_VALUE };
 	public static final byte[][] ANONYMOUS_VALUE_PARAMETER = { ANONYMOUS_VALUE_REFERENCE };
 	public static final int ANONYMOUS_VALUE_ORDINAL = 0;
-	
+	public static final byte[] ALL = { '~', '*' };
+	public static final byte[] ALL_VALUE_NAME = { '*' };
+	public static final byte[] ALL_VALUE_PARAMETER = ALL;
+	public static final int CLEAR_VALUE_ORDINAL = 1;
+
 	public Base() {
 		super();
 	}

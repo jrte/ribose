@@ -1,72 +1,68 @@
 white = space | comma | tab | nl;
-delim = ({'-','/','.','\\'}, '-');
+delimiter = '/' | '-' | '.' | '\\';
 yyyy = ((digit-'0') (digit:3)) @@ PasteAny;
 md = ('0'? (digit-'0') | '1' ('0'|'1'|'2')) @@ PasteAny;
 dd = ('1' (digit-('0'|'1'|'2')) | '2' digit | '3' ('0'|'1')) @@ PasteAny;
 
+d0 = (delimiter, select[`~d0`] cut select);
+d1 = (delimiter, select[`~d1`] cut select);
+d2 = select[`~d2`] cut select;
+
 qy = `!_dmy`;
 yq = `!_ydm`;
 
-d0 = ('-', select[`~d0`] cut select);
-d1 = ('-', select[`~d1`] cut select);
-d2 = select[`~d2`] cut select;
-
 numericDate = (
-	(((digit$(0,0))* delim*)* @@ (digit+ '-' digit+ '-' digit+)) (white$(0,0))
-@	(	md d0	dd d1 yyyy	(white, d2 in[`!_mdy`])
-	|	dd d0	md d1 yyyy	(white, d2 in[`!_dmy`])
-	|	yyyy d0	md d1 dd	(white, d2 in[`!_ymd`])
-	|	yyyy d0	dd d1 md	(white, d2 in[`!_ydm`])
-	|	md d0	md d1 yyyy	(white, d2 in[qy])
-	|	yyyy d0	md d1 md	(white, d2 in[yq])
+	( digit+ '/' digit+ '/' digit+
+	| digit+ '-' digit+ '-' digit+
+	| digit+ '.' digit+ '.' digit+
+	| digit+ '\\' digit+ '\\' digit+
 	)
-);
-
-zday = (
-	(digit, paste)
-	(
-		(digit, paste select[`~dz`] cut in[`!eol`])
-	|	(white, select[`~dz`] paste[`#0`] cut in[`!eol`])
+	white
+@@
+	( md d0	dd d1 yyyy (white, d2 in[`!_mdy`])
+	|	dd d0	md d1 yyyy (white, d2 in[`!_dmy`])
+	|	md d0	md d1 yyyy (white, d2 in[qy])
+	|	yyyy d0	md d1 dd (white, d2 in[`!_ymd`])
+	|	yyyy d0	dd d1 md (white, d2 in[`!_ydm`])
+	|	yyyy d0	md d1 md (white, d2 in[yq])
 	)
 );
 
 day = (dd | md) {'st','nd','rd','th'}?;
 
-month = {
-	({'J','j'} 'an', select[`~?`] paste[`#01`] select) 'uary'?,
-	({'F','f'} 'eb', select[`~?`] paste[`#02`] select) 'ruary'?,
-	({'M','m'} 'ar', select[`~?`] paste[`#03`] select) 'ch'?,
-	({'A','a'} 'pr', select[`~?`] paste[`#04`] select) 'il'?,
-	({'M','m'} 'ay', select[`~?`] paste[`#05`] select),
-	({'J','j'} 'un', select[`~?`] paste[`#06`] select) 'e'?,
-	({'J','j'} 'ul', select[`~?`] paste[`#07`] select) 'y'?,
-	({'A','a'} 'ug', select[`~?`] paste[`#08`] select) 'ust'?,
-	({'S','s'} 'ep', select[`~?`] paste[`#09`] select) 'tember'?,
-	({'O','o'} 'ct', select[`~?`] paste[`#10`] select) 'ober'?,
-	({'N','n'} 'ov', select[`~?`] paste[`#11`] select) 'ember'?,
-	({'D','d'} 'ec', select[`~?`] paste[`#12`] select) 'ember'?
-};
+month = (
+	(	({'J','j'} 'an', select[`~?`] paste[`#01`] select) 'uary'?
+	|	({'F','f'} 'eb', select[`~?`] paste[`#02`] select) 'ruary'?
+	|	({'M','m'} 'ar', select[`~?`] paste[`#03`] select) 'ch'?
+	|	({'A','a'} 'pr', select[`~?`] paste[`#04`] select) 'il'?
+	|	({'M','m'} 'ay', select[`~?`] paste[`#05`] select)
+	|	({'J','j'} 'un', select[`~?`] paste[`#06`] select) 'e'?
+	|	({'J','j'} 'ul', select[`~?`] paste[`#07`] select) 'y'?
+	|	({'A','a'} 'ug', select[`~?`] paste[`#08`] select) 'ust'?
+	|	({'S','s'} 'ep', select[`~?`] paste[`#09`] select) 'tember'?
+	|	({'O','o'} 'ct', select[`~?`] paste[`#10`] select) 'ober'?
+	|	({'N','n'} 'ov', select[`~?`] paste[`#11`] select) 'ember'?
+	|	({'D','d'} 'ec', select[`~?`] paste[`#12`] select) 'ember'?
+	)
+);
 
 m0 = ((((month$2:alph) - `~?`)$(0,0))* (`~?`, `~d0`)*)*;
 m1 = ((((month$2:alph) - `~?`)$(0,0))* (`~?`, `~d1`)*)*;
 
 alphanumericDate = (
-	day (white, select[`~d0`] cut) white* 'of'? white* (month @ m1) white+ yyyy (white, select[`~d2`] cut select in[`!_dmy`])
-| 	(month @ m0) white+ day (white, select[`~d1`] cut select) white* yyyy (white, select[`~d2`] cut select in[`!_mdy`])
+		day (white, select[`~d0`] cut) white* 'of'? white* 
+		(month @ m1) white+ 
+		yyyy (white, select[`~d2`] cut select in[`!_dmy`])
+	| (month @ m0) white+ 
+		day (white, select[`~d1`] cut select) white* 
+		yyyy (white, select[`~d2`] cut select in[`!_mdy`])
 );
 
 date = (numericDate | alphanumericDate);
 
-mdy = (`_mdy`, in[`~d1`] clear select) zday (eol, select paste[`~d2` SLASH `~d0` SLASH `~dz` NL] out clear[`~*`]);
-dmy = (`_dmy`, in[`~d0`] clear select) zday (eol, select paste[`~d2` SLASH `~d1` SLASH `~dz` NL] out clear[`~*`]);
-ymd = (`_ymd`, in[`~d2`] clear select) zday (eol, select paste[`~d0` SLASH `~d1` SLASH `~dz` NL] out clear[`~*`]);
-ydm = (`_ydm`, in[`~d1`] clear select) zday (eol, select paste[`~d0` SLASH `~d2` SLASH `~dz` NL] out clear[`~*`]);
-
-extract = date (mdy | dmy | ymd | ydm);
-
-a0 = (extract$0):alph;
-a1 = (extract$1):alph;
-a2 = (extract$2):alph;
+a0 = (date$0):alph;
+a1 = (date$1):alph;
+a2 = (date$2):alph;
 
 conjoint = (a0 & a1) | (a0 & a2) | (a1 & a2);
 
@@ -80,21 +76,38 @@ SignalOrNul = {
 	({nul,  eol},  eol)
 };
 
-nullify = AnyOrNul | SignalOrNul;
-prefix = a0 & (date$0:pref);
-notextract = (
+nullify = (AnyOrNul* SignalOrNul*)* @ date;
+prefix = utf8 & (date$0:pref);
+notdate = (
 	(
-		((nullify* @ extract)$(0 1 2))
+		(nullify$(0 1 2))
 	@	((a0$(0,0))* (a1$(0,,0))* (a2$(0,,,0))*)*
 		(nul, nul, clear[`~*`] select)
 		(nul* a0* a1* a2*)* 
 	)
-	(a0 - prefix)*
+);
+noise = (utf8 - (date$0:pref)) - white;
+
+dates = (
+	(
+		white* noise* 
+		(
+			(numericDate | alphanumericDate)
+			( (`_mdy`, out[`~d2` SLASH `~d0` SLASH `~d1` SPACE] clear[`~*`] select)
+			| (`_dmy`, out[`~d2` SLASH `~d1` SLASH `~d0` SPACE] clear[`~*`] select)
+			| (`_ymd`, out[`~d0` SLASH `~d1` SLASH `~d2` SPACE] clear[`~*`] select)
+			| (`_ydm`, out[`~d0` SLASH `~d2` SLASH `~d1` SPACE] clear[`~*`] select)
+			)
+		|	notdate
+		)*
+	)*
+	(eos, out[NL])
 );
 
 map = {
-	(NL, ` `),
+	(NL, `\n`),
 	(SLASH, `/`),
+	(SPACE, ` `),
 	(`#0`, `0`),
 	(`#01`, `01`),
 	(`#02`, `02`),
@@ -110,10 +123,12 @@ map = {
 	(`#12`, `12`)
 };
 
-identity = (a2 - (map$0))$(0,0);
+identity = ((dates$2:alph) - (map$0))$(0,0);
 
-DateExtractor = nil? (extract* notextract*)* @ (identity* map*)*;
+DateExtractor = (nil, clear[`~*`] select)? (
+	dates @ (identity* map*)*
+):dfamin;
 
-DateExtractor:dfamin:pr `DateExtractor.pr`;
-DateExtractor:dfamin:save `DateExtractor.dfa`;
+DateExtractor$(0,1 2):prsseq `build/patterns/automata/DateExtractor.pr`;
+DateExtractor:save `build/patterns/automata/DateExtractor.dfa`;
 

@@ -1,2 +1,6 @@
-PasteCountTest = (nil, count[9 `!zero`]) ((a, paste count)* (zero b, clear count[9 `!zero`]))* (eos, stop);
-PasteCountTest :save `PasteCountTest.dfa`;
+PasteCountTest = (
+	(nil, count[9 `!zero`]) ((a, paste count)* (zero b, clear count[9 `!zero`]))* (eos, stop)
+):dfamin;
+
+PasteCountTest$(0,1 2):prsseq `build/patterns/automata/PasteCountTest.pr`;
+PasteCountTest:save `build/patterns/automata/PasteCountTest.dfa`;

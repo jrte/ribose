@@ -1,2 +1,6 @@
-PasteSpeedTest = nil? ((a, paste)* (b, clear))* (`eos`, stop);
-PasteSpeedTest :save `PasteSpeedTest.dfa`;
+PasteSpeedTest = (
+	nil? ((a, paste)* (b, clear))* (`eos`, stop)
+):dfamin;
+
+PasteSpeedTest$(0,1 2):prsseq `build/patterns/automata/PasteSpeedTest.pr`;
+PasteSpeedTest:save `build/patterns/automata/PasteSpeedTest.dfa`;

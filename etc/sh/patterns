@@ -1,0 +1,59 @@
+#! /bin/bash
+if (($# != 4)); then
+	echo "Usage: patterns <ginr-source-directory> <prologue-file> <epilogue-file> <dfa-output-directory>"
+	echo "Effect: 'cat <prologue><source-file>.inr<epilogue> | ginr' for each ginr source in <ginr-source-directory>"
+	echo "Compiled automata are placed in <dfa-output-directory>/X.dfa"
+	echo "Trace files including ginr error messages for X.inr are in /tmp/X.inr.out"
+	exit 1
+fi
+if [[ ! -d "$1" ]]; then 
+	echo "Not a directory: $1"
+	exit 1
+fi
+if [[ ! -d "$1" ]]; then 
+	echo "Not a directory: $1"
+	exit 1
+fi
+if [[ ! -f "$1/$2" ]]; then 
+	echo "Not found: $1/$2"
+	exit 1
+fi
+if [[ ! -f "$1/$3" ]]; then 
+	echo "Not found: $1/$3"
+	exit 1
+fi
+if [[ ! -d "$4" ]]; then 
+	echo "Not a directory: $4"
+	exit 1
+fi
+
+src="$1"
+prologue="$1/$2"
+epilogue="$1/$3"
+out="$4"
+
+failed=0
+echo ":bye;" | ginr | grep ' '
+for f in "$src"/*.inr; do
+	file=$(basename "$f")
+	if [[ "$f" != "$src/$prologue" && "$f" != "$src/$epilogue" ]]; then
+		name=${file%.inr}
+		cat "$prologue" "$f" "$epilogue" | etc/ginr/ginr &> "/tmp/$file.out"
+		grep '^[ ]*\* \* \*\|^[ ]*\*\*\*\|^Error detected at state [0-9]*:\|^Reserved character:\|^Warning:' "/tmp/$file.out" &> /tmp/errors
+		if [[ -s "/tmp/errors" ]]; then
+			((++failed))
+			echo "Errors reported in /tmp/$file.out"
+		else
+			for dfa in $(grep '^[A-Z0-9a-z_]*[ ]*:.*save' "$f" | grep -o '^[A-Z0-9a-z_]*' | sort -u); do
+				grep "$dfa .*DFA MIN" "/tmp/$file.out"
+			done
+		fi
+	fi
+done
+
+if ((failed>0)); then
+	echo "$failed errors reported, see /tmp/*.inr.out"
+	exit 1
+else
+	exit 0
+fi

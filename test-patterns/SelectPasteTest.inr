@@ -1,2 +1,6 @@
-SelectPasteTest = (nil, select[`~buffer`]) ((a, paste)* (b, clear[`~buffer`] select[`~buffer`]))* (`eos`, stop);
-SelectPasteTest :save `SelectPasteTest.dfa`;
+SelectPasteTest = (
+	(nil, select[`~buffer`]) ((a, paste)* (b, clear[`~buffer`] select[`~buffer`]))* (`eos`, stop)
+):dfamin;
+
+SelectPasteTest$(0,1 2):prsseq `build/patterns/automata/SelectPasteTest.pr`;
+SelectPasteTest:save `build/patterns/automata/SelectPasteTest.dfa`;

@@ -1,4 +1,6 @@
 HelloWorld = (
 		(nil, clear paste[`(-: `]) ('hello world' @@ PasteAny) (eos, paste[` :-)`] out[`~` `\n`] clear)
-);
-HelloWorld :save `HelloWorld.dfa`;
+):dfamin;
+
+HelloWorld$(0,1 2):prsseq `build/patterns/automata/HelloWorld.pr`;
+HelloWorld:save `build/patterns/automata/HelloWorld.dfa`;

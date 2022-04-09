@@ -1,2 +1,6 @@
-NilPauseTest = nil? (a*b, pause)* (eos, stop);
-NilPauseTest :save `NilPauseTest.dfa`;
+NilPauseTest = (
+	nil? (a*b, pause)* (eos, stop)
+):dfamin;
+
+NilPauseTest$(0,1 2):prsseq `build/patterns/automata/NilPauseTest.pr`;
+NilPauseTest:save `build/patterns/automata/NilPauseTest.dfa`;

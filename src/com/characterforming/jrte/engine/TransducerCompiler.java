@@ -28,6 +28,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.logging.Level;
 
 import com.characterforming.jrte.CompilationException;
 import com.characterforming.jrte.ModelException;
@@ -54,6 +55,11 @@ public final class TransducerCompiler extends Automaton {
 		}
 
 		final Integer[] inrInputStates = super.getInrStates(0);
+		if (inrInputStates == null) {
+			String msg = "Empty automaton " + super.getName();
+			RuntimeModel.rtcLogger.log(Level.SEVERE, msg);
+			throw new CompilationException(msg);
+		}
 
 		final int[][][] transitionMatrix = new int[this.model.getSignalLimit()][inrInputStates.length][2];
 		for (int i = 0; i < transitionMatrix.length; i++) {
@@ -182,6 +188,9 @@ public final class TransducerCompiler extends Automaton {
 						++effectorPos;
 					}
 					effectorOrdinal = this.model.getEffectorOrdinal(new Bytes(t.getBytes()));
+					if (effectorOrdinal < 0) {
+						super.error("Unknown effector " + Bytes.decode(t.getBytes()));
+					}
 					effectorVector[effectorPos] = effectorOrdinal;
 					++effectorPos;
 					break;

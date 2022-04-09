@@ -266,7 +266,6 @@ public final class Transduction implements ITransduction, ITarget, IOutput {
 		int errorCount = this.errorCount = 0;
 		ByteBuffer inputBuffer = null;
 		int position = 0, limit = 0;
-		String debug = null;
 		int state = 0;
 		try {
 T:		while (this.status() == ITransduction.Status.RUNNABLE) {
@@ -378,8 +377,10 @@ I:				do {
 							break;
 						case RTE_EFFECTOR_NUL:
 							if (currentInput == nulSignal) {
-								debug = this.getErrorInput(state, errorInput);
-								throw new DomainErrorException(String.format("Domain error on [%1$d] in %2$s (state %3$d) %4$s", errorInput, transducer.getName(), state, debug));
+								String debugTrace = this.getErrorInput(state, errorInput);
+								int debugState = state / this.transducerStack.peek().transducer.getInputEquivalentsCount();
+								throw new DomainErrorException(String.format("Domain error on [%1$d] in %2$s (state %3$d) %4$s", 
+									errorInput, transducer.getName(), debugState,	debugTrace));
 							} else if (currentInput != eosSignal) {
 								errorInput = currentInput;
 								signalInput = nulSignal;
@@ -615,14 +616,12 @@ I:				do {
 	}
 
 	private int clear(final int nameIndex) {
-		int index = (nameIndex == -2) ? this.selected.getOrdinal() : nameIndex;
-		if (index >= 0) {
+		assert (nameIndex >= 0) || (nameIndex == -1);
+		int index = (nameIndex >= 0) ? nameIndex : this.selected.getOrdinal();
+		if (index != Base.CLEAR_VALUE_ORDINAL) {
 			this.namedValueHandles[index].clear();
-			if (index == this.selected.getOrdinal()) {
-				this.selected = namedValueHandles[Base.ANONYMOUS_VALUE_ORDINAL];
-			}
-		} else if (index == -1) {
-			return clear();
+		} else {
+			clear();
 		}
 		return IEffector.RTE_EFFECT_NONE;
 	}
@@ -681,7 +680,7 @@ I:				do {
 		this.transducerStack.peek().state = state;
 		for (int t = this.transducerStack.tos(); t >= 0; t--) {
 			TransducerState transducerState = this.transducerStack.peek(t);
-			int errorState = transducerState.state / transducerState.transducer.getInputFilter().length;
+			int errorState = transducerState.state / transducerState.transducer.getInputEquivalentsCount();
 			error += String.format("\t\t%1$s (state %2$d, input %3$d)\n", transducerState.transducer.getName(), errorState, errorInput);
 		}
 		error += "\tInput stack:\n";
@@ -690,6 +689,8 @@ I:				do {
 			final byte[] array = (input != null) ? input.array() : null;
 			if (array == null) {
 				error += "\t\t(null)\n";
+			} else if (!input.hasRemaining()) {
+				error += "[ ]";
 			} else if (Base.isReferenceOrdinal(array)) {
 				error += String.format("\t\t[ !%1$d ]\n", Base.decodeReferenceOrdinal(Base.getReferenceType(array), array));
 			} else if (input.position() < array.length) {
@@ -763,7 +764,10 @@ I:				do {
 				if (Base.getReferenceType(bytes) == Base.TYPE_REFERENCE_VALUE) {
 					int valueOrdinal = Base.decodeReferenceOrdinal(Base.TYPE_REFERENCE_VALUE, bytes);
 					NamedValue value = (NamedValue)super.getTarget().getNamedValue(valueOrdinal);
-					super.getTarget().paste(value.getValue(), 0, value.getLength());
+					assert value != null;
+					if (value != null) {
+						super.getTarget().paste(value.getValue(), 0, value.getLength());
+					}
 				} else {
 					super.getTarget().paste(bytes, 0, bytes.length);
 				}
@@ -831,19 +835,7 @@ I:				do {
 
 		@Override
 		public int invoke() throws EffectorException {
-			return super.getTarget().clear(-2);
-		}
-
-		@Override
-		public Integer compileParameter(final int parameterIndex, final byte[][] parameterList) throws TargetBindingException {
-			if (parameterList.length == 1 && parameterList[0].length == 2
-					&& parameterList[0][0] == Base.TYPE_REFERENCE_VALUE
-					&& parameterList[0][1] == '*') {
-				super.parameters[parameterIndex] = -1;
-				return -1;
-			} else {
-				return super.compileParameter(parameterIndex, parameterList);
-			}
+			return super.getTarget().clear(-1);
 		}
 
 		@Override
@@ -923,7 +915,8 @@ I:				do {
 		@Override
 		public int[] compileParameter(final int parameterIndex, final byte[][] parameterList) throws TargetBindingException {
 			if (parameterList.length != 2) {
-				throw new TargetBindingException("The count effector requires two parameters");
+				throw new TargetBindingException(String.format("%1$S.%2$S: effector requires two parameters",
+					super.getTarget().getName(), super.getName()));
 			}
 			int count = -1;
 			assert !Base.isReferenceOrdinal(parameterList[0]) : "Reference ordinal presented for <count> to CountEffector[<count> <signal>]";
@@ -935,7 +928,8 @@ I:				do {
 				try {
 					count = Integer.parseInt(value.toString());
 				} catch (NumberFormatException e) {
-					throw new TargetBindingException("Named value %1$s is not valid for count effector: " + value.toString());
+					throw new TargetBindingException(String.format("%1$s.%2$s: Named value %3$s is not valid for count effector",
+						super.getTarget().getName(), super.getName(), value.toString()));
 				}
 			} else if (type == Base.TYPE_REFERENCE_NONE) {
 				count = Base.decodeInt(parameterList[0], parameterList[0].length);
@@ -949,10 +943,12 @@ I:				do {
 					super.setParameter(parameterIndex, new int[] { count, signalOrdinal });
 					return super.getParameter(parameterIndex);
 				} else {
-					throw new TargetBindingException("Invalid signal for count effector: " + Bytes.decode(parameterList[1], parameterList[1].length));
+					throw new TargetBindingException(String.format("%1$s.%2$s: invalid signal '%3$%s' for count effector",
+						super.getTarget().getName(), super.getName(), Bytes.decode(parameterList[1], parameterList[1].length)));
 				}		
 			} else {
-				throw new TargetBindingException("Invalid count for count effector: " + Bytes.decode(parameterList[0], parameterList[0].length));
+				throw new TargetBindingException(String.format("%1$s.%2$s: invalid count '%3$%s' for count effector",
+					super.getTarget().getName(), super.getName(), Bytes.decode(parameterList[1], parameterList[1].length)));
 			}
 		}
 

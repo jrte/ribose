@@ -1,6 +1,12 @@
-StackTest = (nil, start[`@StackTestSub`]) (Bsig, start[`@StackTestSub`])*  (eos, stop);
-StackTestSub = (a* b, in[`!Bsig`] stop)* (a* eos, clear in[`!eos`] stop);
-StackTest :save `StackTest.dfa`;
-StackTest :pr `StackTest.pr`;
-StackTestSub :save `StackTestSub.dfa`;
-StackTestSub :pr `StackTestSub.pr`;
+StackTest = (
+	(nil, start[`@StackTestSub`]) (Bsig, start[`@StackTestSub`])*  (eos, stop)
+):dfamin;
+
+StackTestSub = (
+	(a* b, in[`!Bsig`] stop)* (a* eos, clear in[`!eos`] stop)
+):dfamin;
+
+StackTest:save `build/patterns/automata/StackTest.dfa`;
+StackTest$(0,1 2):prsseq `build/patterns/automata/StackTest.pr`;
+StackTestSub:save `build/patterns/automata/StackTestSub.dfa`;
+StackTestSub$(0,1 2):prsseq `build/patterns/automata/StackTestSub.pr`;

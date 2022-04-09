@@ -23,7 +23,6 @@ package com.characterforming.jrte.engine;
 
 import com.characterforming.jrte.EffectorException;
 import com.characterforming.jrte.TargetBindingException;
-import com.characterforming.jrte.base.Base;
 import com.characterforming.jrte.base.BaseParameterizedEffector;
 import com.characterforming.jrte.base.Bytes;
 
@@ -82,13 +81,15 @@ public abstract class BaseNamedValueEffector extends BaseParameterizedEffector<T
 	@Override
 	public Integer compileParameter(final int parameterIndex, final byte[][] parameterList) throws TargetBindingException {
 		if (parameterList.length != 1) {
-			throw new TargetBindingException(String.format("The %1$s effector accepts exactly one parameter", super.getName()));
-		} else if (parameterList[0].length > 0 && parameterList[0][0] != Base.TYPE_REFERENCE_VALUE) {
-			throw new TargetBindingException(String.format("The %1$s effector accepts only `~<value-name>` parameters, %2$s is not valid", 
-				super.getName(), new Bytes(parameterList[0]).toString()));
+			throw new TargetBindingException(String.format("%1$s.%2$s: effector accepts exactly one parameter", 
+				super.getTarget().getName(), super.getName()));
 		}
 		final Bytes valueName = Bytes.getBytes(parameterList[0], 1, parameterList[0].length - 1);
 		final Integer valueOrdinal = super.getTarget().getValueOrdinal(valueName);
+		if (valueOrdinal < 0) {
+			throw new TargetBindingException(String.format("%1$s.%2$s: value name '%3$s' not enumerated for parameter compilation", 
+				super.getTarget().getName(), super.getName().toString(), valueName.toString()));
+		}
 		super.setParameter(parameterIndex, valueOrdinal);
 		return valueOrdinal;
 	}

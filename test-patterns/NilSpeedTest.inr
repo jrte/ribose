@@ -1,2 +1,6 @@
-NilSpeedTest = nil (a*b)* (eos, stop);
-NilSpeedTest :save `NilSpeedTest.dfa`;
+NilSpeedTest = (
+	nil (a*b)* (eos, stop)
+):dfamin;
+
+NilSpeedTest$(0,1 2):prsseq `build/patterns/automata/NilSpeedTest.pr`;
+NilSpeedTest:save `build/patterns/automata/NilSpeedTest.dfa`;

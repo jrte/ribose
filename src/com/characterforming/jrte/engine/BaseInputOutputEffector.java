@@ -68,7 +68,8 @@ public abstract class BaseInputOutputEffector extends BaseParameterizedEffector<
 	@Override
 	public byte[][] compileParameter(final int parameterIndex, final byte[][] parameterList) throws TargetBindingException {
 		if (parameterList.length < 1) {
-			throw new TargetBindingException(String.format("The %1$s effector requires at least one parameter", super.getName()));
+			throw new TargetBindingException(String.format("%1$s.%2$s: effector requires at least one parameter", 
+					super.getTarget().getName(), super.getName()));
 		}
 		final byte[][] parameter = new byte[parameterList.length][];
 		for (int i = 0; i < parameterList.length; i++) {
@@ -76,11 +77,19 @@ public abstract class BaseInputOutputEffector extends BaseParameterizedEffector<
 			byte type = Base.getReferenceType(parameterList[i]);
 			if (type == Base.TYPE_REFERENCE_VALUE) {
 				final Bytes valueName = new Bytes(Base.getReferenceName(parameterList[i]));
-				final Integer nameIndex = super.getTarget().getValueOrdinal(valueName);
-				parameter[i] = Base.encodeReferenceOrdinal(Base.TYPE_REFERENCE_VALUE, nameIndex);
+				final Integer valueOrdinal = super.getTarget().getValueOrdinal(valueName);
+				if (valueOrdinal < 0) {
+					throw new TargetBindingException(String.format("%1$s.%2$s: value name '%3$s' not enumerated for parameter compilation", 
+						super.getTarget().getName(), super.getName().toString(), valueName.toString()));
+				}
+				parameter[i] = Base.encodeReferenceOrdinal(Base.TYPE_REFERENCE_VALUE, valueOrdinal);
 			} else if (type == Base.TYPE_REFERENCE_SIGNAL) {
-				final Bytes valueName = new Bytes(Base.getReferenceName(parameterList[i]));
-				final Integer signalOrdinal = super.getTarget().getModel().getSignalOrdinal(valueName);
+				final Bytes signalName = new Bytes(Base.getReferenceName(parameterList[i]));
+				final Integer signalOrdinal = super.getTarget().getModel().getSignalOrdinal(signalName);
+				if (signalOrdinal < 0) {
+					throw new TargetBindingException(String.format("%1$s.%2$s: signal name '%3$s' not enumerated for parameter compilation", 
+						super.getTarget().getName(), super.getName().toString(), signalName.toString()));
+				}
 				parameter[i] = Base.encodeReferenceOrdinal(Base.TYPE_REFERENCE_SIGNAL, signalOrdinal);
 			} else {
 				parameter[i] = parameterList[i];

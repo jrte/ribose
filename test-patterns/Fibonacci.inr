@@ -10,7 +10,7 @@ Fibonacci = (
 		)?
 	)*
 	(eos, clear[`~*`] stop)
-);
+):dfamin;
 
-Fibonacci:save `Fibonacci.dfa`;
-Fibonacci:pr `Fibonacci.pr`;
+Fibonacci$(0,1 2):prsseq `build/patterns/automata/Fibonacci.pr`;
+Fibonacci:save `build/patterns/automata/Fibonacci.dfa`;

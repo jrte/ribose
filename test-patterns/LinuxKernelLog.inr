@@ -68,7 +68,7 @@ LinuxKernel = (
 		line (nl, store clear[`~*`] select[`~timestamp`])
 	|	linenul (nl, clear[`~*`] select[`~timestamp`])
 	)*
-);
+):dfamin;
 
 # Fact check. If A is empty, ginr will print nothing for (`NOT~ A is empty:\n` A):enum 3;
 
@@ -94,15 +94,15 @@ LinuxKernel = (
 
 LinuxKernelDropped = (
 	header (space, select[`~tag`]) ('DROPPED' @@ PasteAny) capture (nl, store in[`!nil`] stop)
-);
+):dfamin;
 
 LinuxKernelLimited = (
 	header (space, select[`~tag`]) ('LIMITED' @@ PasteAny) capture (nl, store in[`!nil`] stop)
-);
+):dfamin;
 
 LinuxKernelAborted = (
 	header (space, select[`~tag`]) ('ABORTED' @@ PasteAny) capture (nl, store in[`!nil`] stop)
-);
+):dfamin;
 
 LinuxKernelPrefix = (((LinuxKernelDropped$0) | (LinuxKernelLimited$0) | (LinuxKernelAborted$0)) / nl);
 
@@ -118,7 +118,7 @@ LinuxKernelStrict = (
 		|	(LinuxKernelPrefix:pref) nul notnl* (nl, in[`!nil`])
 		)
 	)*
-);
+):dfamin;
 
 ### LinuxKernelLoose 
 # This will mark and look ahead only far enough to choose capable transducer 
@@ -140,28 +140,30 @@ LinuxKernelLoose = (
 			nul notnl* (nl, in[`!nil`])
 		)
 	)*
-);
+):dfamin;
 
 ### LinuxKernelNil
 #
 # Recognizer for kernel log
 ###
 
-LinuxKernelNil = (LinuxKernel$0) (eos, stop);
+LinuxKernelNil = (
+	(LinuxKernel$0) (eos, stop)
+):dfamin;
 
-LinuxKernelDropped:save `LinuxKernelDropped.dfa`;
-LinuxKernelDropped:pr `LinuxKernelDropped.pr`;
-LinuxKernelLimited:save `LinuxKernelLimited.dfa`;
-LinuxKernelLimited:pr `LinuxKernelLimited.pr`;
-LinuxKernelAborted:save `LinuxKernelAborted.dfa`;
-LinuxKernelAborted:pr `LinuxKernelAborted.pr`;
-LinuxKernelLoose:save `LinuxKernelLoose.dfa`;
-LinuxKernelLoose:pr `LinuxKernelLoose.pr`;
-LinuxKernelStrict:save `LinuxKernelStrict.dfa`;
-LinuxKernelStrict:pr `LinuxKernelStrict.pr`;
-LinuxKernelCapture:save `LinuxKernelCapture.dfa`;
-LinuxKernelCapture:pr `LinuxKernelCapture.pr`;
-LinuxKernelNil:save `LinuxKernelNil.dfa`;
-LinuxKernelNil:pr `LinuxKernelNil.pr`;
-LinuxKernel:save `LinuxKernel.dfa`;
-LinuxKernel:pr `LinuxKernel.pr`;
+LinuxKernelDropped:save `build/patterns/automata/LinuxKernelDropped.dfa`;
+LinuxKernelDropped$(0,1 2):prsseq `build/patterns/automata/LinuxKernelDropped.pr`;
+LinuxKernelLimited:save `build/patterns/automata/LinuxKernelLimited.dfa`;
+LinuxKernelLimited$(0,1 2):prsseq `build/patterns/automata/LinuxKernelLimited.pr`;
+LinuxKernelAborted:save `build/patterns/automata/LinuxKernelAborted.dfa`;
+LinuxKernelAborted$(0,1 2):prsseq `build/patterns/automata/LinuxKernelAborted.pr`;
+LinuxKernelLoose:save `build/patterns/automata/LinuxKernelLoose.dfa`;
+LinuxKernelLoose$(0,1 2):prsseq `build/patterns/automata/LinuxKernelLoose.pr`;
+LinuxKernelStrict:save `build/patterns/automata/LinuxKernelStrict.dfa`;
+LinuxKernelStrict$(0,1 2):prsseq `build/patterns/automata/LinuxKernelStrict.pr`;
+LinuxKernelCapture:save `build/patterns/automata/LinuxKernelCapture.dfa`;
+LinuxKernelCapture$(0,1 2):prsseq `build/patterns/automata/LinuxKernelCapture.pr`;
+LinuxKernelNil:save `build/patterns/automata/LinuxKernelNil.dfa`;
+LinuxKernelNil$(0,1 2):prsseq `build/patterns/automata/LinuxKernelNil.pr`;
+LinuxKernel:save `build/patterns/automata/LinuxKernel.dfa`;
+LinuxKernel$(0,1 2):prsseq `build/patterns/automata/LinuxKernel.pr`;

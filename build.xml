@@ -116,35 +116,9 @@
 	</target>
 
 	<target name="compile-patterns" depends="init,check-compile-patterns" unless="patterns-compiled">
-		<concat destfile="${build.patterns.automata}/_all.inr" eol="lf" force="true">
-			<fileset dir="${pattern.source.dir}">
-				<include name="alpha.inr"/>
-			</fileset>
-			<fileset dir="${pattern.source.dir}">
-				<include name="*.inr"/>
-				<exclude name="alpha.inr"/>
-				<exclude name="after.inr"/>
-			</fileset>
-			<fileset dir="${pattern.source.dir}">
-				<include name="after.inr"/>
-			</fileset>
-		</concat>
-		<fixcrlf file="${build.patterns.automata}/_all.inr" eol="lf"/>
-		<exec failonerror="false" dir="${build.patterns.automata}" executable="${basedir}/etc/ginr/ginr" input="${build.patterns.automata}/_all.inr" outputproperty="ginr.output"/>
-		<echo file="${build.patterns.automata}/_all.out">${ginr.output}</echo>
-		<exec failonerror="false" dir="${build.patterns.automata}" executable="/usr/bin/grep" outputproperty="ginr.list">
-			<arg line="'^I N R\|^Copyright\|^Distributed under GPLv3\|DFA MIN' _all.out"/>
+		<exec failonerror="true" executable="/bin/bash">
+			<arg line="etc/sh/patterns test-patterns alpha.inr after.inr ${build.patterns.automata}"/>
 		</exec>
-		<echo>${ginr.list}></echo>
-		<echo file="${build.patterns.automata}/_all.out">${ginr.output}</echo>
-		<exec failonerror="false" dir="${build.patterns.automata}" executable="/usr/bin/grep" outputproperty="ginr.errors">
-			<arg line="'^[ ]*\* \* \*\|^[ ]*\*\*\*\|^Error detected at state [0-9]*:\|^Reserved character:\|^Warning:' _all.out"/>
-		</exec>
-		<condition property="ginr.fail">
-			<not><length string="${ginr.errors}" trim="true" length="0"/></not>
-		</condition>
-		<echo if:set="ginr.fail" message="&#xA;*** Pattern compilation failed, see ${build.patterns.automata}/_all.out&#xA;${ginr.errors}"/>
-		<fail if:set="ginr.fail"/>
 	</target>
 
 	<target name="check-package-patterns">
@@ -194,6 +168,7 @@
 			<jvmarg line="-ea -Djrte.out.enabled=true"/>
 			<arg line="--nil Fibonacci test-patterns/inputs/fib.txt ${build.patterns}/BaseTarget.model"/>
 		</java>
+
 		<echo>DateExtractor:</echo>
 		<java fork="true" dir ="." classname="com.characterforming.ribose.RiboseRuntime" classpathref="jrte.classpath" failonerror="true">
 			<jvmarg line="-ea -Djrte.out.enabled=true"/>

@@ -25,10 +25,12 @@ notinterval= (
 	((utf8 - '>')* nul*)* '>' (utf8 - '<')*
 );
 
-Tintervals = (notinterval* interval*)* @ (((l2 - NL)$(0,0))* (NL, nl)*)*;
+Tintervals = (
+	(notinterval* interval*)* @ (((l2 - NL)$(0,0))* (NL, nl)*)*
+):dfamin;
 
-Tintervals$(0,1 2):prsseq `Tintervals.pr`;
-Tintervals:save `Tintervals.dfa`;
+Tintervals$(0,1 2):prsseq `build/patterns/automata/Tintervals.pr`;
+Tintervals:save `build/patterns/automata/Tintervals.dfa`;
 
 _interval = (
 	'<cycle-start id="' digit+ '" type="scavenge"'
@@ -62,7 +64,9 @@ _notinterval = (
 	((utf8 - '>')* nul*)* '>' (utf8 - '<')*
 );
 
-Sintervals = (_notinterval* _interval*)* @ (((l2 - {ANON, NL})$(0,0))* (ANON, `~`)* (NL, nl)*)*;
+Sintervals = (
+	(_notinterval* _interval*)* @ (((l2 - {ANON, NL})$(0,0))* (ANON, `~`)* (NL, nl)*)*
+):dfamin;
 
-Sintervals$(0,1 2):prsseq `Sintervals.pr`;
-Sintervals:save `Sintervals.dfa`;
+Sintervals$(0,1 2):prsseq `build/patterns/automata/Sintervals.pr`;
+Sintervals:save `build/patterns/automata/Sintervals.dfa`;

@@ -51,8 +51,8 @@ import com.characterforming.jrte.base.Bytes;
  * @author Kim Briggs
  */
 public final class RuntimeModel implements AutoCloseable {
-	private final static Logger rteLogger = Logger.getLogger(Base.RTE_LOGGER_NAME);
-	private final static Logger rtcLogger = Logger.getLogger(Base.RTC_LOGGER_NAME);
+	final static Logger rteLogger = Logger.getLogger(Base.RTE_LOGGER_NAME);
+	final static Logger rtcLogger = Logger.getLogger(Base.RTC_LOGGER_NAME);
 
 	public enum Mode { none, compile, run; }
 	
@@ -73,8 +73,6 @@ public final class RuntimeModel implements AutoCloseable {
 	private volatile Transducer transducerObjectIndex[];
 	private Bytes transducerNameIndex[];
 	private long transducerOffsetIndex[];
-	private Logger logger;
-	
 	public RuntimeModel(Mode mode, final File modelPath, final ITarget target) throws ModelException {
 		this.mode = mode;
 		this.ioMode = null;
@@ -223,7 +221,7 @@ public final class RuntimeModel implements AutoCloseable {
 			}
 			this.modelPath.createNewFile();
 			this.io = new RandomAccessFile(this.modelPath, this.ioMode);
-			this.setDeleteOnClose(true);
+			this.setDeleteOnClose(false);
 		} catch (final IOException e) {
 			if (this.modelPath.exists()) {
 				this.modelPath.delete();
@@ -246,6 +244,7 @@ public final class RuntimeModel implements AutoCloseable {
 		assert this.signalOrdinalMap.size() == (Base.RTE_SIGNAL_BASE + Base.RTE_SIGNAL_NAMES.length);
 		this.namedValueOrdinalMap = new HashMap<Bytes, Integer>(256);
 		this.namedValueOrdinalMap.put(new Bytes(Base.ANONYMOUS_VALUE_NAME), Base.ANONYMOUS_VALUE_ORDINAL);
+		this.namedValueOrdinalMap.put(new Bytes(Base.ALL_VALUE_NAME), Base.CLEAR_VALUE_ORDINAL);
 		this.transducerOrdinalMap = new HashMap<Bytes, Integer>(256);
 		this.transducerObjectIndex = new Transducer[256];
 		this.transducerOffsetIndex = new long[256];
@@ -267,10 +266,11 @@ public final class RuntimeModel implements AutoCloseable {
 					errors.addAll(this.compileTransducer(transducerToken, inrAutomatonFile));
 				} catch (Exception e) {
 					String msg = String.format("Exception caught compiling transducer '%1$s'", filename);
-					errors.add(msg);
+					RuntimeModel.rtcLogger.log(Level.SEVERE, msg, e);
+					this.setDeleteOnClose(true);
 				}
 			}
-			if (errors.size() == 0) {
+			if (!this.deleteOnClose && errors.size() == 0) {
 				long filePosition = this.seek(-1);
 				int targetOrdinal = this.addTransducer(new Bytes(this.modelTarget.getName().getBytes()));
 				this.setTransducerOffset(targetOrdinal, filePosition);
@@ -289,7 +289,6 @@ public final class RuntimeModel implements AutoCloseable {
 				this.compileModelParameters();
 				this.seek(0);
 				this.putLong(indexPosition);
-				this.setDeleteOnClose(false);
 				saveMapFile(new File(this.modelPath.getPath().replaceAll(".model", ".map")));
 				String msg = 	String.format("Ribose model %1$s: target class %2$s",
 					this.modelPath.getPath(), this.modelTarget.getClass().getName());
@@ -304,21 +303,25 @@ public final class RuntimeModel implements AutoCloseable {
 					RuntimeModel.rtcLogger.log(Level.WARNING, msg);
 				}
 			} else {
+				setDeleteOnClose(true);
 				for (final String error : errors) {
-					this.logger.log(Level.SEVERE, error);
+					RuntimeModel.rtcLogger.log(Level.SEVERE, error);
 				}
-				throw new ModelException(String.format("Build failed for model '%1$s'", this.modelPath.getPath()));
 			}
 		} catch (Exception e) {
+			setDeleteOnClose(true);
 			if (!(e instanceof ModelException)) {
 				String msg = String.format("Exception caught compiling target for '%1$s'", this.modelPath.getPath());
 				throw new ModelException(msg, e);
 			}
 			throw (ModelException)e;
 		} finally {
+			if (this.deleteOnClose) {
+				RuntimeModel.rtcLogger.log(Level.SEVERE, "Build failed for model " + this.modelPath.getPath());
+			}
 			this.close();
 		}
-		return true;
+		return !this.deleteOnClose;
 	}
 
 	@Override
@@ -350,8 +353,6 @@ public final class RuntimeModel implements AutoCloseable {
 		} catch (IOException e) {
 			throw new ModelException("IOException caught while initializing logs", e);
 		}
-		this.logger = (this.mode == Mode.compile) ? RuntimeModel.rtcLogger : RuntimeModel.rteLogger;
-
 		IEffector<?>[] trexFx = this.modelTransduction.bindEffectors();
 		IEffector<?>[] targetFx = this.modelTarget.bindEffectors();
 		this.modelEffectors = new IEffector<?>[trexFx.length + targetFx.length];
@@ -405,7 +406,7 @@ public final class RuntimeModel implements AutoCloseable {
 			}
 			mapWriter.flush();
 		} catch (final IOException e) {
-			this.logger.log(Level.SEVERE, "Model unable to create map file " + mapFile.getPath(), e);
+			RuntimeModel.rtcLogger.log(Level.SEVERE, "Model unable to create map file " + mapFile.getPath(), e);
 		} finally {
 			if (mapWriter != null) {
 				mapWriter.close();
@@ -427,10 +428,10 @@ public final class RuntimeModel implements AutoCloseable {
 		return new ArrayList<String>(0);
 	}
 
-	private void compileModelParameters() throws ModelException {
+	private boolean compileModelParameters() throws ModelException {
+		boolean fail = false;
 		final Map<Bytes, Integer> effectorOrdinalMap = this.getEffectorOrdinalMap();
 		final IEffector<?>[] effectors = this.getModelEffectors();
-		final ArrayList<String> unbound = new ArrayList<String>();
 		modelTransduction.setEffectors(effectors);
 		modelTransduction.setNamedValueOrdinalMap(this.namedValueOrdinalMap);
 		for (int effectorOrdinal = 0; effectorOrdinal < effectors.length; effectorOrdinal++) {
@@ -448,18 +449,16 @@ public final class RuntimeModel implements AutoCloseable {
 							parameterizedEffector.compileParameter(v, p);
 							effectorParameters[v] = p;
 						} catch (TargetBindingException x) {
-							final String message = String.format("Unable to compile parameters for effector '%1$s'",
-								parameterizedEffector.getName());
-							this.logger.log(Level.SEVERE, message, x);
-							unbound.add(message);
+							RuntimeModel.rtcLogger.log(Level.SEVERE, String.format("%1$s.%2$s: unable to compile parameters for effector '%1$s'",
+								parameterizedEffector.getName()), x);
+							fail = true;
 						}
 					}
 					this.putBytesArrays(effectorParameters);
 				} else if (parameters.size() > 0) {
-					final String message = String.format("%1$s.%2$s: effector does not accept parameters\n",
-						this.modelTarget.getName(), effector.getName());
-					RuntimeModel.rtcLogger.severe(message);
-					unbound.add(message);
+					RuntimeModel.rtcLogger.severe(String.format("%1$s.%2$s: effector does not accept parameters\n",
+						this.modelTarget.getName(), effector.getName()));
+					fail = true;
 				} else {
 					this.putInt(-1);
 				}
@@ -469,14 +468,12 @@ public final class RuntimeModel implements AutoCloseable {
 		}
 		for (final Map.Entry<Bytes, Integer> entry : effectorOrdinalMap.entrySet()) {
 			if (effectors[entry.getValue()] == null) {
-				unbound.add(String.format("%1$s.%2$s: effector not found in target", this.modelTarget.getName(), entry.getKey()));
+				RuntimeModel.rtcLogger.log(Level.SEVERE, String.format("%1$s.%2$s: effector ordinal not found\n",
+					this.modelTarget.getName(), entry.getKey().toString()));
+				fail = true;
 			}
 		}
-		if (unbound.size() > 0) {
-			final TargetBindingException e = new TargetBindingException(this.modelTarget.getName());
-			e.setUnboundEffectorList(unbound);
-			throw e;
-		}
+		return !fail;
 	}
 
 	int compileParameters(final int effectorOrdinal, final byte[][] parameterBytes) {
@@ -485,16 +482,7 @@ public final class RuntimeModel implements AutoCloseable {
 			parametersMap = new HashMap<BytesArray, Integer>(10);
 			this.effectorParametersMaps.set(effectorOrdinal, parametersMap);
 		}
-		byte[][] parameters = parameterBytes;
-		if ((this.modelEffectors[effectorOrdinal] instanceof BaseNamedValueEffector)
-		|| (this.modelEffectors[effectorOrdinal] instanceof BaseInputOutputEffector)) {
-			for (int i = 0; i < parameterBytes.length; i++) {
-				if (Base.isAnonymousValueReference(parameterBytes[i])) {
-					parameters[i] = Base.ANONYMOUS_VALUE_REFERENCE;
-				} 
-			}
-		}
-		final BytesArray parametersArray = new BytesArray(parameters);
+		final BytesArray parametersArray = new BytesArray(parameterBytes);
 		Integer parametersIndex = parametersMap.get(parametersArray);
 		if (parametersIndex == null) {
 			parametersIndex = parametersMap.size();
