@@ -35,7 +35,8 @@ import com.characterforming.jrte.RteException;
 import com.characterforming.jrte.base.Base;
 import com.characterforming.jrte.base.BaseTarget;
 import com.characterforming.jrte.base.Bytes;
-import com.characterforming.ribose.RiboseRuntime;
+import com.characterforming.ribose.IRiboseRuntime;
+import com.characterforming.ribose.Ribose;
 
 public class TestRunner {
 
@@ -79,10 +80,10 @@ public class TestRunner {
 		}
 		
 		String[] tests = new String[] {
-				"NilSpeedTest", "PasteSpeedTest", "NilPauseTest", "PastePauseTest", "PasteCutTest", "SelectPasteTest", "PasteCountTest", "CounterTest", "StackTest"
+			"NilSpeedTest", "PasteSpeedTest", "NilPauseTest", "PastePauseTest", "PasteCutTest", "SelectPasteTest", "PasteCountTest", "CounterTest", "StackTest"
 		};
 		final BaseTarget target = new BaseTarget();
-		final RiboseRuntime ribose = new RiboseRuntime(new File(modelPath), target);
+		final IRiboseRuntime ribose = Ribose.loadRiboseRuntime(new File(modelPath), target);
 		final ITransduction trex = ribose.newTransduction(target);
 		final ByteInput nilinput = (ByteInput) ribose.input(new byte[][] {
 			Base.encodeReferenceOrdinal(Base.TYPE_REFERENCE_SIGNAL, Base.Signal.nil.signal()), 

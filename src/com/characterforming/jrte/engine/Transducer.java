@@ -71,7 +71,7 @@ final class Transducer {
 					max = equiv;
 				}
 			}
-			this.inputEquivalents = max;
+			this.inputEquivalents = max + 1;
 		}
 		return this.inputEquivalents;
 	}

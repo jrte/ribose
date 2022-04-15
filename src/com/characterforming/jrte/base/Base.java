@@ -50,7 +50,7 @@ public class Base {
 		{ 'e', 'o', 's' }
 	};
 	public enum Signal {
-		nul, nil, eos, eol;
+		nul, nil, eol, eos;
 		public int signal() {
 			return RTE_SIGNAL_BASE + ordinal();
 		}

@@ -65,8 +65,8 @@ public final class ByteInput extends BaseInput {
 	 * @param input Array of {@code byte[]} to input in sequence
 	 * @throws InputException On error
 	 */
-	public ByteInput(final byte[] input) throws InputException {
-		this.input[0] = ByteBuffer.wrap(input);
+	public ByteInput(final byte[] input) {
+		this.input = new ByteBuffer[] { ByteBuffer.wrap(input) };
 		this.buffer = 0;
 	}
 
@@ -75,7 +75,7 @@ public final class ByteInput extends BaseInput {
 	 * @see com.characterforming.jrte.IInput#isEmpty()
 	 */
 	@Override
-	public boolean isEmpty() throws InputException {
+	public boolean isEmpty() {
 		if (this.buffer >= 0) {
 			for (int i = this.buffer; i < this.input.length; i++) {
 				if (this.input[i].hasRemaining()) {

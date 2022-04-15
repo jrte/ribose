@@ -28,8 +28,8 @@ import java.util.logging.Logger;
 import com.characterforming.jrte.ITarget;
 import com.characterforming.jrte.ModelException;
 import com.characterforming.jrte.base.Base;
-import com.characterforming.jrte.engine.RuntimeModel;
-import com.characterforming.jrte.engine.RuntimeModel.Mode;
+import com.characterforming.jrte.engine.Model;
+import com.characterforming.jrte.engine.Model.Mode;
 
 /**
  * 
@@ -55,23 +55,17 @@ public final class Ribose {
 	public static boolean compileRiboseRuntime(Class<?> targetClass, File ginrAutomataDirectory, File riboseRuntimeFile) {
 		for (Class<?> targetImplemenation : targetClass.getInterfaces()) {
 			if (targetImplemenation.toString().equals(ITarget.class.toString())) {
-				RuntimeModel model = null;
+				Model model = null;
 				try {
-					model = new RuntimeModel(Mode.compile, riboseRuntimeFile, (ITarget)targetClass.getDeclaredConstructor().newInstance());
+					model = new Model(Mode.compile, riboseRuntimeFile, (ITarget)targetClass.getDeclaredConstructor().newInstance());
 					return model.compile(ginrAutomataDirectory);
 				} catch (Exception e) {
-					String msg = String.format("Exception compiling model '%1$s' from source directory '%2$s'",
+					String msg = String.format("Exception compiling model '%1$s' from '%2$s'",
 						riboseRuntimeFile.getPath(), ginrAutomataDirectory.getPath());
 					Ribose.rtcLogger.log(Level.SEVERE, msg, e);
 				} finally {
 					if (model != null) {
-						try {
-							model.close();
-						} catch (ModelException e) {
-							String msg = String.format("Exception closing model '%1$s'",
-								riboseRuntimeFile.getPath());
-							Ribose.rtcLogger.log(Level.SEVERE, msg, e);
-						}
+						model.close();
 					}
 				}
 			}
@@ -84,11 +78,13 @@ public final class Ribose {
 	}
 
 	/**
-	 * Load a ribose runtime model from persistent store. The model can be 
-	 * used to instantiate transduction stacks.
+	 * Load a ribose runtime model from persistent store and bind to a model
+	 * target inatance to instantiate model target effectors and precompile 
+	 * model effector parameters. The runtime model can be used to instantiate
+	 * transduction stacks.
 	 * 
 	 * @param riboseRuntimeFile path to the runtime model to load
-	 * @param target the live target instance to bind to the runtime model
+	 * @param target the model target instance to bind to the runtime model
 	 * @return a live ribose runtime model instance
 	 */
 	public static IRiboseRuntime loadRiboseRuntime(File riboseRuntimeFile, ITarget target) {
@@ -117,9 +113,6 @@ public final class Ribose {
 			targetClassname = args[1];
 			ginrAutomataDirectory = new File(args[2]);
 			riboseRuntimeFile = new File(args[3]);
-		}
-		
-		if (argsOk) {
 			try {
 				targetClass = Class.forName(targetClassname);
 			} catch (Exception e) {

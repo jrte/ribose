@@ -95,8 +95,9 @@ public interface IEffector<T extends ITarget> {
 	 * value and assimilate the value into the target.
 	 * 
 	 * @param output A object that provides a view or transduction runtime values
+	 * @throws TargetBindingException 
 	 */
-	public void setOutput(IOutput output);
+	public void setOutput(IOutput output) throws TargetBindingException;
 
 
 	/**

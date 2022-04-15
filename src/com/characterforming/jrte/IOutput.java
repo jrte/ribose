@@ -32,6 +32,15 @@ import com.characterforming.jrte.base.Bytes;
  */
 public interface IOutput {
 	/**
+	 * Get a named value by name
+	 * 
+	 * @param name the value name as Unicode string
+	 * @return a named value instance or null
+	 * @throws TargetBindingException On error
+	 */
+	public INamedValue getNamedValue(String name) throws TargetBindingException;
+	
+	/**
 	 * Get the numeric index for a defined named value
 	 * 
 	 * @param valueName The name of the value (UTF-8 bytes)

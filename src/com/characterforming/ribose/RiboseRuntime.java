@@ -25,7 +25,6 @@ import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import com.characterforming.jrte.ByteInput;
@@ -34,14 +33,11 @@ import com.characterforming.jrte.ITarget;
 import com.characterforming.jrte.ITransduction;
 import com.characterforming.jrte.ModelException;
 import com.characterforming.jrte.RteException;
-import com.characterforming.jrte.TargetBindingException;
-import com.characterforming.jrte.TargetNotFoundException;
 import com.characterforming.jrte.base.Base;
 import com.characterforming.jrte.base.BaseTarget;
 import com.characterforming.jrte.base.Bytes;
-import com.characterforming.jrte.engine.RuntimeModel;
-import com.characterforming.jrte.engine.RuntimeModel.Mode;
-import com.characterforming.jrte.engine.Transduction;
+import com.characterforming.jrte.engine.Model;
+import com.characterforming.jrte.engine.Model.Mode;
 
 /**
  * Ribose runtime transduction factory. Use {@link newTransduction(ITarget)} to instantiate a 
@@ -56,7 +52,7 @@ import com.characterforming.jrte.engine.Transduction;
  */
 public final class RiboseRuntime implements IRiboseRuntime, AutoCloseable {
 	final static Logger rteLogger = Logger.getLogger(Base.RTE_LOGGER_NAME);
-	private final RuntimeModel model;
+	private final Model model;
 	
 	/**
 	 * Constructor sets up the runtime as an ITransduction factory. This will instantiate a 
@@ -75,28 +71,18 @@ public final class RiboseRuntime implements IRiboseRuntime, AutoCloseable {
 	 *  )*
 	 *  </code>
 	 * <p>
-	 * The model target instance is discarded after enumerating the target and effector namespace.
-	 * the model effectors remain bound to the model to provide live effectors with precompiled
-	 * parameters when new transductions are instantiated. 
+	 * The model target instance is not used after after instantiating model effectors and 
+	 * compiling model effector paramters. The model effectors remain bound to the model 
+	 * to provide live effectors with precompiled parameters when transductions are 
+	 * instantiated for new target instances. 
 	 * 
 	 * @param runtimePath The path to the runtime model file
 	 * @param target The target instance to bind to the transduction 
 	 * @throws ModelException
-	 * @throws TargetBindingException
 	 */
-	public RiboseRuntime(final File runtimePath, final ITarget target) throws ModelException {
-		RuntimeModel model = null;
-		try {
-			model = new RuntimeModel(Mode.run, runtimePath, target);
-		} catch (final Exception e) {
-			if (!(e instanceof ModelException)) {
-				String msg = String.format("Exception opening runtime model '%1$s'", runtimePath.getPath());
-				RiboseRuntime.rteLogger.log(Level.SEVERE, msg, e);
-				throw new ModelException("Unable to instantiate ribose runtime from " + runtimePath, e);
-			}
-			throw e;
-		}
-		this.model = model;
+	RiboseRuntime(final File runtimePath, final ITarget target) throws ModelException {
+		this.model = new Model(Mode.run, runtimePath, target);
+		this.model.load();
 	}
 
 	/**
@@ -105,30 +91,11 @@ public final class RiboseRuntime implements IRiboseRuntime, AutoCloseable {
 	 * 
 	 * @param target The ITarget instance to bind to the transduction
 	 * @return The bound Transduction instance
-	 * @throws TargetBindingException
-	 * @throws TargetNotFoundException
 	 * @throws ModelException
-	 * @throws TargetNotFoundException
 	 */
 	@Override
-	public ITransduction newTransduction(final ITarget target) throws ModelException, RteException {
-		Transduction trex = null;
-		try {
-			Class<? extends ITarget> targetClass = target.getClass();
-			Class<? extends ITarget> modelClass = this.model.getModelTarget().getClass();
-			if (!modelClass.isAssignableFrom(targetClass)) {
-				throw new ModelException(String.format("Cannot bind instance of target class '%1$s', can only bind to model target class '%2$s'", target.getClass().getName(), this.model.getModelTarget().getName()));
-			}
-			trex = this.model.bindTransduction(target);
-		} catch (Exception e) {
-			if (!(e instanceof ModelException)) {
-				String msg = String.format("Exception creating new transduction");
-				RiboseRuntime.rteLogger.log(Level.SEVERE, msg, e);
-				throw new ModelException("Unable to instantiate transduction", e);
-			}
-			throw e;
-		}
-		return trex;
+	public ITransduction newTransduction(final ITarget target) throws ModelException {
+		return this.model.bindTransduction(target);
 	}
 
 	/**

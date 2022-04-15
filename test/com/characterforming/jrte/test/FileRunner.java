@@ -41,7 +41,7 @@ import com.characterforming.jrte.base.Base;
 import com.characterforming.jrte.base.BaseTarget;
 import com.characterforming.jrte.base.Bytes;
 import com.characterforming.ribose.IRiboseRuntime;
-import com.characterforming.ribose.RiboseRuntime;
+import com.characterforming.ribose.Ribose;
 
 public class FileRunner {
 
@@ -85,7 +85,7 @@ public class FileRunner {
 			rteHandler.setFormatter(new SimpleFormatter());
 
 			BaseTarget target = new BaseTarget();
-			final IRiboseRuntime ribose = new RiboseRuntime(new File(modelPath), target);
+			final IRiboseRuntime ribose = Ribose.loadRiboseRuntime(new File(modelPath), target);
 			final ITransduction trex = ribose.newTransduction(target);
 			byte[][] input = nil
 				? new byte[][] { Base.encodeReferenceOrdinal(Base.TYPE_REFERENCE_SIGNAL, Base.Signal.nil.signal()), cbuf }

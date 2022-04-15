@@ -85,7 +85,7 @@ public final class Transduction implements ITransduction, ITarget, IOutput {
 	public static final int RTE_EFFECTOR_PAUSE = 13;
 	public static final int RTE_EFFECTOR_STOP = 14;
 
-	private final RuntimeModel model;
+	private final Model model;
 	private IEffector<?>[] effectors;
 	private NamedValue[] namedValueHandles;
 	private Map<Bytes, Integer> namedValueOrdinalMap;
@@ -100,7 +100,7 @@ public final class Transduction implements ITransduction, ITarget, IOutput {
 	 *
 	 * @param model The runtime model 
 	 */
-	Transduction(final RuntimeModel model) {
+	Transduction(final Model model) {
 		super();
 		this.model = model;
 		this.effectors = null;
@@ -382,6 +382,7 @@ I:				do {
 								throw new DomainErrorException(String.format("Domain error on [%1$d] in %2$s (state %3$d) %4$s", 
 									errorInput, transducer.getName(), debugState,	debugTrace));
 							} else if (currentInput != eosSignal) {
+								inputBuffer.position(position);
 								errorInput = currentInput;
 								signalInput = nulSignal;
 								++errorCount;
@@ -390,7 +391,7 @@ I:				do {
 						case RTE_EFFECTOR_NIL:
 							break;
 						case RTE_EFFECTOR_PASTE:
-							assert currentInput >= Byte.MIN_VALUE && currentInput <= Byte.MAX_VALUE;
+							assert currentInput >= 0 && currentInput <= 0xff;
 							this.selected.append((byte)currentInput);
 							break;
 						case RTE_EFFECTOR_SELECT:
@@ -567,13 +568,20 @@ I:				do {
 	@Override
 	public INamedValue getNamedValue(final int nameOrdinal) {
 		assert this.namedValueHandles != null;
-		if (this.namedValueHandles != null
-		&& nameOrdinal < this.namedValueHandles.length
-		&& this.namedValueHandles[nameOrdinal] != null) {
-			return new NamedValue(this.namedValueHandles[nameOrdinal]);
+		if (this.namedValueHandles != null && nameOrdinal < this.namedValueHandles.length) {
+			return this.namedValueHandles[nameOrdinal];
 		} else {
 			return null;
 		}
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * @see com.characterforming.jrte.engine.IOutput#getNamedValue(String)
+	 */
+	@Override
+	public INamedValue getNamedValue(final String valueName) {
+		return this.getNamedValue(this.getValueOrdinal(Bytes.encode(valueName)));
 	}
 
 	/*
@@ -590,7 +598,7 @@ I:				do {
 	 * (non-Javadoc)
 	 * @see com.characterforming.jrte.engine.ITransduction#getModel()
 	 */
-	RuntimeModel getModel() {
+	Model getModel() {
 		return this.model;
 	}
 
@@ -635,10 +643,13 @@ I:				do {
 
 	private int count(final int[] countdown) throws InputException {
 		assert countdown.length == 2;
-		if (countdown[0] == 0) {
-			this.in(countdown[1]);
-		} else {
-			System.arraycopy(countdown, 0, this.transducerStack.peek().countdown, 0, countdown.length);
+		TransducerState tos = this.transducerStack.peek();
+		System.arraycopy(countdown, 0, tos.countdown, 0, countdown.length);
+		if (tos.countdown[0] < 0) {
+			tos.countdown[0] = (int)this.getNamedValue((-1 * tos.countdown[0]) - 1).asInteger();
+		}
+		if (tos.countdown[0] == 0) {
+			return this.in(tos.countdown[1]);
 		}
 		return IEffector.RTE_EFFECT_NONE;
 	}
@@ -695,7 +706,7 @@ I:				do {
 				error += String.format("\t\t[ !%1$d ]\n", Base.decodeReferenceOrdinal(Base.getReferenceType(array), array));
 			} else if (input.position() < array.length) {
 				assert input.position() < array.length;
-				int position = input.position();
+				int position = input.position() - 1;
 				int start = Math.max(0, position - 8);
 				int end = Math.min(start + 16, input.limit());
 				String inchar = "";
@@ -708,10 +719,11 @@ I:				do {
 				inbyte = Byte.toUnsignedInt(array[position]);
 				error += String.format("\t\t[ char='%1$s' (%2$d~0x%2$x); pos=%3$d; limit=%4$d < ", inchar, inbyte, position, array.length);
 				while (start < end) {
-					if (Character.isBmpCodePoint((char) array[position]) && !Character.isISOControl((char) array[position])) {
-						error += String.format((start != position) ? "%1$c " : "[%1$c] ", (char)array[start]);
+					int ubyte = Byte.toUnsignedInt(array[start]);
+					if ((ubyte < 0x20) || (ubyte > 0x7e)) {
+						error += String.format((start != position) ? "%1$02x " : "[%1$02x] ", ubyte);
 					} else {
-						error += String.format((start != position) ? "0x%1$x " : "[0x%1$x] ", Byte.toUnsignedInt(array[position]));
+						error += String.format((start != position) ? "%1$c " : "[%1$c] ", (char)array[start]);
 					}
 					start += 1;
 				}
@@ -924,32 +936,25 @@ I:				do {
 			if (type == Base.TYPE_REFERENCE_VALUE) {
 				Bytes valueName = new Bytes(Base.getReferenceName(parameterList[0]));
 				int valueOrdinal = this.getTarget().getValueOrdinal(valueName);
-				INamedValue value = this.getTarget().getNamedValue(valueOrdinal);
-				try {
-					count = Integer.parseInt(value.toString());
-				} catch (NumberFormatException e) {
-					throw new TargetBindingException(String.format("%1$s.%2$s: Named value %3$s is not valid for count effector",
-						super.getTarget().getName(), super.getName(), value.toString()));
+				if (valueOrdinal >= 0) {
+					count = -1 * (1 + valueOrdinal);
+				} else {
+					throw new TargetBindingException(String.format("%1$s.%2$s: Named value %3$s is not found",
+						super.getTarget().getName(), super.getName(), valueName.toString()));
 				}
 			} else if (type == Base.TYPE_REFERENCE_NONE) {
 				count = Base.decodeInt(parameterList[0], parameterList[0].length);
 			}
-			if (count >= 0) {
-				assert !Base.isReferenceOrdinal(parameterList[1]) : "Reference ordinal presented for <signal> to CountEffector[<count> <signal>]";
-				type = Base.getReferenceType(parameterList[1]);
-				if (type == Base.TYPE_REFERENCE_SIGNAL) {
-					Bytes signalName = new Bytes(Base.getReferenceName(parameterList[1]));
-					int signalOrdinal = super.getTarget().getModel().getSignalOrdinal(signalName);
-					super.setParameter(parameterIndex, new int[] { count, signalOrdinal });
-					return super.getParameter(parameterIndex);
-				} else {
-					throw new TargetBindingException(String.format("%1$s.%2$s: invalid signal '%3$%s' for count effector",
-						super.getTarget().getName(), super.getName(), Bytes.decode(parameterList[1], parameterList[1].length)));
-				}		
+			assert !Base.isReferenceOrdinal(parameterList[1]) : "Reference ordinal presented for <signal> to CountEffector[<count> <signal>]";
+			if (Base.getReferenceType(parameterList[1]) == Base.TYPE_REFERENCE_SIGNAL) {
+				Bytes signalName = new Bytes(Base.getReferenceName(parameterList[1]));
+				int signalOrdinal = super.getTarget().getModel().getSignalOrdinal(signalName);
+				super.setParameter(parameterIndex, new int[] { count, signalOrdinal });
+				return super.getParameter(parameterIndex);
 			} else {
-				throw new TargetBindingException(String.format("%1$s.%2$s: invalid count '%3$%s' for count effector",
+				throw new TargetBindingException(String.format("%1$s.%2$s: invalid signal '%3$%s' for count effector",
 					super.getTarget().getName(), super.getName(), Bytes.decode(parameterList[1], parameterList[1].length)));
-			}
+			}		
 		}
 
 		@Override

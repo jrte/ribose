@@ -113,7 +113,8 @@ class NamedValue implements INamedValue {
 	@Override
 	public long asInteger() {
 		long integer = 0;
-		for (int i = 0; i< this.length; i++) {
+		long sign = (this.value[0] == '-') ? -1 : 1;
+		for (int i = ((sign > 0) ? 0 : 1); i < this.length; i++) {
 			if (Character.getType(this.value[i]) == Character.DECIMAL_DIGIT_NUMBER) {
 				integer *= 10;
 				integer += (this.value[i] - 48);
@@ -122,13 +123,14 @@ class NamedValue implements INamedValue {
 					"Not a numeric value '%1$s'", this.toString())); 
 			}
 		}
-		return integer;
+		return sign * integer;
 	}
 	
 	@Override
 	public double asReal() {
 		int mark = 0;
-		int index[] = new int[] {0, 0};
+		long sign = (this.value[0] == '-') ? -1 : 1;
+		int index[] = new int[] {(sign > 0) ? 0 : 1, 0};
 		int parts[] = new int[] {0, 0};
 		while (index[0] < this.length) {
 			if (Character.getType(this.value[index[0]]) == Character.DECIMAL_DIGIT_NUMBER) {
@@ -148,7 +150,7 @@ class NamedValue implements INamedValue {
 			double fraction = 1.0 / Math.pow(10, this.length - mark);
 			real += parts[1] * fraction;
 		}
-		return real;
+		return sign * real;
 	}
 
 	void clear() {

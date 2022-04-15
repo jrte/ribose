@@ -1,0 +1,23 @@
+clearHeader = clear[`~version`] clear[`~tapes`] clear[`~transitions`] clear[`~states`] clear[`~symbols`];
+clearTransition = clear[`~from`] clear[`~to`] clear[`~tape`] clear[`~length`] clear[`~symbol`];
+
+Automaton = (
+	(nil? 'INR', clearHeader clearTransition select)
+	(digit, paste)+ (tab, select[`~version`] cut select)
+	(digit, paste)+ (tab, select[`~tapes`] cut select)
+	(digit, paste)+ (tab, select[`~transitions`] cut select)
+	(digit, paste)+ (tab, select[`~states`] cut select)
+	(digit, paste)+ (nl, select[`~symbols`] cut select header clearHeader)
+	(
+		(digit, paste)+ (tab, select[`~from`] cut select)
+		(digit, paste)+ (tab, select[`~to`] cut select)
+		('-', paste)? (digit, paste)+ (tab, select[`~tape`] cut select)
+		(digit, paste)+ (tab, select[`~length`] cut select count[`~length` `!eol`])
+		(byte, paste count)* (eol, select[`~symbol`] cut select)
+		(nl, transition clearTransition)
+	)*
+	(eos, automaton stop)
+):dfamin;
+
+Automaton$(0,1 2):prsseq `build/ribose/automata/Automaton.pr`;
+Automaton:save `build/ribose/automata/Automaton.dfa`;

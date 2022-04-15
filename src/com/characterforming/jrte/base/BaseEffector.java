@@ -25,6 +25,7 @@ import com.characterforming.jrte.EffectorException;
 import com.characterforming.jrte.IEffector;
 import com.characterforming.jrte.IOutput;
 import com.characterforming.jrte.ITarget;
+import com.characterforming.jrte.TargetBindingException;
 
 /**
  * Base {@link IEffector} implementation class. The invoke() method must be
@@ -49,7 +50,7 @@ public abstract class BaseEffector<T extends ITarget> implements IEffector<T> {
 	 * @see com.characterforming.jrte.base.IEffector#getName()
 	 */
 	@Override
-	public void setOutput(IOutput output) {
+	public void setOutput(IOutput output) throws TargetBindingException {
 		this.output = output;
 	}
 
