@@ -33,9 +33,15 @@ import com.characterforming.jrte.base.Bytes;
  * 
  * @author Kim Briggs
  */
-public abstract class BaseNamedValueEffector extends BaseParameterizedEffector<Transduction, Integer> {
-	protected BaseNamedValueEffector(final Transduction target, final Bytes name) {
-		super(target, name);
+public abstract class BaseNamedValueEffector extends BaseParameterizedEffector<Transductor, Integer> {
+	/**
+	 * Constructor
+	 * 
+	 * @param transductor The transductor target that binds the effector  
+	 * @param name the value name
+	 */
+	protected BaseNamedValueEffector(final Transductor transductor, final Bytes name) {
+		super(transductor, name);
 	}
 
 	/*

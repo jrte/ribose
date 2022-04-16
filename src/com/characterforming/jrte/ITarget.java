@@ -34,10 +34,9 @@ package com.characterforming.jrte;
  * {@link IParameterizedEffector#compileParameter(int, byte[][])} methods will be
  * called for each IParameterizedEffector.
  * <p>
- * At runtime, targets are bound only once to a transduction and the binding
- * persists for the lifetime of the transduction stack. Note that transduction
- * stacks are restartable and reuseable and may serially transduce more than
- * one input stream.   
+ * At runtime, targets are bound only once to a transductor and the binding
+ * persists for the lifetime of the transductor. Note that transductors are 
+ * restartable and reuseable and may serially run more than one transduction.   
  * @author Kim Briggs
  */
 public interface ITarget {
@@ -50,10 +49,9 @@ public interface ITarget {
 	public String getName();
 	
 	/**
-	 * Bind a transduction and list all effectors presented by this target. This
-	 * method is called to list the names and types of the effectors expressed
+	 * This method is called to list the names and types of the effectors expressed
 	 * by the target class and to bind the target effectors and effector
-	 * parameters to the transduction.
+	 * parameters to the runtime model.
 	 * <p>
 	 * Implementation classes must include their effectors in the IEffector 
 	 * array returned. Targets may be composite, arranged in an inhetritance
@@ -63,7 +61,7 @@ public interface ITarget {
 	 * must be presented for effector binding. 
 	 * 
 	 * After runtime binding, is complete effectors are invoked when triggered
-	 * by the transduction is response to cues in the input stream..
+	 * by running transductions in response to cues in the input stream..
 	 * 
 	 * @return An array of IEffector instances bound to the target instance
 	 * @throws TargetBindingException if an effector fails to bind

@@ -60,7 +60,7 @@ public final class Model implements AutoCloseable {
 	private final File modelPath;
 	private final ITarget modelTarget;
 	private final IEffector<?>[] modelEffectors;
-	private final Transduction modelTransduction;
+	private final Transductor modelTransductor;
 	private final HashMap<Bytes, Integer> signalOrdinalMap;
 	private final HashMap<Bytes, Integer> namedValueOrdinalMap;
 	private final HashMap<Bytes, Integer> transducerOrdinalMap;
@@ -96,8 +96,8 @@ public final class Model implements AutoCloseable {
 		this.ioMode = this.mode.equals(Mode.compile) ? "rw" : "r";
 		this.modelTarget = target;
 		this.modelPath = modelPath;
-		this.modelTransduction = new Transduction(this);
-		IEffector<?>[] trexFx = this.modelTransduction.bindEffectors();
+		this.modelTransductor = new Transductor(this);
+		IEffector<?>[] trexFx = this.modelTransductor.bindEffectors();
 		IEffector<?>[] targetFx = this.modelTarget.bindEffectors();
 		this.modelEffectors = new IEffector<?>[trexFx.length + targetFx.length];
 		System.arraycopy(trexFx, 0, this.modelEffectors, 0, trexFx.length);
@@ -107,8 +107,8 @@ public final class Model implements AutoCloseable {
 		this.signalOrdinalMap = new HashMap<Bytes, Integer>(256);
 		this.namedValueOrdinalMap = new HashMap<Bytes, Integer>(256);
 		this.transducerOrdinalMap = new HashMap<Bytes, Integer>(256);
-		this.modelTransduction.setNamedValueOrdinalMap(Collections.unmodifiableMap(this.namedValueOrdinalMap));
-		this.modelTransduction.setEffectors(this.modelEffectors);
+		this.modelTransductor.setNamedValueOrdinalMap(Collections.unmodifiableMap(this.namedValueOrdinalMap));
+		this.modelTransductor.setEffectors(this.modelEffectors);
 		for (int effectorOrdinal = 0; effectorOrdinal < this.modelEffectors.length; effectorOrdinal++) {
 			this.effectorParametersMaps.add(null);
 			this.effectorOrdinalMap.put(this.modelEffectors[effectorOrdinal].getName(), effectorOrdinal);
@@ -157,9 +157,9 @@ public final class Model implements AutoCloseable {
 				this.transducerObjectIndex[transducerOrdinal] = null;
 				assert this.transducerOrdinalMap.get(this.transducerNameIndex[transducerOrdinal]) == transducerOrdinal;
 			}
-			assert this.modelTransduction == (Transduction)this.modelEffectors[0].getTarget();
-			this.modelTransduction.setNamedValueOrdinalMap(namedValueOrdinalMap);
-			this.modelTransduction.setEffectors(this.modelEffectors);
+			assert this.modelTransductor == (Transductor)this.modelEffectors[0].getTarget();
+			this.modelTransductor.setNamedValueOrdinalMap(namedValueOrdinalMap);
+			this.modelTransductor.setEffectors(this.modelEffectors);
 			for (int effectorOrdinal = 0; effectorOrdinal < this.effectorOrdinalMap.size(); effectorOrdinal++) {
 				byte[][][] effectorParameters = this.getBytesArrays();
 				assert effectorParameters != null;
@@ -186,14 +186,20 @@ public final class Model implements AutoCloseable {
 		return loaded;
 	}
 
-	public Transduction bindTransduction(ITarget target) throws ModelException {
+	/**
+	 * Instantiate a new {@code Transductor} and bind it to a runtime target.
+	 * 
+	 * @param target the runtime target to bind the transductor to
+	 * @return the bound transductor instance  
+	 */
+	public Transductor bindTransductor(ITarget target) throws ModelException {
 		Class<? extends ITarget> targetClass = target.getClass();
 		Class<? extends ITarget> modelClass = this.modelTarget.getClass();
 		if (!modelClass.isAssignableFrom(targetClass)) {
 			throw new ModelException(String.format("Cannot bind instance of target class '%1$s', can only bind to model target class '%2$s'",
 				target.getClass().getName(), this.modelTarget.getClass().getName()));
 		}
-		Transduction trex = new Transduction(this);
+		Transductor trex = new Transductor(this);
 		IEffector<?>[] trexFx = trex.bindEffectors();
 		IEffector<?>[] targetFx = target.bindEffectors();
 		IEffector<?>[] boundFx = new IEffector<?>[trexFx.length + targetFx.length];
@@ -313,9 +319,7 @@ public final class Model implements AutoCloseable {
 		PrintWriter mapWriter = null;
 		try {
 			mapWriter = new PrintWriter(mapFile);
-			mapWriter.println(String.format("target\t%1$s\t#[T=%2$d;S=%3$d;E=%4$d;V=%4$d]",
-				this.modelTarget.getName(), this.transducerOrdinalMap.size(), this.signalOrdinalMap.size() - Base.RTE_SIGNAL_BASE,
-				this.effectorOrdinalMap.size(), this.namedValueOrdinalMap.size()));
+			mapWriter.println(String.format("target\t%1$s", this.modelTarget.getClass().getName()));
 			Bytes[] transducerIndex = new Bytes[this.transducerOrdinalMap.size()];
 			for (Map.Entry<Bytes, Integer> m : this.transducerOrdinalMap.entrySet()) {
 				transducerIndex[m.getValue()] = m.getKey();
@@ -366,8 +370,8 @@ public final class Model implements AutoCloseable {
 		boolean fail = false;
 		final Map<Bytes, Integer> effectorOrdinalMap = this.getEffectorOrdinalMap();
 		final IEffector<?>[] effectors = this.getModelEffectors();
-		modelTransduction.setEffectors(effectors);
-		modelTransduction.setNamedValueOrdinalMap(this.namedValueOrdinalMap);
+		modelTransductor.setEffectors(effectors);
+		modelTransductor.setNamedValueOrdinalMap(this.namedValueOrdinalMap);
 		for (int effectorOrdinal = 0; effectorOrdinal < effectors.length; effectorOrdinal++) {
 			IEffector<?> effector = effectors[effectorOrdinal];
 			HashMap<BytesArray, Integer> parameters = this.effectorParametersMaps.get(effectorOrdinal);
@@ -658,7 +662,7 @@ public final class Model implements AutoCloseable {
 					final int cell = state + row;
 					// Preset to invoke nul() effector on domain error, injects nul signal for next input
 					matrix[cell][0] = state;
-					matrix[cell][1] = Transduction.RTE_EFFECTOR_NUL;
+					matrix[cell][1] = Transductor.RTE_EFFECTOR_NUL;
 				}
 			}
 			for (int row = 0; row < rows; row++) {

@@ -29,8 +29,8 @@ import java.util.logging.SimpleFormatter;
 
 import com.characterforming.jrte.ByteInput;
 import com.characterforming.jrte.IInput;
-import com.characterforming.jrte.ITransduction;
-import com.characterforming.jrte.ITransduction.Status;
+import com.characterforming.jrte.ITransductor;
+import com.characterforming.jrte.ITransductor.Status;
 import com.characterforming.jrte.RteException;
 import com.characterforming.jrte.base.Base;
 import com.characterforming.jrte.base.BaseTarget;
@@ -84,7 +84,7 @@ public class TestRunner {
 		};
 		final BaseTarget target = new BaseTarget();
 		final IRiboseRuntime ribose = Ribose.loadRiboseRuntime(new File(modelPath), target);
-		final ITransduction trex = ribose.newTransduction(target);
+		final ITransductor trex = ribose.newTransductor(target);
 		final ByteInput nilinput = (ByteInput) ribose.input(new byte[][] {
 			Base.encodeReferenceOrdinal(Base.TYPE_REFERENCE_SIGNAL, Base.Signal.nil.signal()), 
 			abytes});

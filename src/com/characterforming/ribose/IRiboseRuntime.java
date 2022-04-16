@@ -23,20 +23,38 @@ package com.characterforming.ribose;
 
 import com.characterforming.jrte.IInput;
 import com.characterforming.jrte.ITarget;
-import com.characterforming.jrte.ITransduction;
+import com.characterforming.jrte.ITransductor;
 import com.characterforming.jrte.ModelException;
 import com.characterforming.jrte.RteException;
 
 /**
- * Runtime transduction factory.
+ * The ribose runtime provides a capability to instantiate runtime transductors. A 
+ * transductor is a capability to host runtime transductions. A runtime transduction
+ * is a pattern-driven process mapping sequential input onto effectors expressed by
+ * a target object that extracts and assimilates features of interest from input.
+ * <p/>
+ * Transductions map syntactic features onto effectors under the direction of a stack
+ * of finite state transducers compiled from patterns in a domain-specific
+ * {@code (<feature-syntax>, <feature-sematics>)*} semi-ring and collected
+ * in a ribose runtime model.
+ * <p/>
+ * Each ribose runtime model is compiled from a collection of ginr automata produced 
+ * from semi-ring patterns mapping input features to patterns of effector invocations.
+ * The ribose model compiler compresses and assembles these into ribose transducers 
+ * persistent in a ribose model file, binding them with the model target class that 
+ * expresses the model effectors. 
+ * <p/>
+ * Governance:
+ * <p/>
+ * {@code (input* newTransductor input*)* close}
  * 
  * @author Kim Briggs
  *
  */
-public interface IRiboseRuntime {
+public interface IRiboseRuntime extends AutoCloseable{
 	
 	/** 
-	 * Construct an IInput object to feed into a transduciton.
+	 * Construct an IInput object to feed into a transductor.
 	 * 
 	 * @param bytesInput An array of arrays of bytes to be transduced sequentially.
 	 * @return An IInput object
@@ -44,19 +62,20 @@ public interface IRiboseRuntime {
 	public IInput input(byte[][] bytesInput);
 	
 	/**
-	 * Instantiate a new transduction stack. 
+	 * Instantiate a new transductor. 
 	 * 
-	 * @param target The target instance to bind to the transduciton.
-	 * @return A new transduction
+	 * @param target The target instance to bind to the transductor.
+	 * @return A new transductor
 	 * @throws ModelException
 	 * @throws RteException
 	 */
-	public ITransduction newTransduction(ITarget target) throws ModelException, RteException;
+	public ITransductor newTransductor(ITarget target) throws ModelException, RteException;
 	
 	/**
 	 * Close the runtime model and file.
 	 * 
 	 * @throws ModelException
 	 */
+	@Override
 	public void close() throws ModelException;
 }

@@ -21,11 +21,13 @@
 
 package com.characterforming.jrte.base;
 
+import com.characterforming.jrte.ITransductor;
+
 /**
  * This {@code Base} class provides commonly used defintions that are
  * used across the ribose framework.
  * 
- * @author kb
+ * @author Kim Briggs
  */
 public class Base {
 	public static String RTE_VERSION = "ribose-HEAD";
@@ -49,8 +51,46 @@ public class Base {
 		{ 'e', 'o', 'l' },
 		{ 'e', 'o', 's' }
 	};
+	
+	/**
+	 * General signals available in all ribose models.
+	 * <p/>
+	 * Transductors send {@code nul} to transductions when no transition is defined for
+	 * the current symbol from the input stream. This gives the transduction a first chance
+   * synchronize with the input. If no transition is defined for the received {@code nul}
+   * the {@link ITransductor#run()} method will throw {@code DomainErrorException}. 
+	 * <p/>
+	 * Transductors send {@code eos} to transductions when the input stack runs dry. 
+	 * If the receiving transduction has no transition defined for received {@code eos}
+	 * it is ignored. In any case {@code run()} will return normally with {@code Status.PAUSED}
+	 * after sending {@code eos}.
+	 * 
+	 * @author kb
+	 *
+	 */
 	public enum Signal {
-		nul, nil, eol, eos;
+		/**
+		 * Signals first chance to handle missing transition on current input symbol
+		 */
+		nul, 
+		/**
+		 * Signals anything, used as a generic out-of-band prompt to trigger actions 
+		 */
+		nil, 
+		/**
+		 * Signals end of feature, used as a generic feature delimiter
+		 */
+		eol,
+		/**
+		 * Signals end of transduction input
+		 */
+		eos;
+		/**
+		 * Signal ordinal values are mapped to the end of the base {@code (0x0..0xff)} 
+		 * range. Ordinal values for additional signals defined in domain-specific 
+		 * ribose models follow these generic signals in input symbol enumeration.    
+		 * @return
+		 */
 		public int signal() {
 			return RTE_SIGNAL_BASE + ordinal();
 		}

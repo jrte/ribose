@@ -25,7 +25,7 @@ import java.nio.ByteBuffer;
 
 /**
  * Interface for input sources that can be included on the input stack of a running
- * Transduction. 
+ * transduction. 
  * 
  * @author Kim Briggs
  */

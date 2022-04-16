@@ -30,9 +30,15 @@ import com.characterforming.jrte.base.Bytes;
 /**
  * @author Kim Briggs
  */
-public abstract class BaseInputOutputEffector extends BaseParameterizedEffector<Transduction, byte[][]> {
-	protected BaseInputOutputEffector(Transduction transduction, Bytes name) {
-		super(transduction, name);
+public abstract class BaseInputOutputEffector extends BaseParameterizedEffector<Transductor, byte[][]> {
+	/**
+	 * Constructor
+	 * 
+	 * @param transductor The transductor target that binds the effector  
+	 * @param name the value name
+	 */
+	protected BaseInputOutputEffector(Transductor transductor, Bytes name) {
+		super(transductor, name);
 	}
 
 	/*

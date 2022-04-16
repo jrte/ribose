@@ -24,17 +24,17 @@ package com.characterforming.jrte.base;
 import com.characterforming.jrte.IEffector;
 import com.characterforming.jrte.ITarget;
 import com.characterforming.jrte.TargetBindingException;
-import com.characterforming.jrte.engine.Transduction;
+import com.characterforming.jrte.engine.Transductor;
 
 /**
  * This class is used as target for collections of utf8- or byte-oriented
- * transducers that use only the inline transduction effectors. These effectors
- * are availabhle to all transductions and are emunerated by the transduction
+ * transducers that use only the inline transductor effectors. These effectors
+ * are availahle to all transductions and are emunerated by the transductor
  * itself. They and need not be included in the enumeration of user-defined 
  * target effectors for {@link ITarget#bindEffectors()}.
  * 
  * @author Kim Briggs
- * @see {@link Transduction#bindEffectors()}
+ * @see {@link Transductor#bindEffectors()}
  */
 public final class BaseTarget implements ITarget {
 	public BaseTarget() {

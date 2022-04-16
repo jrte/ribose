@@ -25,7 +25,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Thrown when there is a problem binding target effectors to a transduction
+ * Thrown when there is a problem binding target effectors to a transductor
  * 
  * @author Kim Briggs
  */

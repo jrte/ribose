@@ -24,7 +24,7 @@ package com.characterforming.jrte;
 import com.characterforming.jrte.base.Bytes;
 
 /**
- * Interface for runtime transductions. A transduction binds an IInput stack,
+ * Interface for runtime transductors. A transductor binds an IInput stack,
  * transducer stack, and an ITarget instance. When the run() method is called
  * the transduction will read input ordinals from the IInput on the top of the
  * input stack and invoke the effectors triggered by each input transition
@@ -58,7 +58,7 @@ import com.characterforming.jrte.base.Bytes;
  * 
  * @author Kim Briggs
  */
-public interface ITransduction extends ITarget {
+public interface ITransductor extends ITarget {
 	
 	/**
 	 * Transduction status.
@@ -142,9 +142,9 @@ public interface ITransduction extends ITarget {
 	public int getErrorCount();
 
 	/**
-	 * Clear input and transduction stacks. A {@code stop()} will be sent
+	 * Clear input and transducter stacks. A {@code stop()} will be sent
 	 * to any inputs that are popped from the input stack. This resets
-	 * the transduction to original factory state ready for reuse.
+	 * the transductor to original factory state ready for reuse.
 	 * 
 	 * @return {@link Status#STOPPED} 
 	 * @see #status()

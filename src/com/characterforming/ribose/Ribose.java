@@ -33,8 +33,12 @@ import com.characterforming.jrte.engine.Model.Mode;
 
 /**
  * 
- * Main ribose component factory provides static methods for compiling, loading 
- * and running ribose transductions.
+ * Main ribose component factory provides static methods for compiling and loading 
+ * ribose runtime models. A main() method to drive the ribose compiler is provided. 
+ * 
+ * Governance:
+ * 
+ * {@code main | compileRiboseRuntime | loadRiboseRuntime}
  * 
  * @author Kim Briggs
  *
@@ -43,7 +47,7 @@ public final class Ribose {
 	private final static Logger rtcLogger = Logger.getLogger(Base.RTC_LOGGER_NAME);
 	
 /**
- * Compile a collection of DFAs from an automata directort into a ribose model file
+ * Compile a collection of DFAs from an automata directory into a ribose model file
  * and bind them to a Target class. 
  * 
  * @param targetClass the ITarget implementation class will be instantiated as model target
@@ -78,10 +82,10 @@ public final class Ribose {
 	}
 
 	/**
-	 * Load a ribose runtime model from persistent store and bind to a model
-	 * target inatance to instantiate model target effectors and precompile 
+	 * Load a ribose runtime model from persistent store and bind it to a model
+	 * target instance, instantiate the model target effectors and precompile 
 	 * model effector parameters. The runtime model can be used to instantiate
-	 * transduction stacks.
+	 * runtime transductors.
 	 * 
 	 * @param riboseRuntimeFile path to the runtime model to load
 	 * @param target the model target instance to bind to the runtime model

@@ -35,7 +35,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import com.characterforming.jrte.IInput;
-import com.characterforming.jrte.ITransduction;
+import com.characterforming.jrte.ITransductor;
 import com.characterforming.jrte.RteException;
 import com.characterforming.jrte.base.Base;
 import com.characterforming.jrte.base.BaseTarget;
@@ -86,7 +86,7 @@ public class FileRunner {
 
 			BaseTarget target = new BaseTarget();
 			final IRiboseRuntime ribose = Ribose.loadRiboseRuntime(new File(modelPath), target);
-			final ITransduction trex = ribose.newTransduction(target);
+			final ITransductor trex = ribose.newTransductor(target);
 			byte[][] input = nil
 				? new byte[][] { Base.encodeReferenceOrdinal(Base.TYPE_REFERENCE_SIGNAL, Base.Signal.nil.signal()), cbuf }
 				: new byte[][] { cbuf };
@@ -114,7 +114,7 @@ public class FileRunner {
 							break;
 						}
 					}
-					while (trex.status() == ITransduction.Status.PAUSED);
+					while (trex.status() == ITransductor.Status.PAUSED);
 					t1 = System.currentTimeMillis() - t0;
 					if (!jrteOutEnabled) {
 						System.out.print(String.format("%4d", t1));

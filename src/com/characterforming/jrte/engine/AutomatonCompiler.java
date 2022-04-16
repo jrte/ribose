@@ -42,8 +42,8 @@ import com.characterforming.jrte.IInput;
 import com.characterforming.jrte.INamedValue;
 import com.characterforming.jrte.IOutput;
 import com.characterforming.jrte.ITarget;
-import com.characterforming.jrte.ITransduction;
-import com.characterforming.jrte.ITransduction.Status;
+import com.characterforming.jrte.ITransductor;
+import com.characterforming.jrte.ITransductor.Status;
 import com.characterforming.jrte.ModelException;
 import com.characterforming.jrte.RteException;
 import com.characterforming.jrte.TargetBindingException;
@@ -53,15 +53,14 @@ import com.characterforming.jrte.base.Bytes;
 import com.characterforming.ribose.IRiboseRuntime;
 import com.characterforming.ribose.Ribose;
 
-final class AutomatonCompiler implements ITarget {
+public final class AutomatonCompiler implements ITarget {
 
 	public static boolean compileAutomata(Model targetModel, File inrAutomataDirectory) throws ModelException, RteException {
 		File workingDirectory = new File(System.getProperty("user.dir"));
 		File compilerModelFile = new File(workingDirectory, "AutomatonCompiler.model");
-		IRiboseRuntime compilerRuntime = Ribose.loadRiboseRuntime(compilerModelFile, new AutomatonCompiler());
-		if (compilerRuntime != null) try {
+		try (IRiboseRuntime compilerRuntime = Ribose.loadRiboseRuntime(compilerModelFile, new AutomatonCompiler())) {
 			AutomatonCompiler compiler = new AutomatonCompiler(targetModel);
-			compiler.setTransduction(compilerRuntime.newTransduction(compiler));
+			compiler.setTransductor(compilerRuntime.newTransductor(compiler));
 			for (final String filename : inrAutomataDirectory.list()) {
 				if (!filename.endsWith(Base.AUTOMATON_FILE_SUFFIX)) {
 					continue;
@@ -84,10 +83,6 @@ final class AutomatonCompiler implements ITarget {
 				}
 			}
 			return compiler.getErrors().isEmpty();
-		} finally {
-			compilerRuntime.close();
-		} else {
-			return false;
 		}
 	}
 
@@ -260,7 +255,7 @@ final class AutomatonCompiler implements ITarget {
 
 			target.effectorVectorMap = new HashMap<Ints, Integer>(1024);
 			target.effectorVectorList = new ArrayList<Integer>(8196);
-			target.effectorVectorList.add(0);
+			target.effectorVectorList.add(Transductor.RTE_EFFECTOR_NUL);
 			for (final Integer inrInputState : inrInputStates) {
 				for (final Transition t : target.getTransitions(inrInputState)) {
 					if (t.isFinal) {
@@ -301,6 +296,7 @@ final class AutomatonCompiler implements ITarget {
 				}
 			}
 
+			target.effectorVectorList.trimToSize();
 			if (target.errors.isEmpty()) {
 				target.factor(transitionMatrix);
 			}
@@ -314,7 +310,7 @@ final class AutomatonCompiler implements ITarget {
 	
 	protected final Model model;
 	private Bytes transducerName;
-	private ITransduction transduction;
+	private ITransductor transductor;
 	private HashMap<Integer, Integer>[] stateMaps;
 	private HashMap<Integer, ArrayList<Transition>> stateTransitionMap;
 	private HashMap<Ints, Integer> effectorVectorMap;
@@ -328,14 +324,14 @@ final class AutomatonCompiler implements ITarget {
 
 	public AutomatonCompiler() {
 		this.model = null;
-		this.transduction = null;
+		this.transductor = null;
 		this.nilSignal = null;
 		this.reset();
 	}
 
 	public AutomatonCompiler(final Model model) {
 		this.model = model;
-		this.transduction = null;
+		this.transductor = null;
 		this.nilSignal = Base.encodeReferenceOrdinal(Base.TYPE_REFERENCE_SIGNAL, Base.Signal.nil.signal());
 		this.reset();
 	}
@@ -368,8 +364,8 @@ final class AutomatonCompiler implements ITarget {
 		};
 	}
 
-	private void setTransduction(ITransduction transduction) {
-		this.transduction = transduction;
+	private void setTransductor(ITransductor transductor) {
+		this.transductor = transductor;
 	}
 	
 	@SuppressWarnings("unchecked")
@@ -379,12 +375,13 @@ final class AutomatonCompiler implements ITarget {
 		String name = inrFile.getName();
 		name = name.substring(0, name.length() - Base.AUTOMATON_FILE_SUFFIX.length());
 		this.transducerName = Bytes.encode(name);
+		int size = (int)inrFile.length();
 		byte bytes[] = null;
 		try (
 			FileInputStream s = new FileInputStream(inrFile);
 			DataInputStream f = new DataInputStream(s);
 		) {
-			int position = 0, length = (int)inrFile.length();
+			int position = 0, length = size;
 			bytes = new byte[length];
 			while (length > 0) {
 				int read = f.read(bytes, position, length);
@@ -402,19 +399,19 @@ final class AutomatonCompiler implements ITarget {
 		}
 		try {
 			this.stateMaps = (HashMap<Integer, Integer>[])new HashMap<?,?>[3];
-			this.stateTransitionMap = new HashMap<Integer, ArrayList<Transition>>(10 << 10);
-			this.transduction.stop();
-			this.transduction.input(new IInput[] {new ByteInput(new byte[][] {this.nilSignal, bytes})});
-			Status status = this.transduction.start(Bytes.encode("Automaton"));
+			this.stateTransitionMap = new HashMap<Integer, ArrayList<Transition>>(size >> 3);
+			this.transductor.stop();
+			this.transductor.input(new IInput[] {new ByteInput(new byte[][] {this.nilSignal, bytes})});
+			Status status = this.transductor.start(Bytes.encode("Automaton"));
 			while (status.equals(Status.RUNNABLE)) {
-				status = this.transduction.run();
+				status = this.transductor.run();
 			}
 			if (this.errors.isEmpty()) {
 				this.save();
 				return true;
 			} else {
 				this.error(String.format(String.format("%1$s: Compilation halted with status '%2$s'",
-					name, this.transduction.status().toString())));
+					name, this.transductor.status().toString())));
 				return false;
 			}
 		} catch (ModelException e) {
@@ -430,7 +427,7 @@ final class AutomatonCompiler implements ITarget {
 				name, inrFile.getPath(), e.getMessage()));
 			return false;
 		} finally {
-			this.transduction.stop();
+			this.transductor.stop();
 		}
 	}
 
@@ -505,46 +502,48 @@ final class AutomatonCompiler implements ITarget {
 			}
 			outT = this.getTransitions(t.to);
 		}
-		assert effectorPos > 0 || parameterPos == 0;
-		assert parameterPos == 0 || effectorPos > 0;
-		int vectorLength = effectorPos + 1;
-		if (effectorPos > 0 && parameterPos > 0) {
-			++vectorLength;
-		}
-		if (vectorLength != effectorVector.length) {
-			effectorVector = Arrays.copyOf(effectorVector, vectorLength);
-		}
-		if (parameterPos > 0) {
-			assert((effectorPos > 0) && (effectorOrdinal == effectorVector[effectorPos - 1])); 
-			final byte[][] parameters = Arrays.copyOf(parameterList, parameterPos);
-			int parameterOrdinal = this.model.compileParameters(effectorOrdinal, parameters);
-			effectorVector[effectorPos] = parameterOrdinal;
-			effectorVector[effectorPos - 1] *= -1;
-			++effectorPos;
-		}
-		if (effectorPos > 0) {
-			effectorVector[effectorPos] = 0;
-			++effectorPos;
-		}
-		if (outT == null || outT.size() == 0 || outT.size() == 1 && outT.get(0).isFinal) {
-			return new Chain(Arrays.copyOf(effectorVector, effectorPos), 0);
-		} else if (outT.size() == 1 && outT.get(0).tape == 0) {
-			return new Chain(Arrays.copyOf(effectorVector, effectorPos), outT.get(0).from);
-		} else if (outT.get(0).isFinal || outT.get(0).tape == 0) {
-			int outS = -1;
-			for (final Transition t : outT) {
-				if (t.tape > 0) {
-					this.error(String.format("%1$s: Ambiguous state %1$d", this.getName(), t.from));
-				} else {
-					outS = t.from;
+		if (this.errors.isEmpty()) {
+			assert effectorPos > 0 || parameterPos == 0;
+			assert parameterPos == 0 || effectorPos > 0;
+			int vectorLength = effectorPos + 1;
+			if (effectorPos > 0 && parameterPos > 0) {
+				++vectorLength;
+			}
+			if (vectorLength != effectorVector.length) {
+				effectorVector = Arrays.copyOf(effectorVector, vectorLength);
+			}
+			if (parameterPos > 0) {
+				assert((effectorPos > 0) && (effectorOrdinal == effectorVector[effectorPos - 1])); 
+				final byte[][] parameters = Arrays.copyOf(parameterList, parameterPos);
+				int parameterOrdinal = this.model.compileParameters(effectorOrdinal, parameters);
+				effectorVector[effectorPos] = parameterOrdinal;
+				effectorVector[effectorPos - 1] *= -1;
+				++effectorPos;
+			}
+			if (effectorPos > 0) {
+				effectorVector[effectorPos] = 0;
+				++effectorPos;
+			}
+			if (outT == null || outT.size() == 0 || outT.size() == 1 && outT.get(0).isFinal) {
+				return new Chain(Arrays.copyOf(effectorVector, effectorPos), 0);
+			} else if (outT.size() == 1 && outT.get(0).tape == 0) {
+				return new Chain(Arrays.copyOf(effectorVector, effectorPos), outT.get(0).from);
+			} else if (outT.get(0).isFinal || outT.get(0).tape == 0) {
+				int outS = -1;
+				for (final Transition t : outT) {
+					if (t.tape > 0) {
+						this.error(String.format("%1$s: Ambiguous state %1$d", this.getName(), t.from));
+					} else {
+						outS = t.from;
+					}
 				}
-			}
-			if (this.errors.size() == 0) {
-				return new Chain(Arrays.copyOf(effectorVector, effectorPos), outS);
-			}
-		} else {
-			for (final Transition t : outT) {
-				this.error(String.format("%1$s: Ambiguous state %1$d", this.getName(), t.from));
+				if (this.errors.size() == 0) {
+					return new Chain(Arrays.copyOf(effectorVector, effectorPos), outS);
+				}
+			} else {
+				for (final Transition t : outT) {
+					this.error(String.format("%1$s: Ambiguous state %1$d", this.getName(), t.from));
+				}
 			}
 		}
 		return null;
@@ -575,7 +574,7 @@ final class AutomatonCompiler implements ITarget {
 			}
 		}
 		double density = (double)(transitions)/(double)(this.kernelMatrix.length * this.kernelMatrix[0].length);
-		System.out.println(String.format("Transducer %1$s: %2$d input equivalence classes, %3$d states, %4$d transitions (%5$5.3f)",
+		System.out.println(String.format("%1$s: %2$d input equivalence classes, %3$d states, %4$d transitions (%5$5.3f)",
 			this.getTransducerName(), this.kernelMatrix.length, this.kernelMatrix[0].length, transitions, density));
 	}
 

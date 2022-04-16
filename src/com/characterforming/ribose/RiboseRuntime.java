@@ -30,7 +30,7 @@ import java.util.logging.Logger;
 import com.characterforming.jrte.ByteInput;
 import com.characterforming.jrte.IInput;
 import com.characterforming.jrte.ITarget;
-import com.characterforming.jrte.ITransduction;
+import com.characterforming.jrte.ITransductor;
 import com.characterforming.jrte.ModelException;
 import com.characterforming.jrte.RteException;
 import com.characterforming.jrte.base.Base;
@@ -40,13 +40,11 @@ import com.characterforming.jrte.engine.Model;
 import com.characterforming.jrte.engine.Model.Mode;
 
 /**
- * Ribose runtime transduction factory. Use {@link newTransduction(ITarget)} to instantiate a 
- * transduction and call {@link com.characterforming.jrte.ITransduction#start(Bytes)} and 
- * {@link com.characterforming.jrte.ITransduction#input(IInput[])} to set up the initial 
- * input and transducer stacks, then drive the tranduction to an endpoint by calling 
- * {@link com.characterforming.jrte.ITransduction#run()} until 
- * {@link com.characterforming.jrte.ITransduction#status()} returns
- * {@link com.characterforming.jrte.ITransduction.Status#STOPPED}.
+ * Ribose runtime loads a target model and instantiates runtime transductors. A 
+ * transductor is a capbility to run transductions. A main() method is provided
+ * to enable {@link BaseTarget} model collections of stdin-&gt;stdout text transducers
+ * to be run from host shells. Models based on other target classes are loaded and used
+ * similarly in other service and application contexts.
  * 
  * @author Kim Briggs
  */
@@ -55,7 +53,7 @@ public final class RiboseRuntime implements IRiboseRuntime, AutoCloseable {
 	private final Model model;
 	
 	/**
-	 * Constructor sets up the runtime as an ITransduction factory. This will instantiate a 
+	 * Constructor sets up the runtime as an ITransductor factory. This will instantiate a 
 	 * model instance of the target class for effector binding as follows:
 	 * <p>
 	 * <code>
@@ -73,11 +71,11 @@ public final class RiboseRuntime implements IRiboseRuntime, AutoCloseable {
 	 * <p>
 	 * The model target instance is not used after after instantiating model effectors and 
 	 * compiling model effector paramters. The model effectors remain bound to the model 
-	 * to provide live effectors with precompiled parameters when transductions are 
+	 * to provide live effectors with precompiled parameters when transductors are 
 	 * instantiated for new target instances. 
 	 * 
 	 * @param runtimePath The path to the runtime model file
-	 * @param target The target instance to bind to the transduction 
+	 * @param target The target instance to bind to transductors
 	 * @throws ModelException
 	 */
 	RiboseRuntime(final File runtimePath, final ITarget target) throws ModelException {
@@ -86,27 +84,30 @@ public final class RiboseRuntime implements IRiboseRuntime, AutoCloseable {
 	}
 
 	/**
-	 * Bind an unbound target instance to a new transduction. Use the {@link ITransduction#start(Bytes)}
-	 * and {@link ITransduction#run()} methods to set up and run the transduction.
+	 * Bind an unbound target instance to a new transductor. Use the {@link ITransductor#start(Bytes)}
+	 * and {@link ITransductor#run()} methods to set up and run transductions.
 	 * 
-	 * @param target The ITarget instance to bind to the transduction
-	 * @return The bound Transduction instance
+	 * @param target The ITarget instance to bind to the transductor
+	 * @return The bound ITransductor instance
 	 * @throws ModelException
 	 */
 	@Override
-	public ITransduction newTransduction(final ITarget target) throws ModelException {
-		return this.model.bindTransduction(target);
+	public ITransductor newTransductor(final ITarget target) throws ModelException {
+		return this.model.bindTransductor(target);
 	}
 
 	/**
 	 * Set up a transduction input source with a sequence of UTF-8 and signal ordinals.
 	 * Each signal reference in the input array is mapped to the respective signal ordinal
-	 * encoded separately in input[][] as {0xFF,'!',hi,lo} encoding the 16-bit signal 
-	 * ordinal as (hi &lt;&lt; 8) | lo. Other tokens in the input array are treated
-	 * as sequences of 8-bit byte (binary 0x0..0xff).
-	 * 
+	 * encoded separately in input[][] as {0xff,'!',hi,lo} encoding the 16-bit signal 
+	 * ordinal as{@code  (hi << 8) | lo}. Other tokens in the input array are treated
+	 * as sequences of 8-bit byte (binary {@code 0x0..0xff}). 
+	 * <p/>
 	 * Note that this limits the range of unreserved tokens available to ginr patterns 
-	 * for jrte to {@code (0x00..0xff)* - 0xff('!'|'~'|'@')(0x00..0xff)(0x00..0xff)}. 
+	 * for jrte to {@code (0x00..0xff)* - 0xff ('!'|'~'|'@')(0x00..0xff)(0x00..0xff)}. UTF-8
+	 * tokens are not constrained because {@code (0xf8..0xf8)} are not legal in UTF-8 streams.
+	 * Binary tokens are not impacted unless they are contained in a 4-byte buffer and have a
+	 * {@code 0xff ('!'|'~'|'@')}.
 	 * 
 	 * @param input The symbolic names for the signals and text segments to include in LIFO order (input[0] is last out)
 	 * @return An IInput containing the signal sequence
@@ -166,19 +167,19 @@ public final class RiboseRuntime implements IRiboseRuntime, AutoCloseable {
 			isr = new DataInputStream(new FileInputStream(input));
 			clen = isr.read(bytes, 0, clen);
 
-			ITransduction transduction = ribose.newTransduction(baseTarget);
-			transduction.start(Bytes.encode(transducerName));
-			transduction.input(nil
+			ITransductor transductor = ribose.newTransductor(baseTarget);
+			transductor.start(Bytes.encode(transducerName));
+			transductor.input(nil
 				? new IInput[] { (ByteInput) ribose.input(new byte[][] { Base.encodeReferenceOrdinal(Base.TYPE_REFERENCE_SIGNAL, Base.Signal.nil.signal()), bytes }) }
 				: new IInput[] { (ByteInput) ribose.input(new byte[][] { bytes }) }
 			);
 			do {
-				switch (transduction.run()) {
+				switch (transductor.run()) {
 				case RUNNABLE:
 					break;
 				case PAUSED:
 				case STOPPED:
-					transduction.stop();
+					transductor.stop();
 					break;
 				case NULL:
 				default:
@@ -186,7 +187,7 @@ public final class RiboseRuntime implements IRiboseRuntime, AutoCloseable {
 					break;
 				}
 			}
-			while (transduction.status() == ITransduction.Status.PAUSED);
+			while (transductor.status() == ITransductor.Status.PAUSED);
 		} catch (final Exception e) {
 			System.out.println("Runtime instantiation failed, see log for details.");
 			exitCode = 1;

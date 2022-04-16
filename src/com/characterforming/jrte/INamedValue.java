@@ -27,7 +27,7 @@ import com.characterforming.jrte.base.Bytes;
  * Snapshot wrapper for volatile named values. These contain direct references
  * to the transduction value buffers and their length and content will change 
  * according to transducer actions. ITarget instance may retain INamedValue
- * instances for the entire lifetime of an ITransduction instance and query 
+ * instances for the entire lifetime of an ITransductor instance and query 
  * them periodically when they synchronize with the transduction process under
  * effector direction.
  * 

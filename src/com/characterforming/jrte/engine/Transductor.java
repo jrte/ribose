@@ -38,7 +38,7 @@ import com.characterforming.jrte.INamedValue;
 import com.characterforming.jrte.IOutput;
 import com.characterforming.jrte.IParameterizedEffector;
 import com.characterforming.jrte.ITarget;
-import com.characterforming.jrte.ITransduction;
+import com.characterforming.jrte.ITransductor;
 import com.characterforming.jrte.InputException;
 import com.characterforming.jrte.ModelException;
 import com.characterforming.jrte.RteException;
@@ -47,10 +47,11 @@ import com.characterforming.jrte.base.Base;
 import com.characterforming.jrte.base.BaseEffector;
 import com.characterforming.jrte.base.BaseParameterizedEffector;
 import com.characterforming.jrte.base.Bytes;
+import com.characterforming.ribose.IRiboseRuntime;
 
 /**
- * Runtime transduction instances are instantiated using {@link IRiboserRuntime#newTransaction(ITarget)}.
- * Client applications drive the transduction using the Transduction.run() method, 
+ * Runtime transductor instances are instantiated using {@link IRiboseRuntime#newTransductor(ITarget)}.
+ * Client applications drive transduction using the Transductor.run() method, 
  * which processes the bound IInput stack until one of the following conditions is 
  * satisfied: <br>
  * <ol>
@@ -62,7 +63,7 @@ import com.characterforming.jrte.base.Bytes;
  * 
  * @author Kim Briggs
  */
-public final class Transduction implements ITransduction, ITarget, IOutput {
+public final class Transductor implements ITransductor, ITarget, IOutput {
 	private static final boolean isOutEnabled = System.getProperty("jrte.out.enabled", "true").equals("true");
 	private final static Logger logger = Logger.getLogger(Base.RTE_LOGGER_NAME);
 
@@ -100,7 +101,7 @@ public final class Transduction implements ITransduction, ITarget, IOutput {
 	 *
 	 * @param model The runtime model 
 	 */
-	Transduction(final Model model) {
+	Transductor(final Model model) {
 		super();
 		this.model = model;
 		this.effectors = null;
@@ -168,14 +169,14 @@ public final class Transduction implements ITransduction, ITarget, IOutput {
 	public Status status() {
 		if (this.effectors != null) {
 			if ((this.transducerStack == null) || (this.transducerStack.isEmpty())) {
-				return ITransduction.Status.STOPPED;
+				return ITransductor.Status.STOPPED;
 			} else if (this.inputStack != null && !this.inputStack.isEmpty()) {
-				return ITransduction.Status.RUNNABLE;
+				return ITransductor.Status.RUNNABLE;
 			} else {
-				return ITransduction.Status.PAUSED;			
+				return ITransductor.Status.PAUSED;			
 			}
 		} else {
-			return ITransduction.Status.NULL;
+			return ITransductor.Status.NULL;
 		}
 	}
 
@@ -185,7 +186,7 @@ public final class Transduction implements ITransduction, ITarget, IOutput {
 	 */
 	@Override
 	public Status input(final IInput[] inputs) {
-		if (this.status() == ITransduction.Status.NULL) {
+		if (this.status() == ITransductor.Status.NULL) {
 			logger.log(Level.SEVERE, "Transduction not bound to target");
 			return this.status();
 		}
@@ -204,7 +205,7 @@ public final class Transduction implements ITransduction, ITarget, IOutput {
 	 */
 	@Override
 	public Status start(final Bytes transducerName) throws ModelException {
-		if (this.status() != ITransduction.Status.NULL) {
+		if (this.status() != ITransductor.Status.NULL) {
 			int transducerOrdinal = this.model.getTransducerOrdinal(transducerName);
 			Transducer transducer = null;
 			transducer = this.model.loadTransducer(transducerOrdinal);
@@ -256,7 +257,7 @@ public final class Transduction implements ITransduction, ITarget, IOutput {
 	 */
 	@Override
 	public Status run() throws RteException, DomainErrorException {
-		if (this.status() == ITransduction.Status.NULL) {
+		if (this.status() == ITransductor.Status.NULL) {
 			RteException rtx = new RteException("run: Transaction is MODEL and inoperable");
 			logger.log(Level.SEVERE, rtx.getMessage(), rtx);
 			throw rtx;
@@ -268,7 +269,7 @@ public final class Transduction implements ITransduction, ITarget, IOutput {
 		int position = 0, limit = 0;
 		int state = 0;
 		try {
-T:		while (this.status() == ITransduction.Status.RUNNABLE) {
+T:		while (this.status() == ITransductor.Status.RUNNABLE) {
 				final TransducerState transducerState = this.transducerStack.peek();
 				final Transducer transducer = transducerState.transducer;
 				final int[] inputFilter = transducer.getInputFilter();
@@ -282,8 +283,8 @@ T:		while (this.status() == ITransduction.Status.RUNNABLE) {
 				int signalInput = -1;
 				int currentInput = -1;
 				byte[] inputArray = null;
-				ITransduction.Status status = this.status();
-				while (status == ITransduction.Status.RUNNABLE) {
+				ITransductor.Status status = this.status();
+				while (status == ITransductor.Status.RUNNABLE) {
 					
 					// Get next input symbol from local array, or try to refresh it if exhausted
 					if (signalInput >= 0) {
@@ -363,7 +364,7 @@ I:				do {
 						}
 					} while (position < limit);
 					
-					// Invoke a vector of 1 or more effectors and record side effects on transduction and input stacks 
+					// Invoke a vector of 1 or more effectors and record side effects on transducer and input stacks 
 					effect = IEffector.RTE_EFFECT_NONE;
 					do {
 						switch (action) {
@@ -419,7 +420,7 @@ I:				do {
 							effect |=  IEffector.RTE_EFFECT_PUSH;
 							break;
 						case RTE_EFFECTOR_OUT: {
-							if (Transduction.isOutEnabled && this.selected.getLength() > 0) {
+							if (Transductor.isOutEnabled && this.selected.getLength() > 0) {
 								System.out.print(Charset.defaultCharset().decode(ByteBuffer.wrap(selected.getValue(), 0, selected.getLength())).toString());
 								System.out.flush();
 							}
@@ -478,7 +479,7 @@ I:				do {
 							inputBuffer.position(position);
 						}
 						
-						// Handle side effects relating to transduction status (input/transduction stacks)
+						// Handle side effects relating to transduction status (input/transducer stacks)
 						if (effect != IEffector.RTE_EFFECT_NONE) {
 							status = this.status();
 							
@@ -749,9 +750,9 @@ I:				do {
 		return this.copyNamedValue(this.selected.getOrdinal());
 	}
 
-	private final class InlineEffector extends BaseEffector<Transduction> {
-		private InlineEffector(final Transduction transduction, final Bytes name) {
-			super(transduction, name);
+	private final class InlineEffector extends BaseEffector<Transductor> {
+		private InlineEffector(final Transductor transductor, final Bytes name) {
+			super(transductor, name);
 		}
 
 		@Override
@@ -761,8 +762,8 @@ I:				do {
 	}
 
 	private final class PasteEffector extends BaseInputOutputEffector {
-		private PasteEffector(final Transduction transduction) {
-			super(transduction, Bytes.encode("paste"));
+		private PasteEffector(final Transductor transductor) {
+			super(transductor, Bytes.encode("paste"));
 		}
 
 		@Override
@@ -789,8 +790,8 @@ I:				do {
 	}
 
 	private final class SelectEffector extends BaseNamedValueEffector {
-		private SelectEffector(final Transduction transduction) {
-			super(transduction, Bytes.encode("select"));
+		private SelectEffector(final Transductor transductor) {
+			super(transductor, Bytes.encode("select"));
 		}
 
 		@Override
@@ -806,8 +807,8 @@ I:				do {
 	}
 
 	private final class CopyEffector extends BaseNamedValueEffector {
-		private CopyEffector(final Transduction transduction) {
-			super(transduction, Bytes.encode("copy"));
+		private CopyEffector(final Transductor transductor) {
+			super(transductor, Bytes.encode("copy"));
 		}
 
 		@Override
@@ -824,8 +825,8 @@ I:				do {
 	}
 
 	private final class CutEffector extends BaseNamedValueEffector {
-		private CutEffector(final Transduction transduction) {
-			super(transduction, Bytes.encode("cut"));
+		private CutEffector(final Transductor transductor) {
+			super(transductor, Bytes.encode("cut"));
 		}
 
 		@Override
@@ -841,8 +842,8 @@ I:				do {
 	}
 
 	private final class ClearEffector extends BaseNamedValueEffector {
-		private ClearEffector(final Transduction transduction) {
-			super(transduction, Bytes.encode("clear"));
+		private ClearEffector(final Transductor transductor) {
+			super(transductor, Bytes.encode("clear"));
 		}
 
 		@Override
@@ -858,8 +859,8 @@ I:				do {
 	}
 
 	private final class InEffector extends BaseInputOutputEffector {
-		private InEffector(final Transduction transduction) {
-			super(transduction, Bytes.encode("in"));
+		private InEffector(final Transductor transductor) {
+			super(transductor, Bytes.encode("in"));
 		}
 
 		@Override
@@ -880,8 +881,8 @@ I:				do {
 	private final class OutEffector extends BaseInputOutputEffector {
 		private final boolean isOutEnabled;
 
-		private OutEffector(final Transduction transduction) {
-			super(transduction, Bytes.encode("out"));
+		private OutEffector(final Transductor transductor) {
+			super(transductor, Bytes.encode("out"));
 			this.isOutEnabled = System.getProperty("jrte.out.enabled", "true").equals("true");
 		}
 
@@ -909,9 +910,9 @@ I:				do {
 		}
 	}
 
-	private final class CountEffector extends BaseParameterizedEffector<Transduction, int[]> {
-		private CountEffector(final Transduction transduction) {
-			super(transduction, Bytes.encode("count"));
+	private final class CountEffector extends BaseParameterizedEffector<Transductor, int[]> {
+		private CountEffector(final Transductor transductor) {
+			super(transductor, Bytes.encode("count"));
 		}
 		
 		@Override
@@ -967,9 +968,9 @@ I:				do {
 		}
 	}
 
-	private final class StartEffector extends BaseParameterizedEffector<Transduction, Integer> {
-		private StartEffector(final Transduction transduction) {
-			super(transduction, Bytes.encode("start"));
+	private final class StartEffector extends BaseParameterizedEffector<Transductor, Integer> {
+		private StartEffector(final Transductor transductor) {
+			super(transductor, Bytes.encode("start"));
 		}
 
 		@Override
@@ -1009,9 +1010,9 @@ I:				do {
 		}
 	}
 
-	private final class PauseEffector extends BaseEffector<Transduction> {
-		private PauseEffector(final Transduction transduction) {
-			super(transduction, Bytes.encode("pause"));
+	private final class PauseEffector extends BaseEffector<Transductor> {
+		private PauseEffector(final Transductor transductor) {
+			super(transductor, Bytes.encode("pause"));
 		}
 
 		@Override
@@ -1020,9 +1021,9 @@ I:				do {
 		}
 	}
 
-	private final class StopEffector extends BaseEffector<Transduction> {
-		private StopEffector(final Transduction transduction) {
-			super(transduction, Bytes.encode("stop"));
+	private final class StopEffector extends BaseEffector<Transductor> {
+		private StopEffector(final Transductor transductor) {
+			super(transductor, Bytes.encode("stop"));
 		}
 
 		@Override
