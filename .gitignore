@@ -10,3 +10,4 @@ java_pid*
 *.log*
 *.dfa
 *.pr
+*.last

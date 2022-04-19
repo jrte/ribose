@@ -19,7 +19,7 @@
  * <http://www.gnu.org/licenses/>.
 -->
 
-<project name="jrte" default="all-clean" basedir="." xmlns:if="ant:if" xmlns:unless="ant:unless">
+<project name="ribose-build" default="all-clean" basedir="." xmlns:if="ant:if" xmlns:unless="ant:unless">
 	<property name="jrte.version" value="ribose-0.0.0"/>
 	<property name="java.source.dir" value="src"/>
 	<property name="pattern.source.dir" value="test-patterns"/>
@@ -130,7 +130,7 @@
 
 	<target name="package-patterns" depends="package-java,compile-patterns,check-package-patterns" unless="patterns-packaged">
 		<java resultproperty="model-result" fork="true" dir ="." classname="com.characterforming.ribose.Ribose" classpathref="jrte.classpath" failonerror="true">
-			<jvmarg line="-showversion -ea"/>
+			<jvmarg line="-ea"/>
 			<arg line="--target com.characterforming.jrte.base.BaseTarget ${build.patterns.automata} ${build.patterns}/BaseTarget.model"/>
 		</java>
 	</target>
