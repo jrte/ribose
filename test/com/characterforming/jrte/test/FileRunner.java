@@ -87,9 +87,7 @@ public class FileRunner {
 			BaseTarget target = new BaseTarget();
 			final IRiboseRuntime ribose = Ribose.loadRiboseRuntime(new File(modelPath), target);
 			final ITransductor trex = ribose.newTransductor(target);
-			byte[][] input = nil
-				? new byte[][] { Base.encodeReferenceOrdinal(Base.TYPE_REFERENCE_SIGNAL, Base.Signal.nil.signal()), cbuf }
-				: new byte[][] { cbuf };
+			byte[][] input = nil ? new byte[][] { Base.Signal.nil.reference(), cbuf } : new byte[][] { cbuf };
 			int loops;
 			if (!regexOutEnabled) {
 				if (!jrteOutEnabled) {

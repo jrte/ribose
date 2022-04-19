@@ -85,26 +85,42 @@ public class Base {
 		 * Signals end of transduction input
 		 */
 		eos;
+		
 		/**
 		 * Signal ordinal values are mapped to the end of the base {@code (0x0..0xff)} 
-		 * range. Ordinal values for additional signals defined in domain-specific 
-		 * ribose models follow these generic signals in input symbol enumeration.    
-		 * @return
+		 * input range. This range can be further extended with additional signal 
+		 * ordinal values defined for domain-specific transduction models.
+		 *  
+		 * @return the signal ordinal value
 		 */
 		public int signal() {
 			return RTE_SIGNAL_BASE + ordinal();
 		}
+		
+		/**
+		 * Signal ordinal references encode unsigned 16-bit signal ordinals in 
+		 * 4-byte {@code {`0xff!hilo`}} packets for injection into transduction input stacks.
+		 * The hilo bytes are in big-endian order so:
+		 * <p/>
+		 * {@code   ordinal == (Byte.asUnsignedInt(hi) << 8) | Byte.asUnsignedInt(lo)}
+		 *   
+		 * @return A signal reference packet encoding the signal ordinal value
+		 */
+		public byte[] reference() {
+			return Base.encodeReferenceOrdinal(Base.TYPE_REFERENCE_SIGNAL, signal());
+		}
 	};
 	
 	public static final byte[] EMPTY = { };
+	public static final int CLEAR_ALL_VALUES = 2;
+	public static final int CLEAR_ANONYMOUS_VALUE = 1;
+	public static final int ANONYMOUS_VALUE_ORDINAL = 0;
 	public static final byte[] ANONYMOUS_VALUE_NAME = EMPTY;
 	public static final byte[] ANONYMOUS_VALUE_REFERENCE = { TYPE_REFERENCE_VALUE };
 	public static final byte[][] ANONYMOUS_VALUE_PARAMETER = { ANONYMOUS_VALUE_REFERENCE };
-	public static final int ANONYMOUS_VALUE_ORDINAL = 0;
 	public static final byte[] ALL = { '~', '*' };
 	public static final byte[] ALL_VALUE_NAME = { '*' };
 	public static final byte[] ALL_VALUE_PARAMETER = ALL;
-	public static final int CLEAR_VALUE_ORDINAL = 1;
 
 	public Base() {
 		super();

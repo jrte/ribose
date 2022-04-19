@@ -627,7 +627,7 @@ I:				do {
 	private int clear(final int nameIndex) {
 		assert (nameIndex >= 0) || (nameIndex == -1);
 		int index = (nameIndex >= 0) ? nameIndex : this.selected.getOrdinal();
-		if (index != Base.CLEAR_VALUE_ORDINAL) {
+		if (index != Base.CLEAR_ANONYMOUS_VALUE) {
 			this.namedValueHandles[index].clear();
 		} else {
 			clear();

@@ -42,7 +42,9 @@ $ for n in '' 0 00 000 0000 00000 000000 0000000 00000000 000000000 0000000000; 
 ```
 This is _pattern-oriented programming_ and there is nothing poetic about it. It is based almost entirely on semi-ring algebra, so patterns can be expressed and  manipulated algebraically. When domain concerns escape the semi-ring we add a transducer stack and extend the range of applicable use cases to include context-free input structures and continue. The addition of an input stack allows transduction processes to inject media into the input stream, extending the range of potential use cases into context-sensitive territory (eg, the Fibonacci transducer maps the dull monoid **0*** onto the context-sensitive Fibonacci series). Similar advantages accrue from applying pattern algebra in other symbolic domains. Complex real-time control systems that effect rule-based governance can be expressed concisely as transducer patterns mapping event flows to control actions that effect governance.
 
-For some background reading and historical perspective visit the [Discussions](https://github.com/jrte/ribose/discussions) page. To learn how to harness ribose in development workflows, see the tutorial and examples on the [ribose wiki](https://github.com/jrte/ribose/wiki).
+To learn how to harness ribose in development workflows, see the tutorial and examples on the [ribose wiki](https://github.com/jrte/ribose/wiki).
+
+For some background reading and historical perspective visit the [Discussions](https://github.com/jrte/ribose/discussions) page.
 
 The current version of ribose is packaged in ribose-0.0.0.jar.
 

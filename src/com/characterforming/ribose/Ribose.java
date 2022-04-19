@@ -35,9 +35,9 @@ import com.characterforming.jrte.engine.Model.Mode;
  * 
  * Main ribose component factory provides static methods for compiling and loading 
  * ribose runtime models. A main() method to drive the ribose compiler is provided. 
- * 
+ * <p/>
  * Governance:
- * 
+ * <p/>
  * {@code main | compileRiboseRuntime | loadRiboseRuntime}
  * 
  * @author Kim Briggs

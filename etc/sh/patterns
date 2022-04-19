@@ -33,7 +33,7 @@ epilogue="$1/$3"
 out="$4"
 
 failed=0
-echo ":bye;" | ginr | grep ' '
+echo ":bye;" | etc/ginr/ginr | grep ' '
 for f in "$src"/*.inr; do
 	file=$(basename "$f")
 	if [[ "$f" != "$src/$prologue" && "$f" != "$src/$epilogue" ]]; then

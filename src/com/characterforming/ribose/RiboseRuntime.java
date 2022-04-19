@@ -170,7 +170,7 @@ public final class RiboseRuntime implements IRiboseRuntime, AutoCloseable {
 			ITransductor transductor = ribose.newTransductor(baseTarget);
 			transductor.start(Bytes.encode(transducerName));
 			transductor.input(nil
-				? new IInput[] { (ByteInput) ribose.input(new byte[][] { Base.encodeReferenceOrdinal(Base.TYPE_REFERENCE_SIGNAL, Base.Signal.nil.signal()), bytes }) }
+				? new IInput[] { (ByteInput) ribose.input(new byte[][] { Base.Signal.nil.reference(), bytes }) }
 				: new IInput[] { (ByteInput) ribose.input(new byte[][] { bytes }) }
 			);
 			do {

@@ -239,7 +239,7 @@ public final class Model implements AutoCloseable {
 			}
 			assert this.signalOrdinalMap.size() == (Base.RTE_SIGNAL_BASE + Base.RTE_SIGNAL_NAMES.length);
 			this.namedValueOrdinalMap.put(new Bytes(Base.ANONYMOUS_VALUE_NAME), Base.ANONYMOUS_VALUE_ORDINAL);
-			this.namedValueOrdinalMap.put(new Bytes(Base.ALL_VALUE_NAME), Base.CLEAR_VALUE_ORDINAL);
+			this.namedValueOrdinalMap.put(new Bytes(Base.ALL_VALUE_NAME), Base.CLEAR_ANONYMOUS_VALUE);
 			this.transducerObjectIndex = new Transducer[256];
 			this.transducerOffsetIndex = new long[256];
 			this.transducerNameIndex = new Bytes[256];
@@ -247,7 +247,7 @@ public final class Model implements AutoCloseable {
 			this.putString(Base.RTE_VERSION);
 			this.putString(this.modelTarget.getClass().getName());
 			
-			if (!AutomatonCompiler.compileAutomata(this, inrAutomataDirectory)) {
+			if (!ModelCompiler.compileAutomata(this, inrAutomataDirectory)) {
 				this.setDeleteOnClose(true);
 			}
 			

@@ -54,7 +54,7 @@ import com.characterforming.jrte.base.Bytes;
  * IInput.get() will return null and force eos whenever it is called after the
  * last input ordinal is returned from the input stack. Transducers can explicitly handle
  * this by including a transition on eos. If eos is not explicitly handled the transduction
- * will simply stop and ({@link status()} will return {@link Status#STOPPED}).
+ * will simply stop and {@link status()} will return {@link Status#STOPPED}.
  * 
  * @author Kim Briggs
  */

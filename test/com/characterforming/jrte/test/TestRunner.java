@@ -86,8 +86,7 @@ public class TestRunner {
 		final IRiboseRuntime ribose = Ribose.loadRiboseRuntime(new File(modelPath), target);
 		final ITransductor trex = ribose.newTransductor(target);
 		final ByteInput nilinput = (ByteInput) ribose.input(new byte[][] {
-			Base.encodeReferenceOrdinal(Base.TYPE_REFERENCE_SIGNAL, Base.Signal.nil.signal()), 
-			abytes});
+			Base.Signal.nil.reference(), abytes});
 		for (final String test : tests) {
 			long t0 = 0, t1 = 0, t2 = 0;
 			System.out.format("%20s: ", test);

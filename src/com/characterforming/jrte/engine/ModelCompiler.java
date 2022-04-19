@@ -53,13 +53,13 @@ import com.characterforming.jrte.base.Bytes;
 import com.characterforming.ribose.IRiboseRuntime;
 import com.characterforming.ribose.Ribose;
 
-public final class AutomatonCompiler implements ITarget {
+public final class ModelCompiler implements ITarget {
 
 	public static boolean compileAutomata(Model targetModel, File inrAutomataDirectory) throws ModelException, RteException {
 		File workingDirectory = new File(System.getProperty("user.dir"));
-		File compilerModelFile = new File(workingDirectory, "AutomatonCompiler.model");
-		try (IRiboseRuntime compilerRuntime = Ribose.loadRiboseRuntime(compilerModelFile, new AutomatonCompiler())) {
-			AutomatonCompiler compiler = new AutomatonCompiler(targetModel);
+		File compilerModelFile = new File(workingDirectory, "ModelCompiler.model");
+		try (IRiboseRuntime compilerRuntime = Ribose.loadRiboseRuntime(compilerModelFile, new ModelCompiler())) {
+			ModelCompiler compiler = new ModelCompiler(targetModel);
 			compiler.setTransductor(compilerRuntime.newTransductor(compiler));
 			for (final String filename : inrAutomataDirectory.list()) {
 				if (!filename.endsWith(Base.AUTOMATON_FILE_SUFFIX)) {
@@ -118,10 +118,10 @@ public final class AutomatonCompiler implements ITarget {
 		}
 	}
 		
-	class HeaderEffector extends BaseEffector<AutomatonCompiler> {
+	class HeaderEffector extends BaseEffector<ModelCompiler> {
 		INamedValue fields[];
 		
-		HeaderEffector(AutomatonCompiler automaton) {
+		HeaderEffector(ModelCompiler automaton) {
 			super(automaton, Bytes.encode("header"));
 	 }
 		
@@ -147,7 +147,7 @@ public final class AutomatonCompiler implements ITarget {
 				(int)fields[4].asInteger()
 			);
 			target.stateTransitionMap = new HashMap<Integer, ArrayList<Transition>>((h.states * 5) >> 2);
-			if (h.version != AutomatonCompiler.VERSION) {
+			if (h.version != ModelCompiler.VERSION) {
 				target.error(String.format("%1$s: Invalid INR version %2$d", 
 					target.getTransducerName(), h.version));
 			}
@@ -161,10 +161,10 @@ public final class AutomatonCompiler implements ITarget {
 		}
 	}
 
-	public class TransitionEffector extends BaseEffector<AutomatonCompiler> {
+	public class TransitionEffector extends BaseEffector<ModelCompiler> {
 		INamedValue fields[];
 		
-		TransitionEffector(AutomatonCompiler automaton) {
+		TransitionEffector(ModelCompiler automaton) {
 			super(automaton, Bytes.encode("transition"));
 		}
 		
@@ -228,8 +228,8 @@ public final class AutomatonCompiler implements ITarget {
 		}
 	}
 
-	public class AutomatonEffector extends BaseEffector<AutomatonCompiler> {		
-		public AutomatonEffector(AutomatonCompiler target) {
+	public class AutomatonEffector extends BaseEffector<ModelCompiler> {		
+		public AutomatonEffector(ModelCompiler target) {
 			super(target, Bytes.encode("automaton"));
 		}
 
@@ -322,14 +322,14 @@ public final class AutomatonCompiler implements ITarget {
 	private int[][][] kernelMatrix;
 	private int transition = 0;
 
-	public AutomatonCompiler() {
+	public ModelCompiler() {
 		this.model = null;
 		this.transductor = null;
 		this.nilSignal = null;
 		this.reset();
 	}
 
-	public AutomatonCompiler(final Model model) {
+	public ModelCompiler(final Model model) {
 		this.model = model;
 		this.transductor = null;
 		this.nilSignal = Base.Signal.nil.reference();
