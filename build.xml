@@ -46,7 +46,6 @@
 	<path id="test.classpath">
 		<pathelement location="${jars.dir}/${jrte.version}.jar"/>
 		<pathelement location="${jars.dir}/${jrte.version}-test.jar"/>
-		<pathelement location="${jars.test.dir}/junit-4.8.2.jar"/>
 	</path>
 
 	<path id="jrte.classpath">
