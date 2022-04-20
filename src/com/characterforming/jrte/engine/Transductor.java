@@ -22,7 +22,6 @@
 package com.characterforming.jrte.engine;
 
 import java.nio.ByteBuffer;
-import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -421,8 +420,7 @@ I:				do {
 							break;
 						case RTE_EFFECTOR_OUT: {
 							if (Transductor.isOutEnabled && this.selected.getLength() > 0) {
-								System.out.print(Charset.defaultCharset().decode(ByteBuffer.wrap(selected.getValue(), 0, selected.getLength())).toString());
-								System.out.flush();
+								System.out.write(this.selected.getValue(), 0, this.selected.getLength());
 							}
 							break;
 						}
@@ -895,15 +893,14 @@ I:				do {
 		public int invoke(final int parameterIndex) throws EffectorException {
 			if (this.isOutEnabled) {
 				for (final byte[] bytes : super.getParameter(parameterIndex)) {
-					byte[] parameter = Arrays.copyOf(bytes, bytes.length);
 					if (Base.isReferenceOrdinal(bytes)) {
 						assert Base.getReferenceType(bytes) == Base.TYPE_REFERENCE_VALUE;
 						int ordinal = Base.decodeReferenceOrdinal(Base.TYPE_REFERENCE_VALUE, bytes);
-						parameter = this.getTarget().getNamedValue(ordinal).copyValue();
+						NamedValue handle = (NamedValue)super.getTarget().getNamedValue(ordinal);
+						System.out.write(handle.getValue(), 0, handle.getLength());
 					} else {
-						parameter = Arrays.copyOf(bytes, bytes.length);
+						System.out.write(bytes, 0, bytes.length);
 					}
-					System.out.print(Charset.defaultCharset().decode(ByteBuffer.wrap(parameter)).toString());
 				}
 			}
 			return IEffector.RTE_EFFECT_NONE;
