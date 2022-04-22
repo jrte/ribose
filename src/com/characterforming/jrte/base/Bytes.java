@@ -32,6 +32,7 @@ import java.util.Arrays;
  * @author Kim Briggs
  */
 public final class Bytes {
+	public static Charset charset = Charset.defaultCharset();
 	private static final char[] HEX = "0123456789ABCDEF".toCharArray();
 	private final byte[] bytes;
 	private int hash;
@@ -48,11 +49,11 @@ public final class Bytes {
 	}
 
 	public static String decode(final byte[] bytes) {
-		return Charset.defaultCharset().decode(ByteBuffer.wrap(bytes).limit(bytes.length)).toString();
+		return charset.decode(ByteBuffer.wrap(bytes).limit(bytes.length)).toString();
 	}
 
 	public static String decode(final byte[] bytes, final int length) {
-		return Charset.defaultCharset().decode(ByteBuffer.wrap(bytes).limit(Math.min(length, bytes.length))).toString();
+		return charset.decode(ByteBuffer.wrap(bytes).limit(Math.min(length, bytes.length))).toString();
 	}
 
 	public static Bytes encode(final String chars) {
@@ -60,7 +61,7 @@ public final class Bytes {
 	}
 
 	public static Bytes encode(final CharBuffer chars) {
-		ByteBuffer buffer = Charset.defaultCharset().encode(chars);
+		ByteBuffer buffer = charset.encode(chars);
 		byte bytes[] = new byte[buffer.limit()];
 		buffer.get(bytes, 0, bytes.length);
 		return new Bytes(bytes);
@@ -105,11 +106,18 @@ public final class Bytes {
 	}
 
 	private int hash() {
-		int h = this.bytes.length;
-		for (final byte b : this.bytes) {
-			h = h * 31 + b;
+		assert this.bytes != null;
+		int h = 0;
+		if (this.bytes != null) {
+			h = this.bytes.length;
+			for (final byte b : this.bytes) {
+				h = h * 31 + b;
+			}
 		}
-		return h != 0 ? h : -1;
+		if (h == 0) {
+			h = -1;
+		}
+		return h;
 	}
 
 	@Override

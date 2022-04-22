@@ -23,7 +23,6 @@ package com.characterforming.jrte.engine;
 
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
-import java.nio.charset.Charset;
 import java.util.Arrays;
 
 import com.characterforming.jrte.INamedValue;
@@ -99,7 +98,7 @@ class NamedValue implements INamedValue {
 
 	@Override
 	public char[] decodeValue() {
-		CharBuffer buffer = Charset.defaultCharset().decode(ByteBuffer.wrap(this.value, 0, this.getLength()));
+		CharBuffer buffer = Bytes.charset.decode(ByteBuffer.wrap(this.value, 0, this.getLength()));
 		char chars[] = new char[buffer.position()];
 		buffer.get(chars);
 		return chars;

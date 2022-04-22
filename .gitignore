@@ -5,6 +5,7 @@ jars/*.jar
 local/
 .settings/
 java_pid*
+**/.fuse_hidden*
 *.gz
 *.out
 *.log*

@@ -63,7 +63,7 @@ public interface INamedValue {
 	public char[] decodeValue();
 
 	/**
-	 * Get a copy the value, trimmed to actual length.
+	 * Get a copy of the value, trimmed to actual length.
 	 * 
 	 * @return A copy of the contents of the value array
 	 */

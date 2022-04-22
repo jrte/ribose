@@ -38,6 +38,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
 
+import com.characterforming.jrte.CompilationException;
 import com.characterforming.jrte.IEffector;
 import com.characterforming.jrte.IOutput;
 import com.characterforming.jrte.IParameterizedEffector;
@@ -466,13 +467,15 @@ public final class Model implements AutoCloseable {
 		return this.modelPath;
 	}
 
-	Integer getInputOrdinal(final byte[] input) {
+	Integer getInputOrdinal(final byte[] input) throws CompilationException {
 		if (input.length == 1) {
 			return Byte.toUnsignedInt(input[0]);
-		} else if (input[0] == Base.TYPE_REFERENCE_SIGNAL){
-			return this.addSignal(new Bytes(input, 1, input.length -1));
 		} else {
-			return this.addSignal(new Bytes(input));
+			Integer ordinal = this.getSignalOrdinal(new Bytes(input));
+			if (ordinal < 0) {
+				throw new CompilationException(String.format("Invalid input token %s", Bytes.decode(input)));
+			}
+			return ordinal;
 		}
 	}
 

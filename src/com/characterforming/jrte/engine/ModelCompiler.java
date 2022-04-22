@@ -291,7 +291,8 @@ public final class ModelCompiler implements ITarget {
 							}
 						}
 					} catch (CompilationException e) {
-						target.error(e.getMessage());
+						target.error(String.format("%1$s: %2$s", 
+								target.getTransducerName(), e.getMessage()));
 					}
 				}
 			}
@@ -582,46 +583,43 @@ public final class ModelCompiler implements ITarget {
 		return this.transducerName.toString();
 	}
 	
-	private byte[] compileInputToken(byte[] bytes) {
+	private void compileInputToken(byte[] bytes) {
 		if (bytes.length > 1) {
-			if (Base.TYPE_REFERENCE_NONE == Base.getReferenceType(bytes)) {
+			String type = null;
+			switch(bytes[0]) {
+			case Base.TYPE_ORDINAL_INDICATOR:
+				type = "reference ordinal";
+				break;
+			case Base.TYPE_REFERENCE_TRANSDUCER:
+				type = "transducer";
+				break;
+			case Base.TYPE_REFERENCE_VALUE:
+				type = "value name";
+				break;
+			case Base.TYPE_REFERENCE_SIGNAL:
+				type = "signal";
+				break;
+			default:
 				this.model.addSignal(new Bytes(bytes));
-			} else {
-				String type = null;
-				switch(bytes[0]) {
-				case Base.TYPE_REFERENCE_TRANSDUCER:
-					type = "transducer";
-					break;
-				case Base.TYPE_REFERENCE_VALUE:
-					type = "value name";
-					break;
-				case Base.TYPE_REFERENCE_SIGNAL:
-					type = "signal";
-					break;
-				default:
-					type = "unknown";
-					break;
-				}
-				this.error(String.format("%1$s: Invalid input token '%2$s' of %3$s type on tape 0",
-					this.getTransducerName(), Bytes.decode(bytes, bytes.length), type));
-				return null;
+				return;
 			}
+			this.error(String.format("%1$s: Invalid input token '%2$s' of %3$s type on tape 0",
+				this.getTransducerName(), Bytes.decode(bytes, bytes.length), type));
 		}
-		return bytes;
 	}
 	
-	private byte[] compileEffectorToken(byte[] bytes) {
+	private void compileEffectorToken(byte[] bytes) {
+		assert (bytes.length > 0);
 		if (0 > this.model.getEffectorOrdinal(new Bytes(bytes))) {
 			this.error(String.format("%1$s: Unknown effector token '%2$s' on tape 1",
 				this.getTransducerName(), Bytes.decode(bytes, bytes.length)));
-			return null;
 		}
-		return bytes;
 	}
 
-	private byte[] compileParameterToken(byte[] bytes) {
+	private void compileParameterToken(byte[] bytes) {
+		assert (bytes.length > 0);
 		if (bytes.length > 1) {
-			switch(bytes[0]) {
+			switch (bytes[0]) {
 			case Base.TYPE_REFERENCE_TRANSDUCER:
 				this.model.addTransducer(Bytes.getBytes(bytes, 1, bytes.length));
 				break;
@@ -635,7 +633,6 @@ public final class ModelCompiler implements ITarget {
 				break;
 			}
 		}
-		return bytes;
 	}
 
 	private int getRteState(final int tape, final int inrState) throws CompilationException {

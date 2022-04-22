@@ -150,7 +150,8 @@ public class Base {
 	}
 	
 	static public byte[] getNameReference(final byte reference[], byte type) {
-		if (!isReferenceOrdinal(reference) && getReferenceType(reference) != TYPE_REFERENCE_NONE) {
+		assert !isReferenceOrdinal(reference);
+		if (getReferenceType(reference) == TYPE_REFERENCE_VALUE) {
 			byte[] name = new byte[reference.length - 1];
 			System.arraycopy(reference, 1, name, 0, name.length);
 		}
@@ -158,16 +159,25 @@ public class Base {
 	}
 
 	static public byte[] getReferenceName(final byte reference[]) {
-		if (!isReferenceOrdinal(reference) && getReferenceType(reference) != TYPE_REFERENCE_NONE) {
-			byte[] name = new byte[reference.length - 1];
-			System.arraycopy(reference, 1, name, 0, name.length);
-			return name;
+		assert !isReferenceOrdinal(reference);
+		if (reference != null && reference.length > 0) {
+			switch (reference[0]) {
+			case TYPE_REFERENCE_TRANSDUCER:
+			case TYPE_REFERENCE_SIGNAL:
+			case TYPE_REFERENCE_VALUE:
+				byte[] name = new byte[reference.length - 1];
+				System.arraycopy(reference, 1, name, 0, name.length);
+				return name;
+			default:
+				break;
+			}
 		}
 		return null;
 	}
 	
 	static public int decodeReferenceOrdinal(int type, final byte bytes[]) {
-		if (isReferenceOrdinal(bytes) && getReferenceType(bytes) == type) {
+		assert isReferenceOrdinal(bytes);
+		if (getReferenceType(bytes) == type) {
 			switch (bytes[1]) {
 			case TYPE_REFERENCE_TRANSDUCER:
 			case TYPE_REFERENCE_SIGNAL:

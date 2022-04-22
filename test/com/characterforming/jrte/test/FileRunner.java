@@ -136,7 +136,7 @@ public class FileRunner {
 				long tregex = 0;
 				loops = regexOutEnabled ? 1 : 20;
 				CharBuffer charInput = Charset.defaultCharset().decode(
-						ByteBuffer.wrap(input[input.length - 1], 0, input[input.length - 1].length)
+					ByteBuffer.wrap(input[input.length - 1], 0, input[input.length - 1].length)
 				);
 				for (int i = 0; i < loops; i++) {
 					Matcher matcher = pattern.matcher(charInput);
