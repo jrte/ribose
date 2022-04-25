@@ -21,7 +21,7 @@
 
 package com.characterforming.jrte.engine;
 
-import com.characterforming.jrte.ModelException;
+import com.characterforming.ribose.base.ModelException;
 
 /**
  * @author Kim Briggs

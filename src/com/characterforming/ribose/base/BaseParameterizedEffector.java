@@ -19,12 +19,10 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-package com.characterforming.jrte.base;
+package com.characterforming.ribose.base;
 
-import com.characterforming.jrte.EffectorException;
-import com.characterforming.jrte.IParameterizedEffector;
-import com.characterforming.jrte.ITarget;
-import com.characterforming.jrte.TargetBindingException;
+import com.characterforming.ribose.IParameterizedEffector;
+import com.characterforming.ribose.ITarget;
 
 /**
  * Base {@link IParameterizedEffector} implementation class. The

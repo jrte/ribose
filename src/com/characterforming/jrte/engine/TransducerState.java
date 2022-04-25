@@ -21,26 +21,42 @@
 
 package com.characterforming.jrte.engine;
 
-class TransducerState {
-	Transducer transducer;
-	int[] countdown;
+final class TransducerState {
+	final int[] countdown;
 	int state;
+	int[] inputFilter;
+	int[][] transitionMatrix;
+	int[] effectorVector;
+	int inputEquivalents;
+	String name;
 
-	TransducerState(final int state, final Transducer transducer) {
-		this.state = state;
-		this.transducer = transducer;
-		this.countdown = new int[2];
+	TransducerState() {
+		this.countdown = new int[] {0, 0};
+		this.reset();
 	}
 
-	void reset(final int state, final Transducer transducer) {
-		this.state = state;
-		this.transducer = transducer;
-		this.countdown[0] = 0;
-		this.countdown[1] = 0;
+	TransducerState transducer(Transducer transducer) {
+		this.state = 0;
+		this.name = transducer.getName();
+		this.inputFilter = transducer.getInputFilter();
+		this.transitionMatrix = transducer.getTransitionMatrix();
+		this.effectorVector = transducer.getEffectorVector();
+		this.inputEquivalents = transducer.getInputEquivalentsCount();
+		this.countdown[0] = this.countdown[1] = 0;
+		return this;
+	}
+
+	void reset() {
+		this.state = 0;
+		this.name = null;
+		this.inputFilter = null;
+		this.transitionMatrix = null;
+		this.effectorVector = null;
+		this.inputEquivalents = 0;
 	}
 
 	@Override
 	public String toString() {
-		return this.transducer != null ? this.transducer.getName() : "empty";
+		return this.name != null ? this.name : "empty";
 	}
 }

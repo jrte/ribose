@@ -19,9 +19,10 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-package com.characterforming.jrte;
+package com.characterforming.ribose;
 
-import com.characterforming.jrte.base.Bytes;
+import com.characterforming.ribose.base.Bytes;
+import com.characterforming.ribose.base.TargetBindingException;
 
 /**
  * Implementation provides a view of named values (data extracted by the transduction) to 
@@ -34,11 +35,11 @@ public interface IOutput {
 	/**
 	 * Get a named value by name
 	 * 
-	 * @param name the value name as Unicode string
+	 * @param valueName The name of the value (UTF-8 bytes)
 	 * @return a named value instance or null
 	 * @throws TargetBindingException On error
 	 */
-	public INamedValue getNamedValue(String name) throws TargetBindingException;
+	public INamedValue getNamedValue(Bytes valueName) throws TargetBindingException;
 	
 	/**
 	 * Get the numeric index for a defined named value

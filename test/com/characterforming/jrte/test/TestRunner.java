@@ -27,34 +27,32 @@ import java.util.logging.FileHandler;
 import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
 
-import com.characterforming.jrte.ByteInput;
-import com.characterforming.jrte.IInput;
-import com.characterforming.jrte.ITransductor;
-import com.characterforming.jrte.ITransductor.Status;
-import com.characterforming.jrte.RteException;
-import com.characterforming.jrte.base.Base;
-import com.characterforming.jrte.base.BaseTarget;
-import com.characterforming.jrte.base.Bytes;
 import com.characterforming.ribose.IRiboseRuntime;
+import com.characterforming.ribose.ITransductor;
+import com.characterforming.ribose.ITransductor.Status;
 import com.characterforming.ribose.Ribose;
+import com.characterforming.ribose.base.Base;
+import com.characterforming.ribose.base.BaseTarget;
+import com.characterforming.ribose.base.Bytes;
+import com.characterforming.ribose.base.RiboseException;
 
 public class TestRunner {
 
 	/**
 	 * @param args
 	 * @throws InterruptedException On error
-	 * @throws RteException On error
+	 * @throws RiboseException On error
 	 * @throws IOException 
 	 * @throws SecurityException 
 	 */
-	public static void main(final String[] args) throws InterruptedException, RteException, SecurityException, IOException {
+	public static void main(final String[] args) throws InterruptedException, RiboseException, SecurityException, IOException {
 		if (args.length == 0) {
 			System.out.println(String.format("Usage: java -cp <classpath> %1$s <model-path> [wait-ms]", TestRunner.class.getName()));
 			System.exit(1);
 		}
 		
 		Logger rteLogger = Logger.getLogger(Base.RTE_LOGGER_NAME);
-		final FileHandler rteHandler = new FileHandler("jrte.log");
+		final FileHandler rteHandler = new FileHandler("TestRunner.log");
 		rteLogger.addHandler(rteHandler);
 		rteHandler.setFormatter(new SimpleFormatter());
 		
@@ -67,7 +65,7 @@ public class TestRunner {
 		final byte[] abytes = new byte[10000000];
 		for (int i = 0; i < abytes.length; i++) {
 			abytes[i] = (byte)((i % 10 != 9) ? 'a' : 'b');
-		}		
+		}
 
 		Thread.sleep(arg);
 		if (arg == 1) {
@@ -80,29 +78,30 @@ public class TestRunner {
 		}
 		
 		String[] tests = new String[] {
-			"NilSpeedTest", "PasteSpeedTest", "NilPauseTest", "PastePauseTest", "PasteCutTest", "SelectPasteTest", "PasteCountTest", "CounterTest", "StackTest"
+			"SelectPasteTest", "PasteSpeedTest", "NilPauseTest", "PastePauseTest", "PasteCutTest", "StackTest", "PasteCountTest", "CounterTest", "NilSpeedTest"
 		};
 		final BaseTarget target = new BaseTarget();
 		final IRiboseRuntime ribose = Ribose.loadRiboseRuntime(new File(modelPath), target);
 		final ITransductor trex = ribose.newTransductor(target);
-		final ByteInput nilinput = (ByteInput) ribose.input(new byte[][] {
-			Base.Signal.nil.reference(), abytes});
 		for (final String test : tests) {
 			long t0 = 0, t1 = 0, t2 = 0;
 			System.out.format("%20s: ", test);
 			for (int i = 0; i < 20; i++) {
-				assert !nilinput.isEmpty();
 				assert trex.status() == Status.STOPPED;
-				trex.input(new IInput[] { nilinput });
-				trex.start(Bytes.encode(test));
-				assert trex.status() == Status.RUNNABLE;
+				trex.input(abytes);
+				boolean limited = trex.limit(64, (64*1500));
+				trex.signal(Base.Signal.nil.signal());
+				Status status = trex.start(Bytes.encode(test));
 				t0 = System.currentTimeMillis();
-				do {
-					trex.run();
+				while (status == Status.RUNNABLE) {
+					status = trex.run();
+					if (limited) {
+						limited = trex.limit(64, (64 * 1500));
+					}
 				}
-				while (trex.status().equals(Status.RUNNABLE));
-				t1 = System.currentTimeMillis() - t0;
+				assert status != Status.NULL;
 				trex.stop();
+				t1 = System.currentTimeMillis() - t0;
 				assert trex.status() == Status.STOPPED;
 				System.out.print(String.format("%4d", t1));
 				if (i >= 10) {

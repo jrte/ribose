@@ -19,28 +19,31 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-package com.characterforming.jrte;
+package com.characterforming.ribose.base;
 
 /**
- * Thrown when there is a problem relating to the model
+ * Base class for runtime exceptions
  * 
  * @author Kim Briggs
  */
-public class ModelException extends RteException {
+public class RiboseException extends Exception {
+	/**
+	 * 
+	 */
 	private static final long serialVersionUID = 1L;
 
-	public ModelException() {
+	public RiboseException() {
 	}
 
-	public ModelException(final String message) {
+	public RiboseException(final String message) {
 		super(message);
 	}
 
-	public ModelException(final Throwable cause) {
+	public RiboseException(final Throwable cause) {
 		super(cause);
 	}
 
-	public ModelException(final String message, final Throwable cause) {
+	public RiboseException(final String message, final Throwable cause) {
 		super(message, cause);
 	}
 

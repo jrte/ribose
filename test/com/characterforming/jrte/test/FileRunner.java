@@ -34,24 +34,24 @@ import java.util.logging.SimpleFormatter;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import com.characterforming.jrte.IInput;
-import com.characterforming.jrte.ITransductor;
-import com.characterforming.jrte.RteException;
-import com.characterforming.jrte.base.Base;
-import com.characterforming.jrte.base.BaseTarget;
-import com.characterforming.jrte.base.Bytes;
 import com.characterforming.ribose.IRiboseRuntime;
+import com.characterforming.ribose.ITransductor;
+import com.characterforming.ribose.ITransductor.Status;
 import com.characterforming.ribose.Ribose;
+import com.characterforming.ribose.base.Base;
+import com.characterforming.ribose.base.BaseTarget;
+import com.characterforming.ribose.base.Bytes;
+import com.characterforming.ribose.base.RiboseException;
 
 public class FileRunner {
 
 	/**
 	 * @param args
 	 * @throws InterruptedException On error
-	 * @throws RteException On error
+	 * @throws RiboseException On error
 	 * @throws IOException On error
 	 */
-	public static void main(final String[] args) throws InterruptedException, RteException, IOException {
+	public static void main(final String[] args) throws InterruptedException, RiboseException, IOException {
 		if ((args.length < 3) || (args.length > 5)) {
 			System.out.println(String.format("Usage: java -cp <classpath> [-Djrte.out.enabled=true ^|^ -Dregex.out.enabled=true] %s [--nil] <transducer-name> <input-path> <model-path>", FileRunner.class.getName()));
 			System.exit(1);
@@ -79,15 +79,18 @@ public class FileRunner {
 			clen = isr.read(cbuf, 0, clen);
 			isr.close();
 			
+			CharBuffer charInput = Charset.defaultCharset().decode(
+				ByteBuffer.wrap(cbuf, 0, cbuf.length)
+			);
+
 			Logger rteLogger = Logger.getLogger(Base.RTE_LOGGER_NAME);
-			final FileHandler rteHandler = new FileHandler("jrte.log");
+			final FileHandler rteHandler = new FileHandler("FileHandler.log");
 			rteLogger.addHandler(rteHandler);
 			rteHandler.setFormatter(new SimpleFormatter());
 
 			BaseTarget target = new BaseTarget();
 			final IRiboseRuntime ribose = Ribose.loadRiboseRuntime(new File(modelPath), target);
-			final ITransductor trex = ribose.newTransductor(target);
-			byte[][] input = nil ? new byte[][] { Base.Signal.nil.reference(), cbuf } : new byte[][] { cbuf };
+			final ITransductor trex = ribose.tlsTransductor(target).get();
 			int loops;
 			if (!regexOutEnabled) {
 				if (!jrteOutEnabled) {
@@ -95,31 +98,31 @@ public class FileRunner {
 				}
 				loops = jrteOutEnabled ? 1 : 20;
 				for (int i = 0; i < loops; i++) {
-					trex.start(Bytes.encode(transducerName));
-					trex.input(new IInput[] { ribose.input(input) });
+					trex.input(cbuf);
+					boolean limited = false;
+					if (limited) {
+						trex.limit(64, (64*1500));
+					}
+					if (nil) {
+						trex.signal(Base.Signal.nil.signal());
+					}
+					Status status = trex.start(Bytes.encode(transducerName));
 					t0 = System.currentTimeMillis();
-					do {
-						switch (trex.run()) {
-						case RUNNABLE:
-							break;
-						case PAUSED:
-						case STOPPED:
-							trex.stop();
-							break;
-						case NULL:
-						default:
-							assert false;
-							break;
+					while (status == Status.RUNNABLE) {
+						status = trex.run();
+						ejrte += trex.getErrorCount();
+						if (limited) {
+							limited = trex.limit(64, (64 * 1500));
 						}
 					}
-					while (trex.status() == ITransductor.Status.PAUSED);
+					assert status != Status.NULL;
+					trex.stop();
 					t1 = System.currentTimeMillis() - t0;
 					if (!jrteOutEnabled) {
 						System.out.print(String.format("%4d", t1));
 					}
 					if ((loops == 1) || (i >= 10)) {
 						tjrte += t1;
-						ejrte += trex.getErrorCount();
 					}
 				}
 				if (!jrteOutEnabled) {
@@ -135,9 +138,6 @@ public class FileRunner {
 				}
 				long tregex = 0;
 				loops = regexOutEnabled ? 1 : 20;
-				CharBuffer charInput = Charset.defaultCharset().decode(
-					ByteBuffer.wrap(input[input.length - 1], 0, input[input.length - 1].length)
-				);
 				for (int i = 0; i < loops; i++) {
 					Matcher matcher = pattern.matcher(charInput);
 					t0 = System.currentTimeMillis();

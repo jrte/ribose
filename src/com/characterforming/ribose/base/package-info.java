@@ -1,4 +1,4 @@
-/***
+/*
  * JRTE is a recursive transduction engine for Java
  * 
  * Copyright (C) 2011,2022 Kim Briggs
@@ -19,32 +19,14 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-package com.characterforming.jrte;
-
 /**
- * Base class for runtime exceptions
- * 
+ * Ribose integration base classes for extension into other domains. 
+ * Domain-specific {@link com.characterforming.ribose.ITarget} classes with associated 
+ * {@link com.characterforming.ribose.IEffector} classes are bound
+ * to collections of transducers in a ribose runtime file by the ribose compiler. In the 
+ * ribose runtime applications instantiate target instances and bind them to runtime 
+ * transductions that drive data through a stacked composition of transducers to the target.  
+ *
  * @author Kim Briggs
  */
-public class RteException extends Exception {
-	/**
-	 * 
-	 */
-	private static final long serialVersionUID = 1L;
-
-	public RteException() {
-	}
-
-	public RteException(final String message) {
-		super(message);
-	}
-
-	public RteException(final Throwable cause) {
-		super(cause);
-	}
-
-	public RteException(final String message, final Throwable cause) {
-		super(message, cause);
-	}
-
-}
+package com.characterforming.ribose.base;

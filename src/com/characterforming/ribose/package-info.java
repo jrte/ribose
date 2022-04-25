@@ -6,10 +6,10 @@
  * 
  * To use ribose in an application or service, load an {@link IRiboseRuntime} 
  * instance from a compiled ribose runtime file using {@link 
- * Ribose#loadRiboseRuntime(java.io.File, com.characterforming.jrte.ITarget)}. 
- * Use {@link IRiboseRuntime#newTransductor(com.characterforming.jrte.ITarget)}
+ * Ribose#loadRiboseRuntime(java.io.File, com.characterforming.jrte.engine.ITarget)}. 
+ * Use {@link IRiboseRuntime#newTransductor(com.characterforming.jrte.engine.ITarget)}
  * to bind the target to a ribose transduction stack and apply 
- * {@link com.characterforming.jrte.ITransductor} methods to set up transduction
+ * {@link com.characterforming.ribose.ITransductor} methods to set up transduction
  * input and transducer and run the transduction. 
  *
  * @author Kim Briggs

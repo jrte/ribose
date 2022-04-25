@@ -23,14 +23,14 @@ package com.characterforming.jrte.engine;
 
 import java.util.Arrays;
 
-import com.characterforming.jrte.base.Bytes;
+import com.characterforming.ribose.base.Bytes;
 
 /**
  * Wraps an array of Bytes
  * 
  * @author Kim Briggs
  */
-public final class BytesArray {
+final class BytesArray {
 	private final Bytes[] bytesArray;
 	private int hash;
 

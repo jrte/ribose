@@ -19,7 +19,10 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-package com.characterforming.jrte;
+package com.characterforming.ribose;
+
+import com.characterforming.ribose.base.EffectorException;
+import com.characterforming.ribose.base.TargetBindingException;
 
 /**
  * Interface for parameterised effectors. Parameters are compiled from arrays of

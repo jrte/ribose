@@ -23,25 +23,78 @@ package com.characterforming.jrte.engine;
 
 import java.util.Arrays;
 
-import com.characterforming.jrte.IInput;
+import com.characterforming.ribose.base.Base;
 
 /**
  * @author Kim Briggs
  */
-public final class InputStack {
-	private IInput[] stack;
+final class InputStack {
+	private final byte[][] signals;
+	private final byte[][] values;
+	private Input[] stack;
 	private int tos;
-
-	InputStack(final int initialSize) {
-		this.stack = new IInput[initialSize];
-		this.tos = -1;
+	
+	static Input[] stack(final int initialSize) {
+		Input stack[] = new Input[initialSize];
+		for (int i = initialSize - 1; i >= 0; i--) {
+			stack[i] = new Input(null);
+		}
+		return stack;
 	}
 
-	private void stackcheck(final int itemCount) {
-		this.tos += itemCount;
-		if (this.tos >= this.stack.length) {
-			this.stack = Arrays.copyOf(this.stack, Math.max((this.tos * 5) >> 2, this.tos << 1));
+	InputStack(final int initialSize, int signalCount, int valueCount) {
+		this.signals = new byte[signalCount][]; 
+		for (int i = 0; i < signalCount; i++) {
+			this.signals[i] = Base.encodeReferenceOrdinal(Base.TYPE_REFERENCE_SIGNAL, Base.RTE_SIGNAL_BASE + i);
 		}
+		this.values = new byte[valueCount][]; 
+		for (int i = 0; i < valueCount; i++) {
+			this.values[i] = Base.encodeReferenceOrdinal(Base.TYPE_REFERENCE_VALUE, i);
+		}
+		this.stack = InputStack.stack(initialSize);
+		this.tos = -1;
+	}
+	
+	/**
+	 * Push data onto the stack 
+	 * 
+	 * @param signal The data
+	 */
+	Input push(byte[] data) {
+		Input top = this.stackcheck();
+		top.array = data;
+		top.limit = top.length = top.array.length;
+		top.position = 0;
+		top.mark = -1;
+		return top;
+	}
+
+	/**
+	 * Push a signal onto the stack 
+	 * 
+	 * @param signal The signal ordinal
+	 */
+	void signal(int signal) {
+		this.push(this.signals[signal - Base.RTE_SIGNAL_BASE]);
+	}
+	
+	/**
+	 * Push a value onto the stack 
+	 * @param value 
+	 * 
+	 * @param value The value ordinal
+	 */
+	void value(byte[] value, int length) {
+		Input top = this.push(value);
+		top.limit = top.length = length;
+	}
+
+	private Input stackcheck() {
+		this.tos += 1;
+		if (this.tos >= this.stack.length) {
+			this.stack = Arrays.copyOf(this.stack, (this.tos * 5) >> 2);
+		}
+		return this.peek();
 	}
 	
 	/**
@@ -54,49 +107,12 @@ public final class InputStack {
 	}
 
 	/**
-	 * Push an item onto the stack.
-	 * 
-	 * @param item The item to push
-	 */
-	void push(final IInput item) {
-		this.stackcheck(1);
-		this.stack[this.tos] = item;
-	}
-
-	/**
-	 * Put an item at the bottom of the stack.
-	 * 
-	 * @param item The item to put
-	 */
-	void put(final IInput item) {
-		this.stackcheck(1);
-		System.arraycopy(this.stack, 0, this.stack, 1, this.tos);
-		this.stack[0] = item;
-	}
-
-	/**
-	 * Put an array of item at the bottom of the stack. Items are
-	 * pushed in array order, items[0] is first in and last out.
-	 * 
-	 * @param items The items to put
-	 */
-	void put(final IInput[] items) {
-		this.stackcheck(items.length);
-		System.arraycopy(this.stack, 0, this.stack, items.length, 1 + this.tos - items.length);
-		System.arraycopy(items, 0, this.stack, 0, items.length);
-	}
-
-	/**
 	 * Get the item on the top of the stack
 	 * 
 	 * @return The item on the top of the stack, or null if empty
 	 */
-	IInput peek() {
-		if (this.tos >= 0) {
-			return this.stack[this.tos];
-		} else {
-			return null;
-		}
+	Input peek() {
+		return this.tos >= 0 ? this.stack[this.tos] : null;
 	}
 
 	/**
@@ -104,29 +120,30 @@ public final class InputStack {
 	 * 
 	 * @return The item on top of the stack after the pop
 	 */
-	IInput pop() {
+	Input pop() {
 		if (this.tos >= 0) {
-			this.stack[this.tos].stop();
-			this.stack[this.tos] = null;
-			if (--this.tos >= 0 ) {
-				return this.stack[this.tos];
-			}
+			--this.tos;
 		}
-		return null;
+		return this.peek();
 	}
 
 	/**
-	 * Get the Nth item from the stack
+	 * Get the Nth item from the stack counting up from bottom if +ve index
+	 * or down from top if index -ve. 
 	 * 
-	 * @param index The index of the item to get
-	 * @return The Nth item from the stack
+	 * @param index The index of the item to get, relative to bottom or top of stack
+	 * @return The Nth item from the stack counting frm bottom (+) or top (-)
 	 */
-	IInput get(final int index) {
-		if (index >= 0 && index <= this.tos) {
-			return this.stack[index];
-		} else {
-			return null;
+	Input get(int index) {
+		if (this.tos >= 0) {
+			if (index < 0) {
+				index = this.tos + index;
+			}
+			if (index >= 0 && index <= this.tos) {
+				return this.stack[index];
+			}
 		}
+		return null;
 	}
 
 	/**

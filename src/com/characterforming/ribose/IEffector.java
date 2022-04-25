@@ -19,9 +19,11 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-package com.characterforming.jrte;
+package com.characterforming.ribose;
 
-import com.characterforming.jrte.base.Bytes;
+import com.characterforming.ribose.base.Bytes;
+import com.characterforming.ribose.base.EffectorException;
+import com.characterforming.ribose.base.TargetBindingException;
 
 /**
  * Interface for simple effectors. Effectors are invoked at runtime in response to state transitions in a running

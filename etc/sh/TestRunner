@@ -3,5 +3,5 @@ cd $(dirname $(readlink -f $0))/../..
 if (($#<1)) || (($#>2)); then
 	echo "Usage: TestRunner <model-path> [1] (add '1' as second parameter to include regex runs)"
 else
-	java -cp jars/ribose-0.0.0.jar:jars/ribose-0.0.0-test.jar com.characterforming.jrte.test.TestRunner $*
+	java -cp jars/ribose-0.0.0.jar:jars/ribose-0.0.0-test.jar com.characterforming.jrte.engine.test.TestRunner $*
 fi

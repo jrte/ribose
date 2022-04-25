@@ -28,7 +28,7 @@ import java.util.Arrays;
  * 
  * @author Kim Briggs
  */
-public final class Ints {
+final class Ints {
 	private final int[] ints;
 	private int hash;
 

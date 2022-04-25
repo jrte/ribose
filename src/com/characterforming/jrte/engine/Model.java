@@ -38,16 +38,16 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
 
-import com.characterforming.jrte.CompilationException;
-import com.characterforming.jrte.IEffector;
-import com.characterforming.jrte.IOutput;
-import com.characterforming.jrte.IParameterizedEffector;
-import com.characterforming.jrte.ITarget;
-import com.characterforming.jrte.ModelException;
-import com.characterforming.jrte.RteException;
-import com.characterforming.jrte.TargetBindingException;
-import com.characterforming.jrte.base.Base;
-import com.characterforming.jrte.base.Bytes;
+import com.characterforming.ribose.IEffector;
+import com.characterforming.ribose.IOutput;
+import com.characterforming.ribose.IParameterizedEffector;
+import com.characterforming.ribose.ITarget;
+import com.characterforming.ribose.base.Base;
+import com.characterforming.ribose.base.Bytes;
+import com.characterforming.ribose.base.CompilationException;
+import com.characterforming.ribose.base.ModelException;
+import com.characterforming.ribose.base.RiboseException;
+import com.characterforming.ribose.base.TargetBindingException;
 
 /**
  * @author Kim Briggs
@@ -120,7 +120,6 @@ public final class Model implements AutoCloseable {
 	/**
 	 * Bind target instance to runtime model.
 	 *
-	 * @param target The ITarget instance to bind
 	 * @return true unless unable to bind target to model
 	 * @throws ModelException
 	 */
@@ -283,7 +282,7 @@ public final class Model implements AutoCloseable {
 		} catch (IOException e) {
 			this.setDeleteOnClose(true);
 			throw new ModelException(String.format("IOException caught compiling model file '%1$s'",  this.modelPath.getPath()), e);
-		} catch (RteException e) {
+		} catch (RiboseException e) {
 			this.setDeleteOnClose(true);
 			throw new ModelException(String.format("RteException caught compiling model file '%1$s'",  this.modelPath.getPath()), e);
 		} finally {

@@ -1,5 +1,5 @@
 StackTest = (
-	(nil, start[`@StackTestSub`]) (Bsig, start[`@StackTestSub`])*  (eos, stop)
+	(nil, start[`@StackTestSub`]) (Bsig, start[`@StackTestSub`])* (eos, stop)
 ):dfamin;
 
 StackTestSub = (

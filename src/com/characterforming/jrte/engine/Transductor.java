@@ -21,32 +21,29 @@
 
 package com.characterforming.jrte.engine;
 
-import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import com.characterforming.jrte.ByteInput;
-import com.characterforming.jrte.DomainErrorException;
-import com.characterforming.jrte.EffectorException;
-import com.characterforming.jrte.IEffector;
-import com.characterforming.jrte.IInput;
-import com.characterforming.jrte.INamedValue;
-import com.characterforming.jrte.IOutput;
-import com.characterforming.jrte.IParameterizedEffector;
-import com.characterforming.jrte.ITarget;
-import com.characterforming.jrte.ITransductor;
-import com.characterforming.jrte.InputException;
-import com.characterforming.jrte.ModelException;
-import com.characterforming.jrte.RteException;
-import com.characterforming.jrte.TargetBindingException;
-import com.characterforming.jrte.base.Base;
-import com.characterforming.jrte.base.BaseEffector;
-import com.characterforming.jrte.base.BaseParameterizedEffector;
-import com.characterforming.jrte.base.Bytes;
+import com.characterforming.ribose.IEffector;
+import com.characterforming.ribose.INamedValue;
+import com.characterforming.ribose.IOutput;
+import com.characterforming.ribose.IParameterizedEffector;
 import com.characterforming.ribose.IRiboseRuntime;
+import com.characterforming.ribose.ITarget;
+import com.characterforming.ribose.ITransductor;
+import com.characterforming.ribose.base.Base;
+import com.characterforming.ribose.base.BaseEffector;
+import com.characterforming.ribose.base.BaseParameterizedEffector;
+import com.characterforming.ribose.base.Bytes;
+import com.characterforming.ribose.base.DomainErrorException;
+import com.characterforming.ribose.base.EffectorException;
+import com.characterforming.ribose.base.ModelException;
+import com.characterforming.ribose.base.RiboseException;
+import com.characterforming.ribose.base.TargetBindingException;
 
 /**
  * Runtime transductor instances are instantiated using {@link IRiboseRuntime#newTransductor(ITarget)}.
@@ -64,7 +61,9 @@ import com.characterforming.ribose.IRiboseRuntime;
  */
 public final class Transductor implements ITransductor, ITarget, IOutput {
 	private static final boolean isOutEnabled = System.getProperty("jrte.out.enabled", "true").equals("true");
-	private final static Logger logger = Logger.getLogger(Base.RTE_LOGGER_NAME);
+	private static final Logger logger = Logger.getLogger(Base.RTE_LOGGER_NAME);
+	private static AtomicBoolean unlimited = new AtomicBoolean(false);
+	private static final Input nullInput = new Input(null);
 
 	static int INITIAL_NAMED_VALUE_BUFFERS = 256;
 	static int INITIAL_NAMED_VALUE_BYTES = 256;
@@ -85,7 +84,7 @@ public final class Transductor implements ITransductor, ITarget, IOutput {
 	public static final int RTE_EFFECTOR_PAUSE = 13;
 	public static final int RTE_EFFECTOR_STOP = 14;
 
-	private final Model model;
+	private Model model;
 	private IEffector<?>[] effectors;
 	private NamedValue[] namedValueHandles;
 	private Map<Bytes, Integer> namedValueOrdinalMap;
@@ -93,7 +92,6 @@ public final class Transductor implements ITransductor, ITarget, IOutput {
 	private TransducerStack transducerStack;
 	private NamedValue selected;
 	private int errorCount;
-	private int effect;
 	
 	/**
 	 *  Constructor
@@ -110,7 +108,6 @@ public final class Transductor implements ITransductor, ITarget, IOutput {
 		this.transducerStack = null;
 		this.selected = null;
 		this.errorCount = 0;
-		this.effect = RTE_EFFECTOR_NUL;
 	}
 
 	void setEffectors(IEffector<?>[] effectors) {
@@ -167,15 +164,15 @@ public final class Transductor implements ITransductor, ITarget, IOutput {
 	@Override
 	public Status status() {
 		if (this.effectors != null) {
-			if ((this.transducerStack == null) || (this.transducerStack.isEmpty())) {
-				return ITransductor.Status.STOPPED;
-			} else if (this.inputStack != null && !this.inputStack.isEmpty()) {
-				return ITransductor.Status.RUNNABLE;
+			boolean hasInput = this.inputStack != null && !this.inputStack.isEmpty();
+			boolean hasTransducer = this.transducerStack != null && !this.transducerStack.isEmpty();
+			if (hasTransducer) {
+				return hasInput ? Status.RUNNABLE : Status.WAITING;
 			} else {
-				return ITransductor.Status.PAUSED;			
+				return hasInput ? Status.PAUSED : Status.STOPPED;
 			}
 		} else {
-			return ITransductor.Status.NULL;
+			return Status.NULL;
 		}
 	}
 
@@ -184,17 +181,54 @@ public final class Transductor implements ITransductor, ITarget, IOutput {
 	 * @see com.characterforming.jrte.engine.ITransduction#input(IInput[])
 	 */
 	@Override
-	public Status input(final IInput[] inputs) {
-		if (this.status() == ITransductor.Status.NULL) {
+	public Status input(final byte[] input) {
+		if (this.status() == Status.NULL) {
 			logger.log(Level.SEVERE, "Transduction not bound to target");
 			return this.status();
 		}
 		if (this.inputStack == null) {
-			this.inputStack = new InputStack(inputs.length);
+			this.inputStack = new InputStack(8, this.model.getSignalCount(), this.namedValueHandles.length);
 		}
-		for (IInput input : inputs) {
-			this.inputStack.push(input);
+		this.inputStack.push(input);
+		return this.status();
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * @see com.characterforming.jrte.engine.ITransduction#limit(int, int)
+	 */
+	@Override
+	public boolean limit(int steps, int until) {
+		boolean limited = !Transductor.unlimited.get();
+		if (limited) {
+			Input top = this.inputStack.peek();
+			if (top != null) {
+				if (top.position >= until) {
+					limited = false;
+					top.limit(top.length);
+					Transductor.unlimited.set(limited);
+				} else {
+					top.limit(Math.min(top.length, top.position + steps));
+				} 
+			}
 		}
+		return limited;
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * @see com.characterforming.jrte.engine.ITransduction#input(IInput[])
+	 */
+	@Override
+	public Status signal(final int signal) {
+		if (this.status() == Status.NULL) {
+			logger.log(Level.SEVERE, "Transduction not bound to target");
+			return this.status();
+		}
+		if (this.inputStack == null) {
+			this.inputStack = new InputStack(16, this.model.getSignalCount(), this.namedValueHandles.length);
+		}
+		this.inputStack.signal(signal);
 		return this.status();
 	}
 
@@ -204,10 +238,9 @@ public final class Transductor implements ITransductor, ITarget, IOutput {
 	 */
 	@Override
 	public Status start(final Bytes transducerName) throws ModelException {
-		if (this.status() != ITransductor.Status.NULL) {
+		if (this.status() != Status.NULL) {
 			int transducerOrdinal = this.model.getTransducerOrdinal(transducerName);
-			Transducer transducer = null;
-			transducer = this.model.loadTransducer(transducerOrdinal);
+			Transducer transducer = this.model.loadTransducer(transducerOrdinal);
 			if (transducer != null) {
 				if (this.transducerStack == null) {
 					this.transducerStack = new TransducerStack(8);
@@ -255,80 +288,62 @@ public final class Transductor implements ITransductor, ITarget, IOutput {
 	 * @see com.characterforming.jrte.engine.ITransduction#run()
 	 */
 	@Override
-	public Status run() throws RteException, DomainErrorException {
-		if (this.status() == ITransductor.Status.NULL) {
-			RteException rtx = new RteException("run: Transaction is MODEL and inoperable");
+	public Status run() throws RiboseException, DomainErrorException {
+		if (this.status() == Status.NULL) {
+			RiboseException rtx = new RiboseException("run: Transaction is MODEL and inoperable");
 			logger.log(Level.SEVERE, rtx.getMessage(), rtx);
 			throw rtx;
 		}
 		final int nulSignal = Base.Signal.nul.signal();
 		final int eosSignal = Base.Signal.eos.signal();
 		int errorCount = this.errorCount = 0;
-		ByteBuffer inputBuffer = null;
-		int position = 0, limit = 0;
+		TransducerState transducer = null;
+		Input input = null;
 		int state = 0;
+		int last = -1;
 		try {
-T:		while (this.status() == ITransductor.Status.RUNNABLE) {
-				final TransducerState transducerState = this.transducerStack.peek();
-				final Transducer transducer = transducerState.transducer;
-				final int[] inputFilter = transducer.getInputFilter();
-				final int[][] transitionMatrix = transducer.getTransitionMatrix();
-				final int[] effectorVector = transducer.getEffectorVector();
-				
-				state = transducerState.state;
-				inputBuffer = null;
-				
-				int errorInput = -1;
-				int signalInput = -1;
-				int currentInput = -1;
-				byte[] inputArray = null;
-				ITransductor.Status status = this.status();
-				while (status == ITransductor.Status.RUNNABLE) {
-					
+T:		while (this.status() == Status.RUNNABLE) {
+				transducer = this.transducerStack.peek();
+				final int[] inputFilter = transducer.inputFilter;
+				final int[][] transitionMatrix = transducer.transitionMatrix;
+				final int[] effectorVector = transducer.effectorVector;
+				state = transducer.state;			
+				Status status = this.status();
+				int errorInput = -1, signalInput = -1, currentInput = -1;
+				while (status == Status.RUNNABLE) {
+					assert Transductor.nullInput.position < 0;
 					// Get next input symbol from local array, or try to refresh it if exhausted
-					if (signalInput >= 0) {
+					if (signalInput == 0) {
+						currentInput = Byte.toUnsignedInt(input.array[input.position++]);
+					} else if (signalInput > 0) {
 						currentInput = signalInput;
-						signalInput = -1;
-					} else if (position < limit) {
-						currentInput = Byte.toUnsignedInt(inputArray[position++]);
+						signalInput = 0;
 					} else {
-						IInput input = this.inputStack.peek();
-						while (input != null) {
-							inputBuffer = input.get();
-							if (inputBuffer != null) {
-								assert inputBuffer.hasArray();
-								limit = inputBuffer.limit();
-								inputArray = inputBuffer.array();
-								if (Base.getReferenceType(inputArray) == Base.TYPE_REFERENCE_SIGNAL) {
-									currentInput = Base.decodeReferenceOrdinal(Base.TYPE_REFERENCE_SIGNAL, inputArray);
-									inputBuffer.position(limit);
-									position = limit;
-									assert currentInput >= 0;
-								} else if (Base.getReferenceType(inputArray) == Base.TYPE_REFERENCE_VALUE) {
-									int valueOrdinal = Base.decodeReferenceOrdinal(Base.TYPE_REFERENCE_VALUE, inputArray);
-									inputBuffer.position(limit);
-									inputBuffer = ByteBuffer.wrap(this.namedValueHandles[valueOrdinal].getValue(), 0, this.namedValueHandles[valueOrdinal].getLength());
-									ByteInput valueInput = new ByteInput(new ByteBuffer[] {inputBuffer});
-									this.inputStack.push(valueInput);
-									input = this.inputStack.peek();
-									inputBuffer = input.get();
-									limit = inputBuffer.limit();
-									inputArray = inputBuffer.array();
-									position = inputBuffer.position();
-									currentInput = Byte.toUnsignedInt(inputArray[position++]);
-									assert currentInput >= 0;
-								} else {
-									assert !Base.isReferenceOrdinal(inputArray);
-									position = inputBuffer.position();
-									currentInput = Byte.toUnsignedInt(inputArray[position++]);
-								}
-								break;
-							}
+						signalInput = 0;
+						input = this.inputStack.peek();
+						while (input != null && !input.hasRemaining()) {
 							input = this.inputStack.pop();
 						}
-						if (input == null) {
-							inputBuffer = null;
-							if ((currentInput != eosSignal) && (currentInput != nulSignal)) {
+						if (input != null) {
+							switch (Base.getReferenceType(input.array)) {
+							case Base.TYPE_REFERENCE_SIGNAL:
+								currentInput = Base.decodeReferenceOrdinal(Base.TYPE_REFERENCE_SIGNAL, input.array);
+								input.position += input.length;
+								break;
+							case Base.TYPE_REFERENCE_VALUE:
+								this.inputStack.pop();
+								NamedValue value = this.namedValueHandles[Base.decodeReferenceOrdinal(Base.TYPE_REFERENCE_VALUE, input.array)];
+								input = this.inputStack.push(value.getValue());
+								input.limit = value.getLength();
+								currentInput = Byte.toUnsignedInt(input.array[input.position++]);
+								break;
+							default:
+								currentInput = Byte.toUnsignedInt(input.array[input.position++]);
+								break;
+							}
+						} else {
+							input = Transductor.nullInput;
+							if (currentInput != eosSignal && currentInput != nulSignal) {
 								currentInput = eosSignal;
 							} else {
 								break T;
@@ -340,14 +355,20 @@ T:		while (this.status() == ITransductor.Status.RUNNABLE) {
 					int index = 0;
 I:				do {
 						// Filter input to equivalence ordinal and map ordinal and state to next state and action
-						final int transition = state + inputFilter[currentInput];
-						state = transitionMatrix[transition][0];
-						action = transitionMatrix[transition][1];
+						if (input.position >= input.limit) {
+							input.limit = input.length;
+							signalInput = -1;
+						}
+						last = state;
+						final int transition[] = transitionMatrix[state + inputFilter[currentInput]];
+						state = transition[0];
+						action = transition[1];
 						switch (action) {
 						case RTE_EFFECTOR_NIL:
 							break;
 						case RTE_EFFECTOR_PASTE:
 							this.selected.append((byte)currentInput);
+							action = RTE_EFFECTOR_NIL;
 							break;
 						default:
 							if (action < RTE_EFFECTOR_NUL) {
@@ -356,15 +377,18 @@ I:				do {
 							} 
 							break I;
 						}
-						if (position < limit) {
-							currentInput = inputArray[position++];
+						if (signalInput == 0) {
+							currentInput = input.array[input.position++];
+						} else if (currentInput < Base.RTE_SIGNAL_BASE) {
+							break T;
 						} else {
-							action = RTE_EFFECTOR_NIL;
-						}
-					} while (position < limit);
+							signalInput = -1;
+							break I;
+						} 
+					} while (true);
 					
 					// Invoke a vector of 1 or more effectors and record side effects on transducer and input stacks 
-					effect = IEffector.RTE_EFFECT_NONE;
+					int effect = IEffector.RTE_EFFECT_NONE;
 					do {
 						switch (action) {
 						default:
@@ -377,12 +401,8 @@ I:				do {
 							break;
 						case RTE_EFFECTOR_NUL:
 							if (currentInput == nulSignal) {
-								String debugTrace = this.getErrorInput(state, errorInput);
-								int debugState = state / this.transducerStack.peek().transducer.getInputEquivalentsCount();
-								throw new DomainErrorException(String.format("Domain error on [%1$d] in %2$s (state %3$d) %4$s", 
-									errorInput, transducer.getName(), debugState,	debugTrace));
+								throw new DomainErrorException(this.getErrorInput(last, state, errorInput));
 							} else if (currentInput != eosSignal) {
-								inputBuffer.position(position);
 								errorInput = currentInput;
 								signalInput = nulSignal;
 								++errorCount;
@@ -409,14 +429,14 @@ I:				do {
 							this.selected.clear();
 							break;
 						case RTE_EFFECTOR_COUNT:
-							if (--transducerState.countdown[0] <= 0) {
-								effect |= this.in(transducerState.countdown[1]);
-								transducerState.countdown[0] = 0;
+							if (--transducer.countdown[0] <= 0) {
+								effect |= this.in(transducer.countdown[1]);
+								transducer.countdown[0] = 0;
 							}
 							break;
 						case RTE_EFFECTOR_IN:
-							this.inputStack.push(new ByteInput(copyNamedValue()));
-							effect |=  IEffector.RTE_EFFECT_PUSH;
+							this.inputStack.value(this.selected.getValue(), this.selected.getLength());
+							effect |= IEffector.RTE_EFFECT_PUSH;
 							break;
 						case RTE_EFFECTOR_OUT: {
 							if (Transductor.isOutEnabled && this.selected.getLength() > 0) {
@@ -425,40 +445,17 @@ I:				do {
 							break;
 						}
 						case RTE_EFFECTOR_MARK:
-							inputBuffer.position(position);
-							IInput input = inputStack.peek();
-							while (inputBuffer != null && !inputBuffer.hasRemaining()) {
-								inputBuffer = input.get();
-								if (inputBuffer == null) {
-									input = this.inputStack.pop();
-									if (input != null) {
-										inputBuffer = input.current();
-									}
+							for (int i = this.inputStack.tos(); i >= 0; i--) {
+								Input frame = this.inputStack.get(i);
+								if (frame.hasRemaining()) {
+									assert frame.position <= frame.limit;
+									frame.mark();
+									break;
 								}
-							}
-							if (inputBuffer != null) {
-								assert !Base.isReferenceOrdinal(inputBuffer.array());
-								assert inputBuffer.hasRemaining();
-								inputArray = inputBuffer.array();
-								position = inputBuffer.position();
-								limit = inputBuffer.limit();
-								input.mark();
-							} else {
-								effect |= IEffector.RTE_EFFECT_POP;
 							}
 							break;
 						case RTE_EFFECTOR_RESET:
-							inputBuffer.position(position);
-							assert !this.inputStack.isEmpty();
-							assert !Base.isReferenceOrdinal(inputStack.peek().current().array());
-							ByteBuffer[] buffers = this.inputStack.peek().reset();
-							if (buffers != null) {
-								assert buffers.length > 0;
-								this.inputStack.push(new ByteInput(buffers));
-								effect |= IEffector.RTE_EFFECT_PUSH;
-							} else {
-								position = inputBuffer.position();
-							}
+							input.reset();
 							break;
 						case RTE_EFFECTOR_PAUSE:
 							effect |= IEffector.RTE_EFFECT_PAUSE;
@@ -469,60 +466,36 @@ I:				do {
 						}
 						assert index >= 0;
 						action = effectorVector[index++];
-					} while (action != RTE_EFFECTOR_NUL);
+					} while (action != RTE_EFFECTOR_NUL);		
 					
-					if ((position >= limit) || (effect != IEffector.RTE_EFFECT_NONE)) {
-						// Synchronize position with input buffer at limit and when input/transducer stacks are modified 
-						if (inputBuffer != null) {
-							inputBuffer.position(position);
+					if (effect != 0) {
+						status = this.status();
+						if (0 != (effect & (IEffector.RTE_EFFECT_PUSH | IEffector.RTE_EFFECT_POP))) {
+							transducer = this.transducerStack.peek();
+							signalInput = -1;
 						}
-						
-						// Handle side effects relating to transduction status (input/transducer stacks)
-						if (effect != IEffector.RTE_EFFECT_NONE) {
-							status = this.status();
-							
-							// Input pushed, popped, marked or reset, or transducer stack pushed, popped?
-							if (0 != (effect & (IEffector.RTE_EFFECT_PUSH | IEffector.RTE_EFFECT_POP))) {
-								limit = -1; 
-							}
-							
-							if (0 != (effect & (IEffector.RTE_EFFECT_START | IEffector.RTE_EFFECT_STOP))) {
-								if (0 != (effect & IEffector.RTE_EFFECT_START)) {
-									this.transducerStack.peek(this.transducerStack.tos() - 1).state = state;
-								}
-								limit = -1; 
-								break;
-							}
-							
-							// Transduction paused or stopped?
-							if (effect >= IEffector.RTE_EFFECT_PAUSE) {
-								break T;
-							} 
+						if (0 != (effect & IEffector.RTE_EFFECT_START)) {
+							assert transducer == this.transducerStack.get(-1);
+							transducer.state = state;
+						}
+						if (effect >= IEffector.RTE_EFFECT_PAUSE) {
+							break T;
+						} else if (0 != (effect & (IEffector.RTE_EFFECT_START | IEffector.RTE_EFFECT_STOP))) {
+							break;
 						}
 					}
-										
-					// Check for input that might have been pushed while handling end of stream signal
+					
 					if (currentInput == eosSignal) {
 						status = this.status();
 					}
 				}
 			}
-		} catch (Exception e) {
-			RteException rtx = new RteException("Unexpected exception in run()", e);
-			logger.log(Level.SEVERE, rtx.getMessage(), rtx);
-			throw rtx;
 		} finally {
-			
 			// Prepare to pause (or stop) transduction
+			input.limit = input.length;
 			if (!this.transducerStack.isEmpty()) {
-				this.transducerStack.peek().state = state;
-			}
-			if (inputBuffer != null) {
-				if (position > inputBuffer.limit()) {
-					assert (position == (inputBuffer.limit() + 1) && Base.getReferenceType(inputBuffer.array()) == Base.TYPE_REFERENCE_SIGNAL);
-					position = inputBuffer.limit();
-				}
-				inputBuffer.position(position);
+				assert (transducer == this.transducerStack.peek()) || (transducer == this.transducerStack.get(-1));
+				transducer.state = state;
 			}
 		}
 		
@@ -579,8 +552,8 @@ I:				do {
 	 * @see com.characterforming.jrte.engine.IOutput#getNamedValue(String)
 	 */
 	@Override
-	public INamedValue getNamedValue(final String valueName) {
-		return this.getNamedValue(this.getValueOrdinal(Bytes.encode(valueName)));
+	public INamedValue getNamedValue(final Bytes valueName) {
+		return this.getNamedValue(this.getValueOrdinal(valueName));
 	}
 
 	/*
@@ -590,7 +563,7 @@ I:				do {
 	@Override
 	public INamedValue getSelectedValue() {
 		assert this.selected != null;
-		return (this.selected != null) ? new NamedValue(this.selected) : null;
+		return this.selected;
 	}
 
 	/*
@@ -640,7 +613,7 @@ I:				do {
 		return IEffector.RTE_EFFECT_NONE;
 	}
 
-	private int count(final int[] countdown) throws InputException {
+	private int count(final int[] countdown) {
 		assert countdown.length == 2;
 		TransducerState tos = this.transducerStack.peek();
 		System.arraycopy(countdown, 0, tos.countdown, 0, countdown.length);
@@ -653,17 +626,16 @@ I:				do {
 		return IEffector.RTE_EFFECT_NONE;
 	}
 
-	private int in(final int signal) throws InputException {
-		assert (signal >= Base.RTE_SIGNAL_BASE);
-		ByteInput input = new ByteInput(
-			new byte[][] { Base.encodeReferenceOrdinal(Base.TYPE_REFERENCE_SIGNAL, signal) }
-		);
-		this.inputStack.push(input);
+	private int in(final int signal) {
+		assert (signal >= Base.RTE_SIGNAL_BASE && signal < this.model.getSignalLimit());
+		this.inputStack.signal(signal);
 		return IEffector.RTE_EFFECT_PUSH;
 	}
 
-	private int in(final byte[][] input) throws InputException {
-		this.inputStack.push(new ByteInput(input));
+	private int in(final byte[][] input) {
+		for (int i = input.length - 1; i >= 0; i--) {
+			this.inputStack.push(input[i]);
+		}
 		return IEffector.RTE_EFFECT_PUSH;
 	}
 
@@ -685,53 +657,67 @@ I:				do {
 		}
 	}
 
-	private String getErrorInput(final int state, int errorInput) {
-		String error = "\n\tTransducer stack:\n";
-		this.transducerStack.peek().state = state;
-		for (int t = this.transducerStack.tos(); t >= 0; t--) {
-			TransducerState transducerState = this.transducerStack.peek(t);
-			int errorState = transducerState.state / transducerState.transducer.getInputEquivalentsCount();
-			error += String.format("\t\t%1$s (state %2$d, input %3$d)\n", transducerState.transducer.getName(), errorState, errorInput);
+	private String getErrorInput(int last, int state, int errorInput) {
+		TransducerState top = this.transducerStack.peek();
+		top.state = state;
+		last /= top.inputEquivalents;
+		state /= top.inputEquivalents;
+		StringBuilder output = new StringBuilder(256);
+		output.append(String.format("Domain error on (%1$d~%2$d) in %3$s [%4$d]->[%5$d]\n\tTransducer stack:\n", 
+			errorInput, top.inputFilter[errorInput], top.name, last, state));
+		for (int i = this.transducerStack.tos(); i >= 0; i--) {
+			TransducerState t = this.transducerStack.get(i);
+			int s = t.state / t.inputEquivalents;
+			output.append(String.format("\t\t%1$20s state:%2$3d; accepting", t.name, s));
+			for (int j = 0; j < top.inputEquivalents; j++) {
+				if (t.transitionMatrix[t.state + j][1] != Transductor.RTE_EFFECTOR_NUL) {
+					output.append(String.format(" (%1$d)->[%2$d]", j, 
+						t.transitionMatrix[t.state + j][0] / t.inputEquivalents));
+				}
+			}
+			output.append('\n');
 		}
-		error += "\tInput stack:\n";
-		for (int i = this.inputStack.tos(); i >= 0 ; i--) {
-			final ByteBuffer input = this.inputStack.get(i).current();
-			final byte[] array = (input != null) ? input.array() : null;
-			if (array == null) {
-				error += "\t\t(null)\n";
+		output.append("\n\tInput stack:\n");
+		for (int i = this.inputStack.tos(); i >= 0; i--) {
+			final Input input = this.inputStack.get(i);
+			if (input.array == null) {
+				output.append("\t\t(null)\n");
 			} else if (!input.hasRemaining()) {
-				error += "[ ]";
-			} else if (Base.isReferenceOrdinal(array)) {
-				error += String.format("\t\t[ !%1$d ]\n", Base.decodeReferenceOrdinal(Base.getReferenceType(array), array));
-			} else if (input.position() < array.length) {
-				assert input.position() < array.length;
-				int position = input.position() - 1;
+				output.append("[ ]");
+			} else if (Base.isReferenceOrdinal(input.array)) {
+				output.append(String.format("\t\t[ !%1$d ]\n", 
+					Base.decodeReferenceOrdinal(Base.getReferenceType(input.array), input.array)));
+			} else if (input.position < input.length) {
+				assert input.position < input.length && input.length <= input.array.length ;
+				int position = Math.max(0, input.position - 1);
 				int start = Math.max(0, position - 8);
-				int end = Math.min(start + 16, input.limit());
+				int end = Math.min(start + 16, input.length);
 				String inchar = "";
 				int inbyte = -1;
-				if (Character.isBmpCodePoint((char) array[position]) && !Character.isISOControl((char) array[position])) {
-					inchar = String.format("%1$c", (char) array[position]);
+				if (input.array[position] >= 0x20 && input.array[position] < 0x7f) {
+					inchar = String.format("%1$2c", (char)input.array[position]);
 				} else {
-					inchar = String.format("0x%1$x", Byte.toUnsignedInt(array[position]));
+					inchar = String.format("%1$2x", Byte.toUnsignedInt(input.array[position]));
 				}
-				inbyte = Byte.toUnsignedInt(array[position]);
-				error += String.format("\t\t[ char='%1$s' (%2$d~0x%2$x); pos=%3$d; limit=%4$d < ", inchar, inbyte, position, array.length);
+				inbyte = Byte.toUnsignedInt(input.array[position]);
+				output.append(String.format("\t\t[ char='%1$s' (%2$d~%2$x); pos=%3$d; length=%4$d < ", 
+					inchar, inbyte, position, input.array.length));
 				while (start < end) {
-					int ubyte = Byte.toUnsignedInt(array[start]);
+					int ubyte = Byte.toUnsignedInt(input.array[start]);
+					int equiv = top.inputFilter[ubyte];
 					if ((ubyte < 0x20) || (ubyte > 0x7e)) {
-						error += String.format((start != position) ? "%1$02x " : "[%1$02x] ", ubyte);
+						output.append(String.format((start != position) ? "%1$x~%2$d " : "[%1$x~%2$d] ", ubyte, equiv));
 					} else {
-						error += String.format((start != position) ? "%1$c " : "[%1$c] ", (char)array[start]);
+						output.append(String.format((start != position) ? "%1$c~%2$d " : "[%1$c~%2$d] ", (char)input.array[start], equiv));
 					}
 					start += 1;
 				}
-				error += "> ]\n";
+				output.append("> ]\n");
 			} else {
-				error += "\t\t[ < end-of-input > ]\n";
+				output.append("\t\t[ < end-of-input > ]\n");
 			} 
 		}
-		return error;
+		return output.toString();
 	}
 
 	byte[] copyNamedValue(final int nameIndex) {
@@ -742,10 +728,6 @@ I:				do {
 		} else {
 			return Base.EMPTY;
 		}
-	}
-
-	private byte[] copyNamedValue() {
-		return this.copyNamedValue(this.selected.getOrdinal());
 	}
 
 	private final class InlineEffector extends BaseEffector<Transductor> {
@@ -868,11 +850,7 @@ I:				do {
 
 		@Override
 		public int invoke(final int parameterIndex) throws EffectorException {
-			try {
-				return super.getTarget().in(super.getParameter(parameterIndex));
-			} catch (InputException e) {
-				throw new EffectorException(String.format("The in[%1$d] effector failed", parameterIndex), e);
-			}
+			return super.getTarget().in(super.getParameter(parameterIndex));
 		}
 	}
 
@@ -957,11 +935,7 @@ I:				do {
 
 		@Override
 		public int invoke(final int parameterIndex) throws EffectorException {
-			try {
-				return super.getTarget().count(super.getParameter(parameterIndex));
-			} catch (InputException e) {
-				throw new EffectorException("Exception in CountEffector", e);
-			}
+			return super.getTarget().count(super.getParameter(parameterIndex));
 		}
 	}
 

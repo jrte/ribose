@@ -19,9 +19,9 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-package com.characterforming.jrte;
+package com.characterforming.ribose;
 
-import com.characterforming.jrte.base.Bytes;
+import com.characterforming.ribose.base.Bytes;
 
 /**
  * Snapshot wrapper for volatile named values. These contain direct references

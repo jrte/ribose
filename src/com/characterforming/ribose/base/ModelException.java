@@ -19,28 +19,29 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-package com.characterforming.jrte;
+package com.characterforming.ribose.base;
 
 /**
- * Thrown when there is a problem with the input
+ * Thrown when there is a problem relating to the model
  * 
  * @author Kim Briggs
  */
-public class InputException extends RteException {
+public class ModelException extends RiboseException {
 	private static final long serialVersionUID = 1L;
 
-	public InputException() {
+	public ModelException() {
 	}
 
-	public InputException(final String message) {
+	public ModelException(final String message) {
 		super(message);
 	}
 
-	public InputException(final Throwable cause) {
+	public ModelException(final Throwable cause) {
 		super(cause);
 	}
 
-	public InputException(final String message, final Throwable cause) {
+	public ModelException(final String message, final Throwable cause) {
 		super(message, cause);
 	}
+
 }

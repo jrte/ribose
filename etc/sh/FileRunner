@@ -13,5 +13,5 @@ fi
 if (($#<3)) || (($#>4)); then
 	echo "Usage: FileRunner [--jrte-out] [--regex-out] [--nil] <transducer> <infile-path> <model-path>"
 else
-	java $jout $rout -cp jars/ribose-0.0.0.jar:jars/ribose-0.0.0-test.jar com.characterforming.jrte.test.FileRunner $*
+	java $jout $rout -cp jars/ribose-0.0.0.jar:jars/ribose-0.0.0-test.jar com.characterforming.jrte.engine.test.FileRunner $*
 fi

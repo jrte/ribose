@@ -19,28 +19,28 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-package com.characterforming.jrte;
+package com.characterforming.ribose.base;
 
 /**
- * Thrown when the target class cannot be instantitated using a default constructor
+ * Thrown by the runtime engine when an effector throws an exception
  * 
  * @author Kim Briggs
  */
-public class TargetNotFoundException extends ModelException {
+public class EffectorException extends RiboseException {
 	private static final long serialVersionUID = 1L;
 
-	public TargetNotFoundException() {
+	public EffectorException() {
 	}
 
-	public TargetNotFoundException(final String message) {
+	public EffectorException(final String message) {
 		super(message);
 	}
 
-	public TargetNotFoundException(final Throwable cause) {
+	public EffectorException(final Throwable cause) {
 		super(cause);
 	}
 
-	public TargetNotFoundException(final String message, final Throwable cause) {
+	public EffectorException(final String message, final Throwable cause) {
 		super(message, cause);
 	}
 }

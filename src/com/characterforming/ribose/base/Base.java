@@ -19,9 +19,9 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-package com.characterforming.jrte.base;
+package com.characterforming.ribose.base;
 
-import com.characterforming.jrte.ITransductor;
+import com.characterforming.ribose.ITransductor;
 
 /**
  * This {@code Base} class provides commonly used defintions that are
@@ -96,19 +96,6 @@ public class Base {
 		public int signal() {
 			return RTE_SIGNAL_BASE + ordinal();
 		}
-		
-		/**
-		 * Signal ordinal references encode unsigned 16-bit signal ordinals in 
-		 * 4-byte {@code {`0xff!hilo`}} packets for injection into transduction input stacks.
-		 * The hilo bytes are in big-endian order so:
-		 * <p/>
-		 * {@code   ordinal == (Byte.asUnsignedInt(hi) << 8) | Byte.asUnsignedInt(lo)}
-		 *   
-		 * @return A signal reference packet encoding the signal ordinal value
-		 */
-		public byte[] reference() {
-			return Base.encodeReferenceOrdinal(Base.TYPE_REFERENCE_SIGNAL, signal());
-		}
 	};
 	
 	public static final byte[] EMPTY = { };
@@ -149,15 +136,6 @@ public class Base {
 		return TYPE_REFERENCE_NONE;
 	}
 	
-	static public byte[] getNameReference(final byte reference[], byte type) {
-		assert !isReferenceOrdinal(reference);
-		if (getReferenceType(reference) == TYPE_REFERENCE_VALUE) {
-			byte[] name = new byte[reference.length - 1];
-			System.arraycopy(reference, 1, name, 0, name.length);
-		}
-		return null;
-	}
-
 	static public byte[] getReferenceName(final byte reference[]) {
 		assert !isReferenceOrdinal(reference);
 		if (reference != null && reference.length > 0) {

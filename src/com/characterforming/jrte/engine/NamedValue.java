@@ -25,8 +25,8 @@ import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.util.Arrays;
 
-import com.characterforming.jrte.INamedValue;
-import com.characterforming.jrte.base.Bytes;
+import com.characterforming.ribose.INamedValue;
+import com.characterforming.ribose.base.Bytes;
 
 /**
  * Wrapper for named value snapshots.
@@ -66,7 +66,7 @@ class NamedValue implements INamedValue {
 
 	/*
 	 * (non-Javadoc)
-	 * @see com.characterforming.jrte.INamedValue#getName()
+	 * @see com.characterforming.jrte.engine.INamedValue#getName()
 	 */
 	@Override
 	public Bytes getName() {
@@ -75,7 +75,7 @@ class NamedValue implements INamedValue {
 
 	/*
 	 * (non-Javadoc)
-	 * @see com.characterforming.jrte.INamedValue#getOrdinal()
+	 * @see com.characterforming.jrte.engine.INamedValue#getOrdinal()
 	 */
 	@Override
 	public int getOrdinal() {
@@ -84,7 +84,7 @@ class NamedValue implements INamedValue {
 
 	/*
 	 * (non-Javadoc)
-	 * @see com.characterforming.jrte.INamedValue#getLength()
+	 * @see com.characterforming.jrte.engine.INamedValue#getLength()
 	 */
 	@Override
 	public int getLength() {

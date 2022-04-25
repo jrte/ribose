@@ -19,7 +19,9 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-package com.characterforming.jrte;
+package com.characterforming.ribose;
+
+import com.characterforming.ribose.base.TargetBindingException;
 
 /**
  * Interface for transduction target classes, which express IEffector instances

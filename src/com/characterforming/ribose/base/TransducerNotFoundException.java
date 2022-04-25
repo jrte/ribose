@@ -1,4 +1,4 @@
-/*
+/***
  * JRTE is a recursive transduction engine for Java
  * 
  * Copyright (C) 2011,2022 Kim Briggs
@@ -19,14 +19,28 @@
  * <http://www.gnu.org/licenses/>.
  */
 
+package com.characterforming.ribose.base;
+
 /**
- * Ribose integration base classes for extension into other domains. 
- * Domain-specific {@link com.characterforming.jrte.ITarget} classes with associated 
- * {@link com.characterforming.jrte.IEffector} classes are bound
- * to collections of transducers in a ribose runtime file by the ribose compiler. In the 
- * ribose runtime applications instantiate target instances and bind them to runtime 
- * transductions that drive data through a stacked composition of transducers to the target.  
- *
+ * Thrown when a named transducer cannot be found in the model
+ * 
  * @author Kim Briggs
  */
-package com.characterforming.jrte.base;
+public class TransducerNotFoundException extends RiboseException {
+	private static final long serialVersionUID = 1L;
+
+	public TransducerNotFoundException() {
+	}
+
+	public TransducerNotFoundException(final String message) {
+		super(message);
+	}
+
+	public TransducerNotFoundException(final Throwable cause) {
+		super(cause);
+	}
+
+	public TransducerNotFoundException(final String message, final Throwable cause) {
+		super(message, cause);
+	}
+}

@@ -21,10 +21,10 @@
 
 package com.characterforming.jrte.engine;
 
-import com.characterforming.jrte.EffectorException;
-import com.characterforming.jrte.TargetBindingException;
-import com.characterforming.jrte.base.BaseParameterizedEffector;
-import com.characterforming.jrte.base.Bytes;
+import com.characterforming.ribose.base.BaseParameterizedEffector;
+import com.characterforming.ribose.base.Bytes;
+import com.characterforming.ribose.base.EffectorException;
+import com.characterforming.ribose.base.TargetBindingException;
 
 /**
  * Base class for parameterised named value effectors, which are invoked with
@@ -33,7 +33,7 @@ import com.characterforming.jrte.base.Bytes;
  * 
  * @author Kim Briggs
  */
-public abstract class BaseNamedValueEffector extends BaseParameterizedEffector<Transductor, Integer> {
+abstract class BaseNamedValueEffector extends BaseParameterizedEffector<Transductor, Integer> {
 	/**
 	 * Constructor
 	 * 

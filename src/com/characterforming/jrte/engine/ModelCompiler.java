@@ -33,29 +33,27 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.logging.Level;
 
-import com.characterforming.jrte.ByteInput;
-import com.characterforming.jrte.CompilationException;
-import com.characterforming.jrte.DomainErrorException;
-import com.characterforming.jrte.EffectorException;
-import com.characterforming.jrte.IEffector;
-import com.characterforming.jrte.IInput;
-import com.characterforming.jrte.INamedValue;
-import com.characterforming.jrte.IOutput;
-import com.characterforming.jrte.ITarget;
-import com.characterforming.jrte.ITransductor;
-import com.characterforming.jrte.ITransductor.Status;
-import com.characterforming.jrte.ModelException;
-import com.characterforming.jrte.RteException;
-import com.characterforming.jrte.TargetBindingException;
-import com.characterforming.jrte.base.Base;
-import com.characterforming.jrte.base.BaseEffector;
-import com.characterforming.jrte.base.Bytes;
+import com.characterforming.ribose.IEffector;
+import com.characterforming.ribose.INamedValue;
+import com.characterforming.ribose.IOutput;
 import com.characterforming.ribose.IRiboseRuntime;
+import com.characterforming.ribose.ITarget;
+import com.characterforming.ribose.ITransductor;
 import com.characterforming.ribose.Ribose;
+import com.characterforming.ribose.ITransductor.Status;
+import com.characterforming.ribose.base.Base;
+import com.characterforming.ribose.base.BaseEffector;
+import com.characterforming.ribose.base.Bytes;
+import com.characterforming.ribose.base.CompilationException;
+import com.characterforming.ribose.base.DomainErrorException;
+import com.characterforming.ribose.base.EffectorException;
+import com.characterforming.ribose.base.ModelException;
+import com.characterforming.ribose.base.RiboseException;
+import com.characterforming.ribose.base.TargetBindingException;
 
 public final class ModelCompiler implements ITarget {
 
-	public static boolean compileAutomata(Model targetModel, File inrAutomataDirectory) throws ModelException, RteException {
+	public static boolean compileAutomata(Model targetModel, File inrAutomataDirectory) throws ModelException, RiboseException {
 		File workingDirectory = new File(System.getProperty("user.dir"));
 		File compilerModelFile = new File(workingDirectory, "ModelCompiler.model");
 		try (IRiboseRuntime compilerRuntime = Ribose.loadRiboseRuntime(compilerModelFile, new ModelCompiler())) {
@@ -129,11 +127,11 @@ public final class ModelCompiler implements ITarget {
 		public void setOutput(IOutput output) throws TargetBindingException {
 			super.setOutput(output);
 			fields = new INamedValue[] {
-				super.output.getNamedValue("version"),
-				super.output.getNamedValue("tapes"),
-				super.output.getNamedValue("transitions"),
-				super.output.getNamedValue("states"),
-				super.output.getNamedValue("symbols")
+				super.output.getNamedValue(Bytes.encode("version")),
+				super.output.getNamedValue(Bytes.encode("tapes")),
+				super.output.getNamedValue(Bytes.encode("transitions")),
+				super.output.getNamedValue(Bytes.encode("states")),
+				super.output.getNamedValue(Bytes.encode("symbols"))
 			};
 		}
 		
@@ -172,11 +170,11 @@ public final class ModelCompiler implements ITarget {
 		public void setOutput(IOutput output) throws TargetBindingException {
 			super.setOutput(output);
 			fields = new INamedValue[] {
-				super.output.getNamedValue("from"),
-				super.output.getNamedValue("to"),
-				super.output.getNamedValue("tape"),
-				super.output.getNamedValue("length"),
-				super.output.getNamedValue("symbol")
+				super.output.getNamedValue(Bytes.encode("from")),
+				super.output.getNamedValue(Bytes.encode("to")),
+				super.output.getNamedValue(Bytes.encode("tape")),
+				super.output.getNamedValue(Bytes.encode("length")),
+				super.output.getNamedValue(Bytes.encode("symbol"))
 			};
 		}
 		
@@ -307,8 +305,6 @@ public final class ModelCompiler implements ITarget {
 	}
 
 	private static final long VERSION = 210;
-	private final byte[] nilSignal;
-	
 	protected final Model model;
 	private Bytes transducerName;
 	private ITransductor transductor;
@@ -326,14 +322,12 @@ public final class ModelCompiler implements ITarget {
 	public ModelCompiler() {
 		this.model = null;
 		this.transductor = null;
-		this.nilSignal = null;
 		this.reset();
 	}
 
 	public ModelCompiler(final Model model) {
 		this.model = model;
 		this.transductor = null;
-		this.nilSignal = Base.Signal.nil.reference();
 		this.reset();
 	}
 	
@@ -402,11 +396,13 @@ public final class ModelCompiler implements ITarget {
 			this.stateMaps = (HashMap<Integer, Integer>[])new HashMap<?,?>[3];
 			this.stateTransitionMap = new HashMap<Integer, ArrayList<Transition>>(size >> 3);
 			this.transductor.stop();
-			this.transductor.input(new IInput[] {new ByteInput(new byte[][] {this.nilSignal, bytes})});
+			this.transductor.input(bytes);
+			this.transductor.signal(Base.Signal.nil.signal());
 			Status status = this.transductor.start(Bytes.encode("Automaton"));
 			while (status.equals(Status.RUNNABLE)) {
 				status = this.transductor.run();
 			}
+			this.transductor.stop();
 			if (this.errors.isEmpty()) {
 				this.save();
 				return true;
@@ -423,7 +419,7 @@ public final class ModelCompiler implements ITarget {
 			this.error(String.format("%1$s: DomainErrorException compiling '%2$s'; %3$s", 
 				name, inrFile.getPath(), e.getMessage()));
 			return false;
-		} catch (RteException e) {
+		} catch (RiboseException e) {
 			this.error(String.format("%1$s: RteException compiling '%2$s'; %3$s", 
 				name, inrFile.getPath(), e.getMessage()));
 			return false;

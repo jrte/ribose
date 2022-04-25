@@ -19,13 +19,11 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-package com.characterforming.jrte.base;
+package com.characterforming.ribose.base;
 
-import com.characterforming.jrte.EffectorException;
-import com.characterforming.jrte.IEffector;
-import com.characterforming.jrte.IOutput;
-import com.characterforming.jrte.ITarget;
-import com.characterforming.jrte.TargetBindingException;
+import com.characterforming.ribose.IEffector;
+import com.characterforming.ribose.IOutput;
+import com.characterforming.ribose.ITarget;
 
 /**
  * Base {@link IEffector} implementation class. The invoke() method must be
@@ -47,7 +45,7 @@ public abstract class BaseEffector<T extends ITarget> implements IEffector<T> {
 	
 	/*
 	 * (non-Javadoc)
-	 * @see com.characterforming.jrte.base.IEffector#getName()
+	 * @see com.characterforming.ribose.base.IEffector#getName()
 	 */
 	@Override
 	public void setOutput(IOutput output) throws TargetBindingException {
@@ -57,7 +55,7 @@ public abstract class BaseEffector<T extends ITarget> implements IEffector<T> {
 
 	/*
 	 * (non-Javadoc)
-	 * @see com.characterforming.jrte.base.IEffector#getName()
+	 * @see com.characterforming.ribose.base.IEffector#getName()
 	 */
 	@Override
 	public final Bytes getName() {
@@ -66,7 +64,7 @@ public abstract class BaseEffector<T extends ITarget> implements IEffector<T> {
 
 	/*
 	 * (non-Javadoc)
-	 * @see com.characterforming.jrte.base.IEffector#getTarget()
+	 * @see com.characterforming.ribose.base.IEffector#getTarget()
 	 */
 	@Override
 	public final T getTarget() {
@@ -75,7 +73,7 @@ public abstract class BaseEffector<T extends ITarget> implements IEffector<T> {
 
 	/*
 	 * (non-Javadoc)
-	 * @see com.characterforming.jrte.base.IEffector#invoke()
+	 * @see com.characterforming.ribose.base.IEffector#invoke()
 	 */
 	@Override
 	public abstract int invoke() throws EffectorException;

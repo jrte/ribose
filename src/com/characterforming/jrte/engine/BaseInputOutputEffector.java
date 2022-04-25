@@ -21,16 +21,16 @@
 
 package com.characterforming.jrte.engine;
 
-import com.characterforming.jrte.EffectorException;
-import com.characterforming.jrte.TargetBindingException;
-import com.characterforming.jrte.base.Base;
-import com.characterforming.jrte.base.BaseParameterizedEffector;
-import com.characterforming.jrte.base.Bytes;
+import com.characterforming.ribose.base.Base;
+import com.characterforming.ribose.base.BaseParameterizedEffector;
+import com.characterforming.ribose.base.Bytes;
+import com.characterforming.ribose.base.EffectorException;
+import com.characterforming.ribose.base.TargetBindingException;
 
 /**
  * @author Kim Briggs
  */
-public abstract class BaseInputOutputEffector extends BaseParameterizedEffector<Transductor, byte[][]> {
+abstract class BaseInputOutputEffector extends BaseParameterizedEffector<Transductor, byte[][]> {
 	/**
 	 * Constructor
 	 * 

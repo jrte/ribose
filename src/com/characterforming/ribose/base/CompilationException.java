@@ -19,28 +19,29 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-package com.characterforming.jrte;
+package com.characterforming.ribose.base;
 
 /**
- * Thrown when a named transducer cannot be found in the model
+ * Thrown by the model compiler when an error is found during model compilation
  * 
  * @author Kim Briggs
  */
-public class TransducerNotFoundException extends RteException {
+public class CompilationException extends Exception {
 	private static final long serialVersionUID = 1L;
 
-	public TransducerNotFoundException() {
+	public CompilationException() {
+		super();
 	}
 
-	public TransducerNotFoundException(final String message) {
+	public CompilationException(final String message, final Throwable cause) {
+		super(message, cause);
+	}
+
+	public CompilationException(final String message) {
 		super(message);
 	}
 
-	public TransducerNotFoundException(final Throwable cause) {
+	public CompilationException(final Throwable cause) {
 		super(cause);
-	}
-
-	public TransducerNotFoundException(final String message, final Throwable cause) {
-		super(message, cause);
 	}
 }

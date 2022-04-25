@@ -27,17 +27,15 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.logging.Logger;
 
-import com.characterforming.jrte.ByteInput;
-import com.characterforming.jrte.IInput;
-import com.characterforming.jrte.ITarget;
-import com.characterforming.jrte.ITransductor;
-import com.characterforming.jrte.ModelException;
-import com.characterforming.jrte.RteException;
-import com.characterforming.jrte.base.Base;
-import com.characterforming.jrte.base.BaseTarget;
-import com.characterforming.jrte.base.Bytes;
 import com.characterforming.jrte.engine.Model;
 import com.characterforming.jrte.engine.Model.Mode;
+import com.characterforming.ribose.ITransductor.Status;
+import com.characterforming.ribose.base.Base;
+import com.characterforming.ribose.base.BaseTarget;
+import com.characterforming.ribose.base.Bytes;
+import com.characterforming.ribose.base.ModelException;
+import com.characterforming.ribose.base.RiboseException;
+import com.characterforming.ribose.base.Base.Signal;
 
 /**
  * Ribose runtime loads a target model and instantiates runtime transductors. A 
@@ -97,24 +95,26 @@ public final class RiboseRuntime implements IRiboseRuntime, AutoCloseable {
 	}
 
 	/**
-	 * Set up a transduction input source with a sequence of UTF-8 and signal ordinals.
-	 * Each signal reference in the input array is mapped to the respective signal ordinal
-	 * encoded separately in input[][] as {0xff,'!',hi,lo} encoding the 16-bit signal 
-	 * ordinal as{@code  (hi << 8) | lo}. Other tokens in the input array are treated
-	 * as sequences of 8-bit byte (binary {@code 0x0..0xff}). 
+	 * Bind an unbound target instance to a new transductor in thread local storage.
+	 * Use the {@link ITransductor#start(Bytes)} and {@link ITransductor#run()} methods
+	 * to set up and run transductions.
 	 * <p/>
-	 * Note that this limits the range of unreserved tokens available to ginr patterns 
-	 * for jrte to {@code (0x00..0xff)* - 0xff ('!'|'~'|'@')(0x00..0xff)(0x00..0xff)}. UTF-8
-	 * tokens are not constrained because {@code (0xf8..0xf8)} are not legal in UTF-8 streams.
-	 * Binary tokens are not impacted unless they are contained in a 4-byte buffer and have a
-	 * {@code 0xff ('!'|'~'|'@')}.
+	 * Use {@code ThreadLocal.get()} to obtain the transductor instance and 
+	 * {@code ThreadLocal.remove()} to remove it from thread local store.
 	 * 
-	 * @param input The symbolic names for the signals and text segments to include in LIFO order (input[0] is last out)
-	 * @return An IInput containing the signal sequence
+	 * @param target The ITarget instance to bind to the transductor
+	 * @return The thread-bound ITransductor instance
+	 * @throws ModelException
 	 */
 	@Override
-	public IInput input(final byte[][] input) {
-		return new ByteInput(input);
+	public ThreadLocal<ITransductor> tlsTransductor(final ITarget target) throws ModelException {
+		return ThreadLocal.withInitial(() -> {
+			try {
+				return this.model.bindTransductor(target);
+			} catch (ModelException e) {
+				return null;
+			}
+		});
 	}
 
 	@Override
@@ -130,7 +130,7 @@ public final class RiboseRuntime implements IRiboseRuntime, AutoCloseable {
 	 * @throws ModelException
 	 */
 	public static void main(final String[] args) 
-			throws SecurityException, IOException, RteException, ModelException {
+			throws SecurityException, IOException, RiboseException, ModelException {
 		int argc = args.length;
 		final boolean nil = (argc > 0) ? (args[0].compareTo("--nil") == 0) : false;
 		if (nil) {
@@ -167,27 +167,17 @@ public final class RiboseRuntime implements IRiboseRuntime, AutoCloseable {
 			isr = new DataInputStream(new FileInputStream(input));
 			clen = isr.read(bytes, 0, clen);
 
-			ITransductor transductor = ribose.newTransductor(baseTarget);
-			transductor.start(Bytes.encode(transducerName));
-			transductor.input(nil
-				? new IInput[] { (ByteInput) ribose.input(new byte[][] { Base.Signal.nil.reference(), bytes }) }
-				: new IInput[] { (ByteInput) ribose.input(new byte[][] { bytes }) }
-			);
-			do {
-				switch (transductor.run()) {
-				case RUNNABLE:
-					break;
-				case PAUSED:
-				case STOPPED:
-					transductor.stop();
-					break;
-				case NULL:
-				default:
-					assert false;
-					break;
-				}
+			ITransductor trex = ribose.newTransductor(baseTarget);
+			trex.input(bytes);
+			if (nil) {
+				trex.signal(Signal.nil.signal());
 			}
-			while (transductor.status() == ITransductor.Status.PAUSED);
+			Status status = trex.start(Bytes.encode(transducerName));
+			while (status == Status.RUNNABLE) {
+				status = trex.run();
+			}
+			assert status != Status.NULL;
+			trex.stop();
 		} catch (final Exception e) {
 			System.out.println("Runtime instantiation failed, see log for details.");
 			exitCode = 1;

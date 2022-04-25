@@ -19,12 +19,11 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-package com.characterforming.jrte.base;
+package com.characterforming.ribose.base;
 
-import com.characterforming.jrte.IEffector;
-import com.characterforming.jrte.ITarget;
-import com.characterforming.jrte.TargetBindingException;
 import com.characterforming.jrte.engine.Transductor;
+import com.characterforming.ribose.IEffector;
+import com.characterforming.ribose.ITarget;
 
 /**
  * This class is used as target for collections of utf8- or byte-oriented

@@ -21,11 +21,7 @@
 
 package com.characterforming.ribose;
 
-import com.characterforming.jrte.IInput;
-import com.characterforming.jrte.ITarget;
-import com.characterforming.jrte.ITransductor;
-import com.characterforming.jrte.ModelException;
-import com.characterforming.jrte.RteException;
+import com.characterforming.ribose.base.ModelException;
 
 /**
  * The ribose runtime provides a capability to instantiate runtime transductors. A 
@@ -52,24 +48,23 @@ import com.characterforming.jrte.RteException;
  *
  */
 public interface IRiboseRuntime extends AutoCloseable{
-	
-	/** 
-	 * Construct an IInput object to feed into a transductor.
-	 * 
-	 * @param bytesInput An array of arrays of bytes to be transduced sequentially.
-	 * @return An IInput object
-	 */
-	public IInput input(byte[][] bytesInput);
-	
 	/**
 	 * Instantiate a new transductor. 
 	 * 
 	 * @param target The target instance to bind to the transductor.
 	 * @return A new transductor
 	 * @throws ModelException
-	 * @throws RteException
 	 */
-	public ITransductor newTransductor(ITarget target) throws ModelException, RteException;
+	public ITransductor newTransductor(ITarget target) throws ModelException;
+	
+	/**
+	 * Instantiate a thread local transductor. 
+	 * 
+	 * @param target The target instance to bind to the transductor.
+	 * @return A thread-bound transductor
+	 * @throws ModelException
+	 */
+	public ThreadLocal<ITransductor> tlsTransductor(ITarget target) throws ModelException;
 	
 	/**
 	 * Close the runtime model and file.

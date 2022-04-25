@@ -19,7 +19,7 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-package com.characterforming.jrte.base;
+package com.characterforming.ribose.base;
 
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
@@ -42,12 +42,6 @@ public final class Bytes {
 		this.hash = 0;
 	}
 	
-	public Bytes(final byte[] bytes, int from, int length) {
-		this.bytes = new byte[Math.min(bytes.length, length)];
-		System.arraycopy(bytes, from, this.bytes, 0, length);
-		this.hash = 0;
-	}
-
 	public static String decode(final byte[] bytes) {
 		return charset.decode(ByteBuffer.wrap(bytes).limit(bytes.length)).toString();
 	}

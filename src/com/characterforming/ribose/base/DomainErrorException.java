@@ -19,42 +19,29 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-package com.characterforming.jrte;
+package com.characterforming.ribose.base;
 
 /**
- * Thrown when the amount of marked data in an marked input exceeds the maximum
+ * Thrown by the runtime engine when no transition is defined for nul signal injected 
+ * after receiving an input ordinal not recognized for current state. 
  * 
  * @author Kim Briggs
  */
-public class MarkLimitExceededException extends InputException {
+public class DomainErrorException extends RiboseException {
 	private static final long serialVersionUID = 1L;
 
-	/**
-	 * 
-	 */
-	public MarkLimitExceededException() {
+	public DomainErrorException() {
 	}
 
-	/**
-	 * @param message Exception message
-	 */
-	public MarkLimitExceededException(final String message) {
+	public DomainErrorException(final String message) {
 		super(message);
 	}
 
-	/**
-	 * @param cause Causal exception
-	 */
-	public MarkLimitExceededException(final Throwable cause) {
+	public DomainErrorException(final Throwable cause) {
 		super(cause);
 	}
 
-	/**
-	 * @param message Exception message
-	 * @param cause Causal exception
-	 */
-	public MarkLimitExceededException(final String message, final Throwable cause) {
+	public DomainErrorException(final String message, final Throwable cause) {
 		super(message, cause);
 	}
-
 }

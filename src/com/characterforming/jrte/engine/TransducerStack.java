@@ -27,24 +27,31 @@ import java.util.Arrays;
  * @author Kim Briggs
  */
 final class TransducerStack {
+	static TransducerState[] stack(final int initialSize) {
+		int size = initialSize > 4 ? initialSize : 4;
+		TransducerState stack[] = new TransducerState[size];
+		for (int i = size - 1; i >= 0; i--) {
+			stack[i] = new TransducerState();
+		}
+		return stack;
+	}
+	
 	private TransducerState[] stack;
 	private int tos;
 
 	TransducerStack(final int initialSize) {
-		this.stack = new TransducerState[initialSize];
-		for (int i = initialSize - 1; i >= 0; i--) {
-			this.stack[i] = new TransducerState(0, null);
-		}
-		this.tos = - 1;
+		this.stack = TransducerStack.stack(initialSize);
+		this.tos = -1;
 	}
 
-	private void stackcheck(final int itemCount) {
-		this.tos += itemCount;
+	private TransducerState stackcheck() {
+		this.tos += 1;
 		if (this.tos >= this.stack.length) {
-			this.stack = Arrays.copyOf(this.stack, this.tos > 2 ? (this.tos * 3) >> 1 : 4);
+			this.stack = Arrays.copyOf(this.stack, (this.tos * 5) >> 2);
 		}
+		return this.stack[this.tos];
 	}
-
+	
 	/**
 	 * Get the index of the top of stack
 	 * 
@@ -59,29 +66,17 @@ final class TransducerStack {
 	 * 
 	 * @param transducer The transducer to push
 	 */
-	void push(final Transducer transducer) {
-		this.stackcheck(1);
-		this.stack[this.tos].transducer = transducer;
-		this.stack[this.tos].state = 0;
+	TransducerState push(final Transducer transducer) {
+		return this.stackcheck().transducer(transducer);
 	}
 
 	/**
-	 * Get the transducer on the top of the stack
+	 * Get the item on the top of the stack
 	 * 
-	 * @return The transducer on the top of the stack, or null if empty
+	 * @return The item on the top of the stack, or null if empty
 	 */
 	TransducerState peek() {
-		return (this.tos >= 0) ? this.stack[this.tos] : null;
-	}
-
-	/**
-	 * Get the Nth transducer relative to bottom of the stack
-	 * 
-	 * @param index The index of the item to get
-	 * @return The Nth item from the stack
-	 */
-	TransducerState peek(final int index) {
-		return (index >= 0 && index <= this.tos) ? this.stack[index] : null;
+		return this.tos >= 0 ? this.stack[this.tos] : null;
 	}
 
 	/**
@@ -90,10 +85,32 @@ final class TransducerStack {
 	 * @return The item on top of the stack after the pop
 	 */
 	TransducerState pop() {
+		if (!this.isEmpty()) {
+			this.peek().reset();
+		}
 		if (this.tos >= 0) {
-			this.stack[this.tos--].reset(0, null);
+			--this.tos;
 		}
 		return this.peek();
+	}
+
+	/**
+	 * Get the Nth item from the stack counting up from bottom if +ve index
+	 * or down from top if index -ve. 
+	 * 
+	 * @param index The index of the item to get, relative to bottom or top of stack
+	 * @return The Nth item from the stack counting frm bottom (+) or top (-)
+	 */
+	TransducerState get(int index) {
+		if (this.tos >= 0) {
+			if (index < 0) {
+				index = this.tos + index;
+			}
+			if (index >= 0 && index <= this.tos) {
+				return this.stack[index];
+			}
+		}
+		return null;
 	}
 
 	/**

@@ -19,29 +19,41 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-package com.characterforming.jrte;
+package com.characterforming.ribose.base;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
- * Thrown by the model compiler when an error is found during model compilation
+ * Thrown when there is a problem binding target effectors to a transductor
  * 
  * @author Kim Briggs
  */
-public class CompilationException extends Exception {
+public class TargetBindingException extends ModelException {
+
 	private static final long serialVersionUID = 1L;
+	private List<String> unboundEffectorList = null;
 
-	public CompilationException() {
-		super();
+	public TargetBindingException() {
 	}
 
-	public CompilationException(final String message, final Throwable cause) {
-		super(message, cause);
-	}
-
-	public CompilationException(final String message) {
+	public TargetBindingException(final String message) {
 		super(message);
 	}
 
-	public CompilationException(final Throwable cause) {
+	public TargetBindingException(final Throwable cause) {
 		super(cause);
+	}
+
+	public TargetBindingException(final String message, final Throwable cause) {
+		super(message, cause);
+	}
+
+	public void setUnboundEffectorList(final List<String> unbound) {
+		this.unboundEffectorList = unbound;
+	}
+
+	public List<String> getUnboundEffectorList() {
+		return this.unboundEffectorList != null ? this.unboundEffectorList : new ArrayList<String>(0);
 	}
 }

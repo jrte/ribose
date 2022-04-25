@@ -19,9 +19,12 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-package com.characterforming.jrte;
+package com.characterforming.ribose;
 
-import com.characterforming.jrte.base.Bytes;
+import com.characterforming.ribose.base.Bytes;
+import com.characterforming.ribose.base.DomainErrorException;
+import com.characterforming.ribose.base.ModelException;
+import com.characterforming.ribose.base.RiboseException;
 
 /**
  * Interface for runtime transductors. A transductor binds an IInput stack,
@@ -67,24 +70,41 @@ public interface ITransductor extends ITarget {
 	 */
 	enum Status {
 		/**
-		 * Transduction is invalid and inoperable in runtime
-		 */
-		NULL,
-	
-		/**
-		 * Transduction stack is empty, input stack may or may not be empty  
-		 */
-		STOPPED,
-	
-		/**
-		 * Transduction stack not empty, input stack is empty.
-		 */
-		PAUSED,
-	
-		/**
 		 * Transduction stack not empty, input stack not empty.
 		 */
-		RUNNABLE
+		RUNNABLE,
+		/**
+		 * Transduction stack empty, input stack not empty  
+		 */
+		WAITING,
+		/**
+		 * Transduction stack not empty, input stack empty.
+		 */
+		PAUSED,
+		/**
+		 * Transduction stack empty, input stack empty  
+		 */
+		STOPPED,
+		/**
+		 * Transduction is invalid and inoperable in runtime
+		 */
+		NULL;
+		
+		boolean isRunnable() {
+			return this.equals(RUNNABLE);
+		}
+		
+		boolean hasInput() {
+			return this.equals(RUNNABLE) || this.equals(WAITING);
+		}
+		
+		boolean hasTransdeer() {
+			return this.equals(RUNNABLE) || this.equals(PAUSED);
+		}
+		
+		boolean isStopped() {
+			return this.equals(STOPPED);
+		}
 	} 
 
 	/**
@@ -101,11 +121,31 @@ public interface ITransductor extends ITarget {
 	 * @return Transduction status
 	 */
 	public Status status();
+
+	/**
+	 * Set up transduction data.
+	 * 
+	 * @param input data to push onto input stack for immediate transduction
+	 * @return Run status of transduction at point of return 
+	 */
+	public Status input(byte[] input);
+
+	/**
+	 * Force pause after {@code steps} bytes scanned if position in top input
+	 * frame if {@code Frame.position < until}, otherwise reset {@code Frame.limit}
+	 * to {@code Frame.length}. Calls to this method are idempotent after the first
+	 * invocation to return true.
+	 *  
+	 * @param steps Number of bytes to scan in top frame
+	 * @param until Threshold for uninhibited scanning
+	 * @return true if limit past threshold (future calls will have no effect) 
+	 */
+	public boolean limit(int steps, int until);
 	
 	/**
 	 * Set up or reset a transduction with a specified transducer at its start
 	 * state on top of the transducer stack. To provide input, call the
-	 * {@link #input(IInput[])} method before running the transduction.
+	 * {@link #input(byte[])} method before running the transduction.
 	 * 
 	 * @param transducer The name of the transducer to start
 	 * @return Run status of transduction at point of return 
@@ -114,12 +154,12 @@ public interface ITransductor extends ITarget {
 	public Status start(Bytes transducer) throws ModelException;
 
 	/**
-	 * Set up transduction inputs.
+	 * Set up transduction signal.
 	 * 
-	 * @param inputs Initial (or additional) inputs in LIFO order, inputs[0] is last out
+	 * @param signal the signal ordinal 
 	 * @return Run status of transduction at point of return 
 	 */
-	public Status input(IInput[] inputs);
+	public Status signal(int signal);
 
 	/**
 	 * Run the transduction with current input until the input or transduction
@@ -127,10 +167,10 @@ public interface ITransductor extends ITarget {
 	 * 
 	 * @return Run status of transduction at point of return 
 	 * @see #status()
-	 * @throws RteException 
+	 * @throws RiboseException 
 	 * @throws DomainErrorException 
 	 */
-	public Status run() throws RteException, DomainErrorException;
+	public Status run() throws RiboseException, DomainErrorException;
 	
 	/**
 	 * Return the number of domain errors counted in the most recent run() call. A
