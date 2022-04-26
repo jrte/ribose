@@ -26,10 +26,11 @@ import com.characterforming.ribose.base.Bytes;
 /**
  * Snapshot wrapper for volatile named values. These contain direct references
  * to the transduction value buffers and their length and content will change 
- * according to transducer actions. ITarget instance may retain INamedValue
- * instances for the entire lifetime of an ITransductor instance and query 
- * them periodically when they synchronize with the transduction process under
- * effector direction.
+ * according to transducer actions. Effector instances receive an {link IOutput}
+ * instance to provide access to runtime named values held by a transductor. 
+ * Named values remain bound to the transductor for its entire lifetime and
+ * should only be accessed from effector classes in their {@code invoce()}
+ * methods.
  * 
  * @author Kim Briggs
  */

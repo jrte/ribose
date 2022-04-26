@@ -51,9 +51,8 @@ public interface ITarget {
 	public String getName();
 	
 	/**
-	 * This method is called to list the names and types of the effectors expressed
-	 * by the target class and to bind the target effectors and effector
-	 * parameters to the runtime model.
+	 * Lists the names and types of the effectors expressed by the target class
+	 * for binding to the runtime model.
 	 * <p>
 	 * Implementation classes must include their effectors in the IEffector 
 	 * array returned. Targets may be composite, arranged in an inhetritance
@@ -62,8 +61,8 @@ public interface ITarget {
 	 * effectors from all involved target instances and it is this target that 
 	 * must be presented for effector binding. 
 	 * 
-	 * After runtime binding, is complete effectors are invoked when triggered
-	 * by running transductions in response to cues in the input stream..
+	 * After runtime binding is complete effectors are invoked when triggered
+	 * by running transductions in response to cues in the input stream.
 	 * 
 	 * @return An array of IEffector instances bound to the target instance
 	 * @throws TargetBindingException if an effector fails to bind

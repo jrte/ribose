@@ -27,7 +27,7 @@ import java.util.logging.FileHandler;
 import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
 
-import com.characterforming.ribose.IRiboseRuntime;
+import com.characterforming.ribose.IRuntime;
 import com.characterforming.ribose.ITransductor;
 import com.characterforming.ribose.ITransductor.Status;
 import com.characterforming.ribose.Ribose;
@@ -81,7 +81,7 @@ public class TestRunner {
 			"SelectPasteTest", "PasteSpeedTest", "NilPauseTest", "PastePauseTest", "PasteCutTest", "StackTest", "PasteCountTest", "CounterTest", "NilSpeedTest"
 		};
 		final BaseTarget target = new BaseTarget();
-		final IRiboseRuntime ribose = Ribose.loadRiboseRuntime(new File(modelPath), target);
+		final IRuntime ribose = Ribose.loadRiboseRuntime(new File(modelPath), target);
 		final ITransductor trex = ribose.newTransductor(target);
 		for (final String test : tests) {
 			long t0 = 0, t1 = 0, t2 = 0;

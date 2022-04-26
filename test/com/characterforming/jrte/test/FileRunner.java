@@ -34,7 +34,7 @@ import java.util.logging.SimpleFormatter;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import com.characterforming.ribose.IRiboseRuntime;
+import com.characterforming.ribose.IRuntime;
 import com.characterforming.ribose.ITransductor;
 import com.characterforming.ribose.ITransductor.Status;
 import com.characterforming.ribose.Ribose;
@@ -89,7 +89,7 @@ public class FileRunner {
 			rteHandler.setFormatter(new SimpleFormatter());
 
 			BaseTarget target = new BaseTarget();
-			final IRiboseRuntime ribose = Ribose.loadRiboseRuntime(new File(modelPath), target);
+			final IRuntime ribose = Ribose.loadRiboseRuntime(new File(modelPath), target);
 			final ITransductor trex = ribose.tlsTransductor(target).get();
 			int loops;
 			if (!regexOutEnabled) {

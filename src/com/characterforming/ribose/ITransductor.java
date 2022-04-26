@@ -29,21 +29,22 @@ import com.characterforming.ribose.base.RiboseException;
 /**
  * Interface for runtime transductors. A transductor binds an IInput stack,
  * transducer stack, and an ITarget instance. When the run() method is called
- * the transduction will read input ordinals from the IInput on the top of the
- * input stack and invoke the effectors triggered by each input transition
- * until one of the following conditions is satisfied:
+ * the transduction will read input and invoke the effectors triggered by each
+ * input transition until one of the following conditions is satisfied:
+ * <p/>
  * <ol>
  * <li>the input stack is empty
  * <li>the transducer stack is empty
- * <li>an effector returns RTE_PAUSE
+ * <li>an effector returns {@codeStatus.PAUSE}
  * <li>an exception is thrown
  * </ol>
+ * <p/>
  * As long as the input and transducer stacks are not empty it may be possible
  * to call the run() method again after it returns if, for example, the pause
  * effector causes the previous call to return or a DomainErrorException was
  * thrown and you want to persevere after driving the input to a recognizable
  * location (eg, end of nearest containing loop).
- * <p>
+ * <p/>
  * Domain errors (inputs with no transition defined) are handled by emitting a
  * nul signal, giving the transduction an opportunity to handle it with an
  * explicit transition on nul. For most text transducers, domain errors can be 
@@ -53,11 +54,11 @@ import com.characterforming.ribose.base.RiboseException;
  * resulting transducer can then be pruned to produce a hardened transducer that accepts
  * ((any - nl)* nl)* and silently resynchronizes with the input after a domain error. If 
  * a domain error occurs on a nul signal, a {@link DomainErrorException} is thrown. 
- * <p>
- * IInput.get() will return null and force eos whenever it is called after the
- * last input ordinal is returned from the input stack. Transducers can explicitly handle
- * this by including a transition on eos. If eos is not explicitly handled the transduction
- * will simply stop and {@link status()} will return {@link Status#STOPPED}.
+ * <p/>
+ * The transductor will send an {@code eos} signal to the transduction the input stack runs
+ * dry. Transducers can explicitly handle  this by including a transition on {@code eos}.
+ * If eos is not explicitly handled the transduction will simply stop and {@link status()}
+ * will return {@link Status#STOPPED}.
  * 
  * @author Kim Briggs
  */
@@ -89,6 +90,8 @@ public interface ITransductor extends ITarget {
 		 * Transduction is invalid and inoperable in runtime
 		 */
 		NULL;
+		
+		boolean isMarked = false;
 		
 		boolean isRunnable() {
 			return this.equals(RUNNABLE);
@@ -143,18 +146,18 @@ public interface ITransductor extends ITarget {
 	public boolean limit(int steps, int until);
 	
 	/**
-	 * Set up or reset a transduction with a specified transducer at its start
-	 * state on top of the transducer stack. To provide input, call the
-	 * {@link #input(byte[])} method before running the transduction.
+	 * Push a transducer onto the transductor's transducer stack and set it state
+	 * to the initial state. The topmost (last) pushed transducer will be activated 
+	 * when the {@code run()} method is called.
 	 * 
-	 * @param transducer The name of the transducer to start
+	 * @param transducer The name of the transducer to push
 	 * @return Run status of transduction at point of return 
 	 * @throws ModelException 
 	 */
 	public Status start(Bytes transducer) throws ModelException;
 
 	/**
-	 * Set up transduction signal.
+	 * Push a signal onto the transductor's input stack to trigger next transition. 
 	 * 
 	 * @param signal the signal ordinal 
 	 * @return Run status of transduction at point of return 
@@ -163,7 +166,7 @@ public interface ITransductor extends ITarget {
 
 	/**
 	 * Run the transduction with current input until the input or transduction
-	 * stack is empty, or an effector returns RTE_PAUSE, or an exception is thrown.
+	 * stack is empty, or an effector returns Efferct.PAUSE, or an exception is thrown.
 	 * 
 	 * @return Run status of transduction at point of return 
 	 * @see #status()

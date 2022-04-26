@@ -32,7 +32,7 @@ import com.characterforming.ribose.IEffector;
 import com.characterforming.ribose.INamedValue;
 import com.characterforming.ribose.IOutput;
 import com.characterforming.ribose.IParameterizedEffector;
-import com.characterforming.ribose.IRiboseRuntime;
+import com.characterforming.ribose.IRuntime;
 import com.characterforming.ribose.ITarget;
 import com.characterforming.ribose.ITransductor;
 import com.characterforming.ribose.base.Base;
@@ -46,7 +46,7 @@ import com.characterforming.ribose.base.RiboseException;
 import com.characterforming.ribose.base.TargetBindingException;
 
 /**
- * Runtime transductor instances are instantiated using {@link IRiboseRuntime#newTransductor(ITarget)}.
+ * Runtime transductor instances are instantiated using {@link IRuntime#newTransductor(ITarget)}.
  * Client applications drive transduction using the Transductor.run() method, 
  * which processes the bound IInput stack until one of the following conditions is 
  * satisfied: <br>

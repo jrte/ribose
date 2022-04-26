@@ -36,7 +36,7 @@ import java.util.logging.Level;
 import com.characterforming.ribose.IEffector;
 import com.characterforming.ribose.INamedValue;
 import com.characterforming.ribose.IOutput;
-import com.characterforming.ribose.IRiboseRuntime;
+import com.characterforming.ribose.IRuntime;
 import com.characterforming.ribose.ITarget;
 import com.characterforming.ribose.ITransductor;
 import com.characterforming.ribose.Ribose;
@@ -56,7 +56,7 @@ public final class ModelCompiler implements ITarget {
 	public static boolean compileAutomata(Model targetModel, File inrAutomataDirectory) throws ModelException, RiboseException {
 		File workingDirectory = new File(System.getProperty("user.dir"));
 		File compilerModelFile = new File(workingDirectory, "ModelCompiler.model");
-		try (IRiboseRuntime compilerRuntime = Ribose.loadRiboseRuntime(compilerModelFile, new ModelCompiler())) {
+		try (IRuntime compilerRuntime = Ribose.loadRiboseRuntime(compilerModelFile, new ModelCompiler())) {
 			ModelCompiler compiler = new ModelCompiler(targetModel);
 			compiler.setTransductor(compilerRuntime.newTransductor(compiler));
 			for (final String filename : inrAutomataDirectory.list()) {

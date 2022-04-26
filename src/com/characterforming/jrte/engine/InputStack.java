@@ -154,6 +154,20 @@ final class InputStack {
 	int size() {
 		return this.tos + 1;
 	}
+	
+	/**
+	 * Check for marked input
+	 * 
+	 * @return true if any input frame is marked
+	 */
+	boolean hasMark() {
+		for (int i = this.tos; i >= 0; i--) {
+			if (this.stack[i].mark >= 0) {
+				return true;
+			}
+		}
+		return false;
+	}
 
 	/**
 	 * Test for empty stack

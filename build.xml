@@ -132,7 +132,7 @@
 	</target>
 
 	<target name="package-patterns" depends="package-java,compile-patterns,check-package-patterns" unless="patterns-packaged">
-		<java resultproperty="model-result" fork="true" dir="." classname="com.characterforming.ribose.Ribose" classpathref="jrte.classpath" failonerror="true">
+		<java resultproperty="model-result" fork="true" dir="." classname="com.characterforming.ribose.TCompile" classpathref="jrte.classpath" failonerror="true">
 			<jvmarg line="-ea"/>
 			<arg line="--target com.characterforming.ribose.base.BaseTarget ${build.patterns.automata} ${build.patterns}/BaseTarget.model"/>
 		</java>
@@ -167,13 +167,13 @@
 	
 	<target name="test-ci" depends="clean-test,package-java,package-test,package-patterns">
 		<echo>Fibonacci:</echo>
-		<java fork="true" dir="." classname="com.characterforming.ribose.RiboseRuntime" classpathref="jrte.classpath" failonerror="true">
+		<java fork="true" dir="." classname="com.characterforming.ribose.TRun" classpathref="jrte.classpath" failonerror="true">
 			<jvmarg line="-ea -Djrte.out.enabled=true"/>
 			<arg line="--nil Fibonacci test-patterns/inputs/fib.txt ${build.patterns}/BaseTarget.model"/>
 		</java>
 
 		<echo>DateExtractor:</echo>
-		<java fork="true" dir="." classname="com.characterforming.ribose.RiboseRuntime" classpathref="jrte.classpath" failonerror="true">
+		<java fork="true" dir="." classname="com.characterforming.ribose.TRun" classpathref="jrte.classpath" failonerror="true">
 			<jvmarg line="-ea -Djrte.out.enabled=true"/>
 			<arg line="--nil DateExtractor test-patterns/inputs/dates.txt ${build.patterns}/BaseTarget.model"/>
 		</java>
@@ -254,28 +254,28 @@
 		<delete quiet="true" file="${build.test}/LinuxKernel.jrte.out"/>
 		<delete quiet="true" file="${build.test}/LinuxKernelLoose.jrte.out"/>
 		<delete quiet="true" file="${build.test}/LinuxKernelStrict.jrte.out"/>
-		<java fork="true" dir="." classname="com.characterforming.ribose.RiboseRuntime" classpathref="jrte.classpath" failonerror="true" output="${build.test}/LinuxKernel.regex.out">
+		<java fork="true" dir="." classname="com.characterforming.ribose.TRun" classpathref="jrte.classpath" failonerror="true" output="${build.test}/LinuxKernel.regex.out">
 				<jvmarg line="-ea -Dregex.out.enabled=true ${jargs.jit.ribose}"/>
 				<arg line="--nil LinuxKernel test-patterns/inputs/kern-10.log ${build.patterns}/BaseTarget.model"/>
 		</java>
 		<exec failonerror="true" executable="/usr/bin/wc">
 			<arg line="${build.test}/LinuxKernel.regex.out"/>
 		</exec>		
-		<java fork="true" dir="." classname="com.characterforming.ribose.RiboseRuntime" classpathref="jrte.classpath" failonerror="true" output="${build.test}/LinuxKernel.jrte.out">
+		<java fork="true" dir="." classname="com.characterforming.ribose.TRun" classpathref="jrte.classpath" failonerror="true" output="${build.test}/LinuxKernel.jrte.out">
 				<jvmarg line="-ea -Djrte.out.enabled=true ${jargs.jit.ribose}"/>
 				<arg line="--nil LinuxKernel test-patterns/inputs/kern-10.log ${build.patterns}/BaseTarget.model"/>
 		</java>
 		<exec failonerror="true" executable="/usr/bin/wc">
 			<arg line="${build.test}/LinuxKernel.jrte.out"/>
 		</exec>		
-		<java fork="true" dir="." classname="com.characterforming.ribose.RiboseRuntime" classpathref="jrte.classpath" failonerror="true" output="${build.test}/LinuxKernelLoose.jrte.out">
+		<java fork="true" dir="." classname="com.characterforming.ribose.TRun" classpathref="jrte.classpath" failonerror="true" output="${build.test}/LinuxKernelLoose.jrte.out">
 				<jvmarg line="-ea -Djrte.out.enabled=true ${jargs.jit.ribose}"/>
 				<arg line="--nil LinuxKernelLoose test-patterns/inputs/kern-10.log ${build.patterns}/BaseTarget.model"/>
 		</java>
 		<exec failonerror="true" executable="/usr/bin/wc">
 			<arg line="${build.test}/LinuxKernelLoose.jrte.out"/>
 		</exec>		
-		<java fork="true" dir="." classname="com.characterforming.ribose.RiboseRuntime" classpathref="jrte.classpath" failonerror="true" output="${build.test}/LinuxKernelStrict.jrte.out">
+		<java fork="true" dir="." classname="com.characterforming.ribose.TRun" classpathref="jrte.classpath" failonerror="true" output="${build.test}/LinuxKernelStrict.jrte.out">
 				<jvmarg line="-ea -Djrte.out.enabled=true ${jargs.jit.ribose}"/>
 				<arg line="--nil LinuxKernelStrict test-patterns/inputs/kern-10.log ${build.patterns}/BaseTarget.model"/>
 		</java>
@@ -292,7 +292,7 @@
 		<fail unless="kernel.match" message="^^^ Not identical"/>
 		<echo message="^^^ Identical"/>
 		<echo>java -version</echo>
-		<java fork="true" dir="." classname="com.characterforming.ribose.RiboseRuntime" classpathref="test.classpath">
+		<java fork="true" dir="." classname="com.characterforming.ribose.TRun" classpathref="test.classpath">
 				<jvmarg line="-version"/>
 		</java>		
 		<echo>lscpu</echo>
@@ -310,12 +310,12 @@
 				<arg line="${build.patterns}/BaseTarget.model"/>
 		</java>
 		<echo message="^^^ TestRunner *: -Xms12m -Xlog:gc=trace:file=${build.test}/TestRunner-gc.out:uptime"/>
-		<java fork="true" dir="." classname="com.characterforming.ribose.RiboseRuntime" classpathref="jrte.classpath" failonerror="true">
+		<java fork="true" dir="." classname="com.characterforming.ribose.TRun" classpathref="jrte.classpath" failonerror="true">
 				<jvmarg line="-ea -Xms22m -Xlog:gc=trace:file=${build.test}/LinuxKernel-gc.out:uptime -Djrte.out.enabled=false"/>
 				<arg line="--nil LinuxKernel test-patterns/inputs/kern-10.log ${build.patterns}/BaseTarget.model"/>
 		</java>
 		<echo message="^^^ LinuxKernel *: -Xms22m -Xlog:gc=trace:file=${build.test}/LinuxKernel-gc.out:uptime"/>
-		<java fork="true" dir="." classname="com.characterforming.ribose.RiboseRuntime" classpathref="jrte.classpath" failonerror="true">
+		<java fork="true" dir="." classname="com.characterforming.ribose.TRun" classpathref="jrte.classpath" failonerror="true">
 				<jvmarg line="-ea -Xms10m -Xlog:gc=trace:file=${build.test}/Tintervals-gc.out:uptime -Djrte.out.enabled=false"/>
 				<arg line="--nil Tintervals test-patterns/inputs/verbosegc.vgc ${build.patterns}/BaseTarget.model"/>
 		</java>

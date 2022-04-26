@@ -39,15 +39,11 @@ import com.characterforming.ribose.base.ModelException;
  * The ribose model compiler compresses and assembles these into ribose transducers 
  * persistent in a ribose model file, binding them with the model target class that 
  * expresses the model effectors. 
- * <p/>
- * Governance:
- * <p/>
- * {@code (input* newTransductor input*)* close}
  * 
  * @author Kim Briggs
  *
  */
-public interface IRiboseRuntime extends AutoCloseable{
+public interface IRuntime extends AutoCloseable{
 	/**
 	 * Instantiate a new transductor. 
 	 * 
