@@ -39,8 +39,8 @@ import com.characterforming.ribose.IOutput;
 import com.characterforming.ribose.IRuntime;
 import com.characterforming.ribose.ITarget;
 import com.characterforming.ribose.ITransductor;
-import com.characterforming.ribose.Ribose;
 import com.characterforming.ribose.ITransductor.Status;
+import com.characterforming.ribose.Ribose;
 import com.characterforming.ribose.base.Base;
 import com.characterforming.ribose.base.BaseEffector;
 import com.characterforming.ribose.base.Bytes;
@@ -56,9 +56,11 @@ public final class ModelCompiler implements ITarget {
 	public static boolean compileAutomata(Model targetModel, File inrAutomataDirectory) throws ModelException, RiboseException {
 		File workingDirectory = new File(System.getProperty("user.dir"));
 		File compilerModelFile = new File(workingDirectory, "ModelCompiler.model");
-		try (IRuntime compilerRuntime = Ribose.loadRiboseRuntime(compilerModelFile, new ModelCompiler())) {
+		try {
 			ModelCompiler compiler = new ModelCompiler(targetModel);
-			compiler.setTransductor(compilerRuntime.newTransductor(compiler));
+			IRuntime compilerRuntime = Ribose.loadRiboseRuntime(compilerModelFile, new ModelCompiler());
+			ITransductor transductor = compilerRuntime.newTransductor(compiler);
+			compiler.setTransductor(transductor);
 			for (final String filename : inrAutomataDirectory.list()) {
 				if (!filename.endsWith(Base.AUTOMATON_FILE_SUFFIX)) {
 					continue;
@@ -77,10 +79,14 @@ public final class ModelCompiler implements ITarget {
 				} catch (Exception e) {
 					String msg = String.format("Exception caught compiling transducer '%1$s'", filename);
 					Model.rtcLogger.log(Level.SEVERE, msg, e);
-					compiler.error(msg);
+					return false;
 				}
 			}
 			return compiler.getErrors().isEmpty();
+		} catch (Exception e) {
+			String msg = String.format("Exception caught compiling automata directrory '%1$s'", inrAutomataDirectory.getPath());
+			Model.rtcLogger.log(Level.SEVERE, msg, e);
+			return false;
 		}
 	}
 

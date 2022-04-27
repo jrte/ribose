@@ -8,31 +8,31 @@ interval = (
 	space* '/>' (utf8 - '<')*
 );
 
-l0 = (interval$0):alph;
-l1 = (interval$1):alph;
-l2 = (interval$2):alph;
+a0 = (interval$0):alph;
+a1 = (interval$1):alph;
+a2 = (interval$2):alph;
 
-conjoint = (l0 & l1) | (l0 & l2) | (l1 & l2);
+conjoint = (a0 & a1) | (a0 & a2) | (a1 & a2);
 
 '*** Tintervals tape alphabets must be disjoint' conjoint:enum;
 
-notinterval= (
+null = (
 	(
 		((AnyOrNul* @ interval)$(0 1 2))
-	@	((l0$(0,0))* (l1$(0,,0))* (l2$(0,,,0))*)*
-		(nul$(0,0)) (nul* l0* l1* l2*)* 
+	@	((a0$(0,0))* (a1$(0,,0))* (a2$(0,,,0))*)*
+		(nul$(0,0)) (nul* a0* a1* a2*)* 
 	)
 	((utf8 - '>')* nul*)* '>' (utf8 - '<')*
 );
 
 Tintervals = (
-	(notinterval* interval*)* @ (((l2 - NL)$(0,0))* (NL, nl)*)*
+	(null* interval*)* @ (((a2 - NL)$(0,0))* (NL, nl)*)*
 ):dfamin;
 
 Tintervals$(0,1 2):prsseq `build/patterns/automata/Tintervals.pr`;
 Tintervals:save `build/patterns/automata/Tintervals.dfa`;
 
-_interval = (
+interval = (
 	'<cycle-start id="' digit+ '" type="scavenge"'
 	(
 		space+
@@ -47,25 +47,25 @@ _interval = (
 	space* '/>' (utf8 - '<')*
 )*;
 
-l0 = (_interval$0):alph;
-l1 = (_interval$1):alph;
-l2 = (_interval$2):alph;
+a0 = (interval$0):alph;
+a1 = (interval$1):alph;
+a2 = (interval$2):alph;
 
-conjoint = (l0 & l1) | (l0 & l2) | (l1 & l2);
+conjoint = (a0 & a1) | (a0 & a2) | (a1 & a2);
 
 '*** Sintervals tape alphabets must be disjoint' conjoint:enum;
 
-_notinterval = (
+null = (
 	(
-		((AnyOrNul* @ _interval)$(0 1 2))
-	@	((l0$(0,0))* (l1$(0,,0))* (l2$(0,,,0))*)*
-		(nul$(0,0)) (nul* l0* l1* l2*)* 
+		((AnyOrNul* @ interval)$(0 1 2))
+	@	((a0$(0,0))* (a1$(0,,0))* (a2$(0,,,0))*)*
+		(nul$(0,0)) (nul* a0* a1* a2*)* 
 	)
 	((utf8 - '>')* nul*)* '>' (utf8 - '<')*
 );
 
 Sintervals = (
-	(_notinterval* _interval*)* @ (((l2 - {ANON, NL})$(0,0))* (ANON, `~`)* (NL, nl)*)*
+	(null* interval*)* @ (((a2 - {ANON, NL})$(0,0))* (ANON, `~`)* (NL, nl)*)*
 ):dfamin;
 
 Sintervals$(0,1 2):prsseq `build/patterns/automata/Sintervals.pr`;

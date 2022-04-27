@@ -34,9 +34,23 @@ import com.characterforming.ribose.ITarget;
  */
 public abstract class BaseEffector<T extends ITarget> implements IEffector<T> {
 	private final Bytes name;
+	
+	/**
+	 * Effector view of Transductor named values.
+	 */
 	protected IOutput output;
-	protected  T target;
+	
+	/**
+	 * Effector access to the target that it is bound to
+	 */
+	protected T target;
 
+	/**
+	 * Constructor receivs target and a name.
+	 * 
+	 * @param target The target that binds the effector
+	 * @param name The effector name
+	 */
 	public BaseEffector(final T target, final Bytes name) {
 		this.target = target;
 		this.output = null;

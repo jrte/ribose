@@ -192,14 +192,14 @@ public final class Model implements AutoCloseable {
 	 * @param target the runtime target to bind the transductor to
 	 * @return the bound transductor instance  
 	 */
-	public Transductor bindTransductor(ITarget target) throws ModelException {
+	public Transductor bindTransductor(ITarget target, boolean withTlsStacks) throws ModelException {
 		Class<? extends ITarget> targetClass = target.getClass();
 		Class<? extends ITarget> modelClass = this.modelTarget.getClass();
 		if (!modelClass.isAssignableFrom(targetClass)) {
 			throw new ModelException(String.format("Cannot bind instance of target class '%1$s', can only bind to model target class '%2$s'",
 				target.getClass().getName(), this.modelTarget.getClass().getName()));
 		}
-		Transductor trex = new Transductor(this);
+		Transductor trex = withTlsStacks ? new Transductor(this, true) : new Transductor(this);
 		IEffector<?>[] trexFx = trex.bindEffectors();
 		IEffector<?>[] targetFx = target.bindEffectors();
 		IEffector<?>[] boundFx = new IEffector<?>[trexFx.length + targetFx.length];
@@ -222,7 +222,6 @@ public final class Model implements AutoCloseable {
 		if (this.modelPath.exists()) {
 			this.modelPath.delete();
 		}
-		
 		try {
 			this.setDeleteOnClose(false);
 			this.modelPath.createNewFile();
@@ -232,12 +231,10 @@ public final class Model implements AutoCloseable {
 				this.signalOrdinalMap.put(name, ordinal);
 			}
 			for (Base.Signal signal : Base.Signal.values()) {
-				final Bytes name = new Bytes(Base.RTE_SIGNAL_NAMES[signal.ordinal()]);
-				final Integer ordinal = this.getSignalLimit();
-				assert ordinal == signal.signal();
-				this.signalOrdinalMap.put(name, ordinal);
+				assert this.getSignalLimit() == signal.signal();
+				this.signalOrdinalMap.put(signal.key(), signal.signal());
 			}
-			assert this.signalOrdinalMap.size() == (Base.RTE_SIGNAL_BASE + Base.RTE_SIGNAL_NAMES.length);
+			assert this.signalOrdinalMap.size() == (Base.RTE_SIGNAL_BASE + Base.Signal.values().length);
 			this.namedValueOrdinalMap.put(new Bytes(Base.ANONYMOUS_VALUE_NAME), Base.ANONYMOUS_VALUE_ORDINAL);
 			this.namedValueOrdinalMap.put(new Bytes(Base.ALL_VALUE_NAME), Base.CLEAR_ANONYMOUS_VALUE);
 			this.transducerObjectIndex = new Transducer[256];

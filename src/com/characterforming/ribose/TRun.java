@@ -56,6 +56,7 @@ public final class TRun {
 			System.exit(1);
 		}
 		
+		ITransductor t = null;
 		ITarget baseTarget = new BaseTarget();
 		int exitCode = 0;
 		try (
@@ -66,7 +67,7 @@ public final class TRun {
 			byte[] bytes = new byte[clen];
 			clen = isr.read(bytes, 0, clen);
 	
-			ITransductor trex = ribose.newTransductor(baseTarget);
+			ITransductor trex = t = ribose.newTransductor(baseTarget);
 			trex.input(bytes);
 			if (nil) {
 				trex.signal(Signal.nil.signal());

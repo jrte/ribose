@@ -86,11 +86,11 @@ public final class Transductor implements ITransductor, ITarget, IOutput {
 
 	private Model model;
 	private IEffector<?>[] effectors;
+	private NamedValue selected;
 	private NamedValue[] namedValueHandles;
 	private Map<Bytes, Integer> namedValueOrdinalMap;
-	private InputStack inputStack;
 	private TransducerStack transducerStack;
-	private NamedValue selected;
+	private InputStack inputStack;
 	private int errorCount;
 	
 	/**
@@ -104,27 +104,27 @@ public final class Transductor implements ITransductor, ITarget, IOutput {
 		this.effectors = null;
 		this.namedValueHandles = null;
 		this.namedValueOrdinalMap = null;
-		this.inputStack = null;
-		this.transducerStack = null;
 		this.selected = null;
 		this.errorCount = 0;
+		this.inputStack = null;
+		this.transducerStack = null;
 	}
 
-	void setEffectors(IEffector<?>[] effectors) {
-		this.effectors = effectors;
-	}
-
-	void setNamedValueOrdinalMap(Map<Bytes, Integer> namedValueOrdinalMap) {
-		this.namedValueOrdinalMap = namedValueOrdinalMap;
-		if (this.namedValueOrdinalMap.size() > 0) {
-			this.namedValueHandles = new NamedValue[this.namedValueOrdinalMap.size()];
-			for (final Entry<Bytes, Integer> entry : this.namedValueOrdinalMap.entrySet()) {
-				final int valueIndex = entry.getValue();
-				byte[] valueBuffer = new byte[INITIAL_NAMED_VALUE_BYTES];
-				this.namedValueHandles[valueIndex] = new NamedValue(entry.getKey(), valueIndex, valueBuffer, 0);
-			}
-			this.selected = this.namedValueHandles[Base.ANONYMOUS_VALUE_ORDINAL];
-		}
+	/**
+	 *  Constructor with thread-local input and transducer stacks
+	 *
+	 * @param model The runtime model 
+	 */
+	Transductor(final Model model, final boolean withTlsStacks) {
+		super();
+		this.model = model;
+		this.effectors = null;
+		this.namedValueHandles = null;
+		this.namedValueOrdinalMap = null;
+		this.selected = null;
+		this.errorCount = 0;
+		this.inputStack = null;
+		this.transducerStack = null;
 	}
 
 	/*
@@ -225,9 +225,6 @@ public final class Transductor implements ITransductor, ITarget, IOutput {
 			logger.log(Level.SEVERE, "Transduction not bound to target");
 			return this.status();
 		}
-		if (this.inputStack == null) {
-			this.inputStack = new InputStack(16, this.model.getSignalCount(), this.namedValueHandles.length);
-		}
 		this.inputStack.signal(signal);
 		return this.status();
 	}
@@ -250,7 +247,7 @@ public final class Transductor implements ITransductor, ITarget, IOutput {
 				this.clear();
 			} else {
 				logger.log(Level.SEVERE, String.format("No transducer named %1$s", 
-						transducerName.toString()));
+					transducerName.toString()));
 			}
 		} else {
 			logger.log(Level.SEVERE, "Transduction not bound to target");
@@ -566,12 +563,35 @@ I:				do {
 		return this.selected;
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see com.characterforming.jrte.engine.ITransduction#getModel()
-	 */
+	byte[] copyNamedValue(final int nameIndex) {
+		NamedValue value = this.namedValueHandles[nameIndex];
+		assert value != null;
+		if (value != null && value.getValue() != null) {
+			return Arrays.copyOf(value.getValue(), this.namedValueHandles[nameIndex].getLength());
+		} else {
+			return Base.EMPTY;
+		}
+	}
+
 	Model getModel() {
 		return this.model;
+	}
+
+	void setEffectors(IEffector<?>[] effectors) {
+		this.effectors = effectors;
+	}
+
+	void setNamedValueOrdinalMap(Map<Bytes, Integer> namedValueOrdinalMap) {
+		this.namedValueOrdinalMap = namedValueOrdinalMap;
+		if (this.namedValueOrdinalMap.size() > 0) {
+			this.namedValueHandles = new NamedValue[this.namedValueOrdinalMap.size()];
+			for (final Entry<Bytes, Integer> entry : this.namedValueOrdinalMap.entrySet()) {
+				final int valueIndex = entry.getValue();
+				byte[] valueBuffer = new byte[INITIAL_NAMED_VALUE_BYTES];
+				this.namedValueHandles[valueIndex] = new NamedValue(entry.getKey(), valueIndex, valueBuffer, 0);
+			}
+			this.selected = this.namedValueHandles[Base.ANONYMOUS_VALUE_ORDINAL];
+		}
 	}
 
 	private int select(final int selectionIndex) {
@@ -718,16 +738,6 @@ I:				do {
 			} 
 		}
 		return output.toString();
-	}
-
-	byte[] copyNamedValue(final int nameIndex) {
-		NamedValue value = this.namedValueHandles[nameIndex];
-		assert value != null;
-		if (value != null && value.getValue() != null) {
-			return Arrays.copyOf(value.getValue(), this.namedValueHandles[nameIndex].getLength());
-		} else {
-			return Base.EMPTY;
-		}
 	}
 
 	private final class InlineEffector extends BaseEffector<Transductor> {

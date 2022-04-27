@@ -27,15 +27,6 @@ import java.util.Arrays;
  * @author Kim Briggs
  */
 final class TransducerStack {
-	static TransducerState[] stack(final int initialSize) {
-		int size = initialSize > 4 ? initialSize : 4;
-		TransducerState stack[] = new TransducerState[size];
-		for (int i = size - 1; i >= 0; i--) {
-			stack[i] = new TransducerState();
-		}
-		return stack;
-	}
-	
 	private TransducerState[] stack;
 	private int tos;
 
@@ -44,6 +35,15 @@ final class TransducerStack {
 		this.tos = -1;
 	}
 
+	private static TransducerState[] stack(final int initialSize) {
+		int size = initialSize > 4 ? initialSize : 4;
+		TransducerState stack[] = new TransducerState[size];
+		for (int i = size - 1; i >= 0; i--) {
+			stack[i] = new TransducerState();
+		}
+		return stack;
+	}
+	
 	private TransducerState stackcheck() {
 		this.tos += 1;
 		if (this.tos >= this.stack.length) {

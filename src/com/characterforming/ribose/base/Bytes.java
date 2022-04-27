@@ -37,23 +37,53 @@ public final class Bytes {
 	private final byte[] bytes;
 	private int hash;
 
+	/**
+	 * Constructor wraps an array of bytes
+	 * 
+	 * @param bytes The data to wrap
+	 */
 	public Bytes(final byte[] bytes) {
 		this.bytes = bytes;
 		this.hash = 0;
 	}
 	
+	/**
+	 * Decode UTF-8 bytes to a String.
+	 * 
+	 * @param bytes The bytes to decode
+	 * @return the decoded string
+	 */
 	public static String decode(final byte[] bytes) {
 		return charset.decode(ByteBuffer.wrap(bytes).limit(bytes.length)).toString();
 	}
 
+	/**
+	 * Decode UTF-8 bytes to a String.
+	 * 
+	 * @param bytes The bytes to decode
+	 * @param length The number of bytes to decode
+	 * @return the decoded string
+	 */
 	public static String decode(final byte[] bytes, final int length) {
 		return charset.decode(ByteBuffer.wrap(bytes).limit(Math.min(length, bytes.length))).toString();
 	}
 
+	/**
+	 * Encode a String to UTF-8 bytes.
+	 * 
+	 * @param chars The string to encode
+	 * @return the encoded Bytes
+	 */
 	public static Bytes encode(final String chars) {
 		return Bytes.encode(CharBuffer.wrap(chars.toCharArray()));
 	}
 
+	/**
+	 * Encode a CharBuffer to UTF-8 bytes.
+	 * 
+	 * @param chars The CharBuffer to encode
+	 * @return the encoded Bytes
+	 */
 	public static Bytes encode(final CharBuffer chars) {
 		ByteBuffer buffer = charset.encode(chars);
 		byte bytes[] = new byte[buffer.limit()];
@@ -61,6 +91,14 @@ public final class Bytes {
 		return new Bytes(bytes);
 	}
 	
+	/**
+	 * Copy and wrap bytes.
+	 * 
+	 * @param from The source array
+	 * @param offset The position in the source array to copy from
+	 * @param length The number of bytes to copy
+	 * @return the encoded Bytes
+	 */
 	public static Bytes getBytes(final byte[] from, int offset, int length) {
 		assert from.length >= offset;
 		int size = from.length - offset;
@@ -71,6 +109,11 @@ public final class Bytes {
 		return new Bytes(bytes);
 	}
 	
+	/**
+	 * Get the number of contained bytes.
+	 * 
+	 * @return the number of contained bytes
+	 */
 	public int getLength() {
 		int length = 0;
 		while (length < bytes.length && this.bytes[length] != 0) {
@@ -79,6 +122,11 @@ public final class Bytes {
 		return length;
 	}
 	
+	/**
+	 * Get the contained bytes.
+	 * 
+	 * @return the contained bytes
+	 */
 	public byte[] getBytes() {
 		return this.bytes;
 	}

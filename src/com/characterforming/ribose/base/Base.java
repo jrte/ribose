@@ -45,16 +45,16 @@ public class Base {
 	public static final byte TYPE_REFERENCE_VALUE = '~';
 	
 	public static final int RTE_SIGNAL_BASE = 256;
-	public static final byte[][] RTE_SIGNAL_NAMES = {
-		{ 'n', 'u', 'l' },
-		{ 'n', 'i', 'l' },
-		{ 'e', 'o', 'l' },
-		{ 'e', 'o', 's' }
+	public static final Bytes[] RTE_SIGNAL_NAMES = {
+		Bytes.encode("nul"),
+		Bytes.encode("nil"),
+		Bytes.encode("eol"),
+		Bytes.encode("eos")
 	};
 	
 	/**
 	 * General signals available in all ribose models.
-	 * <p/>
+	 * <p/>TYPE_REFERENCE_TRANSDUCER
 	 * Transductors send {@code nul} to transductions when no transition is defined for
 	 * the current symbol from the input stream. This gives the transduction a first chance
    * synchronize with the input. If no transition is defined for the received {@code nul}
@@ -87,6 +87,13 @@ public class Base {
 		eos;
 		
 		/**
+		 * Signal name.
+		 * 
+		 * @return The signal name as lookup key
+		 */
+		public Bytes key() { return Base.RTE_SIGNAL_NAMES[this.ordinal()]; }
+		
+		/**
 		 * Signal ordinal values are mapped to the end of the base {@code (0x0..0xff)} 
 		 * input range. This range can be further extended with additional signal 
 		 * ordinal values defined for domain-specific transduction models.
@@ -113,14 +120,36 @@ public class Base {
 		super();
 	}
 	
+	/**
+	 * Check for value reference (a 4-byte encoding of a value ordinal).
+	 * 
+	 * @param bytes Bytes to check
+	 * @return true if {@code bytes} contains a value reference
+	 */
 	static public boolean isAnonymousValueReference(final byte bytes[]) {
 		return (bytes.length == 1) && (bytes[0] == TYPE_REFERENCE_VALUE);
 	}
 	
+	/**
+	 * Check for reference ordinal (a 4-byte encoding of a value, signal
+	 * or transducer ordinal).
+	 * 
+	 * @param bytes Bytes to check
+	 * @return true if {@code bytes} encodes a reference ordinal
+	 */
 	static public boolean isReferenceOrdinal(final byte bytes[]) {
 		return (bytes.length == 4) && (bytes[0] == TYPE_ORDINAL_INDICATOR);
 	}
 	
+	/**
+	 * Get reference type from and encoded refernce ordinal.
+	 * 
+	 * @param bytes Bytes to check
+	 * @return a {@code byte} representing the reference type
+	 * @see TYPE_REFERENCE_SIGNAL
+	 * @see TYPE_REFERENCE_TRANSDUCER
+	 * @see TYPE_REFERENCE_VALUE
+	 */
 	static public byte getReferenceType(final byte bytes[]) {
 		if (bytes.length > 0) {
 			int typePosition = isReferenceOrdinal(bytes) ? 1 : 0;
@@ -136,6 +165,12 @@ public class Base {
 		return TYPE_REFERENCE_NONE;
 	}
 	
+	/**
+	 * Check for reference name (a byte array with a type prefix byte).
+	 * 
+	 * @param reference Bytes to check
+	 * @return the reference name if {@code bytes} encodes a reference, or null
+	 */
 	static public byte[] getReferenceName(final byte reference[]) {
 		assert !isReferenceOrdinal(reference);
 		if (reference != null && reference.length > 0) {
@@ -153,6 +188,12 @@ public class Base {
 		return null;
 	}
 	
+	/**
+	 * Decode a reference ordinal.
+	 * 
+	 * @param bytes Bytes to check
+	 * @return the reference ordinal or a negative integer if none
+	 */
 	static public int decodeReferenceOrdinal(int type, final byte bytes[]) {
 		assert isReferenceOrdinal(bytes);
 		if (getReferenceType(bytes) == type) {
@@ -168,13 +209,28 @@ public class Base {
 		return Integer.MIN_VALUE;
 	}
 	
+	/**
+	 * Encode a reference ordinal.
+	 * 
+	 * @param type The reference type 
+	 * @param ordinal The reference ordinal
+	 * @return the reference ordinal or a negative integer if none
+	 */
 	static public byte[] encodeReferenceOrdinal(byte type, int ordinal) {
 		assert ordinal <= Base.MAX_ORDINAL;
-		byte bytes[] = new byte[] { TYPE_ORDINAL_INDICATOR, type, (byte)((ordinal & 0xff00) >> 8), (byte)(ordinal & 0xff)};
+		byte bytes[] = new byte[] { TYPE_ORDINAL_INDICATOR, type, (byte)((ordinal & 0xff00) >> 8), (byte)(ordinal & 0xff) };
 		assert ordinal == decodeReferenceOrdinal(type, bytes);
 		return bytes;
 	}
 	
+	/**
+	 * Decode an integer from a UTF-8 byte array.
+	 * 
+	 * @param bytes The UTF-8 byte array 
+	 * @param length The number of bytes to decode, starting from 0
+	 * @return the decoded integer
+	 * @throws NumberFormatException
+	 */
 	static public int decodeInt(final byte bytes[], final int length) throws NumberFormatException {
 		int value = 0, sign = 1;
 		for (int i = 0; i < length; i++) {

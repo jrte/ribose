@@ -87,30 +87,7 @@ public final class Runtime implements IRuntime, AutoCloseable {
 	 */
 	@Override
 	public ITransductor newTransductor(final ITarget target) throws ModelException {
-		return this.model.bindTransductor(target);
-	}
-
-	/**
-	 * Bind an unbound target instance to a new transductor in thread local storage.
-	 * Use the {@link ITransductor#start(Bytes)} and {@link ITransductor#run()} methods
-	 * to set up and run transductions.
-	 * <p/>
-	 * Use {@code ThreadLocal.get()} to obtain the transductor instance and 
-	 * {@code ThreadLocal.remove()} to remove it from thread local store.
-	 * 
-	 * @param target The ITarget instance to bind to the transductor
-	 * @return The thread-bound ITransductor instance
-	 * @throws ModelException
-	 */
-	@Override
-	public ThreadLocal<ITransductor> tlsTransductor(final ITarget target) throws ModelException {
-		return ThreadLocal.withInitial(() -> {
-			try {
-				return this.model.bindTransductor(target);
-			} catch (ModelException e) {
-				return null;
-			}
-		});
+		return this.model.bindTransductor(target, false);
 	}
 
 	@Override

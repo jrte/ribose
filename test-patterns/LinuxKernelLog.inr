@@ -37,15 +37,15 @@ capture = (
 
 line = header tag capture;
 
-l0 = (line$0):alph;
-l1 = (line$1):alph;
-l2 = (line$2):alph;
+a0 = (line$0):alph;
+a1 = (line$1):alph;
+a2 = (line$2):alph;
 
 linenul = (
 	(
 			((NotNlOrNul* @ line)$(0 1 2))
-		@	((l0$(0,0))* (l1$(0,,0))* (l2$(0,,,0))*)*
-			(nul$(0,0)) (nul* l0* l1* l2*)* 
+		@	((a0$(0,0))* (a1$(0,,0))* (a2$(0,,,0))*)*
+			(nul$(0,0)) (nul* a0* a1* a2*)* 
 	)
 	(nul* notnl*)*
 );
@@ -84,7 +84,7 @@ LinuxKernel = (
 #		((nil ((linenul$0) nl)* @ (LinuxKernel$(0,1))) - clear select (clear (select paste*)*)* clear select):enum;
 
 #`NOT~ The matching lines in domain image of effector sequences in the range of LinuxKernel that do not invoke the out effector is empty:\n` 
-#		(line$(0,1)) @ ((nil (line$0) nl @ (LinuxKernel$(0,1))) - (l1* out clear select)):enum:3;
+#		(line$(0,1)) @ ((nil (line$0) nl @ (LinuxKernel$(0,1))) - (a1* out clear select)):enum:3;
 		
 ### LinuxKernelStrict 
 # This will mark input at start of line and look ahead using the input patterns of 3 transducers

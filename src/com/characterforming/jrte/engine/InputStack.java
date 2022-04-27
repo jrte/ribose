@@ -34,15 +34,7 @@ final class InputStack {
 	private Input[] stack;
 	private int tos;
 	
-	static Input[] stack(final int initialSize) {
-		Input stack[] = new Input[initialSize];
-		for (int i = initialSize - 1; i >= 0; i--) {
-			stack[i] = new Input(null);
-		}
-		return stack;
-	}
-
-	InputStack(final int initialSize, int signalCount, int valueCount) {
+	InputStack(final int initialSize, final int signalCount, final int valueCount) {
 		this.signals = new byte[signalCount][]; 
 		for (int i = 0; i < signalCount; i++) {
 			this.signals[i] = Base.encodeReferenceOrdinal(Base.TYPE_REFERENCE_SIGNAL, Base.RTE_SIGNAL_BASE + i);
@@ -55,6 +47,14 @@ final class InputStack {
 		this.tos = -1;
 	}
 	
+	private static Input[] stack(final int initialSize) {
+		Input stack[] = new Input[initialSize];
+		for (int i = initialSize - 1; i >= 0; i--) {
+			stack[i] = new Input(null);
+		}
+		return stack;
+	}
+
 	/**
 	 * Push data onto the stack 
 	 * 

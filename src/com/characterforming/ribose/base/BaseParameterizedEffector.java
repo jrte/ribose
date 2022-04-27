@@ -37,6 +37,9 @@ import com.characterforming.ribose.ITarget;
  * @author Kim Briggs
  */
 public abstract class BaseParameterizedEffector<T extends ITarget, P> extends BaseEffector<T> implements IParameterizedEffector<T, P> {
+	/**
+	 * Effector parameters are indexed and selected by parameter ordinal.
+	 */
 	protected P[] parameters = null;
 
 	/**

@@ -54,15 +54,6 @@ public interface IRuntime extends AutoCloseable{
 	public ITransductor newTransductor(ITarget target) throws ModelException;
 	
 	/**
-	 * Instantiate a thread local transductor. 
-	 * 
-	 * @param target The target instance to bind to the transductor.
-	 * @return A thread-bound transductor
-	 * @throws ModelException
-	 */
-	public ThreadLocal<ITransductor> tlsTransductor(ITarget target) throws ModelException;
-	
-	/**
 	 * Close the runtime model and file.
 	 * 
 	 * @throws ModelException

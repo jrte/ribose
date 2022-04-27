@@ -134,14 +134,13 @@ public interface ITransductor extends ITarget {
 	public Status input(byte[] input);
 
 	/**
-	 * Force pause after {@code steps} bytes scanned if position in top input
-	 * frame if {@code Frame.position < until}, otherwise reset {@code Frame.limit}
-	 * to {@code Frame.length}. Calls to this method are idempotent after the first
-	 * invocation to return true.
+	 * Force pause after {@code steps} bytes scanned if {@code Frame.position < until},
+	 * otherwise reset {@code Frame.limit} to {@code Frame.length}. Calls to this 
+	 * method are idempotent after the first invocation to return true.
 	 *  
-	 * @param steps Number of bytes to scan in top frame
+	 * @param steps Number of bytes to scan before pausing
 	 * @param until Threshold for uninhibited scanning
-	 * @return true if limit past threshold (future calls will have no effect) 
+	 * @return true if position is past threshold (future calls will have no effect) 
 	 */
 	public boolean limit(int steps, int until);
 	
@@ -166,12 +165,12 @@ public interface ITransductor extends ITarget {
 
 	/**
 	 * Run the transduction with current input until the input or transduction
-	 * stack is empty, or an effector returns Efferct.PAUSE, or an exception is thrown.
+	 * stack is empty, or an effector returns Effert.PAUSE, or an exception is thrown.
 	 * 
 	 * @return Run status of transduction at point of return 
-	 * @see #status()
 	 * @throws RiboseException 
 	 * @throws DomainErrorException 
+	 * @see #status()
 	 */
 	public Status run() throws RiboseException, DomainErrorException;
 	
@@ -185,9 +184,9 @@ public interface ITransductor extends ITarget {
 	public int getErrorCount();
 
 	/**
-	 * Clear input and transducter stacks. A {@code stop()} will be sent
+	 * Clear input and transductor s. ( + Base.RTE_SIGNAL_NAMES.length)tacks. A {@code stop()} will be sent
 	 * to any inputs that are popped from the input stack. This resets
-	 * the transductor to original factory state ready for reuse.
+	 * the transductor to original state ready for reuse.
 	 * 
 	 * @return {@link Status#STOPPED} 
 	 * @see #status()

@@ -78,7 +78,7 @@ SignalOrNul = {
 
 nullify = (AnyOrNul* SignalOrNul*)* @ date;
 prefix = utf8 & (date$0:pref);
-notdate = (
+null = (
 	(
 		(nullify$(0 1 2))
 	@	((a0$(0,0))* (a1$(0,,0))* (a2$(0,,,0))*)*
@@ -98,7 +98,7 @@ dates = (
 			| (`_ymd`, out[`~d0` SLASH `~d1` SLASH `~d2` SPACE] clear[`~*`] select)
 			| (`_ydm`, out[`~d0` SLASH `~d2` SLASH `~d1` SPACE] clear[`~*`] select)
 			)
-		|	notdate
+		|	null
 		)*
 	)*
 	(eos, out[NL])

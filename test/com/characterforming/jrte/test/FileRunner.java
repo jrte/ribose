@@ -48,7 +48,7 @@ public class FileRunner {
 	/**
 	 * @param args
 	 * @throws InterruptedException On error
-	 * @throws RiboseException On error
+	 * @throws RiboseException On error throws Exception
 	 * @throws IOException On error
 	 */
 	public static void main(final String[] args) throws InterruptedException, RiboseException, IOException {
@@ -88,48 +88,51 @@ public class FileRunner {
 			rteLogger.addHandler(rteHandler);
 			rteHandler.setFormatter(new SimpleFormatter());
 
-			BaseTarget target = new BaseTarget();
-			final IRuntime ribose = Ribose.loadRiboseRuntime(new File(modelPath), target);
-			final ITransductor trex = ribose.tlsTransductor(target).get();
 			int loops;
+			BaseTarget target = new BaseTarget();
 			if (!regexOutEnabled) {
-				if (!jrteOutEnabled) {
-					System.out.print(String.format("%20s: ", transducerName));
-				}
-				loops = jrteOutEnabled ? 1 : 20;
-				for (int i = 0; i < loops; i++) {
-					trex.input(cbuf);
-					boolean limited = false;
-					if (limited) {
-						trex.limit(64, (64*1500));
+				try (IRuntime ribose = Ribose.loadRiboseRuntime(new File(modelPath), target);) {
+					ITransductor trex = ribose.newTransductor(target);
+					if (!jrteOutEnabled) {
+						System.out.print(String.format("%20s: ", transducerName));
 					}
-					if (nil) {
-						trex.signal(Base.Signal.nil.signal());
-					}
-					Status status = trex.start(Bytes.encode(transducerName));
-					t0 = System.currentTimeMillis();
-					while (status == Status.RUNNABLE) {
-						status = trex.run();
-						ejrte += trex.getErrorCount();
+					loops = jrteOutEnabled ? 1 : 20;
+					for (int i = 0; i < loops; i++) {
+						trex.input(cbuf);
+						boolean limited = false;
 						if (limited) {
-							limited = trex.limit(64, (64 * 1500));
+							trex.limit(64, (64*1500));
+						}
+						if (nil) {
+							trex.signal(Base.Signal.nil.signal());
+						}
+						Status status = trex.start(Bytes.encode(transducerName));
+						t0 = System.currentTimeMillis();
+						while (status == Status.RUNNABLE) {
+							status = trex.run();
+							ejrte += trex.getErrorCount();
+							if (limited) {
+								limited = trex.limit(64, (64 * 1500));
+							}
+						}
+						assert status != Status.NULL;
+						trex.stop();
+						t1 = System.currentTimeMillis() - t0;
+						if (!jrteOutEnabled) {
+							System.out.print(String.format("%4d", t1));
+						}
+						if ((loops == 1) || (i >= 10)) {
+							tjrte += t1;
 						}
 					}
-					assert status != Status.NULL;
-					trex.stop();
-					t1 = System.currentTimeMillis() - t0;
 					if (!jrteOutEnabled) {
-						System.out.print(String.format("%4d", t1));
-					}
-					if ((loops == 1) || (i >= 10)) {
-						tjrte += t1;
-					}
+						double epkb = (double)(ejrte*1024) / (double)10000000;
+						double mbps = (tjrte > 0) ? ((double)(clen) / (double)(tjrte*1024*1024)) * (Math.min(loops,10)*1000) : -1;
+						System.out.println(String.format(" : %7.3f mb/s %7.3f nul/kb", mbps, epkb));
+					} 
+				} catch (Exception e) {
+					e.printStackTrace();
 				}
-				if (!jrteOutEnabled) {
-					double epkb = (double)(ejrte*1024) / (double)10000000;
-					double mbps = (tjrte > 0) ? ((double)(clen) / (double)(tjrte*1024*1024)) * (Math.min(loops,10)*1000) : -1;
-					System.out.println(String.format(" : %7.3f mb/s %7.3f nul/kb", mbps, epkb));
-				} 
 			}
 			if (!jrteOutEnabled && !regex.isEmpty()) {
 				Pattern pattern = Pattern.compile(regex);

@@ -17,6 +17,10 @@ final class Input {
 		return this.position < this.length;
 	}
 	
+	boolean hasMark() {
+		return this.mark >= 0;
+	}
+	
 	void limit(int limit) {
 		this.limit = Math.min(limit, this.length);
 	}
@@ -27,7 +31,7 @@ final class Input {
 	}
 	
 	void reset() {
-		if (this.mark >= 0) {
+		if (this.hasMark()) {
 			this.position = this.mark;
 			this.mark = -1;
 		}
