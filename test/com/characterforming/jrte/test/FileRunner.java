@@ -29,6 +29,7 @@ import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.Charset;
 import java.util.logging.FileHandler;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
 import java.util.regex.Matcher;
@@ -38,8 +39,8 @@ import com.characterforming.ribose.IRuntime;
 import com.characterforming.ribose.ITransductor;
 import com.characterforming.ribose.ITransductor.Status;
 import com.characterforming.ribose.Ribose;
+import com.characterforming.ribose.TRun;
 import com.characterforming.ribose.base.Base;
-import com.characterforming.ribose.base.BaseTarget;
 import com.characterforming.ribose.base.Bytes;
 import com.characterforming.ribose.base.RiboseException;
 
@@ -62,6 +63,10 @@ public class FileRunner {
 		final String inputPath = args[arg++];
 		final String modelPath = args[arg++];
 		final String regex = (args.length > arg) ? args[arg++] : "";
+		final Logger rteLogger = Logger.getLogger(Base.RTE_LOGGER_NAME);
+		final FileHandler rteHandler = new FileHandler("FileHandler.log");
+		rteHandler.setFormatter(new SimpleFormatter());
+		rteLogger.addHandler(rteHandler);
 		
 		try {
 			final boolean jrteOutEnabled = System.getProperty("jrte.out.enabled", "false").equals("true");
@@ -83,13 +88,8 @@ public class FileRunner {
 				ByteBuffer.wrap(cbuf, 0, cbuf.length)
 			);
 
-			Logger rteLogger = Logger.getLogger(Base.RTE_LOGGER_NAME);
-			final FileHandler rteHandler = new FileHandler("FileHandler.log");
-			rteLogger.addHandler(rteHandler);
-			rteHandler.setFormatter(new SimpleFormatter());
-
 			int loops;
-			BaseTarget target = new BaseTarget();
+			TRun target = new TRun();
 			if (!regexOutEnabled) {
 				try (IRuntime ribose = Ribose.loadRiboseRuntime(new File(modelPath), target);) {
 					ITransductor trex = ribose.newTransductor(target);
@@ -97,9 +97,9 @@ public class FileRunner {
 						System.out.print(String.format("%20s: ", transducerName));
 					}
 					loops = jrteOutEnabled ? 1 : 20;
+					boolean limited = jrteOutEnabled;
 					for (int i = 0; i < loops; i++) {
 						trex.input(cbuf);
-						boolean limited = false;
 						if (limited) {
 							trex.limit(64, (64*1500));
 						}
@@ -112,7 +112,7 @@ public class FileRunner {
 							status = trex.run();
 							ejrte += trex.getErrorCount();
 							if (limited) {
-								limited = trex.limit(64, (64 * 1500));
+								limited = trex.limit(31, Integer.MAX_VALUE);
 							}
 						}
 						assert status != Status.NULL;
@@ -176,7 +176,8 @@ public class FileRunner {
 				} 
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			rteLogger.log(Level.SEVERE, "Run failed, exception thrown.", e);
+			System.exit(1);
 		} finally {
 			System.out.flush();
 		}

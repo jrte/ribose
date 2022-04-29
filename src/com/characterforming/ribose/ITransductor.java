@@ -101,7 +101,7 @@ public interface ITransductor extends ITarget {
 			return this.equals(RUNNABLE) || this.equals(WAITING);
 		}
 		
-		boolean hasTransdeer() {
+		boolean hasTransducer() {
 			return this.equals(RUNNABLE) || this.equals(PAUSED);
 		}
 		
@@ -175,6 +175,21 @@ public interface ITransductor extends ITarget {
 	public Status run() throws RiboseException, DomainErrorException;
 	
 	/**
+	 * Check whether the input stack is marked. Byte arrays passed as input
+	 * to the transductor after a mark is set are retained by the transductor
+	 * and MUST NOT be subsequently reused as input containers. They will be
+	 * released for garbase collection when the input stack is reset to the
+	 * mark or the mark is cleared. 
+	 * 
+	 * Call this method after calling run() if status().hasInput() returns
+	 * false and do not reuse any data buffers that were passed as input() 
+	 * since marking commenced. 
+	 * 
+	 * @return true if a mark is set
+	 */
+	public boolean hasMark();
+	
+	/**
 	 * Return the number of domain errors counted in the most recent run() call. A
 	 * domain error occurs when no transition is defined from current state for 
 	 * current input. 
@@ -184,9 +199,9 @@ public interface ITransductor extends ITarget {
 	public int getErrorCount();
 
 	/**
-	 * Clear input and transductor s. ( + Base.RTE_SIGNAL_NAMES.length)tacks. A {@code stop()} will be sent
-	 * to any inputs that are popped from the input stack. This resets
-	 * the transductor to original state ready for reuse.
+	 * Clear input and transductor stacks and reset all named values to
+	 * an empty state. This resets the transductor to original state 
+	 * ready for reuse.
 	 * 
 	 * @return {@link Status#STOPPED} 
 	 * @see #status()

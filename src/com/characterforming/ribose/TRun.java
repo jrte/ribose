@@ -23,7 +23,7 @@ import com.characterforming.ribose.base.Bytes;
  * <tr><td align="right"><i>model</i></td><td>The path to the model file.</tr>
  * </table>
  */
-public final class TRun {
+public final class TRun extends BaseTarget implements ITarget {
 
 	/**
 	 * Runs a transduction on an input file.
@@ -57,27 +57,28 @@ public final class TRun {
 		}
 		
 		ITransductor t = null;
-		ITarget baseTarget = new BaseTarget();
+		ITarget modelTarget = new TRun();
 		int exitCode = 0;
 		try (
-			IRuntime ribose = Ribose.loadRiboseRuntime(model, baseTarget);
+			IRuntime ribose = Ribose.loadRiboseRuntime(model, modelTarget);
 			DataInputStream isr = new DataInputStream(new FileInputStream(input));
 		) {
 			int clen = (int)input.length();
 			byte[] bytes = new byte[clen];
 			clen = isr.read(bytes, 0, clen);
 	
-			ITransductor trex = t = ribose.newTransductor(baseTarget);
-			trex.input(bytes);
+			ITarget runTarget = new TRun();
+			ITransductor trun = t = ribose.newTransductor(runTarget);
+			trun.input(bytes);
 			if (nil) {
-				trex.signal(Signal.nil.signal());
+				trun.signal(Signal.nil.signal());
 			}
-			Status status = trex.start(Bytes.encode(transducerName));
+			Status status = trun.start(Bytes.encode(transducerName));
 			while (status == Status.RUNNABLE) {
-				status = trex.run();
+				status = trun.run();
 			}
 			assert status != Status.NULL;
-			trex.stop();
+			trun.stop();
 		} catch (final Exception e) {
 			rteLogger.log(Level.SEVERE, "Runtime instantiation failed", e);
 			System.out.println("Runtime instantiation failed, see log for details.");

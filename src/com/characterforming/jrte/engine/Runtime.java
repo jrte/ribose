@@ -29,16 +29,15 @@ import com.characterforming.ribose.IRuntime;
 import com.characterforming.ribose.ITarget;
 import com.characterforming.ribose.ITransductor;
 import com.characterforming.ribose.base.Base;
-import com.characterforming.ribose.base.BaseTarget;
 import com.characterforming.ribose.base.Bytes;
 import com.characterforming.ribose.base.ModelException;
 
 /**
- * Ribose runtime loads a target model and instantiates runtime transductors. A 
- * transductor is a capbility to run transductions. A main() method is provided
- * to enable {@link BaseTarget} model collections of stdin-&gt;stdout text transducers
- * to be run from host shells. Models based on other target classes are loaded and used
- * similarly in other service and application contexts.
+ * Ribose runtime loads a target model and instantiates runtime transductors. A model 
+ * is a binding of a target class and a collection of ribose transducers and supporting 
+ * signals and named values. A transductor is a capability to run transductions. A 
+ * transduction is a process mapping serial input through a nesting of transducers
+ * on a transductor's input and transducer stacks. 
  * 
  * @author Kim Briggs
  */
@@ -48,32 +47,24 @@ public final class Runtime implements IRuntime, AutoCloseable {
 	
 	/**
 	 * Constructor sets up the runtime as an ITransductor factory. This will instantiate a 
-	 * model instance of the target class for effector binding as follows:
-	 * <p>
-	 * <code>
-	 * 	t = new Target(); 
-	 * 	t.getName(); 
-	 * 	t.bindEffectors();
-	 *  (
-	 *  	Effector.getName()
-	 *  	(
-	 *  	 Effector.newParamameters(count)
-	 *  	 Effector.compileParameter(byte[][])*
-	 *  	)?
-	 *  )*
-	 *  </code>
-	 * <p>
+	 * default instance of the target class for effector binding. The target instance will
+	 * only receive two method calls ({@code getName()} then {@code bindEffector()} and each
+	 * bound {@code P} parameterized effector will receive a call to {@code newParameters(N)}
+	 * followed by {@code N compileParameters(byte[][])} calls, one for each enumerated 
+	 * parameter. The effector is expected to instantiate an array {@code P[N]} and compile 
+	 * each received {@code byte[][]} into a {@code P} instance into the array. 
+	 * 
 	 * The model target instance is not used after after instantiating model effectors and 
 	 * compiling model effector paramters. The model effectors remain bound to the model 
 	 * to provide live effectors with precompiled parameters when transductors are 
 	 * instantiated for new target instances. 
 	 * 
-	 * @param runtimePath The path to the runtime model file
-	 * @param target The target instance to bind to transductors
+	 * @param modelPath The path to a runtime model for the target class
+	 * @param target The targetinstance to bind to transductors
 	 * @throws ModelException
 	 */
-	public Runtime(final File runtimePath, final ITarget target) throws ModelException {
-		this.model = new Model(Mode.run, runtimePath, target);
+	public Runtime(final File modelPath, final ITarget target) throws ModelException {
+		this.model = new Model(Mode.run, modelPath, target);
 		this.model.load();
 	}
 

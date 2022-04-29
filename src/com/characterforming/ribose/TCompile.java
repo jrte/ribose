@@ -3,6 +3,7 @@ package com.characterforming.ribose;
 import java.io.File;
 import java.util.logging.Level;
 
+import com.characterforming.jrte.engine.ModelCompiler;
 import com.characterforming.ribose.base.Base;
 
 /**
@@ -16,7 +17,7 @@ import com.characterforming.ribose.base.Base;
  * <tr><td align="right"><i>model</i></td><td>The path to the file to contain the model.</tr>
  * </table>
  */
-public final class TCompile {
+public final class TCompile extends ModelCompiler implements ITarget {
 	/**
 	 * Runs the ribose runtime compiler to build a runtime model for a target 
 	 * class from a collection of ginr automata generated from ribose patterns.

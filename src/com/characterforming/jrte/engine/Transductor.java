@@ -63,7 +63,7 @@ public final class Transductor implements ITransductor, ITarget, IOutput {
 	private static final boolean isOutEnabled = System.getProperty("jrte.out.enabled", "true").equals("true");
 	private static final Logger logger = Logger.getLogger(Base.RTE_LOGGER_NAME);
 	private static AtomicBoolean unlimited = new AtomicBoolean(false);
-	private static final Input nullInput = new Input(null);
+	private static final Input nullInput = new Input();
 
 	static int INITIAL_NAMED_VALUE_BUFFERS = 256;
 	static int INITIAL_NAMED_VALUE_BYTES = 256;
@@ -129,7 +129,7 @@ public final class Transductor implements ITransductor, ITarget, IOutput {
 
 	/*
 	 * (non-Javadoc)
-	 * @see com.characterforming.jrte.engine.ITarget#bindEffectors(int)
+	 * @see com.characterforming.ribose.ITarget#bindEffectors(int)
 	 */
 	@Override
 	public IEffector<?>[] bindEffectors() throws TargetBindingException {
@@ -159,7 +159,7 @@ public final class Transductor implements ITransductor, ITarget, IOutput {
 
 	/*
 	 * (non-Javadoc)
-	 * @see com.characterforming.jrte.engine.ITransduction#status()
+	 * @see com.characterforming.ribose.ITransduction#status()
 	 */
 	@Override
 	public Status status() {
@@ -178,7 +178,7 @@ public final class Transductor implements ITransductor, ITarget, IOutput {
 
 	/*
 	 * (non-Javadoc)
-	 * @see com.characterforming.jrte.engine.ITransduction#input(IInput[])
+	 * @see com.characterforming.ribose.ITransduction#input(IInput[])
 	 */
 	@Override
 	public Status input(final byte[] input) {
@@ -195,7 +195,30 @@ public final class Transductor implements ITransductor, ITarget, IOutput {
 
 	/*
 	 * (non-Javadoc)
-	 * @see com.characterforming.jrte.engine.ITransduction#limit(int, int)
+	 * @see com.characterforming.ribose.ITransduction#input(IInput[])
+	 */
+	@Override
+	public Status signal(final int signal) {
+		if (this.status() == Status.NULL) {
+			logger.log(Level.SEVERE, "Transduction not bound to target");
+			return this.status();
+		}
+		this.inputStack.signal(signal);
+		return this.status();
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * @see com.characterforming.ribose.ITransduction#limit(int, int)
+	 */
+	@Override
+	public boolean hasMark() {
+		return this.inputStack.hasMark();
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * @see com.characterforming.ribose.ITransduction#limit(int, int)
 	 */
 	@Override
 	public boolean limit(int steps, int until) {
@@ -217,21 +240,7 @@ public final class Transductor implements ITransductor, ITarget, IOutput {
 
 	/*
 	 * (non-Javadoc)
-	 * @see com.characterforming.jrte.engine.ITransduction#input(IInput[])
-	 */
-	@Override
-	public Status signal(final int signal) {
-		if (this.status() == Status.NULL) {
-			logger.log(Level.SEVERE, "Transduction not bound to target");
-			return this.status();
-		}
-		this.inputStack.signal(signal);
-		return this.status();
-	}
-
-	/*
-	 * (non-Javadoc)
-	 * @see com.characterforming.jrte.engine.ITransduction#start(String)
+	 * @see com.characterforming.ribose.ITransduction#start(String)
 	 */
 	@Override
 	public Status start(final Bytes transducerName) throws ModelException {
@@ -257,7 +266,7 @@ public final class Transductor implements ITransductor, ITarget, IOutput {
 
 	/*
 	 * (non-Javadoc)
-	 * @see com.characterforming.jrte.engine.ITransduction#stop()
+	 * @see com.characterforming.ribose.ITransduction#stop()
 	 */
 	@Override
 	public Status stop() {
@@ -282,7 +291,7 @@ public final class Transductor implements ITransductor, ITarget, IOutput {
 
 	/*
 	 * (non-Javadoc)
-	 * @see com.characterforming.jrte.engine.ITransduction#run()
+	 * @see com.characterforming.ribose.ITransduction#run()
 	 */
 	@Override
 	public Status run() throws RiboseException, DomainErrorException {
@@ -442,17 +451,14 @@ I:				do {
 							break;
 						}
 						case RTE_EFFECTOR_MARK:
-							for (int i = this.inputStack.tos(); i >= 0; i--) {
-								Input frame = this.inputStack.get(i);
-								if (frame.hasRemaining()) {
-									assert frame.position <= frame.limit;
-									frame.mark();
-									break;
-								}
+							if (this.inputStack.mark()) {
+								effect |= IEffector.RTE_EFFECT_PUSH;
 							}
 							break;
 						case RTE_EFFECTOR_RESET:
-							input.reset();
+							if (this.inputStack.reset()) {
+								effect |= IEffector.RTE_EFFECT_PUSH;
+							}
 							break;
 						case RTE_EFFECTOR_PAUSE:
 							effect |= IEffector.RTE_EFFECT_PAUSE;
@@ -468,11 +474,10 @@ I:				do {
 					if (effect != 0) {
 						status = this.status();
 						if (0 != (effect & (IEffector.RTE_EFFECT_PUSH | IEffector.RTE_EFFECT_POP))) {
-							transducer = this.transducerStack.peek();
 							signalInput = -1;
 						}
 						if (0 != (effect & IEffector.RTE_EFFECT_START)) {
-							assert transducer == this.transducerStack.get(-1);
+							assert transducer == this.transducerStack.get(this.transducerStack.tos()-1);
 							transducer.state = state;
 						}
 						if (effect >= IEffector.RTE_EFFECT_PAUSE) {
@@ -508,7 +513,7 @@ I:				do {
 
 	/*
 	 * (non-Javadoc)
-	 * @see com.characterforming.jrte.engine.IOutput#getValueOrdinal(Bytes)
+	 * @see com.characterforming.ribose.IOutput#getValueOrdinal(Bytes)
 	 */
 	@Override
 	public int getValueOrdinal(final Bytes valueName) {
@@ -522,7 +527,7 @@ I:				do {
 
 	/*
 	 * (non-Javadoc)
-	 * @see com.characterforming.jrte.engine.IOutput#getSelectedOrdinal()
+	 * @see com.characterforming.ribose.IOutput#getSelectedOrdinal()
 	 */
 	@Override
 	public int getSelectedOrdinal() {
@@ -532,7 +537,7 @@ I:				do {
 
 	/*
 	 * (non-Javadoc)
-	 * @see com.characterforming.jrte.engine.IOutput#getNamedValue(int)
+	 * @see com.characterforming.ribose.IOutput#getNamedValue(int)
 	 */
 	@Override
 	public INamedValue getNamedValue(final int nameOrdinal) {
@@ -546,7 +551,7 @@ I:				do {
 
 	/*
 	 * (non-Javadoc)
-	 * @see com.characterforming.jrte.engine.IOutput#getNamedValue(String)
+	 * @see com.characterforming.ribose.IOutput#getNamedValue(String)
 	 */
 	@Override
 	public INamedValue getNamedValue(final Bytes valueName) {
@@ -555,7 +560,7 @@ I:				do {
 
 	/*
 	 * (non-Javadoc)
-	 * @see com.characterforming.jrte.engine.IOutput#getSelectedValue()
+	 * @see com.characterforming.ribose.IOutput#getSelectedValue()
 	 */
 	@Override
 	public INamedValue getSelectedValue() {

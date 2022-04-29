@@ -31,8 +31,8 @@ import com.characterforming.ribose.IRuntime;
 import com.characterforming.ribose.ITransductor;
 import com.characterforming.ribose.ITransductor.Status;
 import com.characterforming.ribose.Ribose;
+import com.characterforming.ribose.TRun;
 import com.characterforming.ribose.base.Base;
-import com.characterforming.ribose.base.BaseTarget;
 import com.characterforming.ribose.base.Bytes;
 import com.characterforming.ribose.base.RiboseException;
 
@@ -80,7 +80,7 @@ public class TestRunner {
 		String[] tests = new String[] {
 			"SelectPasteTest", "PasteSpeedTest", "NilPauseTest", "PastePauseTest", "PasteCutTest", "StackTest", "PasteCountTest", "CounterTest", "NilSpeedTest"
 		};
-		final BaseTarget target = new BaseTarget();
+		final TRun target = new TRun();
 		final IRuntime ribose = Ribose.loadRiboseRuntime(new File(modelPath), target);
 		final ITransductor trex = ribose.newTransductor(target);
 		for (final String test : tests) {

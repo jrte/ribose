@@ -1,6 +1,6 @@
 bin/
 build/
-doc/
+javadoc/
 jars/*.jar
 local/
 .settings/
@@ -12,3 +12,4 @@ java_pid*
 *.dfa
 *.pr
 *.last
+TRun.*

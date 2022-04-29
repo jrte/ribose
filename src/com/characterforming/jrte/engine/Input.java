@@ -7,10 +7,30 @@ final class Input {
 	int mark;
 	int length;
 	
+	Input() {
+		this.clear();
+	}
+	
 	Input(byte[] array) {
 		this.array = array;
 		this.length = array != null ? array.length : -1;
 		this.stop();
+	}
+	
+	Input(Input input) {
+		this.array = input.array;
+		this.length = input.array.length;
+		this.position = input.position;
+		this.limit = input.limit;
+		this.mark = input.mark;
+	}
+	
+	void clear() {
+		this.array = null;
+		this.position = -1;
+		this.limit = -1;
+		this.mark = -1;
+		this.length = 0;
 	}
 	
 	boolean hasRemaining() {

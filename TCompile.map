@@ -1,0 +1,36 @@
+target	com.characterforming.ribose.TCompile
+transducer	Automaton	0
+signal	nul	256
+signal	nil	257
+signal	eol	258
+signal	eos	259
+effector	0	0
+effector	1	1
+effector	paste	2
+effector	select	3
+effector	copy	4
+effector	cut	5
+effector	clear	6
+effector	count	7
+effector	in	8
+effector	out	9
+effector	mark	10
+effector	reset	11
+effector	start	12
+effector	pause	13
+effector	stop	14
+effector	header	15
+effector	transition	16
+effector	automaton	17
+value		0
+value	*	1
+value	version	2
+value	tapes	3
+value	transitions	4
+value	states	5
+value	symbols	6
+value	from	7
+value	to	8
+value	tape	9
+value	length	10
+value	symbol	11

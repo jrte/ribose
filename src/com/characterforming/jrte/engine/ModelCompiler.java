@@ -51,7 +51,7 @@ import com.characterforming.ribose.base.ModelException;
 import com.characterforming.ribose.base.RiboseException;
 import com.characterforming.ribose.base.TargetBindingException;
 
-public final class ModelCompiler implements ITarget {
+public class ModelCompiler implements ITarget {
 
 	public static boolean compileAutomata(Model targetModel, File inrAutomataDirectory) throws ModelException, RiboseException {
 		File workingDirectory = new File(System.getProperty("user.dir"));
@@ -310,15 +310,15 @@ public final class ModelCompiler implements ITarget {
 		}
 	}
 
-	private static final long VERSION = 210;
 	protected final Model model;
+	private static final long VERSION = 210;
+	private final ArrayList<String> errors;
 	private Bytes transducerName;
 	private ITransductor transductor;
 	private HashMap<Integer, Integer>[] stateMaps;
 	private HashMap<Integer, ArrayList<Transition>> stateTransitionMap;
 	private HashMap<Ints, Integer> effectorVectorMap;
 	private ArrayList<Integer> effectorVectorList;
-	private ArrayList<String> errors;
 	private Header header = null;
 	private Transition transitions[] = null;
 	private int[] inputEquivalenceIndex;
@@ -326,14 +326,13 @@ public final class ModelCompiler implements ITarget {
 	private int transition = 0;
 
 	public ModelCompiler() {
-		this.model = null;
-		this.transductor = null;
-		this.reset();
+		this(null);
 	}
 
 	public ModelCompiler(final Model model) {
 		this.model = model;
 		this.transductor = null;
+		this.errors = new ArrayList<String>();
 		this.reset();
 	}
 	
@@ -359,7 +358,6 @@ public final class ModelCompiler implements ITarget {
 		this.transducerName = null;
 		this.stateMaps = null;
 		this.stateTransitionMap = null;
-		this.errors = null;
 		this.effectorVectorMap = null;
 		this.effectorVectorList = null;
 		this.inputEquivalenceIndex = null;
@@ -367,12 +365,12 @@ public final class ModelCompiler implements ITarget {
 		this.header = null;
 		this.transitions = null;
 		this.transition = 0;
+		this.errors.clear();
 	}
 	
 	@SuppressWarnings("unchecked")
 	private boolean compile(File inrFile) throws ModelException {
 		this.reset();
-		this.errors = new ArrayList<String>();
 		String name = inrFile.getName();
 		name = name.substring(0, name.length() - Base.AUTOMATON_FILE_SUFFIX.length());
 		this.transducerName = Bytes.encode(name);
