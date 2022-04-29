@@ -51,9 +51,9 @@ linenul = (
 );
 
 store = out[
-	`~tag` '|'
 	`~timestamp` '|'
 	`~hostname` '|'
+	`~tag` '|'
 	`~in` '|'
 	`~out` '|'
 	`~macaddress` '|'

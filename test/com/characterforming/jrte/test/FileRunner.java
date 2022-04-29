@@ -150,9 +150,11 @@ public class FileRunner {
 							int k = matcher.groupCount();
 							if (0 < k) {
 								for (int j = 1; j < k; j++) {
-									System.out.printf("%s ", matcher.group(j));
+									String match = matcher.group(j) != null ? matcher.group(j) : "";
+									System.out.printf("%s|", match);
 								}
-								System.out.printf("%s", matcher.group(k));
+								String match = matcher.group(k) != null ? matcher.group(k) : "";
+								System.out.printf("%s", match);
 								System.out.println();
 							}
 						} else {

@@ -33,9 +33,10 @@
 	<property name="build.patterns" value="build/patterns"/>
 	<property name="build.patterns.automata" value="build/patterns/automata"/>
 	<property name="build.test" value="build/patterns/test"/>
-	<property name="regex.linux.kernel" value="([JFMASOND][a-z]+ [0-9]+ ([0-9]+:)+[0-9]+) ([-.:A-Za-z_0-9]*) kernel: \[[ ]*[0-9]+\.[0-9]+\] (DROPPED|ABORTED|LIMITED) ((IN=([-.:A-Za-z_0-9]*)|OUT=([-.:A-Za-z_0-9]*)|MAC=([-.:A-Za-z_0-9]*)|SRC=([-.:A-Za-z_0-9]*)|DST=([-.:A-Za-z_0-9]*)) )+.* PROTO=([-.:A-Za-z_0-9]*)(.* SPT=([-.:A-Za-z_0-9]*) DPT=([-.:A-Za-z_0-9]*))?"/>
+	<property name="regex.linux.kernel" value="([JFMASOND][a-z]+ [0-9]+ (?:[0-9]+:)+[0-9]+) ([-.:A-Za-z_0-9]*) kernel: \[[ ]*[0-9]+\.[0-9]+\] (DROPPED|ABORTED|LIMITED) IN=([-.:A-Za-z_0-9]*) OUT=([-.:A-Za-z_0-9]*)(?: MAC=([-.:A-Za-z_0-9]*))? SRC=([-.:A-Za-z_0-9]*) DST=([-.:A-Za-z_0-9]*).* PROTO=([-.:A-Za-z_0-9]*)(?:.* SPT=([-.:A-Za-z_0-9]*) DPT=([-.:A-Za-z_0-9]*))?"/>
 	<property name="jargs.jit.ribose" value=""/>
 <!--
+	<property name="regex.linux.kernel" value="([JFMASOND][a-z]+ [0-9]+ ([0-9]+:)+[0-9]+) ([-.:A-Za-z_0-9]*) kernel: \[[ ]*[0-9]+\.[0-9]+\] (DROPPED|ABORTED|LIMITED) ((IN=([-.:A-Za-z_0-9]*)|OUT=([-.:A-Za-z_0-9]*)|MAC=([-.:A-Za-z_0-9]*)|SRC=([-.:A-Za-z_0-9]*)|DST=([-.:A-Za-z_0-9]*)) )+.* PROTO=([-.:A-Za-z_0-9]*)(.* SPT=([-.:A-Za-z_0-9]*) DPT=([-.:A-Za-z_0-9]*))?"/>
 	<property name="jargs.jit.ribose" value="-XX:CompileCommandFile=etc/jit/ribose.jit"/>
 	<property name="jargs.gc.ribose" value=""/>
 -->
@@ -254,9 +255,9 @@
 		<delete quiet="true" file="${build.test}/LinuxKernel.jrte.out"/>
 		<delete quiet="true" file="${build.test}/LinuxKernelLoose.jrte.out"/>
 		<delete quiet="true" file="${build.test}/LinuxKernelStrict.jrte.out"/>
-		<java fork="true" dir="." classname="com.characterforming.ribose.TRun" classpathref="jrte.classpath" failonerror="true" output="${build.test}/LinuxKernel.regex.out">
-				<jvmarg line="-ea -Dregex.out.enabled=true ${jargs.jit.ribose}"/>
-				<arg line="--nil LinuxKernel test-patterns/inputs/kern-10.log ${build.patterns}/BaseTarget.model"/>
+		<java fork="true" dir="." classname="com.characterforming.jrte.test.FileRunner" classpathref="test.classpath" failonerror="true" output="${build.test}/LinuxKernel.regex.out">
+			<jvmarg line="-ea -Djrte.out.enabled=false -Dregex.out.enabled=true ${jargs.jit.ribose}"/>
+			<arg line="--nil LinuxKernel test-patterns/inputs/kern-10.log ${build.patterns}/BaseTarget.model &quot;${regex.linux.kernel}&quot;" />
 		</java>
 		<exec failonerror="true" executable="/usr/bin/wc">
 			<arg line="${build.test}/LinuxKernel.regex.out"/>
