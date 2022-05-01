@@ -56,7 +56,7 @@ $ for n in '' 0 00 000 0000 00000 000000 0000000 00000000 000000000 0000000000; 
 ```
 This is _pattern-oriented programming_ and there is nothing poetic about it. It is based almost entirely on semi-ring algebra, so patterns can be expressed and  manipulated algebraically. When domain concerns escape the semi-ring we add a transducer stack and extend the range of applicable use cases to include context-free input structures and continue. The addition of an input stack allows transduction processes to inject media into the input stream, extending the range of potential use cases into context-sensitive territory (eg, the Fibonacci transducer maps the dull monoid **0*** onto the context-sensitive Fibonacci series). Similar advantages accrue from applying pattern algebra in other symbolic domains. Complex real-time control systems that effect rule-based governance can be expressed concisely as transducer patterns mapping event flows to control actions that effect governance.
 
-To build the ribose artifacts in the `jars/` folder use `ant -f build.xml ribose`, or `ant -f build.xml all-clean` to build ribose and run the test suites. 
+Run `ant -f build.xml` with the `ribose` target to build the ribose library in the `jars/` folder. The `test-ci` target builds ribose and runs the CI test suite.
 
 To learn how to harness ribose in development workflows, see the tutorial and examples on the [ribose wiki](https://github.com/jrte/ribose/wiki).
 
