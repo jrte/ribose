@@ -141,16 +141,19 @@
 		<copy file="LICENSE" todir="${build.java.classes}"/>
 		<copy file="LICENSE-gpl-3.0" todir="${build.java.classes}"/>
 		<copy file="LICENSE-lgpl-3.0" todir="${build.java.classes}"/>
-		<echo file="${build.java.classes}/VERSION" message="Version:" append="false"/>
-		<echo file="${build.java.classes}/VERSION" message="${ribose.version}" append="true"/>
-		<echo file="${build.java.classes}/VERSION" message="Git branch:" append="true"/>
-		<exec append="true" output="${build.java.classes}/VERSION" executable="/usr/bin/git">
-			<arg line="log -1 --format='%H'"/>
+		<exec outputproperty="git.branch" executable="/usr/bin/git">
+			<arg line="branch --show-current"/>
 		</exec>
 		<echo file="${build.java.classes}/VERSION" message="Git commit:" append="true"/>
-		<exec append="true" output="${build.java.classes}/VERSION" executable="/usr/bin/git">
+		<exec outputproperty="git.commit" executable="/usr/bin/git">
 			<arg line="log -1 --format='%H'"/>
 		</exec>
+		<echo message="Version: ${ribose.version}"/>
+		<echo message="Git branch:${git.branch}"/>
+		<echo message="Git commit:${git.commit}"/>
+		<echo file="${build.java.classes}/VERSION" message="Version: ${ribose.version}" append="false"/>
+		<echo file="${build.java.classes}/VERSION" message="Git branch:${git.branch}" append="true"/>
+		<echo file="${build.java.classes}/VERSION" message="Git commit:${git.commit}" append="true"/>
 		<jar basedir="${build.java.classes}" destfile="${jars.dir}/${ribose.version}.jar"/>
 	</target>
 

@@ -30,7 +30,7 @@ import com.characterforming.ribose.ITransductor;
  * @author Kim Briggs
  */
 public class Base {
-	public static String RTE_VERSION = "ribose-HEAD";
+	public static String RTE_VERSION = "ribose-0.0.0";
 
 	public static final String RTE_LOGGER_NAME = "ribose-runtime";
 	public static final String RTC_LOGGER_NAME = "ribose-compile";
