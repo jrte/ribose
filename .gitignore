@@ -12,4 +12,6 @@ java_pid*
 *.dfa
 *.pr
 *.last
+.classpath
+.project
 TRun.*
