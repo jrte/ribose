@@ -3,7 +3,6 @@ build/
 javadoc/
 jars/*.jar
 local/
-.settings/
 java_pid*
 **/.fuse_hidden*
 *.gz
@@ -12,6 +11,7 @@ java_pid*
 *.dfa
 *.pr
 *.last
+.settings/
 .classpath
 .project
 TRun.*
