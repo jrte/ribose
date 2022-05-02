@@ -1,8 +1,11 @@
 #! /bin/bash
-for i in $(seq $1); do
-	g="./TRun.model"
-	i="test-patterns/inputs/kern-10.log"
-	d="-Djrte.out.enabled=false -Dregex.out.enabled=false"
-	c="jars/ribose-0.0.0.jar:jars/ribose-0.0.0-test.jar"
-	java $d -Dfile.encoding=UTF-8 -classpath $c com.characterforming.jrte.test.FileRunner --nil $2 "$i" "$g" "$@"
+n=$1
+t=$2
+shift 2
+g="./TRun.model"
+i="test-patterns/inputs/kern-10.log"
+d="-Djrte.out.enabled=false -Dregex.out.enabled=false"
+c="jars/ribose-0.0.0.jar:jars/ribose-0.0.0-test.jar"
+for i in $(seq $n); do
+	java $d -Dfile.encoding=UTF-8 -classpath $c com.characterforming.jrte.test.FileRunner --nil $t "$i" "$g" "$@"
 done

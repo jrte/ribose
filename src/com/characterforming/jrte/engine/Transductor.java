@@ -271,6 +271,7 @@ public final class Transductor implements ITransductor, ITarget, IOutput {
 	@Override
 	public Status stop() {
 		if (this.inputStack != null) {
+			this.inputStack.unmark();
 			while (!this.inputStack.isEmpty()) {
 				this.inputStack.pop();
 			}
@@ -451,9 +452,7 @@ I:				do {
 							break;
 						}
 						case RTE_EFFECTOR_MARK:
-							if (this.inputStack.mark()) {
-								effect |= IEffector.RTE_EFFECT_PUSH;
-							}
+							this.inputStack.mark();
 							break;
 						case RTE_EFFECTOR_RESET:
 							if (this.inputStack.reset()) {

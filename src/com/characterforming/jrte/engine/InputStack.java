@@ -25,7 +25,6 @@ import java.util.Arrays;
 import java.util.LinkedList;
 
 import com.characterforming.ribose.base.Base;
-import com.characterforming.ribose.base.EffectorException;
 
 /**
  * @author Kim Briggs
@@ -68,8 +67,7 @@ final class InputStack {
 	 * @param data The data to push for immediate transduction
 	 */
 	Input push(byte[] data) {
-		int mark = (this.tos < 0 && this.stack[0].mark == this.stack[0].limit)
-			? 0 : -1;
+		int mark = (this.tos < 0 && this.stack[0].mark < -1) ? 0 : -1;
 		Input top = this.stackcheck();
 		top.array = data;
 		top.limit = top.length = top.array.length;
@@ -127,19 +125,24 @@ final class InputStack {
 	 * @return The item on top of the stack after the pop
 	 */
 	Input pop() {
-		Input popped = this.peek();
-		if (popped != null) {
-			if (this.tos == 0) {
-				if (popped.hasMark()) {
-					assert this.marked.isEmpty();
-					this.marked.addFirst(new Input(popped));
-				} else if (!this.marked.isEmpty()) {
-					assert !popped.hasMark();
-					this.marked.addFirst(new Input(popped));
-				}
+ 		Input top = this.peek();
+		while (top != null && !top.hasRemaining()) {
+			top = --this.tos >= 0 ? this.stack[this.tos] : null;
+		}
+		if (this.tos <= 0 && this.stack[0].mark >= 0) {
+			this.tos = 0;
+			top = this.stack[0];
+			top.position = top.mark;
+			top.mark = -1;
+			if (top.hasRemaining()) {
+				this.marked.addLast(new Input(top));
 			}
-			assert (this.tos == 0) || popped.mark == -1;
-			--this.tos;
+			if (!this.marked.isEmpty()) {
+				for (Input input : this.marked) {
+					this.push(input);
+				}
+				this.unmark();
+			}
 		}
 		return this.peek();
 	}
@@ -167,52 +170,29 @@ final class InputStack {
 	 * Create a mark point. This will be retained until {@code reset()}
 	 * or {@code unmark()} is called. 
 	 */
-	boolean mark() {
-		boolean popped = false;
-		Input top = this.peek();
-		while (this.tos >= 0 && !top.hasRemaining()) {
-			top = this.pop();
-			popped = true;
-		}
-		if (top != null && this.tos == 0) {
-			top.mark = top.position;
+	void mark() {
+		if (this.tos >= 0) {
+			this.stack[0].mark = -1*(2 + this.stack[0].position);
 			this.marked.clear();
-		} else if (top == null) {
-			assert this.stack[0].position == this.stack[0].limit;
-			this.stack[0].mark = this.stack[0].position;
 		}
-		return popped;
 	}
 	
 	/** 
-	 * Create a mark point. This will be retained until {@code reset()}
-	 * or {@code unmark()} is called. 
+	 * Reset position in marked frame to a mark point. The reset will be 
+	 * effected if/when the marked frame is/becomes top frame. 
 	 * 
-	 * @param input
-	 * @return true if the stack pointer changed
+	 * @return true if reset effected immediately
 	 */
 	boolean reset() {
-		boolean popped = false;
-		Input top = this.peek();
-		while (this.tos > 0 && !top.hasRemaining()) {
-			top = this.pop();
-			popped = true;
-		}
-		if (top != null && (top.hasMark() || !this.marked.isEmpty())) {
-			if (top.hasMark() || top.position < top.limit) {
-				this.marked.addFirst(new Input(top));
-			}
-			--this.tos;
-			if (!this.marked.isEmpty()) {
-				for (Input input : this.marked) {
-					input.position = Math.max(0, input.mark);
-					this.push(input);
-				}
-				this.marked.clear();
+		if (this.tos >= 0 && this.stack[0].mark < -1) {
+			this.stack[0].mark = -1*(this.stack[0].mark + 2);
+			if (this.tos == 0) {
+				this.stack[0].position = this.stack[0].mark;
+				this.stack[0].mark = -1;
 				return true;
 			}
 		}
-		return popped;
+		return false;
 	}
 	
 	/** 
@@ -222,24 +202,19 @@ final class InputStack {
 	 * @param input
 	 * @return true if the stack pointer changed
 	 */
-	void unmark() throws EffectorException {
-		if (this.tos >= 0) {
-			this.peek().mark = -1;
-		}
+	void unmark() {
+		this.stack[0].mark = -1;
 		this.marked.clear();
 	}
 	
 	/**
 	 * Check for marked input
 	 * 
-	 * @return true if any input frame is marked
+	 * @return true if input is marked
 	 */
 	boolean hasMark() {
-		if (this.tos >= 0) {
-			return (this.peek().mark >= 0) || !this.marked.isEmpty();
-			}
-		return false;
-		}
+		return this.tos >= 0 && this.stack[0].mark < -1;
+	}
 
 	/**
 	 * Get the number of items on the stack

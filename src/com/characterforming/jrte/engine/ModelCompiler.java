@@ -41,6 +41,7 @@ import com.characterforming.ribose.ITarget;
 import com.characterforming.ribose.ITransductor;
 import com.characterforming.ribose.ITransductor.Status;
 import com.characterforming.ribose.Ribose;
+import com.characterforming.ribose.TCompile;
 import com.characterforming.ribose.base.Base;
 import com.characterforming.ribose.base.BaseEffector;
 import com.characterforming.ribose.base.Bytes;
@@ -53,12 +54,38 @@ import com.characterforming.ribose.base.TargetBindingException;
 
 public class ModelCompiler implements ITarget {
 
+	protected final Model model;
+	private static final long VERSION = 210;
+	private final ArrayList<String> errors;
+	private Bytes transducerName;
+	private ITransductor transductor;
+	private HashMap<Integer, Integer>[] stateMaps;
+	private HashMap<Integer, ArrayList<Transition>> stateTransitionMap;
+	private HashMap<Ints, Integer> effectorVectorMap;
+	private ArrayList<Integer> effectorVectorList;
+	private Header header = null;
+	private Transition transitions[] = null;
+	private int[] inputEquivalenceIndex;
+	private int[][][] kernelMatrix;
+	private int transition = 0;
+
+	protected ModelCompiler() {
+		this(null);
+	}
+
+	protected ModelCompiler(final Model model) {
+		this.model = model;
+		this.transductor = null;
+		this.errors = new ArrayList<String>();
+		this.reset();
+	}
+	
 	public static boolean compileAutomata(Model targetModel, File inrAutomataDirectory) throws ModelException, RiboseException {
 		File workingDirectory = new File(System.getProperty("user.dir"));
-		File compilerModelFile = new File(workingDirectory, "ModelCompiler.model");
+		File compilerModelFile = new File(workingDirectory, "TCompile.model");
 		try {
-			ModelCompiler compiler = new ModelCompiler(targetModel);
-			IRuntime compilerRuntime = Ribose.loadRiboseRuntime(compilerModelFile, new ModelCompiler());
+			TCompile compiler = new TCompile(targetModel);
+			IRuntime compilerRuntime = Ribose.loadRiboseRuntime(compilerModelFile, new TCompile());
 			ITransductor transductor = compilerRuntime.newTransductor(compiler);
 			compiler.setTransductor(transductor);
 			for (final String filename : inrAutomataDirectory.list()) {
@@ -310,32 +337,6 @@ public class ModelCompiler implements ITarget {
 		}
 	}
 
-	protected final Model model;
-	private static final long VERSION = 210;
-	private final ArrayList<String> errors;
-	private Bytes transducerName;
-	private ITransductor transductor;
-	private HashMap<Integer, Integer>[] stateMaps;
-	private HashMap<Integer, ArrayList<Transition>> stateTransitionMap;
-	private HashMap<Ints, Integer> effectorVectorMap;
-	private ArrayList<Integer> effectorVectorList;
-	private Header header = null;
-	private Transition transitions[] = null;
-	private int[] inputEquivalenceIndex;
-	private int[][][] kernelMatrix;
-	private int transition = 0;
-
-	public ModelCompiler() {
-		this(null);
-	}
-
-	public ModelCompiler(final Model model) {
-		this.model = model;
-		this.transductor = null;
-		this.errors = new ArrayList<String>();
-		this.reset();
-	}
-	
 	@Override
 	public String getName() {
 		return this.getClass().getSimpleName();
@@ -350,7 +351,7 @@ public class ModelCompiler implements ITarget {
 		};
 	}
 
-	private void setTransductor(ITransductor transductor) {
+	protected void setTransductor(ITransductor transductor) {
 		this.transductor = transductor;
 	}
 	
@@ -369,7 +370,7 @@ public class ModelCompiler implements ITarget {
 	}
 	
 	@SuppressWarnings("unchecked")
-	private boolean compile(File inrFile) throws ModelException {
+	protected boolean compile(File inrFile) throws ModelException {
 		this.reset();
 		String name = inrFile.getName();
 		name = name.substring(0, name.length() - Base.AUTOMATON_FILE_SUFFIX.length());
@@ -550,7 +551,7 @@ public class ModelCompiler implements ITarget {
 		return null;
 	}
 
-	private ArrayList<String> getErrors() {
+	protected ArrayList<String> getErrors() {
 		return this.errors;
 	}
 

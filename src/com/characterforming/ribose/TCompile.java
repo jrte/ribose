@@ -3,6 +3,7 @@ package com.characterforming.ribose;
 import java.io.File;
 import java.util.logging.Level;
 
+import com.characterforming.jrte.engine.Model;
 import com.characterforming.jrte.engine.ModelCompiler;
 import com.characterforming.ribose.base.Base;
 
@@ -18,6 +19,22 @@ import com.characterforming.ribose.base.Base;
  * </table>
  */
 public final class TCompile extends ModelCompiler implements ITarget {
+	/**
+	 * Constructor (as model target for compilation of TCompile.model)
+	 */
+	public TCompile() {
+		super();
+	}
+	
+	/**
+	 * Constructor (as runtime target to build from Automaton.dfa and persist to TCompile.model)
+	 * 
+	 * @param targetModel the TCompile model instance to be constructed and persisted
+	 */
+	public TCompile(Model targetModel) {
+		super(targetModel);
+	}
+
 	/**
 	 * Runs the ribose runtime compiler to build a runtime model for a target 
 	 * class from a collection of ginr automata generated from ribose patterns.
