@@ -54,14 +54,14 @@ public abstract class BaseParameterizedEffector<T extends ITarget, P> extends Ba
 
 	/*
 	 * (non-Javadoc)
-	 * @see com.characterforming.jrte.engine.IParameterizedEffector#newParameters()
+	 * @see com.characterforming.ribose.IParameterizedEffector#newParameters(int)
 	 */
 	@Override
 	public abstract void newParameters(int parameterCount);
 
 	/*
 	 * (non-Javadoc)
-	 * @see com.characterforming.jrte.engine.IParameterizedEffector#newParameters()
+	 * @see com.characterforming.ribose.IParameterizedEffector#getParameterCount()
 	 */
 	@Override
 	public int getParameterCount() {
@@ -71,16 +71,14 @@ public abstract class BaseParameterizedEffector<T extends ITarget, P> extends Ba
 
 	/*
 	 * (non-Javadoc)
-	 * @see
-	 * com.characterforming.jrte.engine.IParameterizedEffector#setParameter(int,
-	 * Charset, byte[][])
+	 * @see com.characterforming.ribose.IParameterizedEffector#compileParameter(int, byte[][])
 	 */
 	@Override
 	public abstract P compileParameter(int parameterIndex, byte[][] parameterList) throws TargetBindingException;
 
 	/*
 	 * (non-Javadoc)
-	 * @see com.characterforming.jrte.engine.IParameterizedEffector#setParameters()
+	 * @see com.characterforming.ribose.IParameterizedEffector#setParameter(int, Object)
 	 */
 	@Override
 	@SuppressWarnings("unchecked")
@@ -91,7 +89,7 @@ public abstract class BaseParameterizedEffector<T extends ITarget, P> extends Ba
 	/*
 	 * (non-Javadoc)
 	 * @see
-	 * com.characterforming.jrte.engine.IParameterizedEffector#getParameter()
+	 * com.characterforming.ribose.IParameterizedEffector#getParameter(int)
 	 */
 	@Override
 	public P getParameter(final int parameterIndex) {
@@ -100,7 +98,7 @@ public abstract class BaseParameterizedEffector<T extends ITarget, P> extends Ba
 	
 	/*
 	 * (non-Javadoc)
-	 * @see com.characterforming.jrte.engine.IParameterizedEffector#invoke(int)
+	 * @see com.characterforming.ribose.IParameterizedEffector#invoke(int)
 	 */
 	@Override
 	public abstract int invoke(int parameterIndex) throws EffectorException;

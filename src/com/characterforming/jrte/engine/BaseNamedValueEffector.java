@@ -46,22 +46,21 @@ abstract class BaseNamedValueEffector extends BaseParameterizedEffector<Transduc
 
 	/*
 	 * (non-Javadoc)
-	 * @see com.characterforming.jrte.engine.IParameterizedEffector#invoke(int)
+	 * @see com.characterforming.ribose.IParameterizedEffector#invoke(int)
 	 */
 	@Override
 	public abstract int invoke(int parameterIndex) throws EffectorException;
 
 	/*
 	 * (non-Javadoc)
-	 * @see com.characterforming.jrte.engine.IParameterizedEffector#invoke()
+	 * @see com.characterforming.ribose.IParameterizedEffector#invoke()
 	 */
 	@Override
 	public abstract int invoke() throws EffectorException;
 
 	/*
 	 * (non-Javadoc)
-	 * @see
-	 * com.characterforming.jrte.engine.IParameterizedEffector#newParameters()
+	 * @see com.characterforming.ribose.IParameterizedEffector#newParameters(int)
 	 */
 	@Override
 	public void newParameters(int parameterCount) {
@@ -70,8 +69,7 @@ abstract class BaseNamedValueEffector extends BaseParameterizedEffector<Transduc
 
 	/*
 	 * (non-Javadoc)
-	 * @see
-	 * com.characterforming.jrte.engine.IParameterizedEffector#newParameters()
+	 * @see com.characterforming.ribose.IParameterizedEffector#newParameters(int)
 	 */
 	@Override
 	public Integer getParameter(int parameterOrdinal) {
@@ -80,9 +78,7 @@ abstract class BaseNamedValueEffector extends BaseParameterizedEffector<Transduc
 
 	/*
 	 * (non-Javadoc)
-	 * @see
-	 * com.characterforming.jrte.engine.IParameterizedEffector#setParameter(int,
-	 * byte[][])
+	 * @see com.characterforming.ribose.IParameterizedEffector#setParameter(int, byte[][])
 	 */
 	@Override
 	public Integer compileParameter(final int parameterIndex, final byte[][] parameterList) throws TargetBindingException {

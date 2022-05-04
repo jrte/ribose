@@ -80,14 +80,12 @@ public class ModelCompiler implements ITarget {
 		this.reset();
 	}
 	
-	public static boolean compileAutomata(Model targetModel, File inrAutomataDirectory) throws ModelException, RiboseException {
+	public static boolean compileAutomata(Model targetModel, File inrAutomataDirectory) throws ModelException {
 		File workingDirectory = new File(System.getProperty("user.dir"));
 		File compilerModelFile = new File(workingDirectory, "TCompile.model");
-		try {
+		try (IRuntime compilerRuntime = Ribose.loadRiboseRuntime(compilerModelFile, new TCompile())) {
 			TCompile compiler = new TCompile(targetModel);
-			IRuntime compilerRuntime = Ribose.loadRiboseRuntime(compilerModelFile, new TCompile());
-			ITransductor transductor = compilerRuntime.newTransductor(compiler);
-			compiler.setTransductor(transductor);
+			compiler.setTransductor(compilerRuntime.newTransductor(compiler));
 			for (final String filename : inrAutomataDirectory.list()) {
 				if (!filename.endsWith(Base.AUTOMATON_FILE_SUFFIX)) {
 					continue;
@@ -110,7 +108,7 @@ public class ModelCompiler implements ITarget {
 				}
 			}
 			return compiler.getErrors().isEmpty();
-		} catch (Exception e) {
+		} catch (ModelException e) {
 			String msg = String.format("Exception caught compiling automata directrory '%1$s'", inrAutomataDirectory.getPath());
 			Model.rtcLogger.log(Level.SEVERE, msg, e);
 			return false;

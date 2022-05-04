@@ -66,7 +66,7 @@ class NamedValue implements INamedValue {
 
 	/*
 	 * (non-Javadoc)
-	 * @see com.characterforming.jrte.engine.INamedValue#getName()
+	 * @see com.characterforming.ribose.INamedValue#getName()
 	 */
 	@Override
 	public Bytes getName() {
@@ -75,7 +75,7 @@ class NamedValue implements INamedValue {
 
 	/*
 	 * (non-Javadoc)
-	 * @see com.characterforming.jrte.engine.INamedValue#getOrdinal()
+	 * @see com.characterforming.ribose.INamedValue#getOrdinal()
 	 */
 	@Override
 	public int getOrdinal() {
@@ -84,18 +84,26 @@ class NamedValue implements INamedValue {
 
 	/*
 	 * (non-Javadoc)
-	 * @see com.characterforming.jrte.engine.INamedValue#getLength()
+	 * @see com.characterforming.ribose.INamedValue#getLength()
 	 */
 	@Override
 	public int getLength() {
 		return this.length;
 	}
 	
+	/*
+	 * (non-Javadoc)
+	 * @see com.characterforming.ribose.INamedValue#copyValue()
+	 */
 	@Override
 	public byte[] copyValue() {
 		return Arrays.copyOf(this.value, this.length);
 	}
 
+	/*
+	 * (non-Javadoc)
+	 * @see com.characterforming.ribose.INamedValue#decodeValue()
+	 */
 	@Override
 	public char[] decodeValue() {
 		CharBuffer buffer = Bytes.charset.decode(ByteBuffer.wrap(this.value, 0, this.getLength()));
@@ -104,11 +112,19 @@ class NamedValue implements INamedValue {
 		return chars;
 	}
 
+	/*
+	 * (non-Javadoc)
+	 * @see com.characterforming.ribose.INamedValue#asString()
+	 */
 	@Override
 	public String asString() {
 		return Bytes.decode(this.value, this.getLength());
 	}
 	
+	/*
+	 * (non-Javadoc)
+	 * @see com.characterforming.ribose.INamedValue#asInteger()
+	 */
 	@Override
 	public long asInteger() {
 		long integer = 0;
@@ -125,6 +141,10 @@ class NamedValue implements INamedValue {
 		return sign * integer;
 	}
 	
+	/*
+	 * (non-Javadoc)
+	 * @see com.characterforming.ribose.INamedValue#asReal()
+	 */
 	@Override
 	public double asReal() {
 		int mark = 0;

@@ -6,12 +6,22 @@ import java.util.logging.Level;
 import com.characterforming.jrte.engine.Model;
 import com.characterforming.jrte.engine.ModelCompiler;
 import com.characterforming.ribose.base.Base;
+import com.characterforming.ribose.base.TargetBindingException;
 
 /**
- * Runs the ribose runtime compiler to build a runtime model for a target 
+ * The ribose model compiler is a transducer of ginr DFAs as represented in {@code dfamin:save}
+ * format in {@code *.dfa} files. As such it is contained in a compiler model, for which this
+ * class is the model target class.
+ * <p/>
+ * The default constructor {@link TCompile()} is used only when building a new compiler model. In 
+ * that context is serves as model target only to present its effectors and compile effector
+ * paramters. The {@link TCompile(Model)} constructor instantiates a runtime instance of the
+ * model compiler to compile a ribose model for domain-specifi0 target and related transducers.
+ * <p/>
+ * Main method runs the ribose runtime compiler to build a runtime model for a target 
  * class from a collection of ginr automata generated from ribose patterns.
  * <p/>
- * Usage: <pre class="code">java -cp Jrte.jar com.characterforming.ribose.Tcompile &lt;target&gt; &lt;automata&gt; &lt;model&gt;</pre>
+ * Usage: <pre class="code">java -cp ribose.0.0.0.jar com.characterforming.ribose.Tcompile &lt;target&gt; &lt;automata&gt; &lt;model&gt;</pre>
  * <table>
  * <tr><td align="right"><i>target</i></td><td>Fully qualified name of the model target class.</tr>
  * <tr><td align="right"><i>automata</i></td><td>The path to the directory containing automata to include in the model.</tr>
@@ -33,6 +43,26 @@ public final class TCompile extends ModelCompiler implements ITarget {
 	 */
 	public TCompile(Model targetModel) {
 		super(targetModel);
+	}
+	
+	/*
+	 * (non-Javadoc)
+	 * @see
+	 * com.characterforming.ribose.ITarget#bindeEffectors()
+	 */
+	@Override
+	public IEffector<?>[] bindEffectors() throws TargetBindingException {
+		return super.bindEffectors();
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * @see
+	 * com.characterforming.ribose.ITarget#getName()
+	 */
+	@Override
+	public String getName() {
+		return this.getClass().getSimpleName();
 	}
 
 	/**

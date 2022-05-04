@@ -43,14 +43,14 @@ abstract class BaseInputOutputEffector extends BaseParameterizedEffector<Transdu
 
 	/*
 	 * (non-Javadoc)
-	 * @see com.characterforming.jrte.engine.IParameterizedEffector#invoke(int)
+	 * @see com.characterforming.ribose.IParameterizedEffector#invoke(int)
 	 */
 	@Override
 	public abstract int invoke(int parameterIndex) throws EffectorException;
 
 	/*
 	 * (non-Javadoc)
-	 * @see com.characterforming.jrte.engine.IParameterizedEffector#invoke()
+	 * @see com.characterforming.ribose.IParameterizedEffector#invoke()
 	 */
 	@Override
 	public int invoke() throws EffectorException {
@@ -60,7 +60,7 @@ abstract class BaseInputOutputEffector extends BaseParameterizedEffector<Transdu
 	/*
 	 * (non-Javadoc)
 	 * @see
-	 * com.characterforming.jrte.engine.IParameterizedEffector#newParameters()
+	 * com.characterforming.ribose.IParameterizedEffector#newParameters(int)
 	 */
 	@Override
 	public final void newParameters(final int parameterCount) {
@@ -69,13 +69,13 @@ abstract class BaseInputOutputEffector extends BaseParameterizedEffector<Transdu
 
 	/*
 	 * (non-Javadoc)
-	 * @see com.characterforming.jrte.engine.IParameterizedEffector#setParameter(int, byte[][])
+	 * @see com.characterforming.ribose.IParameterizedEffector#setParameter(int, byte[][])
 	 */
 	@Override
 	public byte[][] compileParameter(final int parameterIndex, final byte[][] parameterList) throws TargetBindingException {
 		if (parameterList.length < 1) {
 			throw new TargetBindingException(String.format("%1$s.%2$s: effector requires at least one parameter", 
-					super.getTarget().getName(), super.getName()));
+				super.getTarget().getName(), super.getName()));
 		}
 		final byte[][] parameter = new byte[parameterList.length][];
 		for (int i = 0; i < parameterList.length; i++) {

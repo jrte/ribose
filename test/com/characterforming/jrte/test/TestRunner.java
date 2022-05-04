@@ -81,35 +81,38 @@ public class TestRunner {
 			"SelectPasteTest", "PasteSpeedTest", "NilPauseTest", "PastePauseTest", "PasteCutTest", "StackTest", "PasteCountTest", "CounterTest", "NilSpeedTest"
 		};
 		final TRun target = new TRun();
-		final IRuntime ribose = Ribose.loadRiboseRuntime(new File(modelPath), target);
-		final ITransductor trex = ribose.newTransductor(target);
-		for (final String test : tests) {
-			long t0 = 0, t1 = 0, t2 = 0;
-			System.out.format("%20s: ", test);
-			for (int i = 0; i < 20; i++) {
-				assert trex.status() == Status.STOPPED;
-				trex.input(abytes);
-				boolean limited = trex.limit(64, (64*1500));
-				trex.signal(Base.Signal.nil.signal());
-				Status status = trex.start(Bytes.encode(test));
-				t0 = System.currentTimeMillis();
-				while (status == Status.RUNNABLE) {
-					status = trex.run();
-					if (limited) {
-						limited = trex.limit(64, (64 * 1500));
+		try (final IRuntime ribose = Ribose.loadRiboseRuntime(new File(modelPath), target)) {
+			final ITransductor trex = ribose.newTransductor(target);
+			for (final String test : tests) {
+				long t0 = 0, t1 = 0, t2 = 0;
+				System.out.format("%20s: ", test);
+				for (int i = 0; i < 20; i++) {
+					assert trex.status() == Status.STOPPED;
+					trex.input(abytes);
+					boolean limited = trex.limit(64, (64*1500));
+					trex.signal(Base.Signal.nil.signal());
+					Status status = trex.start(Bytes.encode(test));
+					t0 = System.currentTimeMillis();
+					while (status == Status.RUNNABLE) {
+						status = trex.run();
+						if (limited) {
+							limited = trex.limit(64, (64 * 1500));
+						}
+					}
+					assert status != Status.NULL;
+					trex.stop();
+					t1 = System.currentTimeMillis() - t0;
+					assert trex.status() == Status.STOPPED;
+					System.out.print(String.format("%4d", t1));
+					if (i >= 10) {
+						t2 += t1;
 					}
 				}
-				assert status != Status.NULL;
-				trex.stop();
-				t1 = System.currentTimeMillis() - t0;
-				assert trex.status() == Status.STOPPED;
-				System.out.print(String.format("%4d", t1));
-				if (i >= 10) {
-					t2 += t1;
-				}
+				double mbps = (t2 > 0) ? ((double)(10000000) / (double)(t2*1024*1024)) * (10*1000) : -1;
+				System.out.println(String.format(" : %7.3f mb/s (bytes)", mbps));
 			}
-			double mbps = (t2 > 0) ? ((double)(10000000) / (double)(t2*1024*1024)) * (10*1000) : -1;
-			System.out.println(String.format(" : %7.3f mb/s (bytes)", mbps));
+		} catch (Exception e) {
+			e.printStackTrace();
 		}
 	}
 

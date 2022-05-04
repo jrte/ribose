@@ -64,7 +64,16 @@
 
 	<target name="init">
 		<tstamp/>
-		<echo message="${ant.version}" />
+		<exec outputproperty="git.branch" executable="/usr/bin/git">
+			<arg line="branch --show-current"/>
+		</exec>
+		<echo file="${build.java.classes}/VERSION" message="Git commit:" append="true"/>
+		<exec outputproperty="git.commit" executable="/usr/bin/git">
+			<arg line="log -1 --format='%H'"/>
+		</exec>
+		<echo message="Version: ${ribose.version}"/>
+		<echo message="Git branch:${git.branch}"/>
+		<echo message="Git commit:${git.commit}"/>
 		<mkdir dir="${build.java.classes}"/>
 		<mkdir dir="${build.java.test}"/>
 		<mkdir dir="${build.patterns.automata}"/>
@@ -80,7 +89,7 @@
 		<echoproperties/>
 	</target>
 		
-	<target name="ribose" depends="init,package-java,package-patterns" 
+	<target name="ribose" depends="init,package-java,package-patterns,javadoc" 
 		description="Clean build for java and patterns"/>
 	
 	<target name="ci-test" depends="clean,ribose,test,javadoc" 
@@ -141,25 +150,15 @@
 		<copy file="LICENSE" todir="${build.java.classes}"/>
 		<copy file="LICENSE-gpl-3.0" todir="${build.java.classes}"/>
 		<copy file="LICENSE-lgpl-3.0" todir="${build.java.classes}"/>
-		<exec outputproperty="git.branch" executable="/usr/bin/git">
-			<arg line="branch --show-current"/>
-		</exec>
-		<echo file="${build.java.classes}/VERSION" message="Git commit:" append="true"/>
-		<exec outputproperty="git.commit" executable="/usr/bin/git">
-			<arg line="log -1 --format='%H'"/>
-		</exec>
-		<echo message="Version: ${ribose.version}"/>
-		<echo message="Git branch:${git.branch}"/>
-		<echo message="Git commit:${git.commit}"/>
-		<echo file="${build.java.classes}/VERSION" message="Version: ${ribose.version}" append="false"/>
-		<echo file="${build.java.classes}/VERSION" message="Git branch:${git.branch}" append="true"/>
-		<echo file="${build.java.classes}/VERSION" message="Git commit:${git.commit}" append="true"/>
+		<echo message="Version: ${ribose.version}" file="${build.java.classes}/VERSION" append="false"/>
+		<echo message="Git branch:${git.branch}" file="${build.java.classes}/VERSION" append="true"/>
+		<echo message="Git commit:${git.commit}" file="${build.java.classes}/VERSION" append="true"/>
 		<jar basedir="${build.java.classes}" destfile="${jars.dir}/${ribose.version}.jar"/>
 	</target>
 
 	<target name="check-javadoc">
-		<uptodate targetfile="${jars.dir}/${ribose.version}.jar" property="javadoc.uptodate">
-			<srcfiles file="${jars.dir}/${ribose.version}.jar"/>
+		<uptodate targetfile="${jars.dir}/${ribose.version}-api.jar" property="javadoc.uptodate">
+			<srcfiles dir="${java.source.dir}" includes="**/*.java"/>
 			<srcfiles dir="etc/javadoc" includes="**/*"/>
 		</uptodate>
 	</target>
@@ -379,6 +378,7 @@
 			</and>
 		</condition>
 		<fail unless="kernel.match" message="^^^ Not identical"/>
+		<echo message="${ant.version}"/>
 		<echo>java -version</echo>
 		<java fork="true" dir="." classname="com.characterforming.ribose.TRun" classpathref="test.classpath">
 			<jvmarg line="-version"/>

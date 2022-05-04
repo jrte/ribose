@@ -84,14 +84,9 @@ public final class Ribose {
 	 * @param riboseRuntimeFile path to the runtime model to load
 	 * @param target the target instance to bind to the runtime model
 	 * @return a live ribose runtime model instance
+	 * @throws ModelException 
 	 */
-	public static IRuntime loadRiboseRuntime(File riboseRuntimeFile, ITarget target) {
-		try {
-			return new Runtime(riboseRuntimeFile, target);
-		} catch (Exception e) {
-			String msg = String.format("Exception loading model '%1$s'", riboseRuntimeFile.getPath());
-			Runtime.rteLogger.log(Level.SEVERE, msg, e);
-		}
-		return null;
+	public static IRuntime loadRiboseRuntime(File riboseRuntimeFile, ITarget target) throws ModelException {
+		return new Runtime(riboseRuntimeFile, target);
 	}	
 }

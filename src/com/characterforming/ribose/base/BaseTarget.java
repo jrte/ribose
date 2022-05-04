@@ -41,7 +41,7 @@ public class BaseTarget implements ITarget {
 
 	/*
 	 * (non-Javadoc)
-	 * @see com.characterforming.jrte.engine.ITarget#bindEffectors(int)
+	 * @see com.characterforming.ribose.ITarget#bindEffectors()
 	 */
 	@Override
 	public IEffector<?>[] bindEffectors() throws TargetBindingException {
@@ -50,10 +50,10 @@ public class BaseTarget implements ITarget {
 
 	/*
 	 * (non-Javadoc)
-	 * @see com.characterforming.jrte.engine.ITarget#getName()
+	 * @see com.characterforming.ribose.ITarget#getName()
 	 */
 	@Override
-	public final String getName() {
+	public String getName() {
 		return this.getClass().getSimpleName();
 	}
 }

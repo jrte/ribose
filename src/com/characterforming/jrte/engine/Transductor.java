@@ -129,7 +129,7 @@ public final class Transductor implements ITransductor, ITarget, IOutput {
 
 	/*
 	 * (non-Javadoc)
-	 * @see com.characterforming.ribose.ITarget#bindEffectors(int)
+	 * @see com.characterforming.ribose.ITarget#bindEffectors()
 	 */
 	@Override
 	public IEffector<?>[] bindEffectors() throws TargetBindingException {
@@ -152,6 +152,10 @@ public final class Transductor implements ITransductor, ITarget, IOutput {
 		};
 	}
 
+	/*
+	 * (non-Javadoc)
+	 * @see com.characterforming.ribose.ITarget#getName()
+	 */
 	@Override
 	public String getName() {
 		return this.getClass().getSimpleName();
@@ -159,7 +163,7 @@ public final class Transductor implements ITransductor, ITarget, IOutput {
 
 	/*
 	 * (non-Javadoc)
-	 * @see com.characterforming.ribose.ITransduction#status()
+	 * @see com.characterforming.ribose.ITransductor#status()
 	 */
 	@Override
 	public Status status() {
@@ -178,7 +182,7 @@ public final class Transductor implements ITransductor, ITarget, IOutput {
 
 	/*
 	 * (non-Javadoc)
-	 * @see com.characterforming.ribose.ITransduction#input(IInput[])
+	 * @see com.characterforming.ribose.ITransductor#input(byte[])
 	 */
 	@Override
 	public Status input(final byte[] input) {
@@ -195,7 +199,7 @@ public final class Transductor implements ITransductor, ITarget, IOutput {
 
 	/*
 	 * (non-Javadoc)
-	 * @see com.characterforming.ribose.ITransduction#input(IInput[])
+	 * @see com.characterforming.ribose.ITransductor#signal(int)
 	 */
 	@Override
 	public Status signal(final int signal) {
@@ -209,7 +213,7 @@ public final class Transductor implements ITransductor, ITarget, IOutput {
 
 	/*
 	 * (non-Javadoc)
-	 * @see com.characterforming.ribose.ITransduction#limit(int, int)
+	 * @see com.characterforming.ribose.ITransductor#hasMark()
 	 */
 	@Override
 	public boolean hasMark() {
@@ -218,7 +222,7 @@ public final class Transductor implements ITransductor, ITarget, IOutput {
 
 	/*
 	 * (non-Javadoc)
-	 * @see com.characterforming.ribose.ITransduction#limit(int, int)
+	 * @see com.characterforming.ribose.ITransductor#limit(int, int)
 	 */
 	@Override
 	public boolean limit(int steps, int until) {
@@ -240,7 +244,7 @@ public final class Transductor implements ITransductor, ITarget, IOutput {
 
 	/*
 	 * (non-Javadoc)
-	 * @see com.characterforming.ribose.ITransduction#start(String)
+	 * @see com.characterforming.ribose.ITransductor#start(Bytes)
 	 */
 	@Override
 	public Status start(final Bytes transducerName) throws ModelException {
@@ -266,7 +270,7 @@ public final class Transductor implements ITransductor, ITarget, IOutput {
 
 	/*
 	 * (non-Javadoc)
-	 * @see com.characterforming.ribose.ITransduction#stop()
+	 * @see com.characterforming.ribose.ITransductor#stop()
 	 */
 	@Override
 	public Status stop() {
@@ -292,7 +296,7 @@ public final class Transductor implements ITransductor, ITarget, IOutput {
 
 	/*
 	 * (non-Javadoc)
-	 * @see com.characterforming.ribose.ITransduction#run()
+	 * @see com.characterforming.ribose.ITransductor#run()
 	 */
 	@Override
 	public Status run() throws RiboseException, DomainErrorException {
@@ -505,6 +509,10 @@ I:				do {
 		return this.status();
 	}
 
+	/*
+	 * (non-Javadoc)
+	 * @see com.characterforming.ribose.IOutput#getErrorCount()
+	 */
 	@Override
 	public int getErrorCount() {
 		return this.errorCount;

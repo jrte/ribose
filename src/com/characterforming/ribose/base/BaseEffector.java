@@ -59,7 +59,7 @@ public abstract class BaseEffector<T extends ITarget> implements IEffector<T> {
 	
 	/*
 	 * (non-Javadoc)
-	 * @see com.characterforming.ribose.base.IEffector#getName()
+	 * @see com.characterforming.ribose.base.IEffector#setOutput(IOutput)
 	 */
 	@Override
 	public void setOutput(IOutput output) throws TargetBindingException {

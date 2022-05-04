@@ -82,7 +82,7 @@ public final class Runtime implements IRuntime, AutoCloseable {
 	}
 
 	@Override
-	public void close() throws ModelException {
+	public void close() {
 		this.model.close();
 	}
 }

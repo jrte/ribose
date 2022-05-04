@@ -91,7 +91,7 @@ public class FileRunner {
 			int loops;
 			TRun target = new TRun();
 			if (!regexOutEnabled) {
-				try (IRuntime ribose = Ribose.loadRiboseRuntime(new File(modelPath), target);) {
+				try (IRuntime ribose = Ribose.loadRiboseRuntime(new File(modelPath), target)) {
 					ITransductor trex = ribose.newTransductor(target);
 					if (!jrteOutEnabled) {
 						System.out.print(String.format("%20s: ", transducerName));
