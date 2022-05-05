@@ -32,7 +32,7 @@
 	<property name="build.java.test" value="${build.java}/test"/>
 	<property name="build.patterns" value="build/patterns"/>
 	<property name="build.patterns.automata" value="build/patterns/automata"/>
-	<property name="build.test" value="build/patterns/test"/>
+	<property name="build.test" value="build/test"/>
 	<property name="regex.linux.kernel" value="([JFMASOND][a-z]+ [0-9]+ (?:[0-9]+:)+[0-9]+) ([-.:A-Za-z_0-9]*) kernel: \[[ ]*[0-9]+\.[0-9]+\] (DROPPED|ABORTED|LIMITED) IN=([-.:A-Za-z_0-9]*) OUT=([-.:A-Za-z_0-9]*)(?: MAC=([-.:A-Za-z_0-9]*))? SRC=([-.:A-Za-z_0-9]*) DST=([-.:A-Za-z_0-9]*).* PROTO=([-.:A-Za-z_0-9]*)(?:.* SPT=([-.:A-Za-z_0-9]*) DPT=([-.:A-Za-z_0-9]*))?"/>
 	<property name="jargs.jit.ribose" value=""/>
 <!--
@@ -89,15 +89,15 @@
 		<echoproperties/>
 	</target>
 		
-	<target name="ribose" depends="init,package-java,package-patterns,javadoc" 
+	<target name="ribose" depends="init,package-java,build-compiler-model,javadoc" 
 		description="Clean build for java and patterns"/>
 	
-	<target name="ci-test" depends="clean,ribose,test,javadoc" 
+	<target name="ci-test" depends="clean,test" 
 		description="Full build with CI tests for java and patterns"/>
 	
 	<target name="build-compiler-model" unless="tcompile.uptodate" depends="package-java">
 		<exec failonerror="true" executable="/bin/bash">
-			<arg line="etc/sh/patterns patterns/ribose alpha.inr after.inr build/ribose/automata"/>
+			<arg line="etc/sh/patterns patterns/ribose patterns/alpha.inr patterns/after.inr build/ribose/automata"/>
 		</exec>
 		<java fork="true" dir ="." classname="com.characterforming.ribose.TCompile" classpathref="jrte.classpath" failonerror="true">
 			<jvmarg line="-ea"/>
@@ -122,7 +122,7 @@
 
 	<target name="clean-patterns">
 		<delete dir="${build.patterns}" quiet="true"/>
-		<delete file="./TRun.model" quiet="true"/>
+		<delete file="build/Test.model" quiet="true"/>
 	</target>
 
 	<target name="clean-test">
@@ -183,38 +183,38 @@
 		<jar basedir="javadoc" destfile="jars/${ribose.version}-api.jar"/>
 	</target>
 
-	<target name="check-compile-patterns">
-		<uptodate targetfile="./TRun.model" property="patterns.jar.uptodate">
+	<target name="check-test-patterns" depends="ribose">
+		<uptodate targetfile="build/Test.model" property="test.patterns.jar.uptodate">
 			<srcfiles file="${jars.dir}/${ribose.version}.jar"/>
 		</uptodate>
-		<uptodate targetfile="./TRun.model" property="patterns.model.uptodate">
+		<uptodate targetfile="build/Test.model" property="test.patterns.inr.uptodate">
 			<srcfiles dir="patterns/test" includes="**/*.inr"/>
 		</uptodate>
-		<condition property="patterns.uptodate">
+		<condition property="test.patterns.uptodate">
 			<and>
-				<isset property="patterns.jar.uptodate"/>
-				<isset property="patterns.model.uptodate"/>
+				<isset property="test.patterns.jar.uptodate"/>
+				<isset property="test.patterns.inr.uptodate"/>
 			</and>
 		</condition>
 	</target>
 
-	<target name="compile-patterns" depends="init,check-compile-patterns" unless="patterns.uptodate">
+	<target name="compile-test-patterns" depends="check-test-patterns" unless="test.patterns.uptodate">
 		<exec failonerror="true" executable="/bin/bash">
-			<arg line="etc/sh/patterns patterns/test alpha.inr after.inr ${build.patterns.automata}"/>
+			<arg line="etc/sh/patterns patterns/test patterns/alpha.inr patterns/after.inr ${build.patterns.automata}"/>
 		</exec>
 	</target>
 
-	<target name="check-package-patterns">
-		<uptodate targetfile="./TRun.model" property="patterns.packaged">
+	<target name="check-package-test-patterns" depends="compile-test-patterns">
+		<uptodate targetfile="build/Test.model" property="patterns.packaged">
 			<srcfiles dir="${build.patterns}" includes="**/*.dfa"/>
-			<srcfiles file="./TRun.model"/>
+			<srcfiles file="build/Test.model"/>
 		</uptodate>
 	</target>
 
-	<target name="package-patterns" depends="build-compiler-model,compile-patterns,check-package-patterns" unless="patterns.packaged">
+	<target name="package-test-patterns" depends="check-package-test-patterns" unless="patterns.packaged">
 		<java fork="true" dir="." classname="com.characterforming.ribose.TCompile" classpathref="jrte.classpath" failonerror="true">
 			<jvmarg line="-ea"/>
-			<arg line="--target com.characterforming.ribose.TRun ${build.patterns.automata} ./TRun.model"/>
+			<arg line="--target com.characterforming.ribose.TRun ${build.patterns.automata} build/Test.model"/>
 		</java>
 	</target>
 	
@@ -245,51 +245,51 @@
 		<jar basedir="${java.source.dir}" destfile="${jars.dir}/${ribose.version}-source.jar"/>
 	</target>
 	
-	<target name="test" depends="ribose,package-test">
+	<target name="test" depends="ribose,package-test-patterns,package-test">
 		<echo>Fibonacci:</echo>
 		<java fork="true" dir="." classname="com.characterforming.ribose.TRun" classpathref="jrte.classpath" failonerror="true">
 			<jvmarg line="-ea -Djrte.out.enabled=true"/>
-			<arg line="--nil Fibonacci patterns/test/inputs/fib.txt ./TRun.model"/>
+			<arg line="--nil Fibonacci patterns/test/inputs/fib.txt build/Test.model"/>
 		</java>
 
 		<echo>DateExtractor:</echo>
 		<java fork="true" dir="." classname="com.characterforming.ribose.TRun" classpathref="jrte.classpath" failonerror="true">
 			<jvmarg line="-ea -Djrte.out.enabled=true"/>
-			<arg line="--nil DateExtractor patterns/test/inputs/dates.txt ./TRun.model"/>
+			<arg line="--nil DateExtractor patterns/test/inputs/dates.txt build/Test.model"/>
 		</java>
 		<echo>TestRunner benchmarking (simple fsts driving base transduction effectors):</echo>
 		<java fork="true" dir="." classname="com.characterforming.jrte.test.TestRunner" classpathref="test.classpath" failonerror="true">
 			<jvmarg line="-ea -Djrte.out.enabled=false -Dregex.out.enabled=false"/>
-			<arg line="./TRun.model 1"/>
+			<arg line="build/Test.model 1"/>
 		</java>
 		<echo>FileRunner benchmarking (fsts for extracting data from noisy inputs, vs similar regex, output muted):</echo>
 		<java fork="true" dir="." classname="com.characterforming.jrte.test.FileRunner" classpathref="test.classpath" failonerror="true">
 			<jvmarg line="-ea -Djrte.out.enabled=false -Dregex.out.enabled=false ${jargs.jit.ribose}"/>
-			<arg line="--nil LinuxKernelNil patterns/test/inputs/kern-10.log ./TRun.model &quot;${regex.linux.kernel}&quot;"/>
+			<arg line="--nil LinuxKernelNil patterns/test/inputs/kern-10.log build/Test.model &quot;${regex.linux.kernel}&quot;"/>
 		</java>
 		<java fork="true" dir="." classname="com.characterforming.jrte.test.FileRunner" classpathref="test.classpath" failonerror="true">
 			<jvmarg line="-ea -Djrte.out.enabled=false -Dregex.out.enabled=false ${jargs.jit.ribose}"/>
-			<arg line="--nil LinuxKernel patterns/test/inputs/kern-10.log ./TRun.model &quot;${regex.linux.kernel}&quot;"/>
+			<arg line="--nil LinuxKernel patterns/test/inputs/kern-10.log build/Test.model &quot;${regex.linux.kernel}&quot;"/>
 		</java>
 		<java fork="true" dir="." classname="com.characterforming.jrte.test.FileRunner" classpathref="test.classpath" failonerror="true">
 			<jvmarg line="-ea -Djrte.out.enabled=false -Dregex.out.enabled=false ${jargs.jit.ribose}"/>
-			<arg line="--nil LinuxKernelLoose patterns/test/inputs/kern-10.log ./TRun.model &quot;${regex.linux.kernel}&quot;"/>
+			<arg line="--nil LinuxKernelLoose patterns/test/inputs/kern-10.log build/Test.model &quot;${regex.linux.kernel}&quot;"/>
 		</java>
 		<java fork="true" dir="." classname="com.characterforming.jrte.test.FileRunner" classpathref="test.classpath" failonerror="true">
 			<jvmarg line="-ea -Djrte.out.enabled=false -Dregex.out.enabled=false ${jargs.jit.ribose}"/>
-			<arg line="--nil LinuxKernelStrict patterns/test/inputs/kern-10.log ./TRun.model &quot;${regex.linux.kernel}&quot;"/>
+			<arg line="--nil LinuxKernelStrict patterns/test/inputs/kern-10.log build/Test.model &quot;${regex.linux.kernel}&quot;"/>
 		</java>
 		<java fork="true" dir="." classname="com.characterforming.jrte.test.FileRunner" classpathref="test.classpath" failonerror="true">
 			<jvmarg line="-ea -Djrte.out.enabled=false -Dregex.out.enabled=false ${jargs.jit.ribose}"/>
-			<arg line="--nil Tintervals patterns/test/inputs/verbosegc.vgc ./TRun.model cycle-start.id=.*type=.*contextid=.*timestamp=.*intervalms=.([0-9]+'.'[0-9]+)[^0-9]"/>
+			<arg line="--nil Tintervals patterns/test/inputs/verbosegc.vgc build/Test.model cycle-start.id=.*type=.*contextid=.*timestamp=.*intervalms=.([0-9]+'.'[0-9]+)[^0-9]"/>
 		</java>
 		<java fork="true" dir="." classname="com.characterforming.jrte.test.FileRunner" classpathref="test.classpath" failonerror="true">
 			<jvmarg line="-ea -Djrte.out.enabled=false -Dregex.out.enabled=false ${jargs.jit.ribose}"/>
-			<arg line="--nil Sintervals patterns/test/inputs/verbosegc.vgc ./TRun.model cycle-start.id=.*type=.*contextid=.*timestamp=.*intervalms=.([0-9]+'.'[0-9]+)[^0-9]"/>
+			<arg line="--nil Sintervals patterns/test/inputs/verbosegc.vgc build/Test.model cycle-start.id=.*type=.*contextid=.*timestamp=.*intervalms=.([0-9]+'.'[0-9]+)[^0-9]"/>
 		</java>
 		<java fork="true" dir="." classname="com.characterforming.jrte.test.FileRunner" classpathref="test.classpath" failonerror="true" output="/dev/null">
 			<jvmarg line="-ea -Djrte.out.enabled=false -Dregex.out.enabled=false ${jargs.jit.ribose}"/>
-			<arg line="--nil Tintervals patterns/test/inputs/verbosegc.vgc ./TRun.model cycle-start.id=.*type=.*contextid=.*timestamp=.*intervalms=.([0-9]+'.'[0-9]+)[^0-9]"/>
+			<arg line="--nil Tintervals patterns/test/inputs/verbosegc.vgc build/Test.model cycle-start.id=.*type=.*contextid=.*timestamp=.*intervalms=.([0-9]+'.'[0-9]+)[^0-9]"/>
 		</java>
 		<echo>Ribose output equivalence tests (lines words bytes path):</echo>
 		<delete quiet="true" file="${build.test}/vgc.regex.out"/>
@@ -302,7 +302,7 @@
 		<echo message="Java Regex (verbosegc.vgc -> vgc.regex.out)"/>
 		<java fork="true" dir="." classname="com.characterforming.jrte.test.FileRunner" classpathref="test.classpath" failonerror="true" output="${build.test}/vgc.regex.out">
 			<jvmarg line="-ea -Djrte.out.enabled=false -Dregex.out.enabled=true ${jargs.jit.ribose}"/>
-			<arg line="--nil Tintervals patterns/test/inputs/verbosegc.vgc ./TRun.model &quot;cycle-start id=.[0-9]+. type=.scavenge. contextid=.[0-9]+. timestamp=.(?:[0-9]+[-.:T])+[0-9]+. intervalms=.([0-9]+.[0-9]+)[^0-9]&quot;"/>
+			<arg line="--nil Tintervals patterns/test/inputs/verbosegc.vgc build/Test.model &quot;cycle-start id=.[0-9]+. type=.scavenge. contextid=.[0-9]+. timestamp=.(?:[0-9]+[-.:T])+[0-9]+. intervalms=.([0-9]+.[0-9]+)[^0-9]&quot;"/>
 		</java>
 		<exec failonerror="true" executable="/usr/bin/wc">
 			<arg line="${build.test}/vgc.regex.out"/>
@@ -310,7 +310,7 @@
 		<echo message="TRun Sintervals (verbosegc.vgc -> vgc.sintervals.out"/>
 		<java fork="true" dir="." classname="com.characterforming.ribose.TRun" classpathref="jrte.classpath" failonerror="true" output="${build.test}/vgc.sintervals.out">
 			<jvmarg line="-ea -Djrte.out.enabled=true -Dregex.out.enabled=false ${jargs.jit.ribose}"/>
-			<arg line="--nil Sintervals patterns/test/inputs/verbosegc.vgc ./TRun.model"/>
+			<arg line="--nil Sintervals patterns/test/inputs/verbosegc.vgc build/Test.model"/>
 		</java>
 		<exec failonerror="true" executable="/usr/bin/wc">
 			<arg line="${build.test}/vgc.sintervals.out"/>
@@ -318,7 +318,7 @@
 		<echo message="TRun Tintervals (verbosegc.vgc -> vgc.tintervals.out"/>
 		<java fork="true" dir="." classname="com.characterforming.ribose.TRun" classpathref="jrte.classpath" failonerror="true" output="${build.test}/vgc.tintervals.out">
 			<jvmarg line="-ea -Djrte.out.enabled=true  ${jargs.jit.ribose}"/>
-			<arg line="--nil Tintervals patterns/test/inputs/verbosegc.vgc ./TRun.model"/>
+			<arg line="--nil Tintervals patterns/test/inputs/verbosegc.vgc build/Test.model"/>
 		</java>
 		<exec failonerror="true" executable="/usr/bin/wc">
 			<arg line="${build.test}/vgc.tintervals.out"/>
@@ -341,7 +341,7 @@
 		<echo message="Java Regex (kern-10.log -> log.regex.out)"/>
 		<java fork="true" dir="." classname="com.characterforming.jrte.test.FileRunner" classpathref="test.classpath" failonerror="true" output="log.regex.out">
 			<jvmarg line="-ea -Djrte.out.enabled=false -Dregex.out.enabled=true ${jargs.jit.ribose}"/>
-			<arg line="--nil LinuxKernel patterns/test/inputs/kern-10.log ./TRun.model &quot;${regex.linux.kernel}&quot;" />
+			<arg line="--nil LinuxKernel patterns/test/inputs/kern-10.log build/Test.model &quot;${regex.linux.kernel}&quot;" />
 		</java>
 		<exec failonerror="true" executable="/usr/bin/wc">
 			<arg line="log.regex.out"/>
@@ -349,7 +349,7 @@
 		<echo message="TRun LinuxKernel (kern-10.log -> log.linuxkernel.out"/>
 		<java fork="true" dir="." classname="com.characterforming.ribose.TRun" classpathref="jrte.classpath" failonerror="true" output="log.linuxkernel.out">
 			<jvmarg line="-ea -Djrte.out.enabled=true ${jargs.jit.ribose}"/>
-			<arg line="--nil LinuxKernel patterns/test/inputs/kern-10.log ./TRun.model"/>
+			<arg line="--nil LinuxKernel patterns/test/inputs/kern-10.log build/Test.model"/>
 		</java>
 		<exec failonerror="true" executable="/usr/bin/wc">
 			<arg line="log.linuxkernel.out"/>
@@ -357,7 +357,7 @@
 		<echo message="TRun LinuxKernelLoose (kern-10.log -> log.linuxkernelloose.out"/>
 		<java fork="true" dir="." classname="com.characterforming.ribose.TRun" classpathref="jrte.classpath" failonerror="true" output="log.linuxkernelloose.out">
 			<jvmarg line="-ea -Djrte.out.enabled=true ${jargs.jit.ribose}"/>
-			<arg line="--nil LinuxKernelLoose patterns/test/inputs/kern-10.log ./TRun.model"/>
+			<arg line="--nil LinuxKernelLoose patterns/test/inputs/kern-10.log build/Test.model"/>
 		</java>
 		<exec failonerror="true" executable="/usr/bin/wc">
 			<arg line="log.linuxkernelloose.out"/>
@@ -365,7 +365,7 @@
 		<echo message="TRun LinuxKernelStrict (kern-10.log -> log.linuxkernelstrict.out"/>
 		<java fork="true" dir="." classname="com.characterforming.ribose.TRun" classpathref="jrte.classpath" failonerror="true" output="log.linuxkernelstrict.out">
 			<jvmarg line="-ea -Djrte.out.enabled=true ${jargs.jit.ribose}"/>
-			<arg line="--nil LinuxKernelStrict patterns/test/inputs/kern-10.log ./TRun.model"/>
+			<arg line="--nil LinuxKernelStrict patterns/test/inputs/kern-10.log build/Test.model"/>
 		</java>
 		<exec failonerror="true" executable="/usr/bin/wc">
 			<arg line="log.linuxkernelstrict.out"/>
@@ -391,23 +391,23 @@
 		<delete failonerror="false" file="/tmp/lscpu.out"/>
 	</target>
 	
-	<target name="test-gc" depends="ribose,package-test">
+	<target name="test-gc" depends="ribose,package-test-patterns,package-test">
 		<echo>JVM Heap (see memory leakage in simple fsts driving base transduction effectors):</echo>
 		<java fork="true" dir="." classname="com.characterforming.jrte.test.TestRunner" classpathref="test.classpath" failonerror="true">
 			<jvmarg line="-ea -Xms12m -Xlog:gc=trace:file=${build.test}/TestRunner-gc.out:uptime -Djrte.out.enabled=false -Dregex.out.enabled=false"/>
-			<arg line="./TRun.model"/>
+			<arg line="build/Test.model"/>
 		</java>
 		<echo message="TestRunner: -Xms12m -Xlog:gc=trace:file=${build.test}/TestRunner-gc.out:uptime"/>
 		<concat><fileset file="${build.test}/TestRunner-gc.out"/></concat>
 		<java fork="true" dir="." classname="com.characterforming.ribose.TRun" classpathref="jrte.classpath" failonerror="true">
 			<jvmarg line="-ea -Xms22m -Xlog:gc=trace:file=${build.test}/LinuxKernel-gc.out:uptime -Djrte.out.enabled=false"/>
-			<arg line="--nil LinuxKernel patterns/test/inputs/kern-10.log ./TRun.model"/>
+			<arg line="--nil LinuxKernel patterns/test/inputs/kern-10.log build/Test.model"/>
 		</java>
 		<echo message="LinuxKernel: -Xms12m -Xlog:gc=trace:file=${build.test}/LinuxKernel-gc.out:uptime"/>
 		<concat><fileset file="${build.test}/LinuxKernel-gc.out"/></concat>
 		<java fork="true" dir="." classname="com.characterforming.ribose.TRun" classpathref="jrte.classpath" failonerror="true">
 			<jvmarg line="-ea -Xms10m -Xlog:gc=trace:file=${build.test}/Tintervals-gc.out:uptime -Djrte.out.enabled=false"/>
-			<arg line="--nil Tintervals patterns/test/inputs/verbosegc.vgc ./TRun.model"/>
+			<arg line="--nil Tintervals patterns/test/inputs/verbosegc.vgc build/Test.model"/>
 		</java>
 		<echo message="Tintervals: -Xms12m -Xlog:gc=trace:file=${build.test}/Tintervals-gc.out:uptime"/>
 		<concat><fileset file="${build.test}/Tintervals-gc.out"/></concat>

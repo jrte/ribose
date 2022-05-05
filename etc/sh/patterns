@@ -1,25 +1,21 @@
 #! /bin/bash
 if (($# != 4)); then
 	echo "Usage: patterns <ginr-source-directory> <prologue-file> <epilogue-file> <dfa-output-directory>"
-	echo "Effect: 'cat <prologue><source-file>.inr<epilogue> | ginr' for each ginr source in <ginr-source-directory>"
-	echo "Compiled automata are placed in <dfa-output-directory>/X.dfa"
-	echo "Trace files including ginr error messages for X.inr are in /tmp/X.inr.out"
+	echo "Effect: 'cat <prologue-file><ginr-source-file>.inr<epilogue-file> | ginr' for each ginr source in <ginr-source-directory>"
+	echo "Compiled automata (*.dfa) are placed in <dfa-output-directory>"
+	echo "Tracing info including ginr error messages for X.inr are wrutten to /tmp/X.inr.out"
 	exit 1
 fi
 if [[ ! -d "$1" ]]; then 
 	echo "Not a directory: $1"
 	exit 1
 fi
-if [[ ! -d "$1" ]]; then 
-	echo "Not a directory: $1"
+if [[ ! -f "$2" ]]; then 
+	echo "Not found: $2"
 	exit 1
 fi
-if [[ ! -f "$1/$2" ]]; then 
-	echo "Not found: $1/$2"
-	exit 1
-fi
-if [[ ! -f "$1/$3" ]]; then 
-	echo "Not found: $1/$3"
+if [[ ! -f "$3" ]]; then 
+	echo "Not found: $3"
 	exit 1
 fi
 if [[ ! -d "$4" ]]; then 
@@ -28,15 +24,15 @@ if [[ ! -d "$4" ]]; then
 fi
 
 src="$1"
-prologue="$1/$2"
-epilogue="$1/$3"
+prologue="$2"
+epilogue="$3"
 out="$4"
 
 failed=0
 echo ":bye;" | etc/ginr/ginr | grep ' '
 for f in "$src"/*.inr; do
 	file=$(basename "$f")
-	if [[ "$f" != "$src/$prologue" && "$f" != "$src/$epilogue" ]]; then
+	if [[ "$f" != "$prologue" && "$f" != "$epilogue" ]]; then
 		name=${file%.inr}
 		cat "$prologue" "$f" "$epilogue" | etc/ginr/ginr &> "/tmp/$file.out"
 		grep '^[ ]*\* \* \*\|^[ ]*\*\*\*\|^Error detected at state [0-9]*:\|^Reserved character:\|^Warning:' "/tmp/$file.out" &> /tmp/errors
