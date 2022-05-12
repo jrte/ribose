@@ -72,7 +72,7 @@ public final class TCompile extends ModelCompiler implements ITarget {
 	 */
 	public static void main(final String[] args) {
 		File ginrAutomataDirectory = null;
-		File riboseRuntimeFile = null;
+		File riboseModelFile = null;
 		String targetClassname = null;
 		Class<?> targetClass = null;
 	
@@ -80,7 +80,7 @@ public final class TCompile extends ModelCompiler implements ITarget {
 		if (argsOk) {
 			targetClassname = args[1];
 			ginrAutomataDirectory = new File(args[2]);
-			riboseRuntimeFile = new File(args[3]);
+			riboseModelFile = new File(args[3]);
 			try {
 				targetClass = Class.forName(targetClassname);
 			} catch (Exception e) {
@@ -91,8 +91,8 @@ public final class TCompile extends ModelCompiler implements ITarget {
 				Ribose.rtcLogger.log(Level.SEVERE, String.format("ginr-automata-dir '%1$s' is not a directory", ginrAutomataDirectory.getPath()));
 				argsOk = false;
 			}
-			if (riboseRuntimeFile.isDirectory()) {
-				Ribose.rtcLogger.log(Level.SEVERE, String.format("model-path '%1$s' is a directory", riboseRuntimeFile.getPath()));
+			if (riboseModelFile.isDirectory()) {
+				Ribose.rtcLogger.log(Level.SEVERE, String.format("model-path '%1$s' is a directory", riboseModelFile.getPath()));
 				argsOk = false;
 			}
 		}
@@ -108,11 +108,11 @@ public final class TCompile extends ModelCompiler implements ITarget {
 			System.exit(1);
 		}
 		System.out.println(String.format("Ribose runtime compiler version %1$s%2$sCopyright (C) 2011,2022 Kim Briggs%2$sDistributed under GPLv3 (http://www.gnu.org/licenses/gpl-3.0.txt)", Base.RTE_VERSION, System.getProperty("line.separator")));
-		System.out.println(String.format("Compiling %1$s to runtime file %2$s", ginrAutomataDirectory.getPath(), riboseRuntimeFile.getPath()));
+		System.out.println(String.format("Compiling %1$s to runtime file %2$s", ginrAutomataDirectory.getPath(), riboseModelFile.getPath()));
 		
 		int exitCode = 0;
 		try {
-			if (!Ribose.compileRiboseRuntime(targetClass, ginrAutomataDirectory, riboseRuntimeFile)) {
+			if (!Ribose.compileRiboseModel(targetClass, ginrAutomataDirectory, riboseModelFile)) {
 				exitCode = 1;
 			}
 		} catch (Exception e) {

@@ -21,6 +21,7 @@
 
 package com.characterforming.ribose;
 
+import com.characterforming.ribose.base.Base.Signal;
 import com.characterforming.ribose.base.Bytes;
 import com.characterforming.ribose.base.DomainErrorException;
 import com.characterforming.ribose.base.ModelException;
@@ -69,7 +70,7 @@ public interface ITransductor extends ITarget {
 	 * 
 	 * @author Kim Briggs
 	 */
-	enum Status {
+	public enum Status {
 		/**
 		 * Transduction stack not empty, input stack not empty.
 		 */
@@ -91,21 +92,19 @@ public interface ITransductor extends ITarget {
 		 */
 		NULL;
 		
-		boolean isMarked = false;
-		
-		boolean isRunnable() {
+		public boolean isRunnable() {
 			return this.equals(RUNNABLE);
 		}
 		
-		boolean hasInput() {
-			return this.equals(RUNNABLE) || this.equals(WAITING);
-		}
-		
-		boolean hasTransducer() {
+		public boolean hasInput() {
 			return this.equals(RUNNABLE) || this.equals(PAUSED);
 		}
 		
-		boolean isStopped() {
+		public boolean hasTransducer() {
+			return this.equals(RUNNABLE) || this.equals(WAITING);
+		}
+		
+		public boolean isStopped() {
 			return this.equals(STOPPED);
 		}
 	} 
@@ -126,23 +125,17 @@ public interface ITransductor extends ITarget {
 	public Status status();
 
 	/**
-	 * Set up transduction data.
+	 * Set up transduction data. Data pushed onto empty stack constitute the
+	 * primary input stream for the purpose or marking and resetting via
+	 * the `mark` and `reset` effectors. These effectors project their effect 
+	 * onto the primary input stream if they are invoked while other data are
+	 * on top of the primary input stack frame.  
 	 * 
 	 * @param input data to push onto input stack for immediate transduction
+	 * @param limit truncate effective input range at {@code max(limit, data.length)}  
 	 * @return Run status of transduction at point of return 
 	 */
-	public Status input(byte[] input);
-
-	/**
-	 * Force pause after {@code steps} bytes scanned if {@code Frame.position < until},
-	 * otherwise reset {@code Frame.limit} to {@code Frame.length}. Calls to this 
-	 * method are idempotent after the first invocation to return true.
-	 *  
-	 * @param steps Number of bytes to scan before pausing
-	 * @param until Threshold for uninhibited scanning
-	 * @return true if position is past threshold (future calls will have no effect) 
-	 */
-	public boolean limit(int steps, int until);
+	public Status input(byte[] input, int limit);
 	
 	/**
 	 * Push a transducer onto the transductor's transducer stack and set it state
@@ -158,16 +151,26 @@ public interface ITransductor extends ITarget {
 	/**
 	 * Push a signal onto the transductor's input stack to trigger next transition. 
 	 * 
-	 * @param signal the signal ordinal 
+	 * @param signal the signal to push 
 	 * @return Run status of transduction at point of return 
 	 */
-	public Status signal(int signal);
+	public Status signal(Signal signal);
 
 	/**
 	 * Run the transduction with current input until the input or transduction
-	 * stack is empty, or an effector returns Effert.PAUSE, or an exception is thrown.
+	 * stack is empty, an effector returns {@link IEffector#RTE_EFFECT_PAUSE}, or
+	 * an exception is thrown. This method should be called repeatedly until
+	 * {@code status().hasInput()} returns {@code false}, although this check
+	 * can be ignored if it is known that the {@code pause} effector is not
+	 * engaged in the transduction.
+	 * <p/>
+	 * If a mark is set, it applies to the primary input stream and marked input
+	 * buffers held in the transduction mark set cannot be reused by the caller 
+	 * until a new mark is set or the input has been reset and all marked buffers
+	 * have been transduced. Call {@link ITransductor#hasMark()} before reusing 
+	 * data buffers if the transduction involves backtracking with mark/reset. 
 	 * 
-	 * @return Run status of transduction at point of return 
+	 * @return status of transduction at point of return 
 	 * @throws RiboseException 
 	 * @throws DomainErrorException 
 	 * @see #status()

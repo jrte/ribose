@@ -33,6 +33,7 @@ import com.characterforming.ribose.ITransductor.Status;
 import com.characterforming.ribose.Ribose;
 import com.characterforming.ribose.TRun;
 import com.characterforming.ribose.base.Base;
+import com.characterforming.ribose.base.Base.Signal;
 import com.characterforming.ribose.base.Bytes;
 import com.characterforming.ribose.base.RiboseException;
 
@@ -62,7 +63,7 @@ public class TestRunner {
 		for (int i = 0; i < achars.length; i++) {
 			achars[i] = (i % 10 != 9) ? 'a' : 'b';
 		}
-		final byte[] abytes = new byte[10000000];
+		byte[] abytes = new byte[10000000];
 		for (int i = 0; i < abytes.length; i++) {
 			abytes[i] = (byte)((i % 10 != 9) ? 'a' : 'b');
 		}
@@ -81,23 +82,19 @@ public class TestRunner {
 			"SelectPasteTest", "PasteSpeedTest", "NilPauseTest", "PastePauseTest", "PasteCutTest", "StackTest", "PasteCountTest", "CounterTest", "NilSpeedTest"
 		};
 		final TRun target = new TRun();
-		try (final IRuntime ribose = Ribose.loadRiboseRuntime(new File(modelPath), target)) {
+		try (final IRuntime ribose = Ribose.loadRiboseModel(new File(modelPath), target)) {
 			final ITransductor trex = ribose.newTransductor(target);
 			for (final String test : tests) {
 				long t0 = 0, t1 = 0, t2 = 0;
 				System.out.format("%20s: ", test);
 				for (int i = 0; i < 20; i++) {
 					assert trex.status() == Status.STOPPED;
-					trex.input(abytes);
-					boolean limited = trex.limit(64, (64*1500));
-					trex.signal(Base.Signal.nil.signal());
+					trex.input(abytes, abytes.length);
+					trex.signal(Signal.nil);
 					Status status = trex.start(Bytes.encode(test));
 					t0 = System.currentTimeMillis();
 					while (status == Status.RUNNABLE) {
 						status = trex.run();
-						if (limited) {
-							limited = trex.limit(64, (64 * 1500));
-						}
 					}
 					assert status != Status.NULL;
 					trex.stop();

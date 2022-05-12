@@ -7,7 +7,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import com.characterforming.jrte.engine.Transductor;
-import com.characterforming.ribose.ITransductor.Status;
 import com.characterforming.ribose.base.Base;
 import com.characterforming.ribose.base.Base.Signal;
 import com.characterforming.ribose.base.BaseTarget;
@@ -56,6 +55,10 @@ public final class TRun extends BaseTarget implements ITarget {
 		super();
 	}
 	
+	/**
+	 * Apply a transducer to an input stream
+	 */
+	
 	/*
 	 * (non-Javadoc)
 	 * @see
@@ -78,8 +81,13 @@ public final class TRun extends BaseTarget implements ITarget {
 	}
 
 	/**
-	 * Runs a transduction on an input file.
-	 * @param args [--nil] &lt;transducer-name&gt; &lt;runtime-path&gt;
+	 * Opens a text transduction model built with {@link TRun} as model target class
+	 * and runs a transduction on an input file, optionally pushing a {@code nil}
+	 * signal as prologue to the input file byte stream. The named transducer,
+	 * to be pushed to begin the transduction, must be contained in the specified 
+	 * model file.
+	 *    
+	 * @param args [--nil] &lt;transducer-name&gt; &lt;trun-model-path&gt;
 	 */
 	public static void main(final String[] args) {
 		final Logger rteLogger = Logger.getLogger(Base.RTE_LOGGER_NAME);
@@ -107,31 +115,18 @@ public final class TRun extends BaseTarget implements ITarget {
 			System.out.println("No ribose model file found at " + runtimePath);
 			System.exit(1);
 		}
-		
+
 		ITarget modelTarget = new TRun();
 		int exitCode = 1;
 		try (
-			IRuntime ribose = Ribose.loadRiboseRuntime(model, modelTarget);
+			IRuntime ribose = Ribose.loadRiboseModel(model, modelTarget);
 			DataInputStream isr = new DataInputStream(new FileInputStream(input));
 		) {
 			if (ribose != null) {
-				int clen = (int)input.length();
-				byte[] bytes = new byte[clen];
-				clen = isr.read(bytes, 0, clen);
-		
-				ITarget runTarget = new TRun();
-				ITransductor trun = ribose.newTransductor(runTarget);
-				trun.input(bytes);
-				if (nil) {
-					trun.signal(Signal.nil.signal());
+				Bytes transducer = Bytes.encode(transducerName);
+				if (ribose.transduce(modelTarget, transducer, nil ? Signal.nil : null, isr)) {
+					exitCode = 0;
 				}
-				Status status = trun.start(Bytes.encode(transducerName));
-				while (status == Status.RUNNABLE) {
-					status = trun.run();
-				}
-				assert status != Status.NULL;
-				trun.stop();
-				exitCode = 0;
 			}
 		} catch (final Exception e) {
 			rteLogger.log(Level.SEVERE, "Runtime instantiation failed", e);

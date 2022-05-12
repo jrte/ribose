@@ -41,6 +41,7 @@ import com.characterforming.ribose.ITransductor.Status;
 import com.characterforming.ribose.Ribose;
 import com.characterforming.ribose.TRun;
 import com.characterforming.ribose.base.Base;
+import com.characterforming.ribose.base.Base.Signal;
 import com.characterforming.ribose.base.Bytes;
 import com.characterforming.ribose.base.RiboseException;
 
@@ -91,29 +92,22 @@ public class FileRunner {
 			int loops;
 			TRun target = new TRun();
 			if (!regexOutEnabled) {
-				try (IRuntime ribose = Ribose.loadRiboseRuntime(new File(modelPath), target)) {
+				try (IRuntime ribose = Ribose.loadRiboseModel(new File(modelPath), target)) {
 					ITransductor trex = ribose.newTransductor(target);
 					if (!jrteOutEnabled) {
 						System.out.print(String.format("%20s: ", transducerName));
 					}
 					loops = jrteOutEnabled ? 1 : 20;
-					boolean limited = jrteOutEnabled;
 					for (int i = 0; i < loops; i++) {
-						trex.input(cbuf);
-						if (limited) {
-							trex.limit(64, (64*1500));
-						}
+						trex.input(cbuf, clen);
 						if (nil) {
-							trex.signal(Base.Signal.nil.signal());
+							trex.signal(Signal.nil);
 						}
 						Status status = trex.start(Bytes.encode(transducerName));
 						t0 = System.currentTimeMillis();
 						while (status == Status.RUNNABLE) {
 							status = trex.run();
 							ejrte += trex.getErrorCount();
-							if (limited) {
-								limited = trex.limit(31, Integer.MAX_VALUE);
-							}
 						}
 						assert status != Status.NULL;
 						trex.stop();

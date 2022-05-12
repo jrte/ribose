@@ -97,7 +97,7 @@ public final class Model implements AutoCloseable {
 		this.ioMode = this.mode.equals(Mode.compile) ? "rw" : "r";
 		this.modelTarget = target;
 		this.modelPath = modelPath;
-		this.modelTransductor = new Transductor(this);
+		this.modelTransductor = new Transductor(this, Mode.compile);
 		IEffector<?>[] trexFx = this.modelTransductor.bindEffectors();
 		IEffector<?>[] targetFx = this.modelTarget.bindEffectors();
 		this.modelEffectors = new IEffector<?>[trexFx.length + targetFx.length];
@@ -115,6 +115,15 @@ public final class Model implements AutoCloseable {
 			this.effectorOrdinalMap.put(this.modelEffectors[effectorOrdinal].getName(), effectorOrdinal);
 		}
 		this.deleteOnClose = false;
+	}
+	
+	/**
+	 * Determine model operational mode (compile or run)
+	 * 
+	 * @return model operational mode (compile or run)
+	 */
+	Mode getOperatonalMode() {
+		return this.mode;
 	}
 
 	/**
@@ -139,10 +148,10 @@ public final class Model implements AutoCloseable {
 					this.modelTarget.getName(), targetClassname, this.modelPath.getPath()));
 			}
 			this.io.seek(indexPosition);
-			this.getOrdinalMap(signalOrdinalMap);
-			this.getOrdinalMap(namedValueOrdinalMap);
-			this.getOrdinalMap(effectorOrdinalMap);
-			this.getOrdinalMap(transducerOrdinalMap);
+			this.getOrdinalMap(this.signalOrdinalMap);
+			this.getOrdinalMap(this.namedValueOrdinalMap);
+			this.getOrdinalMap(this.effectorOrdinalMap);
+			this.getOrdinalMap(this.transducerOrdinalMap);
 			assert this.effectorOrdinalMap.size() == this.modelEffectors.length;
 			if (!this.transducerOrdinalMap.containsKey(Bytes.encode(this.modelTarget.getName()))) {
 				throw new ModelException(String.format("Target name '%1$s' not found in name offset map for this file '%2$s'", this.modelTarget.getName(), this.modelPath.getPath()));
@@ -158,7 +167,7 @@ public final class Model implements AutoCloseable {
 				assert this.transducerOrdinalMap.get(this.transducerNameIndex[transducerOrdinal]) == transducerOrdinal;
 			}
 			assert this.modelTransductor == (Transductor)this.modelEffectors[0].getTarget();
-			this.modelTransductor.setNamedValueOrdinalMap(namedValueOrdinalMap);
+			this.modelTransductor.setNamedValueOrdinalMap(this.namedValueOrdinalMap);
 			this.modelTransductor.setEffectors(this.modelEffectors);
 			for (int effectorOrdinal = 0; effectorOrdinal < this.effectorOrdinalMap.size(); effectorOrdinal++) {
 				byte[][][] effectorParameters = this.getBytesArrays();
@@ -192,20 +201,19 @@ public final class Model implements AutoCloseable {
 	 * @param target the runtime target to bind the transductor to
 	 * @return the bound transductor instance  
 	 */
-	public Transductor bindTransductor(ITarget target, boolean withTlsStacks) throws ModelException {
+	public Transductor bindTransductor(ITarget target) throws ModelException {
 		Class<? extends ITarget> targetClass = target.getClass();
 		Class<? extends ITarget> modelClass = this.modelTarget.getClass();
 		if (!modelClass.isAssignableFrom(targetClass)) {
 			throw new ModelException(String.format("Cannot bind instance of target class '%1$s', can only bind to model target class '%2$s'",
 				target.getClass().getName(), this.modelTarget.getClass().getName()));
 		}
-		Transductor trex = withTlsStacks ? new Transductor(this, true) : new Transductor(this);
+		Transductor trex = new Transductor(this, this.mode);
 		IEffector<?>[] trexFx = trex.bindEffectors();
 		IEffector<?>[] targetFx = target.bindEffectors();
 		IEffector<?>[] boundFx = new IEffector<?>[trexFx.length + targetFx.length];
 		System.arraycopy(trexFx, 0, boundFx, 0, trexFx.length);
 		System.arraycopy(targetFx, 0, boundFx, trexFx.length, targetFx.length);
-		trex.setNamedValueOrdinalMap(this.getNamedValueOrdinalMap());
 		this.bindParameters(trex, boundFx);
 		trex.setEffectors(boundFx);
 		return trex;
@@ -357,10 +365,6 @@ public final class Model implements AutoCloseable {
 
 	private IEffector<?>[] getModelEffectors() {
 		return this.modelEffectors;
-	}
-
-	private Map<Bytes, Integer> getNamedValueOrdinalMap() {
-		return Collections.unmodifiableMap(this.namedValueOrdinalMap);
 	}
 
 	private boolean compileModelParameters() throws ModelException {
@@ -562,8 +566,8 @@ public final class Model implements AutoCloseable {
 							final int[] inputFilter = this.getIntArray();
 							final int[][] transitionMatrix = this.getTransitionMatrix();
 							final int[] effectorVector = this.getIntArray();
-							this.transducerObjectIndex[transducerOrdinal] = new Transducer(name, targetName,
-								inputFilter, transitionMatrix, effectorVector);
+							this.transducerObjectIndex[transducerOrdinal] = new Transducer(
+								name, targetName,	inputFilter, transitionMatrix, effectorVector);
 						} catch (final IOException e) {
 							Model.rteLogger.log(Level.SEVERE,
 								String.format("RuntimeModel.loadTransducer(%d) caught an IOException after seek to %d",

@@ -47,20 +47,20 @@ public final class Ribose {
  * 
  * @param targetClass the ITarget implementation class will be instantiated as model target
  * @param ginrAutomataDirectory directory containing DFAs compiled by ginr
- * @param riboseRuntimeFile path indicating where to create the model file and file name
+ * @param riboseModelFile path indicating where to create the model file and file name
  * @returns false if compilation fails
  * @throws ModelException
  */
-	public static boolean compileRiboseRuntime(Class<?> targetClass, File ginrAutomataDirectory, File riboseRuntimeFile) {
+	public static boolean compileRiboseModel(Class<?> targetClass, File ginrAutomataDirectory, File riboseModelFile) {
 		for (Class<?> targetImplemenation : targetClass.getInterfaces()) {
 			if (targetImplemenation.toString().equals(ITarget.class.toString())) {
 				Model model = null;
 				try {
-					model = new Model(Mode.compile, riboseRuntimeFile, (ITarget)targetClass.getDeclaredConstructor().newInstance());
+					model = new Model(Mode.compile, riboseModelFile, (ITarget)targetClass.getDeclaredConstructor().newInstance());
 					return model.compile(ginrAutomataDirectory);
 				} catch (Exception e) {
 					String msg = String.format("Exception compiling model '%1$s' from '%2$s'",
-						riboseRuntimeFile.getPath(), ginrAutomataDirectory.getPath());
+						riboseModelFile.getPath(), ginrAutomataDirectory.getPath());
 					Ribose.rtcLogger.log(Level.SEVERE, msg, e);
 				} finally {
 					if (model != null) {
@@ -81,12 +81,12 @@ public final class Ribose {
 	 * target instance. The runtime model can be used to instantiate runtime
 	 * transductors.
 	 * 
-	 * @param riboseRuntimeFile path to the runtime model to load
+	 * @param riboseModelFile path to the runtime model to load
 	 * @param target the target instance to bind to the runtime model
 	 * @return a live ribose runtime model instance
 	 * @throws ModelException 
 	 */
-	public static IRuntime loadRiboseRuntime(File riboseRuntimeFile, ITarget target) throws ModelException {
-		return new Runtime(riboseRuntimeFile, target);
+	public static IRuntime loadRiboseModel(File riboseModelFile, ITarget target) throws ModelException {
+		return new Runtime(riboseModelFile, target);
 	}	
 }

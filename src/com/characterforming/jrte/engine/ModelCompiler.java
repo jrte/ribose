@@ -43,6 +43,7 @@ import com.characterforming.ribose.ITransductor.Status;
 import com.characterforming.ribose.Ribose;
 import com.characterforming.ribose.TCompile;
 import com.characterforming.ribose.base.Base;
+import com.characterforming.ribose.base.Base.Signal;
 import com.characterforming.ribose.base.BaseEffector;
 import com.characterforming.ribose.base.Bytes;
 import com.characterforming.ribose.base.CompilationException;
@@ -83,7 +84,7 @@ public class ModelCompiler implements ITarget {
 	public static boolean compileAutomata(Model targetModel, File inrAutomataDirectory) throws ModelException {
 		File workingDirectory = new File(System.getProperty("user.dir"));
 		File compilerModelFile = new File(workingDirectory, "TCompile.model");
-		try (IRuntime compilerRuntime = Ribose.loadRiboseRuntime(compilerModelFile, new TCompile())) {
+		try (IRuntime compilerRuntime = Ribose.loadRiboseModel(compilerModelFile, new TCompile())) {
 			TCompile compiler = new TCompile(targetModel);
 			compiler.setTransductor(compilerRuntime.newTransductor(compiler));
 			for (final String filename : inrAutomataDirectory.list()) {
@@ -385,7 +386,8 @@ public class ModelCompiler implements ITarget {
 				int read = f.read(bytes, position, length);
 				position += read;
 				length -= read;
-			}		
+			}
+			assert position == size;
 		} catch (FileNotFoundException e) {
 			this.error(String.format("%1$s: File not found '%2$s'", 
 				name, inrFile.getPath()));
@@ -399,10 +401,10 @@ public class ModelCompiler implements ITarget {
 			this.stateMaps = (HashMap<Integer, Integer>[])new HashMap<?,?>[3];
 			this.stateTransitionMap = new HashMap<Integer, ArrayList<Transition>>(size >> 3);
 			this.transductor.stop();
-			this.transductor.input(bytes);
-			this.transductor.signal(Base.Signal.nil.signal());
+			this.transductor.input(bytes, size);
+			this.transductor.signal(Signal.nil);
 			Status status = this.transductor.start(Bytes.encode("Automaton"));
-			while (status.equals(Status.RUNNABLE)) {
+			while (status == Status.RUNNABLE) {
 				status = this.transductor.run();
 			}
 			this.transductor.stop();

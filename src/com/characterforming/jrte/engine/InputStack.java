@@ -30,9 +30,11 @@ import com.characterforming.ribose.base.Base;
  * @author Kim Briggs
  */
 final class InputStack {
+	enum MarkState { clear, marked, reset };
 	private final byte[][] signals;
 	private final byte[][] values;
 	private final MarkStack marked;
+	private MarkState markState;
 	private Input[] stack;
 	private int tos;
 	
@@ -49,6 +51,7 @@ final class InputStack {
 			this.values[i] = Base.encodeReferenceOrdinal(Base.TYPE_REFERENCE_VALUE, i);
 		}
 		this.stack = InputStack.stack(initialSize);
+		this.markState = MarkState.clear;
 		this.marked = new MarkStack();
 		this.tos = -1;
 	}
@@ -67,12 +70,13 @@ final class InputStack {
 	 * @param data The data to push for immediate transduction
 	 */
 	Input push(byte[] data) {
-		int mark = (this.tos < 0 && this.stack[0].mark < -1) ? 0 : -1;
 		Input top = this.stackcheck();
+		if (this.tos == 0) {
+		}
 		top.array = data;
 		top.limit = top.length = top.array.length;
 		top.position = 0;
-		top.mark = mark;
+		top.mark = -1;
 		return top;
 	}
 
@@ -84,8 +88,9 @@ final class InputStack {
 	Input push(Input frame) {
 		Input top = this.stackcheck();
 		top.array = frame.array;
-		top.limit = top.length = frame.length;
-		top.position = Math.max(0, frame.mark);
+		top.limit = frame.limit;
+		top.length = frame.length;
+		top.position = frame.position;
 		top.mark = -1;
 		return top;
 	}
@@ -116,35 +121,41 @@ final class InputStack {
 	 * @return The item on the top of the stack, or null if empty
 	 */
 	Input peek() {
-		return this.tos >= 0 ? this.stack[this.tos] : null;
+		return this.tos >= 0 ? this.stack[this.tos] : Input.empty;
 	}
 
-	/**
+	/**		this.markState = MarkState.clear;
+
 	 * Pop the stack
 	 * 
 	 * @return The item on top of the stack after the pop
 	 */
 	Input pop() {
- 		Input top = this.peek();
-		while (top != null && !top.hasRemaining()) {
-			top = --this.tos >= 0 ? this.stack[this.tos] : null;
+ 		Input input = this.peek();
+		while (input != Input.empty && !input.hasRemaining()) {
+			input = --this.tos >= 0 ? this.stack[this.tos] : Input.empty;
 		}
-		if (this.tos <= 0 && this.stack[0].mark >= 0) {
-			this.tos = 0;
-			top = this.stack[0];
-			top.position = top.mark;
-			top.mark = -1;
-			if (top.hasRemaining()) {
-				this.marked.addLast(new Input(top));
-			}
-			if (!this.marked.isEmpty()) {
-				for (Input input : this.marked) {
-					this.push(input);
+		if (input == Input.empty) {
+			switch (this.markState) {
+			case marked:
+				input = new Input(this.stack[0]);
+				input.position = input.mark < 0 ? 0 : input.mark;
+				input.mark = -1;
+				this.marked.add(input);
+				return Input.empty;
+			case reset:
+				input = this.marked.pop();
+				if (input != Input.empty) {
+					return this.push(input);
 				}
-				this.unmark();
+				this.markState = MarkState.clear;
+				break;
+			case clear:
+			default:
+				break;
 			}
 		}
-		return this.peek();
+		return input;
 	}
 
 	/**
@@ -163,7 +174,7 @@ final class InputStack {
 				return this.stack[index];
 			}
 		}
-		return null;
+		return Input.empty;
 	}
 
 	/**
@@ -172,8 +183,9 @@ final class InputStack {
 	 */
 	void mark() {
 		if (this.tos >= 0) {
-			this.stack[0].mark = -1*(2 + this.stack[0].position);
 			this.marked.clear();
+			this.stack[0].mark = this.stack[0].position;
+			this.markState = MarkState.marked;
 		}
 	}
 	
@@ -184,13 +196,23 @@ final class InputStack {
 	 * @return true if reset effected immediately
 	 */
 	boolean reset() {
-		if (this.tos >= 0 && this.stack[0].mark < -1) {
-			this.stack[0].mark = -1*(this.stack[0].mark + 2);
-			if (this.tos == 0) {
-				this.stack[0].position = this.stack[0].mark;
-				this.stack[0].mark = -1;
-				return true;
+		if (this.markState == MarkState.marked) {
+			assert this.tos >= 0;
+			Input input = this.stack[0];
+			if (input.mark >= 0) {
+				this.markState = MarkState.clear;
+				input.position = input.mark;
+				input.mark = -1;
+			} else {
+				assert this.marked.size() > 0;
+				assert this.stack[0].mark == -1;
+				this.markState = MarkState.reset;
+				input.position = input.limit;
+				input = new Input(input);
+				this.marked.add(input);
+				input.position = 0;
 			}
+			return this.tos <= 0;
 		}
 		return false;
 	}
@@ -203,6 +225,7 @@ final class InputStack {
 	 * @return true if the stack pointer changed
 	 */
 	void unmark() {
+		this.markState = MarkState.clear;
 		this.stack[0].mark = -1;
 		this.marked.clear();
 	}
@@ -213,7 +236,7 @@ final class InputStack {
 	 * @return true if input is marked
 	 */
 	boolean hasMark() {
-		return this.tos >= 0 && this.stack[0].mark < -1;
+		return this.markState != MarkState.clear;
 	}
 
 	/**
@@ -241,6 +264,15 @@ final class InputStack {
 	 */
 	int tos() {
 		return this.tos;
+	}
+	
+	/**
+	 * Get the data buffer most recently in bottom frame if not marked
+	 * 
+	 * @return most recent unmarked input buffer, or null if marking/resetting marked data segments
+	 */
+	byte[] data() {
+		return this.markState == MarkState.clear ? this.stack[0].array : null;
 	}
 
 	private Input stackcheck() {

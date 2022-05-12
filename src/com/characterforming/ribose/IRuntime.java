@@ -21,15 +21,23 @@
 
 package com.characterforming.ribose;
 
+import java.io.IOException;
+import java.io.InputStream;
+
+import com.characterforming.ribose.base.Base.Signal;
+import com.characterforming.ribose.base.Bytes;
+import com.characterforming.ribose.base.DomainErrorException;
 import com.characterforming.ribose.base.ModelException;
+import com.characterforming.ribose.base.RiboseException;
 
 /**
- * The ribose runtime provides a capability to instantiate runtime transductors. A 
- * transductor is a capability to host runtime transductions. A runtime transduction
- * is a pattern-driven process mapping sequential input onto effectors expressed by
- * a target object that extracts and assimilates features of interest from input.
+ * The ribose runtime provides a capability to instantiate runtime transductors from
+ * a runtime model and bind them to instances of the model target class. A transductor
+ * provides a capability to run serial transductions. A transduction is a pattern-driven
+ * process that selects and invokes target effectors serially to extract and assimilate
+ * features of interest into the target in response to syntactic cues in the input.
  * <p/>
- * Transductions map syntactic features onto effectors under the direction of a stack
+ * Transductors operate a transducer stack and an input stack.  syntactic features onto effectors under the direction of a stack
  * of finite state transducers compiled from patterns in a domain-specific
  * {@code (<feature-syntax>, <feature-sematics>)*} semi-ring and collected
  * in a ribose runtime model.
@@ -45,7 +53,35 @@ import com.characterforming.ribose.base.ModelException;
  */
 public interface IRuntime extends AutoCloseable{
 	/**
-	 * Instantiate a new transductor. 
+	 * Transduce a byte input stream onto a target instance.
+	 * 
+	 * @param target the model target instance to bind to the transduction
+	 * @param transducer the name of the transducer to start the transduction
+	 * @param in the input stream to transduce
+	 * @return true if either transducer or input stack is empty
+	 * @throws ModelException 
+	 * @throws IOException 
+	 * @throws RiboseException 
+	 * @throws DomainErrorException 
+	 * @see ITransductor#status()
+	 */
+	boolean transduce(ITarget target, Bytes transducer, InputStream in) throws RiboseException;
+	
+	/**
+	 * Catenate and transduce a signal (eg, {@code nil}) and a byte input stream onto a target instance.
+	 * 
+	 * @param target the model target instance to bind to the transduction
+	 * @param transducer the name of the transducer to start the transduction
+	 * @param prologue signal to transduce prior to {@code in}
+	 * @param in the input stream to transduce
+	 * @return true if either transducer or input stack is empty
+	 * @throws RiboseException 
+	 * @see ITransductor#status()
+	 */
+	boolean transduce(ITarget target, Bytes transducer, Signal prologue, InputStream in) throws RiboseException;
+
+	/**
+	 * Instantiate a new transductor and bind it to an instance of the . 
 	 * 
 	 * @param target The target instance to bind to the transductor.
 	 * @return A new transductor

@@ -22,15 +22,22 @@
 package com.characterforming.jrte.engine;
 
 import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import com.characterforming.jrte.engine.Model.Mode;
 import com.characterforming.ribose.IRuntime;
 import com.characterforming.ribose.ITarget;
 import com.characterforming.ribose.ITransductor;
+import com.characterforming.ribose.ITransductor.Status;
 import com.characterforming.ribose.base.Base;
+import com.characterforming.ribose.base.Base.Signal;
 import com.characterforming.ribose.base.Bytes;
+import com.characterforming.ribose.base.DomainErrorException;
 import com.characterforming.ribose.base.ModelException;
+import com.characterforming.ribose.base.RiboseException;
 
 /**
  * Ribose runtime loads a target model and instantiates runtime transductors. A model 
@@ -68,21 +75,78 @@ public final class Runtime implements IRuntime, AutoCloseable {
 		this.model.load();
 	}
 
-	/**
-	 * Bind an unbound target instance to a new transductor. Use the {@link ITransductor#start(Bytes)}
-	 * and {@link ITransductor#run()} methods to set up and run transductions.
-	 * 
-	 * @param target The ITarget instance to bind to the transductor
-	 * @return The bound ITransductor instance
-	 * @throws ModelException
+	/*
+	 * (non-Javadoc)
+	 * @see com.characterforming.ribose.IRuntime#newTransductor(ITarget)
 	 */
 	@Override
-	public ITransductor newTransductor(final ITarget target) throws ModelException {
-		return this.model.bindTransductor(target, false);
+	public ITransductor newTransductor(ITarget target) throws ModelException {
+		return this.model.bindTransductor(target);
 	}
 
+	/*
+	 * (non-Javadoc)
+	 * @see com.characterforming.ribose.IRuntime#transduce(Bytes, Signal, InputStream)
+	 */
+	@Override
+	public boolean transduce(ITarget target, Bytes transducer, Signal prologue, InputStream in) throws RiboseException {
+		try {
+			byte[] bytes = new byte[64<<10];
+			int read = in.read(bytes);
+			if (read > 0) {
+				ITransductor trex = newTransductor(target);
+				trex.input(bytes, read);
+				if (prologue != null) {
+					trex.signal(prologue);
+				}
+				Status status = trex.start(transducer);
+				while (status.isRunnable() && read > 0) {
+					status = trex.run();
+					if (!status.hasInput()) {
+						if (trex.hasMark()) {
+							bytes = new byte[64 << 10];
+						}
+						read = in.read(bytes);
+						if (read > 0) {
+							status = trex.input(bytes, read);
+						} 
+					}
+				}
+				trex.stop();
+			}
+		} catch (ModelException e) {
+			log(target, transducer, e);
+			return false;
+		} catch (DomainErrorException e) {
+			log(target, transducer, e);
+			return false;
+		} catch (IOException e) {
+			log(target, transducer, e);
+			return false;
+		}
+		return true;
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * @see com.characterforming.ribose.IRuntime#transduce(Bytes, InputStream)
+	 */
+	@Override
+	public boolean transduce(ITarget target, Bytes transducer, InputStream in) throws RiboseException {
+		return this.transduce(target, transducer, null, in);
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * @see com.characterforming.ribose.IRuntime#close()
+	 */
 	@Override
 	public void close() {
 		this.model.close();
+	}
+	
+	private void log(ITarget target, Bytes transducer, Exception e) {
+		Runtime.rteLogger.log(Level.SEVERE, String.format("Exception in Runtime.transduce(%1$s, %2$s, ...)",
+			target.getClass().getSimpleName(), transducer.toString()), e);
 	}
 }
