@@ -54,12 +54,12 @@ public class Base {
 	
 	/**
 	 * General signals available in all ribose models.
-	 * <p/>TYPE_REFERENCE_TRANSDUCER
+	 * <br>
 	 * Transductors send {@code nul} to transductions when no transition is defined for
 	 * the current symbol from the input stream. This gives the transduction a first chance
    * synchronize with the input. If no transition is defined for the received {@code nul}
    * the {@link ITransductor#run()} method will throw {@code DomainErrorException}. 
-	 * <p/>
+	 * <br>
 	 * Transductors send {@code eos} to transductions when the input stack runs dry. 
 	 * If the receiving transduction has no transition defined for received {@code eos}
 	 * it is ignored. In any case {@code run()} will return normally with {@code Status.PAUSED}
@@ -191,6 +191,7 @@ public class Base {
 	/**
 	 * Decode a reference ordinal.
 	 * 
+	 * @param type Expected reference type
 	 * @param bytes Bytes to check
 	 * @return the reference ordinal or a negative integer if none
 	 */
@@ -229,7 +230,7 @@ public class Base {
 	 * @param bytes The UTF-8 byte array 
 	 * @param length The number of bytes to decode, starting from 0
 	 * @return the decoded integer
-	 * @throws NumberFormatException
+	 * @throws NumberFormatException on error
 	 */
 	static public int decodeInt(final byte bytes[], final int length) throws NumberFormatException {
 		int value = 0, sign = 1;

@@ -68,7 +68,7 @@ public final class Runtime implements IRuntime, AutoCloseable {
 	 * 
 	 * @param modelPath The path to a runtime model for the target class
 	 * @param target The targetinstance to bind to transductors
-	 * @throws ModelException
+	 * @throws ModelException on error
 	 */
 	public Runtime(final File modelPath, final ITarget target) throws ModelException {
 		this.model = new Model(Mode.run, modelPath, target);

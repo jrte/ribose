@@ -96,7 +96,7 @@ public final class Transductor implements ITransductor, ITarget, IOutput {
 	 *  Constructor
 	 *
 	 * @param model The runtime model 
-	 * @throws ModelException 
+	 * @throws ModelException on error
 	 */
 	Transductor(final Model model, Mode mode) {
 		super();

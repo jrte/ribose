@@ -55,7 +55,11 @@ import com.characterforming.ribose.base.TargetBindingException;
 
 public class ModelCompiler implements ITarget {
 
+	/**
+	 * The model to be compiled.
+	 */
 	protected final Model model;
+	
 	private static final long VERSION = 210;
 	private final ArrayList<String> errors;
 	private Bytes transducerName;

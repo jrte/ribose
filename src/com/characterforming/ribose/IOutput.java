@@ -37,7 +37,7 @@ public interface IOutput {
 	 * 
 	 * @param valueName The name of the value (UTF-8 bytes)
 	 * @return a named value instance or null
-	 * @throws TargetBindingException On error
+	 * @throws TargetBindingException on error
 	 */
 	public INamedValue getNamedValue(Bytes valueName) throws TargetBindingException;
 	
@@ -46,7 +46,7 @@ public interface IOutput {
 	 * 
 	 * @param valueName The name of the value (UTF-8 bytes)
 	 * @return The numeric index of the value
-	 * @throws TargetBindingException On error
+	 * @throws TargetBindingException on error
 	 */
 	public int getValueOrdinal(Bytes valueName) throws TargetBindingException;
 
@@ -62,7 +62,6 @@ public interface IOutput {
 	 * Get the numeric index for the current selected named value
 	 * 
 	 * @return The numeric index of the selected value
-	 * @throws TargetBindingException On error
 	 */
 	public int getSelectedOrdinal();
 

@@ -32,20 +32,20 @@ import com.characterforming.ribose.base.RiboseException;
  * transducer stack, and an ITarget instance. When the run() method is called
  * the transduction will read input and invoke the effectors triggered by each
  * input transition until one of the following conditions is satisfied:
- * <p/>
+ * <br>
  * <ol>
  * <li>the input stack is empty
  * <li>the transducer stack is empty
- * <li>an effector returns {@codeStatus.PAUSE}
+ * <li>an effector returns {@code IEffector.RTE_EFFECT_PAUSE}
  * <li>an exception is thrown
  * </ol>
- * <p/>
+ * <br>
  * As long as the input and transducer stacks are not empty it may be possible
  * to call the run() method again after it returns if, for example, the pause
  * effector causes the previous call to return or a DomainErrorException was
  * thrown and you want to persevere after driving the input to a recognizable
  * location (eg, end of nearest containing loop).
- * <p/>
+ * <br>
  * Domain errors (inputs with no transition defined) are handled by emitting a
  * nul signal, giving the transduction an opportunity to handle it with an
  * explicit transition on nul. For most text transducers, domain errors can be 
@@ -55,7 +55,7 @@ import com.characterforming.ribose.base.RiboseException;
  * resulting transducer can then be pruned to produce a hardened transducer that accepts
  * ((any - nl)* nl)* and silently resynchronizes with the input after a domain error. If 
  * a domain error occurs on a nul signal, a {@link DomainErrorException} is thrown. 
- * <p/>
+ * <br>
  * The transductor will send an {@code eos} signal to the transduction the input stack runs
  * dry. Transducers can explicitly handle  this by including a transition on {@code eos}.
  * If eos is not explicitly handled the transduction will simply stop and {@link status()}
@@ -144,7 +144,7 @@ public interface ITransductor extends ITarget {
 	 * 
 	 * @param transducer The name of the transducer to push
 	 * @return Run status of transduction at point of return 
-	 * @throws ModelException 
+	 * @throws ModelException on error
 	 */
 	public Status start(Bytes transducer) throws ModelException;
 
@@ -163,7 +163,7 @@ public interface ITransductor extends ITarget {
 	 * {@code status().hasInput()} returns {@code false}, although this check
 	 * can be ignored if it is known that the {@code pause} effector is not
 	 * engaged in the transduction.
-	 * <p/>
+	 * <br>
 	 * If a mark is set, it applies to the primary input stream and marked input
 	 * buffers held in the transduction mark set cannot be reused by the caller 
 	 * until a new mark is set or the input has been reset and all marked buffers
@@ -171,8 +171,8 @@ public interface ITransductor extends ITarget {
 	 * data buffers if the transduction involves backtracking with mark/reset. 
 	 * 
 	 * @return status of transduction at point of return 
-	 * @throws RiboseException 
-	 * @throws DomainErrorException 
+	 * @throws RiboseException on error
+	 * @throws DomainErrorException on error
 	 * @see #status()
 	 */
 	public Status run() throws RiboseException, DomainErrorException;

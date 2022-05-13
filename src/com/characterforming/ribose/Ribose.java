@@ -48,8 +48,7 @@ public final class Ribose {
  * @param targetClass the ITarget implementation class will be instantiated as model target
  * @param ginrAutomataDirectory directory containing DFAs compiled by ginr
  * @param riboseModelFile path indicating where to create the model file and file name
- * @returns false if compilation fails
- * @throws ModelException
+ * @return false if compilation fails
  */
 	public static boolean compileRiboseModel(Class<?> targetClass, File ginrAutomataDirectory, File riboseModelFile) {
 		for (Class<?> targetImplemenation : targetClass.getInterfaces()) {
@@ -84,7 +83,7 @@ public final class Ribose {
 	 * @param riboseModelFile path to the runtime model to load
 	 * @param target the target instance to bind to the runtime model
 	 * @return a live ribose runtime model instance
-	 * @throws ModelException 
+	 * @throws ModelException on error
 	 */
 	public static IRuntime loadRiboseModel(File riboseModelFile, ITarget target) throws ModelException {
 		return new Runtime(riboseModelFile, target);

@@ -18,51 +18,72 @@ import com.characterforming.ribose.base.TargetBindingException;
  * transducers that use only the built-in ribose {@link Transductor} effectors,
  * which are implicit in all {@link ITarget} implementations and available to 
  * transducers in all ribose models.
- * <p/>
+ * <br><br>
+ * <table>
+ * <caption style="text-align:left"><b>Built-in ribose effectors</b></caption>
+ * <tr><td><i>nul</i></td><td>Signal <b>nul</b> to indicate no transition defined for current input</td></tr>
+ * <tr><td><i>nil</i></td><td>Does nothing</td></tr>
+ * <tr><td><i>paste</i></td><td>Append current input to selected named value</td></tr>
+ * <tr><td><i>paste[...]</i></td><td>Paste literal data and/or named values into selected named value</td></tr>
+ * <tr><td><i>select</i></td><td>Select the anonymous named value</td></tr>
+ * <tr><td><i>select[`~name`]</i></td><td>Select a named value</td></tr>
+ * <tr><td><i>copy</i></td><td>Copy the anonymous named value into selected named value</td></tr>
+ * <tr><td><i>copy[`~name`]</i></td><td>Copy a named value into selected named value</td></tr>
+ * <tr><td><i>cut</i></td><td>Cut the anonymous named value into selected named value</td></tr>
+ * <tr><td><i>cut[`~name`]</i></td><td>Cut a named value into selected named value</td></tr>
+ * <tr><td><i>clear</i></td><td>Clear the anonymous named value</td></tr>
+ * <tr><td><i>clear[`~name`]</i></td><td>Clear a named value </td></tr>
+ * <tr><td><i>count</i></td><td>Decrement the active counter and signal when counter drops to 0</td></tr>
+ * <tr><td><i>count[`~name` `!signal`]</i></td><td>Set up a counter and signal from numeric named value</td></tr>
+ * <tr><td><i>in</i></td><td>Push the anonymous value onto the input stack</td></tr>
+ * <tr><td><i>in[...]</i></td><td>Push literal data and/or named values onto the input stack</td></tr>
+ * <tr><td><i>out</i></td><td>Write the anonymous value onto System.out</td></tr>
+ * <tr><td><i>out[...]</i></td><td>Write literal data and/or named values onto System.out</td></tr>
+ * <tr><td><i>mark</i></td><td>Mark a position in the input stream</td></tr>
+ * <tr><td><i>reset</i></td><td>Reset position to most recent mark (if any)</td></tr>
+ * <tr><td><i>start[`@transducer`]</i></td><td>Push a transducer onto the transducer stack</td></tr>
+ * <tr><td><i>pause</i></td><td>Force immediate return from {@code ITransductor.run()}</td></tr>
+ * <tr><td><i>stop</i></td><td>Pop the transducer stack</td></tr>
+ * </table>
+ * <br>
  * To build a text transduction model, compile with ginr a set of ribose-conformant
  * ginr patterns, saving automata (*.dfa) to be compiled into the model into a directory.
  * Run {@link TCompile#main(String[])} specifying {@link TRun} as target class,  
  * the path to the automata directory and the path and name of the file to 
  * contain the compiled model.
- * <p/>
- * Usage: <pre class="code">java -cp ribose.0.0.0.jar com.characterforming.ribose.Tcompile com.characterforming.ribose.TRun &lt;automata&gt; &lt;model&gt;</pre>
- * <p/>
- * Main method loads a text transduction model and instantiates a transductor to run
- * a specified transducer with input from a text file. The encoding is assumed to be
- * UTF-8.
- * <p/>
- * Usage: <pre class="code">java -cp ribose.0.0.0.jar com.characterforming.ribose.TRun [--nil] &lt;transducer-name&gt; &lt;input&gt; &lt;model&gt;</pre>
- * <p/>
+ * <br><br>
+ * <b>TCompile Usage</b> (with TRun as model target): <pre class="code">java -cp ribose.0.0.0.jar com.characterforming.ribose.Tcompile com.characterforming.ribose.TRun &lt;automata&gt; &lt;model&gt;</pre>
+ * Use {@link TRun#main(String[])} to load a text transduction model and instantiate
+ * transductors to run transductions on UTF-8 byte streams.
+ * <br><br>
+ * <b>TRun Usage:</b> <pre class="code">java -cp ribose.0.0.0.jar com.characterforming.ribose.TRun [--nil] &lt;transducer-name&gt; &lt;input&gt; &lt;model&gt;</pre>
  * Output from the {@code out[..]} effector will be written as UTF-8 byte stream to 
  * {@code System.out} unless {@code -Djrte.out.enabled=false} is indicated as a 
  * JVM argument to the java command. Text transduction models that construct 
  * domain objects and do not otherwise use {@code out[..]} elect to use it to
  * trace problematic transducers. This option is provided to allow benchmarking
  * to proceed without incurring delays and heap overhead relating to writing to
- * {@System.out}.
+ * {@code System.out}.
+ * <br><br>
  * <table>
- * <tr><td align="right"><i>--nil</i></td><td>(Optional) Send an initial {@code nil} signal to transduction.</tr>
- * <tr><td align="right"><i>transducer</i></td><td>The name of the transducer to run.</tr>
- * <tr><td align="right"><i>input</i></td><td>The path to the input file.</tr>
- * <tr><td align="right"><i>model</i></td><td>The path to the model file.</tr>
+ * <caption style="text-align:left"><b>TRun command-line arguments</b></caption>
+ * <tr><td><i>--nil</i></td><td>(Optional) Send an initial {@code nil} signal to transduction.</tr>
+ * <tr><td><i>transducer</i></td><td>The name of the transducer to run.</tr>
+ * <tr><td><i>input</i></td><td>The path to the input file.</tr>
+ * <tr><td><i>model</i></td><td>The path to the model file.</tr>
  * </table>
  */
 public final class TRun extends BaseTarget implements ITarget {
 	/**
-	 * Constructor (as model target for compilation of text transduction model)
+	 * Constructor
 	 */
 	public TRun() {
 		super();
 	}
 	
-	/**
-	 * Apply a transducer to an input stream
-	 */
-	
 	/*
 	 * (non-Javadoc)
-	 * @see
-	 * com.characterforming.ribose.ITarget#bindeEffectors()
+	 * @see com.characterforming.ribose.ITarget#bindEffectors()
 	 */
 	@Override
 	public IEffector<?>[] bindEffectors() throws TargetBindingException {
@@ -72,8 +93,7 @@ public final class TRun extends BaseTarget implements ITarget {
 
 	/*
 	 * (non-Javadoc)
-	 * @see
-	 * com.characterforming.ribose.ITarget#getName()
+	 * @see com.characterforming.ribose.ITarget#getName()
 	 */
 	@Override
 	public String getName() {
@@ -83,11 +103,10 @@ public final class TRun extends BaseTarget implements ITarget {
 	/**
 	 * Opens a text transduction model built with {@link TRun} as model target class
 	 * and runs a transduction on an input file, optionally pushing a {@code nil}
-	 * signal as prologue to the input file byte stream. The named transducer,
-	 * to be pushed to begin the transduction, must be contained in the specified 
-	 * model file.
+	 * signal as prologue. The named transducer, to be pushed to begin the transduction, 
+	 * must be contained in the specified model file.
 	 *    
-	 * @param args [--nil] &lt;transducer-name&gt; &lt;trun-model-path&gt;
+	 * @param args [--nil] &lt;transducer-name&gt; &lt;input-file-path&gt; &lt;trun-model-path&gt;
 	 */
 	public static void main(final String[] args) {
 		final Logger rteLogger = Logger.getLogger(Base.RTE_LOGGER_NAME);

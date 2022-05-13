@@ -49,9 +49,9 @@ public class FileRunner {
 
 	/**
 	 * @param args
-	 * @throws InterruptedException On error
-	 * @throws RiboseException On error throws Exception
-	 * @throws IOException On error
+	 * @throws InterruptedException on error
+	 * @throws RiboseException on error
+	 * @throws IOException on error
 	 */
 	public static void main(final String[] args) throws InterruptedException, RiboseException, IOException {
 		if ((args.length < 3) || (args.length > 5)) {

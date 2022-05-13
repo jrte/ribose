@@ -97,7 +97,7 @@ public interface IEffector<T extends ITarget> {
 	 * value and assimilate the value into the target.
 	 * 
 	 * @param output A object that provides a view or transduction runtime values
-	 * @throws TargetBindingException 
+	 * @throws TargetBindingException on error
 	 */
 	public void setOutput(IOutput output) throws TargetBindingException;
 
@@ -106,7 +106,7 @@ public interface IEffector<T extends ITarget> {
 	 * This method is invoked at runtime when triggered by an input transition.
 	 * 
 	 * @return User-defined effectors should return 0
-	 * @throws EffectorException On error
+	 * @throws EffectorException on error
 	 */
 	public int invoke() throws EffectorException;
 }

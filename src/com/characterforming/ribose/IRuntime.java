@@ -21,12 +21,10 @@
 
 package com.characterforming.ribose;
 
-import java.io.IOException;
 import java.io.InputStream;
 
 import com.characterforming.ribose.base.Base.Signal;
 import com.characterforming.ribose.base.Bytes;
-import com.characterforming.ribose.base.DomainErrorException;
 import com.characterforming.ribose.base.ModelException;
 import com.characterforming.ribose.base.RiboseException;
 
@@ -36,12 +34,12 @@ import com.characterforming.ribose.base.RiboseException;
  * provides a capability to run serial transductions. A transduction is a pattern-driven
  * process that selects and invokes target effectors serially to extract and assimilate
  * features of interest into the target in response to syntactic cues in the input.
- * <p/>
+ * <br>
  * Transductors operate a transducer stack and an input stack.  syntactic features onto effectors under the direction of a stack
  * of finite state transducers compiled from patterns in a domain-specific
  * {@code (<feature-syntax>, <feature-sematics>)*} semi-ring and collected
  * in a ribose runtime model.
- * <p/>
+ * <br>
  * Each ribose runtime model is compiled from a collection of ginr automata produced 
  * from semi-ring patterns mapping input features to patterns of effector invocations.
  * The ribose model compiler compresses and assembles these into ribose transducers 
@@ -59,10 +57,7 @@ public interface IRuntime extends AutoCloseable{
 	 * @param transducer the name of the transducer to start the transduction
 	 * @param in the input stream to transduce
 	 * @return true if either transducer or input stack is empty
-	 * @throws ModelException 
-	 * @throws IOException 
-	 * @throws RiboseException 
-	 * @throws DomainErrorException 
+	 * @throws RiboseException on error
 	 * @see ITransductor#status()
 	 */
 	boolean transduce(ITarget target, Bytes transducer, InputStream in) throws RiboseException;
@@ -75,7 +70,7 @@ public interface IRuntime extends AutoCloseable{
 	 * @param prologue signal to transduce prior to {@code in}
 	 * @param in the input stream to transduce
 	 * @return true if either transducer or input stack is empty
-	 * @throws RiboseException 
+	 * @throws RiboseException on error
 	 * @see ITransductor#status()
 	 */
 	boolean transduce(ITarget target, Bytes transducer, Signal prologue, InputStream in) throws RiboseException;
@@ -85,14 +80,14 @@ public interface IRuntime extends AutoCloseable{
 	 * 
 	 * @param target The target instance to bind to the transductor.
 	 * @return A new transductor
-	 * @throws ModelException
+	 * @throws ModelException on error
 	 */
 	public ITransductor newTransductor(ITarget target) throws ModelException;
 	
 	/**
 	 * Close the runtime model and file.
 	 * 
-	 * @throws ModelException
+	 * @throws ModelException on error
 	 */
 	@Override
 	public void close() throws ModelException;

@@ -41,10 +41,10 @@ public class TestRunner {
 
 	/**
 	 * @param args
-	 * @throws InterruptedException On error
-	 * @throws RiboseException On error
-	 * @throws IOException 
-	 * @throws SecurityException 
+	 * @throws InterruptedException on error
+	 * @throws RiboseException on error
+	 * @throws IOException on error
+	 * @throws SecurityException on error
 	 */
 	public static void main(final String[] args) throws InterruptedException, RiboseException, SecurityException, IOException {
 		if (args.length == 0) {

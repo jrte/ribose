@@ -21,7 +21,6 @@
 
 package com.characterforming.ribose.base;
 
-import com.characterforming.jrte.engine.Transductor;
 import com.characterforming.ribose.IEffector;
 import com.characterforming.ribose.ITarget;
 
@@ -33,7 +32,6 @@ import com.characterforming.ribose.ITarget;
  * effectors if overriding it to inject own effectors.
  * 
  * @author Kim Briggs
- * @see {@link Transductor#bindEffectors()}
  */
 public class BaseTarget implements ITarget {
 	public BaseTarget() {

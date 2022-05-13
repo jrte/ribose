@@ -130,7 +130,7 @@ public final class Model implements AutoCloseable {
 	 * Bind target instance to runtime model.
 	 *
 	 * @return true unless unable to bind target to model
-	 * @throws ModelException
+	 * @throws ModelException on error
 	 */
 	public boolean load() throws ModelException {
 		boolean loaded = false;
@@ -221,7 +221,7 @@ public final class Model implements AutoCloseable {
 
 	/**
 	 * @return false if compilation fails
-	 * @throws ModelException
+	 * @throws ModelException on error
 	 */
 	public boolean compile(File inrAutomataDirectory) throws ModelException {
 		if (!inrAutomataDirectory.isDirectory()) {
