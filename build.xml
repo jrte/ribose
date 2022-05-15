@@ -393,24 +393,30 @@
 	
 	<target name="test-gc" depends="ribose,package-test-patterns,package-test">
 		<echo>JVM Heap (see memory leakage in simple fsts driving base transduction effectors):</echo>
-		<java fork="true" dir="." classname="com.characterforming.jrte.test.TestRunner" classpathref="test.classpath" failonerror="true">
-			<jvmarg line="-ea -Xms12m -Xlog:gc=trace:file=${build.test}/TestRunner-gc.out:uptime -Djrte.out.enabled=false -Dregex.out.enabled=false"/>
-			<arg line="build/Test.model"/>
+		<delete quiet="true" dir="/tmp">
+			<include name="linuxkernel*.out"/>
+			<include name="linuxkernel*.err"/>
+		</delete>
+		<echo message="Regex: -Xms62m -Xlog:gc*:file=/tmp/linuxkernelregex-gc.out -> /tmp/linuxkernelregex.out"/>
+		<java fork="true" dir="." classname="com.characterforming.jrte.test.FileRunner" classpathref="test.classpath" failonerror="true" output="/tmp/linuxkernelregex.out" error="/tmp/linuxkernelregex.err">
+			<jvmarg line="-ea -Xms62m -Xlog:gc*:file=/tmp/linuxkernelregex-gc.out -Djrte.out.enabled=false -Dregex.out.enabled=true ${jargs.jit.ribose}"/>
+			<arg line="--nil LinuxKernel patterns/test/inputs/kern-10.log build/Test.model &quot;${regex.linux.kernel}&quot;" />
 		</java>
-		<echo message="TestRunner: -Xms12m -Xlog:gc=trace:file=${build.test}/TestRunner-gc.out:uptime"/>
-		<concat><fileset file="${build.test}/TestRunner-gc.out"/></concat>
-		<java fork="true" dir="." classname="com.characterforming.ribose.TRun" classpathref="jrte.classpath" failonerror="true">
-			<jvmarg line="-ea -Xms22m -Xlog:gc=trace:file=${build.test}/LinuxKernel-gc.out:uptime -Djrte.out.enabled=false"/>
+		<echo message="TRun: LinuxKernel -Xms2m -Xlog:gc*:file=/tmp/linuxkernel-gc.out -> /tmp/linuxkernel.out"/>
+		<java fork="true" dir="." classname="com.characterforming.ribose.TRun" classpathref="jrte.classpath" failonerror="true" output="/tmp/linuxkernel.out" error="/tmp/linuxkernel.err">
+			<jvmarg line="-ea -Xms2m -Xlog:gc*:file=/tmp/linuxkernel-gc.out -Djrte.out.enabled=true ${jargs.jit.ribose}"/>
 			<arg line="--nil LinuxKernel patterns/test/inputs/kern-10.log build/Test.model"/>
 		</java>
-		<echo message="LinuxKernel: -Xms12m -Xlog:gc=trace:file=${build.test}/LinuxKernel-gc.out:uptime"/>
-		<concat><fileset file="${build.test}/LinuxKernel-gc.out"/></concat>
-		<java fork="true" dir="." classname="com.characterforming.ribose.TRun" classpathref="jrte.classpath" failonerror="true">
-			<jvmarg line="-ea -Xms10m -Xlog:gc=trace:file=${build.test}/Tintervals-gc.out:uptime -Djrte.out.enabled=false"/>
-			<arg line="--nil Tintervals patterns/test/inputs/verbosegc.vgc build/Test.model"/>
+		<echo message="TRun: LinuxKernelLoose -Xms2m -Xlog:gc*:file=/tmp/linuxkernelloose-gc.out -> /tmp/linuxkernelloose.out"/>
+		<java fork="true" dir="." classname="com.characterforming.ribose.TRun" classpathref="jrte.classpath" failonerror="true" output="/tmp/linuxkernelloose.out" error="/tmp/linuxkernelloose.err">
+			<jvmarg line="-ea -Xms2m -Xlog:gc*:file=/tmp/linuxkernelloose-gc.out -Djrte.out.enabled=true ${jargs.jit.ribose}"/>
+			<arg line="--nil LinuxKernelLoose patterns/test/inputs/kern-10.log build/Test.model"/>
 		</java>
-		<echo message="Tintervals: -Xms12m -Xlog:gc=trace:file=${build.test}/Tintervals-gc.out:uptime"/>
-		<concat><fileset file="${build.test}/Tintervals-gc.out"/></concat>
+		<echo message="TRun: LinuxKernelStrict -Xms2m -Xlog:gc*:file=/tmp/linuxkernelstrict-gc.out -> /tmp/linuxkernelstrict.out"/>
+		<java fork="true" dir="." classname="com.characterforming.ribose.TRun" classpathref="jrte.classpath" failonerror="true" output="/tmp/linuxkernelstrict.out" error="/tmp/linuxkernelstrict.err">
+			<jvmarg line="-ea -Xms2m -Xlog:gc*:file=/tmp/linuxkernelstrict-gc.out -Djrte.out.enabled=true ${jargs.jit.ribose}"/>
+			<arg line="--nil LinuxKernelStrict patterns/test/inputs/kern-10.log build/Test.model"/>
+		</java>
 	</target>
 		
 	<target name="tar-source" depends="clean">

@@ -1,11 +1,21 @@
 #! /bin/bash
+if (($#<4)); then
+	echo " Usage: bench <iteration-count> <transducer> <model-path> <input-path>"
+	echo "Output: /tmp/bench.<transducer>.time, /tmp/bench-<transducer>-<iteration>.gc"
+	exit 1
+fi 
 n=$1
-t=$2
-shift 2
-g="./TRun.model"
-i="test-patterns/inputs/kern-10.log"
-d="-Djrte.out.enabled=false -Dregex.out.enabled=false"
-c="jars/ribose-0.0.0.jar:jars/ribose-0.0.0-test.jar"
+transducer=$2
+model=$3
+input=$4
+shift 4
+output="-Djrte.out.enabled=true -Dregex.out.enabled=false"
+cp="-classpath jars/ribose-0.0.0.jar"
+rm -f /tmp/bench.{gc.time}*
 for i in $(seq $n); do
-	java $d -Dfile.encoding=UTF-8 -classpath $c com.characterforming.jrte.test.FileRunner --nil $t "$i" "$g" "$@"
+	echo -n "$transducer " >> /tmp/bench.$transducer.time
+	gc="-Xms2m -Xlog:gc*:file=/tmp/bench-$transducer-$i.gc"
+	/usr/bin/time -a -o /tmp/bench.$transducer.time -f "%Uuser %Ssystem %Eelapsed %PCPU %Iinputs+%Ooutputs (%Fmajor+%Rminor)" \
+	java $output $gc $cp -Dfile.encoding=UTF-8 com.characterforming.ribose.TRun --nil $transducer "$input" "$model" "$@" \
+	> /tmp/bench-$transducer-$i.out
 done

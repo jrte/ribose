@@ -34,12 +34,15 @@ final class InputStack {
 	private final byte[][] signals;
 	private final byte[][] values;
 	private final MarkStack marked;
+	private final FreeStack freed;
 	private MarkState markState;
 	private Input[] stack;
 	private int tos;
 	
 	@SuppressWarnings("serial")
 	class MarkStack extends LinkedList<Input> { }
+	@SuppressWarnings("serial")
+	class FreeStack extends LinkedList<byte[]> { }
 	
 	InputStack(final int initialSize, final int signalCount, final int valueCount) {
 		this.signals = new byte[signalCount][]; 
@@ -53,6 +56,7 @@ final class InputStack {
 		this.stack = InputStack.stack(initialSize);
 		this.markState = MarkState.clear;
 		this.marked = new MarkStack();
+		this.freed = new FreeStack();
 		this.tos = -1;
 	}
 	
@@ -71,8 +75,6 @@ final class InputStack {
 	 */
 	Input push(byte[] data) {
 		Input top = this.stackcheck();
-		if (this.tos == 0) {
-		}
 		top.array = data;
 		top.limit = top.length = top.array.length;
 		top.position = 0;
@@ -124,8 +126,7 @@ final class InputStack {
 		return this.tos >= 0 ? this.stack[this.tos] : Input.empty;
 	}
 
-	/**		this.markState = MarkState.clear;
-
+	/**
 	 * Pop the stack
 	 * 
 	 * @return The item on top of the stack after the pop
@@ -135,24 +136,32 @@ final class InputStack {
 		while (input != Input.empty && !input.hasRemaining()) {
 			input = --this.tos >= 0 ? this.stack[this.tos] : Input.empty;
 		}
-		if (input == Input.empty) {
-			switch (this.markState) {
-			case marked:
-				input = new Input(this.stack[0]);
-				input.position = input.mark < 0 ? 0 : input.mark;
-				input.mark = -1;
-				this.marked.add(input);
-				return Input.empty;
-			case reset:
-				input = this.marked.pop();
-				if (input != Input.empty) {
-					return this.push(input);
+		if (this.tos == 0) {
+			if (this.markState == MarkState.reset) {
+				if (!input.hasMark()) {
+					assert !this.marked.isEmpty();
+					input = new Input(this.stack[this.tos--]);
+					this.marked.add(input);
+					input = this.marked.pop();
+					assert input != null;
 				}
-				this.markState = MarkState.clear;
-				break;
-			case clear:
-			default:
-				break;
+			}
+		} else if (this.tos < 0) {
+			assert input == Input.empty;
+			if (this.markState == MarkState.reset) {
+				this.freed.add(this.stack[0].array);
+				this.stack[0].clear();
+				if (!this.marked.isEmpty()) {
+					input = this.push(this.marked.pop());
+				} else {
+					this.markState = MarkState.clear;
+				}
+			} else if (this.markState == MarkState.marked) {
+				Input marked = new Input(this.stack[0]);
+				assert marked.mark >= 0;
+				marked.position = marked.mark;
+				marked.mark = -1;
+				this.marked.add(marked);
 			}
 		}
 		return input;
@@ -198,23 +207,48 @@ final class InputStack {
 	boolean reset() {
 		if (this.markState == MarkState.marked) {
 			assert this.tos >= 0;
-			Input input = this.stack[0];
-			if (input.mark >= 0) {
+			Input bos = this.stack[0];
+			if (bos.mark >= 0) {
 				this.markState = MarkState.clear;
-				input.position = input.mark;
-				input.mark = -1;
+				bos.position = bos.mark;
+				bos.mark = -1;
 			} else {
+				assert bos.mark == -1;
 				assert this.marked.size() > 0;
-				assert this.stack[0].mark == -1;
 				this.markState = MarkState.reset;
-				input.position = input.limit;
-				input = new Input(input);
-				this.marked.add(input);
-				input.position = 0;
+				if (this.tos == 0) {
+					--this.tos;
+					bos.position = 0;
+					this.marked.add(new Input(bos));
+					this.push(this.marked.pop());
+				}
 			}
 			return this.tos <= 0;
 		}
 		return false;
+	}
+	
+	/** 
+	 * Get a recycled data buffer that has been released from the mark set
+	 *
+	 * @param bytes buffer most recently pushed to empty stack 
+	 * @return {@code bytes} or a data buffer recently released from the mark set or null
+	 */
+	byte[] recycle(byte[] bytes) {
+		byte[] free = this.freed.peek();
+		assert bytes != null && bytes != free;
+		if (bytes == this.stack[0].array && this.stack[0].mark >= 0) {
+			return this.freed.isEmpty() ? null : this.freed.pop();
+		}
+		for (Input marked : this.marked) {
+			if (bytes == marked.array) {
+				return this.freed.isEmpty() ? null : this.freed.pop();
+			}
+		}
+		if (!this.freed.isEmpty()) {
+			 return this.freed.pop();
+		}
+		return bytes;
 	}
 	
 	/** 

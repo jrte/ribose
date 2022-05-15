@@ -193,6 +193,16 @@ public interface ITransductor extends ITarget {
 	public boolean hasMark();
 	
 	/**
+	 * If the {@code bytes} buffer is in the mark set try to recycle the buffer
+	 * from a previously reset input, or return null to force caller to acquire
+	 * a new buffer. Otherwise return the unmarked {@code bytes} buffer.
+	 * 
+	 * @param bytes the most recently used buffer
+	 * @return an empty data buffer or null
+	 */
+	public byte[] recycle(byte[] bytes);
+	
+	/**
 	 * Return the number of domain errors counted in the most recent run() call. A
 	 * domain error occurs when no transition is defined from current state for 
 	 * current input. 

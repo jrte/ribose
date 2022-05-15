@@ -209,6 +209,15 @@ public final class Transductor implements ITransductor, ITarget, IOutput {
 
 	/*
 	 * (non-Javadoc)
+	 * @see com.characterforming.ribose.ITransductor#recycle()
+	 */
+	@Override
+	public byte[] recycle(byte[] bytes) {
+		return this.inputStack.recycle(bytes);
+	}
+
+	/*
+	 * (non-Javadoc)
 	 * @see com.characterforming.ribose.ITransductor#start(Bytes)
 	 */
 	@Override
