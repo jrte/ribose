@@ -24,6 +24,7 @@ package com.characterforming.jrte.test;
 import java.io.File;
 import java.io.IOException;
 import java.util.logging.FileHandler;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
 
@@ -109,7 +110,13 @@ public class TestRunner {
 				System.out.println(String.format(" : %7.3f mb/s (bytes)", mbps));
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			System.out.println("Runtime exception thrown.");
+			rteLogger.log(Level.SEVERE, "Runtime failed, exception thrown.", e);
+			System.exit(1);
+		} catch (AssertionError e) {
+			System.out.println("Runtime assertion failed.");
+			rteLogger.log(Level.SEVERE, "Runtime assertion failed", e);
+			System.exit(1);
 		}
 	}
 

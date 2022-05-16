@@ -148,8 +148,12 @@ public final class TRun extends BaseTarget implements ITarget {
 				}
 			}
 		} catch (final Exception e) {
-			rteLogger.log(Level.SEVERE, "Runtime instantiation failed", e);
-			System.out.println("Runtime instantiation failed, see log for details.");
+			rteLogger.log(Level.SEVERE, "Runtime failed", e);
+			System.out.println("Runtime failed, see log for details.");
+			exitCode = 1;
+		} catch (final AssertionError e) {
+			rteLogger.log(Level.SEVERE, "Runtime assertion failed", e);
+			System.out.println("Runtime assertion failed, see log for details.");
 			exitCode = 1;
 		} finally {
 			System.exit(exitCode);

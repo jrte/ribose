@@ -2,6 +2,7 @@ package com.characterforming.ribose;
 
 import java.io.File;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import com.characterforming.jrte.engine.Model;
 import com.characterforming.jrte.engine.ModelCompiler;
@@ -73,6 +74,7 @@ public final class TCompile extends ModelCompiler implements ITarget {
 	 * @param args &lt;target-classname&gt; &lt;automata-directory-path&gt; &lt;runtime-model-path&gt;
 	 */
 	public static void main(final String[] args) {
+		final Logger rtcLogger = Logger.getLogger(Base.RTC_LOGGER_NAME);
 		File ginrAutomataDirectory = null;
 		File riboseModelFile = null;
 		String targetClassname = null;
@@ -120,6 +122,12 @@ public final class TCompile extends ModelCompiler implements ITarget {
 				exitCode = 1;
 			}
 		} catch (Exception e) {
+			rtcLogger.log(Level.SEVERE, "Compiler failed", e);
+			System.out.println("Compiler failed, see log for details.");
+			exitCode = 1;
+		} catch (final AssertionError e) {
+			rtcLogger.log(Level.SEVERE, "Compiler assertion failed", e);
+			System.out.println("Compiler assertion failed, see log for details.");
 			exitCode = 1;
 		} finally {
 			if (exitCode != 0) {

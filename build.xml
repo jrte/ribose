@@ -395,11 +395,54 @@
 	<target name="test-gc" depends="ribose,package-test-patterns,package-test">
 		<echo>JVM Heap (see memory leakage in simple fsts driving base transduction effectors):</echo>
 		<delete quiet="true" dir="/tmp">
+			<include name="vgc.verbosegc*.out"/>
+			<include name="vgc.verbosegc*.err"/>
+			<include name="vgc.verbosegc*.gc"/>
+		</delete>
+		<exec failonerror="true" executable="/usr/bin/wc">
+			<arg line="patterns/test/inputs/verbosegc.vgc"/>
+		</exec>		
+		<echo message="Regex: -Xms4608k -Xlog:gc*:file=/tmp/vgc.regex.gc -> /tmp/vgc.regex.out"/>
+		<java fork="true" dir="." classname="com.characterforming.jrte.test.FileRunner" classpathref="test.classpath" failonerror="true" output="/tmp/vgc.regex.out" error="/tmp/vgc.regex.err">
+			<jvmarg line="-ea -Xms4608k -Xlog:gc*:file=/tmp/vgc.regex.gc -Djrte.out.enabled=false -Dregex.out.enabled=true ${jargs.jit.ribose}"/>
+			<arg line="--nil Tintervals patterns/test/inputs/verbosegc.vgc build/Test.model &quot;cycle-start id=.[0-9]+. type=.scavenge. contextid=.[0-9]+. timestamp=.(?:[0-9]+[-.:T])+[0-9]+. intervalms=.([0-9]+.[0-9]+)[^0-9]&quot;" />
+		</java>
+		<exec failonerror="true" executable="/usr/bin/wc">
+			<arg line="/tmp/vgc.regex.out"/>
+		</exec>		
+		<exec failonerror="true" executable="/usr/bin/grep">
+			<arg line="'gc,heap,exit' /tmp/vgc.regex.gc"/>
+		</exec>		
+		<echo message="TRun: Tintervals -Xms2m -Xlog:gc*:file=/tmp/vgc.tintervals.gc -> /tmp/vgc.tintervals.out"/>
+		<java fork="true" dir="." classname="com.characterforming.ribose.TRun" classpathref="jrte.classpath" failonerror="true" output="/tmp/vgc.tintervals.out" error="/tmp/vgc.tintervals.err">
+			<jvmarg line="-ea -Xms2m -Xlog:gc*:file=/tmp/vgc.tintervals.gc -Dribose.block.size=${ribose.block.size} -Djrte.out.enabled=true ${jargs.jit.ribose}"/>
+			<arg line="--nil Tintervals patterns/test/inputs/verbosegc.vgc build/Test.model"/>
+		</java>
+		<exec failonerror="true" executable="/usr/bin/wc">
+			<arg line="/tmp/vgc.tintervals.out"/>
+		</exec>		
+		<exec failonerror="true" executable="/usr/bin/grep">
+			<arg line="'gc,heap,exit' /tmp/vgc.tintervals.gc"/>
+		</exec>		
+		<echo message="TRun: Sintervals -Xms2m -Xlog:gc*:file=/tmp/vgc.sintervals.gc -> /tmp/vgc.sintervals.out"/>
+		<java fork="true" dir="." classname="com.characterforming.ribose.TRun" classpathref="jrte.classpath" failonerror="true" output="/tmp/vgc.sintervals.out" error="/tmp/vgc.sintervals.err">
+			<jvmarg line="-ea -Xms2m -Xlog:gc*:file=/tmp/vgc.sintervals.gc -Dribose.block.size=${ribose.block.size} -Djrte.out.enabled=true ${jargs.jit.ribose}"/>
+			<arg line="--nil Sintervals patterns/test/inputs/verbosegc.vgc build/Test.model"/>
+		</java>
+		<exec failonerror="true" executable="/usr/bin/wc">
+			<arg line="/tmp/vgc.sintervals.out"/>
+		</exec>		
+		<exec failonerror="true" executable="/usr/bin/grep">
+			<arg line="'gc,heap,exit' /tmp/vgc.sintervals.gc"/>
+		</exec>		
+		<delete quiet="true" dir="/tmp">
 			<include name="linuxkernel*.out"/>
 			<include name="linuxkernel*.err"/>
 			<include name="linuxkernel*.gc"/>
 		</delete>
-		<echo message="NOTE: Regex run has 60m overhead allocated in old space (20m UTF-8 -> 40m Unicode input to regex)"/>
+		<exec failonerror="true" executable="/usr/bin/wc">
+			<arg line="patterns/test/inputs/kern-10.log"/>
+		</exec>		
 		<echo message="Regex: -Xms62m -Xlog:gc*:file=/tmp/linuxkernelregex.gc -> /tmp/linuxkernelregex.out"/>
 		<java fork="true" dir="." classname="com.characterforming.jrte.test.FileRunner" classpathref="test.classpath" failonerror="true" output="/tmp/linuxkernelregex.out" error="/tmp/linuxkernelregex.err">
 			<jvmarg line="-ea -Xms62m -Xlog:gc*:file=/tmp/linuxkernelregex.gc -Djrte.out.enabled=false -Dregex.out.enabled=true ${jargs.jit.ribose}"/>
@@ -411,7 +454,6 @@
 		<exec failonerror="true" executable="/usr/bin/grep">
 			<arg line="'gc,heap,exit' /tmp/linuxkernelregex.gc"/>
 		</exec>		
-		<echo message="NOTE: Trun runs stream 20m UTF-8 input in 64k segments to transductors)"/>
 		<echo message="TRun: LinuxKernel -Xms2m -Xlog:gc*:file=/tmp/linuxkernel.gc -> /tmp/linuxkernel.out"/>
 		<java fork="true" dir="." classname="com.characterforming.ribose.TRun" classpathref="jrte.classpath" failonerror="true" output="/tmp/linuxkernel.out" error="/tmp/linuxkernel.err">
 			<jvmarg line="-ea -Xms2m -Xlog:gc*:file=/tmp/linuxkernel.gc -Dribose.block.size=${ribose.block.size} -Djrte.out.enabled=true ${jargs.jit.ribose}"/>
