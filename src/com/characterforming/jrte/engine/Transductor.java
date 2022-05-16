@@ -304,7 +304,6 @@ T:		do {
 							input = this.inputStack.pop();
 						}
 						if (input != Input.empty) {
-							assert input.position <= input.limit;
 							switch (Base.getReferenceType(input.array)) {
 							case Base.TYPE_REFERENCE_SIGNAL:
 								token = Base.decodeReferenceOrdinal(Base.TYPE_REFERENCE_SIGNAL, input.array);
@@ -336,7 +335,6 @@ T:		do {
 					int action = RTE_EFFECTOR_NUL;
 					int index = 0;
 I:				do {
-						assert input == this.inputStack.peek();
 						// flag input stack condition if at end of frame
 						if (input.position >= input.limit) {
 							signalInput = -1;
@@ -380,7 +378,6 @@ I:				do {
 							if (action > 0) {
 								effect |= this.effectors[action].invoke();
 							} else {
-								assert this.effectors[(-1)*action] instanceof IParameterizedEffector<?,?>;
 								effect |= ((IParameterizedEffector<?,?>)this.effectors[(-1)*action]).invoke(effectorVector[index++]);
 							}
 							break;
@@ -396,12 +393,10 @@ I:				do {
 						case RTE_EFFECTOR_NIL:
 							break;
 						case RTE_EFFECTOR_PASTE:
-							assert token >= 0 && token <= 0xff;
 							this.selected.append((byte)token);
 							break;
 						case RTE_EFFECTOR_SELECT:
 							this.selected = this.namedValueHandles[Base.ANONYMOUS_VALUE_ORDINAL];
-							assert this.selected != null;
 							break;
 						case RTE_EFFECTOR_COPY:
 							this.selected.append(this.namedValueHandles[Base.ANONYMOUS_VALUE_ORDINAL]);
@@ -444,7 +439,6 @@ I:				do {
 							effect |= popTransducer();
 							break;
 						}
-						assert index >= 0;
 						action = effectorVector[index++];
 					} while (action != RTE_EFFECTOR_NUL);		
 					
@@ -902,7 +896,7 @@ I:				do {
 			}
 			int count = -1;
 			assert !Base.isReferenceOrdinal(parameterList[0]) : "Reference ordinal presented for <count> to CountEffector[<count> <signal>]";
-			byte type = Base.getReferenceType(parameterList[0]);
+			byte type = Base.getReferentType(parameterList[0]);
 			if (type == Base.TYPE_REFERENCE_VALUE) {
 				Bytes valueName = new Bytes(Base.getReferenceName(parameterList[0]));
 				int valueOrdinal = this.getTarget().getValueOrdinal(valueName);
@@ -916,7 +910,7 @@ I:				do {
 				count = Base.decodeInt(parameterList[0], parameterList[0].length);
 			}
 			assert !Base.isReferenceOrdinal(parameterList[1]) : "Reference ordinal presented for <signal> to CountEffector[<count> <signal>]";
-			if (Base.getReferenceType(parameterList[1]) == Base.TYPE_REFERENCE_SIGNAL) {
+			if (Base.getReferentType(parameterList[1]) == Base.TYPE_REFERENCE_SIGNAL) {
 				Bytes signalName = new Bytes(Base.getReferenceName(parameterList[1]));
 				int signalOrdinal = super.getTarget().getModel().getSignalOrdinal(signalName);
 				super.setParameter(parameterIndex, new int[] { count, signalOrdinal });
@@ -954,7 +948,7 @@ I:				do {
 				throw new TargetBindingException("The start effector accepts at most one parameter");
 			}
 			assert !Base.isReferenceOrdinal(parameterList[0]);
-			if (Base.getReferenceType(parameterList[0]) == Base.TYPE_REFERENCE_TRANSDUCER) {
+			if (Base.getReferentType(parameterList[0]) == Base.TYPE_REFERENCE_TRANSDUCER) {
 				final Bytes name = new Bytes(Base.getReferenceName(parameterList[0]));
 				final int ordinal = super.getTarget().getModel().getTransducerOrdinal(name);
 				if (ordinal >= 0) {

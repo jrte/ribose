@@ -80,7 +80,7 @@ abstract class BaseInputOutputEffector extends BaseParameterizedEffector<Transdu
 		final byte[][] parameter = new byte[parameterList.length][];
 		for (int i = 0; i < parameterList.length; i++) {
 			assert !Base.isReferenceOrdinal(parameterList[i]);
-			byte type = Base.getReferenceType(parameterList[i]);
+			byte type = Base.getReferentType(parameterList[i]);
 			if (type == Base.TYPE_REFERENCE_VALUE) {
 				final Bytes valueName = new Bytes(Base.getReferenceName(parameterList[i]));
 				final Integer valueOrdinal = super.getTarget().getValueOrdinal(valueName);

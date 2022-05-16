@@ -158,8 +158,7 @@ final class InputStack {
 				}
 			} else if (this.markState == MarkState.marked) {
 				Input marked = new Input(this.stack[0]);
-				assert marked.mark >= 0;
-				marked.position = marked.mark;
+				marked.position = Math.max(0, marked.mark);
 				marked.mark = -1;
 				this.marked.add(marked);
 			}
@@ -235,8 +234,7 @@ final class InputStack {
 	 * @return {@code bytes} or a data buffer recently released from the mark set or null
 	 */
 	byte[] recycle(byte[] bytes) {
-		byte[] free = this.freed.peek();
-		assert bytes != null && bytes != free;
+		assert bytes != null && bytes != this.freed.peek();
 		if (bytes == this.stack[0].array && this.stack[0].mark >= 0) {
 			return this.freed.isEmpty() ? null : this.freed.pop();
 		}

@@ -32,10 +32,11 @@ import com.characterforming.ribose.ITransductor;
 public class Base {
 	public static String RTE_VERSION = "ribose-HEAD";
 
-	public static final String RTE_LOGGER_NAME = "ribose-runtime";
-	public static final String RTC_LOGGER_NAME = "ribose-compile";
+	public final static String RTE_LOGGER_NAME = "ribose-runtime";
+	public final static String RTC_LOGGER_NAME = "ribose-compile";
 	
 	public final static String AUTOMATON_FILE_SUFFIX = ".dfa";
+	public final static int BLOCK_SIZE = Integer.parseInt(System.getProperty("ribose.block.size", "65536"));
 	
 	public static final int MAX_ORDINAL = Short.MAX_VALUE;
 	public static final byte TYPE_ORDINAL_INDICATOR = (byte)0xff;
@@ -151,13 +152,35 @@ public class Base {
 	 * @see TYPE_REFERENCE_VALUE
 	 */
 	static public byte getReferenceType(final byte bytes[]) {
-		if (bytes.length > 0) {
-			int typePosition = isReferenceOrdinal(bytes) ? 1 : 0;
-			switch (bytes[typePosition]) {
+		if (isReferenceOrdinal(bytes)) {
+			switch (bytes[1]) {
 			case TYPE_REFERENCE_TRANSDUCER:
 			case TYPE_REFERENCE_SIGNAL:
 			case TYPE_REFERENCE_VALUE:
-				return bytes[typePosition];
+				return bytes[1];
+			default:
+				break;
+			}
+		}
+		return TYPE_REFERENCE_NONE;
+	}
+	
+	/**
+	 * Get reference type from and encoded refernce ordinal.
+	 * 
+	 * @param bytes Bytes to check
+	 * @return a {@code byte} representing the reference type
+	 * @see TYPE_REFERENCE_SIGNAL
+	 * @see TYPE_REFERENCE_TRANSDUCER
+	 * @see TYPE_REFERENCE_VALUE
+	 */
+	static public byte getReferentType(final byte bytes[]) {
+		if (!isReferenceOrdinal(bytes)) {
+			switch (bytes[0]) {
+			case TYPE_REFERENCE_TRANSDUCER:
+			case TYPE_REFERENCE_SIGNAL:
+			case TYPE_REFERENCE_VALUE:
+				return bytes[0];
 			default:
 				break;
 			}
@@ -172,18 +195,15 @@ public class Base {
 	 * @return the reference name if {@code bytes} encodes a reference, or null
 	 */
 	static public byte[] getReferenceName(final byte reference[]) {
-		assert !isReferenceOrdinal(reference);
-		if (reference != null && reference.length > 0) {
-			switch (reference[0]) {
-			case TYPE_REFERENCE_TRANSDUCER:
-			case TYPE_REFERENCE_SIGNAL:
-			case TYPE_REFERENCE_VALUE:
-				byte[] name = new byte[reference.length - 1];
-				System.arraycopy(reference, 1, name, 0, name.length);
-				return name;
-			default:
-				break;
-			}
+		switch (getReferentType(reference)) {
+		case TYPE_REFERENCE_TRANSDUCER:
+		case TYPE_REFERENCE_SIGNAL:
+		case TYPE_REFERENCE_VALUE:
+			byte[] name = new byte[reference.length - 1];
+			System.arraycopy(reference, 1, name, 0, name.length);
+			return name;
+		default:
+			break;
 		}
 		return null;
 	}
