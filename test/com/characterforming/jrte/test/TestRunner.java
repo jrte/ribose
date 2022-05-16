@@ -82,9 +82,10 @@ public class TestRunner {
 		String[] tests = new String[] {
 			"SelectPasteTest", "PasteSpeedTest", "NilPauseTest", "PastePauseTest", "PasteCutTest", "StackTest", "PasteCountTest", "CounterTest", "NilSpeedTest"
 		};
-		final TRun target = new TRun();
-		try (final IRuntime ribose = Ribose.loadRiboseModel(new File(modelPath), target)) {
-			final ITransductor trex = ribose.newTransductor(target);
+		final TRun modelTarget = new TRun();
+		try (final IRuntime ribose = Ribose.loadRiboseModel(new File(modelPath), modelTarget)) {
+			final TRun runTarget = new TRun();
+			final ITransductor trex = ribose.newTransductor(runTarget);
 			for (final String test : tests) {
 				long t0 = 0, t1 = 0, t2 = 0;
 				System.out.format("%20s: ", test);

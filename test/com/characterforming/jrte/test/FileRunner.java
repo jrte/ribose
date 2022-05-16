@@ -91,10 +91,11 @@ public class FileRunner {
 			}
 			
 			int loops = 1;
-			TRun target = new TRun();
+			TRun modelTarget = new TRun();
 			if (jrteOutEnabled || !regexOutEnabled) {
-				try (IRuntime ribose = Ribose.loadRiboseModel(new File(modelPath), target)) {
-					ITransductor trex = ribose.newTransductor(target);
+				try (IRuntime ribose = Ribose.loadRiboseModel(new File(modelPath), modelTarget)) {
+					TRun runTarget = new TRun();
+					ITransductor trex = ribose.newTransductor(runTarget);
 					if (!jrteOutEnabled) {
 						System.out.print(String.format("%20s: ", transducerName));
 						loops = 20;
@@ -121,9 +122,9 @@ public class FileRunner {
 						double mbps = (tjrte > 0) ? ((double)(clen) / (double)(tjrte*1024*1024)) * (Math.min(loops,10)*1000) : -1;
 						System.out.println(String.format(" : %7.3f mb/s %7.3f nul/kb", mbps, epkb));
 					} else if (nil) {
-						ribose.transduce(target, Bytes.encode(transducerName), Signal.nil, isr);
+						ribose.transduce(modelTarget, Bytes.encode(transducerName), Signal.nil, isr);
 					} else {
-						ribose.transduce(target, Bytes.encode(transducerName), isr);
+						ribose.transduce(modelTarget, Bytes.encode(transducerName), isr);
 					}
 				} catch (Exception e) {
 					System.out.println("Runtime exception thrown.");

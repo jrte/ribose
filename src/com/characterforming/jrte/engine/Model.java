@@ -208,6 +208,10 @@ public final class Model implements AutoCloseable {
 			throw new ModelException(String.format("Cannot bind instance of target class '%1$s', can only bind to model target class '%2$s'",
 				target.getClass().getName(), this.modelTarget.getClass().getName()));
 		}
+		if (target == this.modelTarget) {
+			throw new ModelException(String.format("Cannot use model target instance as runtime target: $%s",
+				this.modelTarget.getClass().getName()));
+		}
 		Transductor trex = new Transductor(this, this.mode);
 		IEffector<?>[] trexFx = trex.bindEffectors();
 		IEffector<?>[] targetFx = target.bindEffectors();

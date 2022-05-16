@@ -135,15 +135,16 @@ public final class TRun extends BaseTarget implements ITarget {
 			System.exit(1);
 		}
 
-		ITarget modelTarget = new TRun();
 		int exitCode = 1;
+		ITarget modelTarget = new TRun();
 		try (
 			IRuntime ribose = Ribose.loadRiboseModel(model, modelTarget);
 			DataInputStream isr = new DataInputStream(new FileInputStream(input));
 		) {
 			if (ribose != null) {
+				ITarget runTarget = new TRun();
 				Bytes transducer = Bytes.encode(transducerName);
-				if (ribose.transduce(modelTarget, transducer, nil ? Signal.nil : null, isr)) {
+				if (ribose.transduce(runTarget, transducer, nil ? Signal.nil : null, isr)) {
 					exitCode = 0;
 				}
 			}
