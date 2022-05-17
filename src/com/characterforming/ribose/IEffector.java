@@ -64,15 +64,20 @@ public interface IEffector<T extends ITarget> {
 	 */
 	public static final int RTE_EFFECT_POP = 16;
 	/**
+	 * Return RTE_EFFECT_COUNT from effector.invoke() method that set 
+	 * a counter for the current transducer.
+	 */
+	public static final int RTE_EFFECT_COUNT = 32;
+	/**
 	 * Return RTE_EFFECT_PAUSE from an effector.invoke() method to force
 	 * immediate and resumable exit from run().
 	 */
-	public static final int RTE_EFFECT_PAUSE = 32;
+	public static final int RTE_EFFECT_PAUSE = 64;
 	/**
 	 * Return RTE_EFFECT_STOPPED from an effector.invoke() method to force
 	 * immediate and final exit from run().
 	 */
-	public static final int RTE_EFFECT_STOPPED = 64;
+	public static final int RTE_EFFECT_STOPPED = 128;
 
 	/**
 	 * Returns the target that expresses the effector

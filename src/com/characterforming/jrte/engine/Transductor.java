@@ -278,7 +278,7 @@ public final class Transductor implements ITransductor, ITarget, IOutput {
 		final int eosSignal = Base.Signal.eos.signal();
 		int errorCount = this.errorCount = 0;
 		TransducerState transducer = null;
-		int state = 0, last = -1, token = -1;
+		int state = 0, last = -1, token = -1, count = 0;
 		int errorInput = -1, signalInput = -1;
 		Status status = this.status();
 		Input input = Input.empty;
@@ -289,7 +289,8 @@ T:		do {
 				final int[] inputFilter = transducer.inputFilter;
 				final int[][] transitionMatrix = transducer.transitionMatrix;
 				final int[] effectorVector = transducer.effectorVector;
-				state = transducer.state;			
+				count = transducer.countdown[0];
+				state = transducer.state;
 				do {
 					// get next input token
 					if (signalInput == 0) {
@@ -412,9 +413,9 @@ I:				do {
 							this.selected.clear();
 							break;
 						case RTE_EFFECTOR_COUNT:
-							if (--transducer.countdown[0] <= 0) {
-								effect |= this.in(transducer.countdown[1]);
-								transducer.countdown[0] = 0;
+							if (--count <= 0) {
+								signalInput = transducer.countdown[1];
+								transducer.countdown[0] = count = 0;
 							}
 							break;
 						case RTE_EFFECTOR_IN:
@@ -450,12 +451,25 @@ I:				do {
 						status = this.status();
 					}
 					if (effect != 0) {
-						if (0 != (effect & (IEffector.RTE_EFFECT_PUSH | IEffector.RTE_EFFECT_POP))) {
+						if (signalInput == 0 && 0 != (effect & (IEffector.RTE_EFFECT_PUSH | IEffector.RTE_EFFECT_POP))) {
 							signalInput = -1;
 						}
 						if (0 != (effect & IEffector.RTE_EFFECT_START)) {
 							assert transducer == this.transducerStack.get(this.transducerStack.tos()-1);
+							transducer.countdown[0] = count;
 							transducer.state = state;
+						}
+						if (0 != (effect & IEffector.RTE_EFFECT_COUNT)) {
+							assert (transducer == this.transducerStack.get(this.transducerStack.tos()))
+								|| (0 != (effect & IEffector.RTE_EFFECT_START) && transducer == this.transducerStack.get(this.transducerStack.tos()-1));
+							if (transducer.countdown[0] < 0) {
+								transducer.countdown[0] = (int)this.getNamedValue((-1 * transducer.countdown[0]) - 1).asInteger();
+							}
+							count = transducer.countdown[0];
+							if (count <= 0) {
+								signalInput = transducer.countdown[1];
+								transducer.countdown[0] = 0;
+							}
 						}
 						if (effect >= IEffector.RTE_EFFECT_PAUSE) {
 							break T;
@@ -618,13 +632,7 @@ I:				do {
 		assert countdown.length == 2;
 		TransducerState tos = this.transducerStack.peek();
 		System.arraycopy(countdown, 0, tos.countdown, 0, countdown.length);
-		if (tos.countdown[0] < 0) {
-			tos.countdown[0] = (int)this.getNamedValue((-1 * tos.countdown[0]) - 1).asInteger();
-		}
-		if (tos.countdown[0] == 0) {
-			return this.in(tos.countdown[1]);
-		}
-		return IEffector.RTE_EFFECT_NONE;
+		return IEffector.RTE_EFFECT_COUNT;
 	}
 
 	private int in(final int signal) {
