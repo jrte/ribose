@@ -331,14 +331,14 @@ T:		do {
 							} 
 						} 
 					}
+					// flag input stack condition if at end of frame
+					if (input.position >= input.limit) {
+						signalInput = -1;
+					}
 					
 					int action = RTE_EFFECTOR_NUL;
 					int index = 0;
 I:				do {
-						// flag input stack condition if at end of frame
-						if (input.position >= input.limit) {
-							signalInput = -1;
-						}
 						last = state;
 						// filter token to equivalence ordinal and map ordinal and state to next state and action
 						final int transition[] = transitionMatrix[state + inputFilter[token]];
@@ -360,6 +360,9 @@ I:				do {
 						}
 						if (signalInput == 0) {
 							token = input.array[input.position++];
+							if (input.position >= input.limit) {
+								signalInput = -1;
+							}
 						} else if (token < Base.RTE_SIGNAL_BASE) {
 							assert !this.inputStack.peek().hasRemaining();
 							this.inputStack.pop();

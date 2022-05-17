@@ -252,7 +252,6 @@
 			<jvmarg line="-ea -Djrte.out.enabled=true"/>
 			<arg line="--nil Fibonacci patterns/test/inputs/fib.txt build/Test.model"/>
 		</java>
-
 		<echo>DateExtractor:</echo>
 		<java fork="true" dir="." classname="com.characterforming.ribose.TRun" classpathref="jrte.classpath" failonerror="true">
 			<jvmarg line="-ea -Djrte.out.enabled=true"/>
@@ -293,107 +292,6 @@
 			<arg line="--nil Tintervals patterns/test/inputs/verbosegc.vgc build/Test.model cycle-start.id=.*type=.*contextid=.*timestamp=.*intervalms=.([0-9]+'.'[0-9]+)[^0-9]"/>
 		</java>
 		<echo>Ribose output equivalence tests (lines words bytes path):</echo>
-		<delete quiet="true" file="${build.test}/vgc.regex.out"/>
-		<delete quiet="true" file="${build.test}/Tintervals.jrte.out"/>
-		<delete quiet="true" file="${build.test}/vgc.sintervals.out"/>
-		<echo message="Input Java GC log verbose.vgc:"/>
-		<exec failonerror="false" dir="patterns/test/inputs" executable="wc">
-			<arg line="verbosegc.vgc"/>
-		</exec>
-		<echo message="Java Regex (verbosegc.vgc -> vgc.regex.out)"/>
-		<java fork="true" dir="." classname="com.characterforming.jrte.test.FileRunner" classpathref="test.classpath" failonerror="true" output="${build.test}/vgc.regex.out">
-			<jvmarg line="-ea -Djrte.out.enabled=false -Dregex.out.enabled=true ${jargs.jit.ribose}"/>
-			<arg line="--nil Tintervals patterns/test/inputs/verbosegc.vgc build/Test.model &quot;cycle-start id=.[0-9]+. type=.scavenge. contextid=.[0-9]+. timestamp=.(?:[0-9]+[-.:T])+[0-9]+. intervalms=.([0-9]+.[0-9]+)[^0-9]&quot;"/>
-		</java>
-		<exec failonerror="true" executable="/usr/bin/wc">
-			<arg line="${build.test}/vgc.regex.out"/>
-		</exec>		
-		<echo message="TRun Sintervals (verbosegc.vgc -> vgc.sintervals.out"/>
-		<java fork="true" dir="." classname="com.characterforming.ribose.TRun" classpathref="jrte.classpath" failonerror="true" output="${build.test}/vgc.sintervals.out">
-			<jvmarg line="-ea -Djrte.out.enabled=true -Dregex.out.enabled=false ${jargs.jit.ribose}"/>
-			<arg line="--nil Sintervals patterns/test/inputs/verbosegc.vgc build/Test.model"/>
-		</java>
-		<exec failonerror="true" executable="/usr/bin/wc">
-			<arg line="${build.test}/vgc.sintervals.out"/>
-		</exec>	
-		<echo message="TRun Tintervals (verbosegc.vgc -> vgc.tintervals.out"/>
-		<java fork="true" dir="." classname="com.characterforming.ribose.TRun" classpathref="jrte.classpath" failonerror="true" output="${build.test}/vgc.tintervals.out">
-			<jvmarg line="-ea -Djrte.out.enabled=true  ${jargs.jit.ribose}"/>
-			<arg line="--nil Tintervals patterns/test/inputs/verbosegc.vgc build/Test.model"/>
-		</java>
-		<exec failonerror="true" executable="/usr/bin/wc">
-			<arg line="${build.test}/vgc.tintervals.out"/>
-		</exec>		
-		<condition property="intervals.match">
-			<and>
-				<filesmatch file1="${build.test}/vgc.regex.out" file2="${build.test}/vgc.sintervals.out"/>
-				<filesmatch file1="${build.test}/vgc.sintervals.out" file2="${build.test}/vgc.tintervals.out"/>
-			</and>
-		</condition>
-		<fail unless="intervals.match" message="^^^ Not identical"/>
-		<delete quiet="true" file="log.regex.out"/>
-		<delete quiet="true" file="log.linuxkernel.out"/>
-		<delete quiet="true" file="log.linuxkernelloose.out"/>
-		<delete quiet="true" file="log.linuxkernelstrict.out"/>
-		<echo message="Input Linux kernel log kern-10.log:"/>
-		<exec failonerror="false" dir="patterns/test/inputs" executable="wc">
-			<arg line="kern-10.log"/>
-		</exec>
-		<echo message="Java Regex (kern-10.log -> log.regex.out)"/>
-		<java fork="true" dir="." classname="com.characterforming.jrte.test.FileRunner" classpathref="test.classpath" failonerror="true" output="log.regex.out">
-			<jvmarg line="-ea -Djrte.out.enabled=false -Dregex.out.enabled=true ${jargs.jit.ribose}"/>
-			<arg line="--nil LinuxKernel patterns/test/inputs/kern-10.log build/Test.model &quot;${regex.linux.kernel}&quot;" />
-		</java>
-		<exec failonerror="true" executable="/usr/bin/wc">
-			<arg line="log.regex.out"/>
-		</exec>		
-		<echo message="TRun LinuxKernel (kern-10.log -> log.linuxkernel.out"/>
-		<java fork="true" dir="." classname="com.characterforming.ribose.TRun" classpathref="jrte.classpath" failonerror="true" output="log.linuxkernel.out">
-			<jvmarg line="-ea -Djrte.out.enabled=true ${jargs.jit.ribose}"/>
-			<arg line="--nil LinuxKernel patterns/test/inputs/kern-10.log build/Test.model"/>
-		</java>
-		<exec failonerror="true" executable="/usr/bin/wc">
-			<arg line="log.linuxkernel.out"/>
-		</exec>		
-		<echo message="TRun LinuxKernelLoose (kern-10.log -> log.linuxkernelloose.out"/>
-		<java fork="true" dir="." classname="com.characterforming.ribose.TRun" classpathref="jrte.classpath" failonerror="true" output="log.linuxkernelloose.out">
-			<jvmarg line="-ea -Djrte.out.enabled=true ${jargs.jit.ribose}"/>
-			<arg line="--nil LinuxKernelLoose patterns/test/inputs/kern-10.log build/Test.model"/>
-		</java>
-		<exec failonerror="true" executable="/usr/bin/wc">
-			<arg line="log.linuxkernelloose.out"/>
-		</exec>		
-		<echo message="TRun LinuxKernelStrict (kern-10.log -> log.linuxkernelstrict.out"/>
-		<java fork="true" dir="." classname="com.characterforming.ribose.TRun" classpathref="jrte.classpath" failonerror="true" output="log.linuxkernelstrict.out">
-			<jvmarg line="-ea -Djrte.out.enabled=true ${jargs.jit.ribose}"/>
-			<arg line="--nil LinuxKernelStrict patterns/test/inputs/kern-10.log build/Test.model"/>
-		</java>
-		<exec failonerror="true" executable="/usr/bin/wc">
-			<arg line="log.linuxkernelstrict.out"/>
-		</exec>		
-		<condition property="kernel.match">
-			<and>
-				<filesmatch file1="log.regex.out" file2="log.linuxkernel.out"/>
-				<filesmatch file1="log.linuxkernel.out" file2="log.linuxkernelloose.out"/>
-				<filesmatch file1="log.linuxkernelloose.out" file2="log.linuxkernelstrict.out"/>
-			</and>
-		</condition>
-		<fail unless="kernel.match" message="^^^ Not identical"/>
-		<echo message="${ant.version}"/>
-		<echo>java -version</echo>
-		<java fork="true" dir="." classname="com.characterforming.ribose.TRun" classpathref="test.classpath">
-			<jvmarg line="-version"/>
-		</java>		
-		<echo>lscpu</echo>
-		<exec failonerror="false" executable="lscpu" output="/tmp/lscpu.out"/>
-		<exec failonerror="false" executable="grep" input="/tmp/lscpu.out">
-			<arg line="-v '^\(Vulnerability\|Flags\)'"/>
-		</exec>
-		<delete failonerror="false" file="/tmp/lscpu.out"/>
-	</target>
-	
-	<target name="test-gc" depends="ribose,package-test-patterns,package-test">
-		<echo>JVM Heap (see memory leakage in simple fsts driving base transduction effectors):</echo>
 		<delete quiet="true" dir="/tmp">
 			<include name="vgc.verbosegc*.out"/>
 			<include name="vgc.verbosegc*.err"/>
@@ -435,6 +333,13 @@
 		<exec failonerror="true" executable="/usr/bin/grep">
 			<arg line="'gc,heap,exit' /tmp/vgc.sintervals.gc"/>
 		</exec>		
+		<condition property="intervals.match">
+			<and>
+				<filesmatch file1="${build.test}/vgc.regex.out" file2="${build.test}/vgc.sintervals.out"/>
+				<filesmatch file1="${build.test}/vgc.sintervals.out" file2="${build.test}/vgc.tintervals.out"/>
+			</and>
+		</condition>
+		<fail unless="intervals.match" message="^^^ Not identical"/>
 		<delete quiet="true" dir="/tmp">
 			<include name="linuxkernel*.out"/>
 			<include name="linuxkernel*.err"/>
@@ -487,6 +392,14 @@
 		<exec failonerror="true" executable="/usr/bin/grep">
 			<arg line="'gc,heap,exit' /tmp/linuxkernelstrict.gc"/>
 		</exec>		
+		<condition property="kernel.match">
+			<and>
+				<filesmatch file1="log.regex.out" file2="log.linuxkernel.out"/>
+				<filesmatch file1="log.linuxkernel.out" file2="log.linuxkernelloose.out"/>
+				<filesmatch file1="log.linuxkernelloose.out" file2="log.linuxkernelstrict.out"/>
+			</and>
+		</condition>
+		<fail unless="kernel.match" message="^^^ Not identical"/>
 		<echo message="GC logs"/>
 		<path id="tmp">
 		  <fileset dir="/tmp">
@@ -497,8 +410,19 @@
 		<exec failonerror="true" executable="/usr/bin/stat">
 			<arg line="--printf '%s bytes\t%n\n' ${tmp.gc}"/>
 		</exec>		
+		<echo message="${ant.version}"/>
+		<echo>java -version</echo>
+		<java fork="true" dir="." classname="com.characterforming.ribose.TRun" classpathref="test.classpath">
+			<jvmarg line="-version"/>
+		</java>		
+		<echo>lscpu</echo>
+		<exec failonerror="false" executable="lscpu" output="/tmp/lscpu.out"/>
+		<exec failonerror="false" executable="grep" input="/tmp/lscpu.out">
+			<arg line="-v '^\(Vulnerability\|Flags\)'"/>
+		</exec>
+		<delete failonerror="false" file="/tmp/lscpu.out"/>
 	</target>
-		
+	
 	<target name="tar-source" depends="clean">
 		<delete quiet="true" file="jrte-source.tar.gz"/>
 		<tar destfile="jrte-source.tar.gz" compression="gzip">
