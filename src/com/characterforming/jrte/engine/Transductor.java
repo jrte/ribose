@@ -280,6 +280,7 @@ public final class Transductor implements ITransductor, ITarget, IOutput {
 		TransducerState transducer = null;
 		int state = 0, last = -1, token = -1, count = 0;
 		int errorInput = -1, signalInput = -1;
+		int[] aftereffects = new int[32];
 		Status status = this.status();
 		Input input = Input.empty;
 		try {
@@ -335,6 +336,7 @@ T:		do {
 					// flag input stack condition if at end of frame
 					if (input.position >= input.limit) {
 						signalInput = -1;
+
 					}
 					
 					int action = RTE_EFFECTOR_NUL;
@@ -375,14 +377,16 @@ I:				do {
 					} while (true);
 					
 					// invoke a vector of 1 or more effectors and record side effects on transducer and input stacks 
-					int effect = IEffector.RTE_EFFECT_NONE;
+					
+					aftereffects[0] = 0;
 					do {
+						int effect = 0;
 						switch (action) {
 						default:
 							if (action > 0) {
-								effect |= this.effectors[action].invoke();
+								effect = this.effectors[action].invoke();
 							} else {
-								effect |= ((IParameterizedEffector<?,?>)this.effectors[(-1)*action]).invoke(effectorVector[index++]);
+								effect = ((IParameterizedEffector<?,?>)this.effectors[(-1)*action]).invoke(effectorVector[index++]);
 							}
 							break;
 						case RTE_EFFECTOR_NUL:
@@ -420,7 +424,7 @@ I:				do {
 							break;
 						case RTE_EFFECTOR_IN:
 							this.inputStack.value(this.selected.getValue(), this.selected.getLength());
-							effect |= IEffector.RTE_EFFECT_PUSH;
+							effect = IEffector.RTE_EFFECT_PUSH;
 							break;
 						case RTE_EFFECTOR_OUT: {
 							if (Transductor.isOutEnabled && this.selected.getLength() > 0) {
@@ -433,56 +437,82 @@ I:				do {
 							break;
 						case RTE_EFFECTOR_RESET:
 							if (this.inputStack.reset()) {
-								effect |= IEffector.RTE_EFFECT_PUSH;
+								effect = IEffector.RTE_EFFECT_PUSH;
 							}
 							break;
 						case RTE_EFFECTOR_PAUSE:
-							effect |= IEffector.RTE_EFFECT_PAUSE;
+							effect = IEffector.RTE_EFFECT_PAUSE;
 							break;
 						case RTE_EFFECTOR_STOP:
-							effect |= popTransducer();
+							effect = popTransducer();
 							break;
+						}
+						if (effect != 0) {
+							aftereffects[++aftereffects[0]] = effect;
 						}
 						action = effectorVector[index++];
 					} while (action != RTE_EFFECTOR_NUL);		
 					
 					// check for transducer or input stack adjustmnent
-					if ((effect != 0) || (token == eosSignal)) {
+					if (aftereffects[0] != 0) {
+						int breakout = 0;
+						for (int i = 1; i <= aftereffects[0]; i++) {
+							switch (aftereffects[i]) {
+							case IEffector.RTE_EFFECT_PUSH:
+							case IEffector.RTE_EFFECT_POP:
+								signalInput = -1;
+								break;
+							case IEffector.RTE_EFFECT_START:
+								assert transducer == this.transducerStack.get(this.transducerStack.tos()-1);
+								transducer.countdown[0] = count;
+								transducer.state = state;
+								if (breakout == 0) {
+									breakout = -1;
+								}
+								break;
+							case IEffector.RTE_EFFECT_STOP:
+								if (breakout == 0) {
+									breakout = -1;
+								}
+								break;
+							case IEffector.RTE_EFFECT_COUNT:
+								assert (transducer == this.transducerStack.get(this.transducerStack.tos()))
+								|| (transducer == this.transducerStack.get(this.transducerStack.tos()-1));
+								if (transducer.countdown[0] < 0) {
+									count = transducer.countdown[0] = (int)this.getNamedValue((-1 * transducer.countdown[0]) - 1).asInteger();
+								} else {
+									count = transducer.countdown[0];
+								}
+								if (count <= 0) {
+									signalInput = transducer.countdown[1];
+									transducer.countdown[0] = 0;
+								}
+								break;
+							case IEffector.RTE_EFFECT_PAUSE:
+							case IEffector.RTE_EFFECT_STOPPED:
+								breakout = 1;
+								break;
+							default:
+								assert false;
+								break;
+							}
+						}
 						status = this.status();
-					}
-					if (effect != 0) {
-						if (signalInput == 0 && 0 != (effect & (IEffector.RTE_EFFECT_PUSH | IEffector.RTE_EFFECT_POP))) {
-							signalInput = -1;
-						}
-						if (0 != (effect & IEffector.RTE_EFFECT_START)) {
-							assert transducer == this.transducerStack.get(this.transducerStack.tos()-1);
-							transducer.countdown[0] = count;
-							transducer.state = state;
-						}
-						if (0 != (effect & IEffector.RTE_EFFECT_COUNT)) {
-							assert (transducer == this.transducerStack.get(this.transducerStack.tos()))
-								|| (0 != (effect & IEffector.RTE_EFFECT_START) && transducer == this.transducerStack.get(this.transducerStack.tos()-1));
-							if (transducer.countdown[0] < 0) {
-								transducer.countdown[0] = (int)this.getNamedValue((-1 * transducer.countdown[0]) - 1).asInteger();
-							}
-							count = transducer.countdown[0];
-							if (count <= 0) {
-								signalInput = transducer.countdown[1];
-								transducer.countdown[0] = 0;
-							}
-						}
-						if (effect >= IEffector.RTE_EFFECT_PAUSE) {
+						if (breakout == 1) {
 							break T;
-						} else if (0 != (effect & (IEffector.RTE_EFFECT_START | IEffector.RTE_EFFECT_STOP))) {
+						} else if (breakout == -1) {
 							break;
 						}
-					}					
+					} else if (token == eosSignal) {
+						status = this.status();
+					}
 				} while (status == Status.RUNNABLE);
 			} while (status == Status.RUNNABLE);
 		} finally {
 			// Prepare to pause (or stop) transduction
 			if (!this.transducerStack.isEmpty()) {
 				assert (transducer == this.transducerStack.peek()) || (transducer == this.transducerStack.get(-1));
+				transducer.countdown[0] = count;
 				transducer.state = state;
 			}
 		}
@@ -631,20 +661,13 @@ I:				do {
 	private int count(final int[] countdown) {
 		assert countdown.length == 2;
 		TransducerState tos = this.transducerStack.peek();
-		System.arraycopy(countdown, 0, tos.countdown, 0, countdown.length);
+		tos.countdown[0] = countdown[0];
+		tos.countdown[1] = countdown[1];
 		return IEffector.RTE_EFFECT_COUNT;
 	}
 
-	private int in(final int signal) {
-		assert (signal >= Base.RTE_SIGNAL_BASE && signal < this.model.getSignalLimit());
-		this.inputStack.signal(signal);
-		return IEffector.RTE_EFFECT_PUSH;
-	}
-
 	private int in(final byte[][] input) {
-		for (int i = input.length - 1; i >= 0; i--) {
-			this.inputStack.push(input[i]);
-		}
+		this.inputStack.put(input);
 		return IEffector.RTE_EFFECT_PUSH;
 	}
 
