@@ -97,6 +97,18 @@ final class InputStack {
 		return top;
 	}
 
+	/** 
+	 * Insert data into frames in fifo order at top of stack
+	 * 
+	 * @param input array of input data
+	 */
+	public void put(byte[][] data) {
+		int i = data.length;
+		while (--i >= 0) {
+			this.push(data[i]);
+		}
+	}
+
 	/**
 	 * Push a signal onto the stack 
 	 * 
@@ -140,6 +152,7 @@ final class InputStack {
 			if (this.markState == MarkState.reset) {
 				if (!input.hasMark()) {
 					assert !this.marked.isEmpty();
+					assert !Base.isReferenceOrdinal(input.array);
 					input = new Input(this.stack[this.tos--]);
 					this.marked.add(input);
 					input = this.marked.pop();

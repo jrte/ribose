@@ -53,7 +53,8 @@ final class TransducerState {
 		this.transitionMatrix = null;
 		this.effectorVector = null;
 		this.inputEquivalents = 0;
-	}
+		this.countdown[0] = this.countdown[1] = 0;
+}
 
 	@Override
 	public String toString() {
