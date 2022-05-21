@@ -91,9 +91,9 @@ public final class Runtime implements IRuntime, AutoCloseable {
 	@Override
 	public boolean transduce(ITarget target, Bytes transducer, Signal prologue, InputStream in) throws RiboseException {
 		try {
-			int position = 0;
 			byte[] bytes = new byte[Base.BLOCK_SIZE];
 			int read = in.read(bytes);
+			int position = read;
 			if (read > 0) {
 				ITransductor trex = newTransductor(target);
 				trex.input(bytes, read);
@@ -108,8 +108,8 @@ public final class Runtime implements IRuntime, AutoCloseable {
 						if (bytes == null) {
 							bytes = new byte[Base.BLOCK_SIZE];
 						}
-						position += read;
 						read = in.read(bytes);
+						position += read;
 						if (read > 0) {
 							status = trex.input(bytes, read);
 						} 
@@ -124,6 +124,9 @@ public final class Runtime implements IRuntime, AutoCloseable {
 			log(target, transducer, e);
 			return false;
 		} catch (IOException e) {
+			log(target, transducer, e);
+			return false;
+		} catch (AssertionError e) {
 			log(target, transducer, e);
 			return false;
 		}
@@ -148,7 +151,7 @@ public final class Runtime implements IRuntime, AutoCloseable {
 		this.model.close();
 	}
 	
-	private void log(ITarget target, Bytes transducer, Exception e) {
+	private void log(ITarget target, Bytes transducer, Throwable e) {
 		Runtime.rteLogger.log(Level.SEVERE, String.format("Exception in Runtime.transduce(%1$s, %2$s, ...)",
 			target.getClass().getSimpleName(), transducer.toString()), e);
 	}

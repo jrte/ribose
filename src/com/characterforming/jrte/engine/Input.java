@@ -20,11 +20,16 @@ final class Input {
 	}
 	
 	Input(Input input) {
+		this.copy(input);
+	}
+	
+	Input copy(Input input) {
 		this.array = input.array;
 		this.length = input.array.length;
 		this.position = input.position;
 		this.limit = input.limit;
 		this.mark = input.mark;
+		return this;
 	}
 	
 	void clear() {

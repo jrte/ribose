@@ -33,11 +33,11 @@ final class InputStack {
 	enum MarkState { clear, marked, reset };
 	private final byte[][] signals;
 	private final byte[][] values;
-	private final MarkStack marked;
-	private final FreeStack freed;
-	private MarkState markState;
 	private Input[] stack;
 	private int tos;
+	private MarkState markState;
+	private Input[] marked;
+	private int bom, tom;
 	
 	@SuppressWarnings("serial")
 	class MarkStack extends LinkedList<Input> { }
@@ -54,9 +54,9 @@ final class InputStack {
 			this.values[i] = Base.encodeReferenceOrdinal(Base.TYPE_REFERENCE_VALUE, i);
 		}
 		this.stack = InputStack.stack(initialSize);
+		this.marked = InputStack.stack(initialSize);
 		this.markState = MarkState.clear;
-		this.marked = new MarkStack();
-		this.freed = new FreeStack();
+		this.bom = this.tom = 0;
 		this.tos = -1;
 	}
 	
@@ -89,10 +89,7 @@ final class InputStack {
 	 */
 	Input push(Input frame) {
 		Input top = this.stackcheck();
-		top.array = frame.array;
-		top.limit = frame.limit;
-		top.length = frame.length;
-		top.position = frame.position;
+		top.copy(frame);
 		top.mark = -1;
 		return top;
 	}
@@ -144,6 +141,7 @@ final class InputStack {
 	 * @return The item on top of the stack after the pop
 	 */
 	Input pop() {
+		assert this.stack.length <= Transductor.INITIAL_STACK_SIZE;
  		Input input = this.peek();
 		while (input != Input.empty && !input.hasRemaining()) {
 			input = --this.tos >= 0 ? this.stack[this.tos] : Input.empty;
@@ -151,29 +149,25 @@ final class InputStack {
 		if (this.tos == 0) {
 			if (this.markState == MarkState.reset) {
 				if (!input.hasMark()) {
-					assert !this.marked.isEmpty();
+					assert this.tom >= 0;
 					assert !Base.isReferenceOrdinal(input.array);
-					input = new Input(this.stack[this.tos--]);
-					this.marked.add(input);
-					input = this.marked.pop();
-					assert input != null;
+					this.addMarked(this.stack[this.tos--]);
+					input.copy(this.getMarked());
 				}
 			}
 		} else if (this.tos < 0) {
 			assert input == Input.empty;
 			if (this.markState == MarkState.reset) {
-				this.freed.add(this.stack[0].array);
-				this.stack[0].clear();
-				if (!this.marked.isEmpty()) {
-					input = this.push(this.marked.pop());
-				} else {
+				assert this.bom != this.tom;
+				assert this.stack[0].array == this.marked[this.bom].array;
+				input = this.push(this.getMarked());
+				if (this.bom == this.tom) {
 					this.markState = MarkState.clear;
-				}
+				} 
 			} else if (this.markState == MarkState.marked) {
-				Input marked = new Input(this.stack[0]);
+				Input marked = this.addMarked(this.stack[0]);
 				marked.position = Math.max(0, marked.mark);
 				marked.mark = -1;
-				this.marked.add(marked);
 			}
 		}
 		return input;
@@ -204,9 +198,9 @@ final class InputStack {
 	 */
 	void mark() {
 		if (this.tos >= 0) {
-			this.marked.clear();
 			this.stack[0].mark = this.stack[0].position;
 			this.markState = MarkState.marked;
+			this.bom = this.tom;
 		}
 	}
 	
@@ -221,21 +215,22 @@ final class InputStack {
 			assert this.tos >= 0;
 			Input bos = this.stack[0];
 			if (bos.mark >= 0) {
-				this.markState = MarkState.clear;
+				this.bom = this.tom;
 				bos.position = bos.mark;
 				bos.mark = -1;
+				this.markState = MarkState.clear;
+				return true;
 			} else {
 				assert bos.mark == -1;
-				assert this.marked.size() > 0;
+				assert this.bom != this.tom;
 				this.markState = MarkState.reset;
 				if (this.tos == 0) {
-					--this.tos;
-					bos.position = 0;
-					this.marked.add(new Input(bos));
-					this.push(this.marked.pop());
+					this.tos = -1;
+					this.addMarked(bos).position = 0;
+					this.push(this.getMarked());
+					return true;
 				}
 			}
-			return this.tos <= 0;
 		}
 		return false;
 	}
@@ -247,32 +242,54 @@ final class InputStack {
 	 * @return {@code bytes} or a data buffer recently released from the mark set or null
 	 */
 	byte[] recycle(byte[] bytes) {
-		assert bytes != null && bytes != this.freed.peek();
-		if (bytes == this.stack[0].array && this.stack[0].mark >= 0) {
-			return this.freed.isEmpty() ? null : this.freed.pop();
+		if (bytes == this.stack[0].array && this.markState != MarkState.clear) {
+			bytes = null;
 		}
-		for (Input marked : this.marked) {
-			if (bytes == marked.array) {
-				return this.freed.isEmpty() ? null : this.freed.pop();
+		if (bytes != null && this.bom != this.tom) {
+			for (int i = this.nextMarked(this.bom); i != this.tom; i = this.nextMarked(i)) {
+				if (bytes == this.marked[i].array) {
+					bytes = null;
+					break;
+				}
+			} 
+		}
+		if (bytes == null) {
+			int end = this.nextMarked(this.bom);
+			int start = this.nextMarked(this.tom);
+			boolean noneMarked = start == end;
+			if (noneMarked) {
+				end = this.marked.length;
+				start = 0;
 			}
-		}
-		if (!this.freed.isEmpty()) {
-			 return this.freed.pop();
+			for (int i = start; i != end; i = noneMarked ? (i + 1) : this.nextMarked(i)) {
+				if (this.marked[i].array != null) {
+					for (int j = this.nextMarked(this.bom); j != this.nextMarked(this.tom); j = nextMarked(j)) {
+						if (this.marked[j].array == this.marked[i].array) {
+							this.marked[i].array = null;
+							break;
+						}
+					}
+					if (this.marked[i].array != null) {
+						bytes = this.marked[i].array;
+						this.marked[i].array = null;
+						return bytes;
+					}
+				}
+			}
 		}
 		return bytes;
 	}
 	
 	/** 
-	 * Create a mark point. This will be retained until {@code reset()}
-	 * or {@code unmark()} is called. 
-	 * 
-	 * @param input
-	 * @return true if the stack pointer changed
+	 * Clear the mark state and null out all data references in the mark stack. 
 	 */
 	void unmark() {
-		this.markState = MarkState.clear;
 		this.stack[0].mark = -1;
-		this.marked.clear();
+		this.markState = MarkState.clear;
+		for (Input marked : this.marked) {
+			marked.clear();
+		}
+		this.bom = this.tom;
 	}
 	
 	/**
@@ -326,5 +343,41 @@ final class InputStack {
 			this.stack = Arrays.copyOf(this.stack, (this.tos * 5) >> 2);
 		}
 		return this.peek();
+	}
+	
+	private Input markcheck() {
+		this.tom = this.nextMarked(this.tom);
+		if (this.tom == this.bom) {
+			Input[] marked = new Input[(this.marked.length * 5) >> 2];
+			for (int pos = 0; pos < this.marked.length; pos++) {
+				marked[pos] = this.marked[this.bom];
+				this.bom = this.nextMarked(this.bom);
+			}
+			for (int pos = this.marked.length; pos < marked.length; pos++) {
+				marked[pos] = new Input();
+			}
+			this.bom = 0;
+			this.tom = this.marked.length;
+			this.marked = marked;
+		}
+		return this.marked[this.tom];
+	}
+	
+	private Input addMarked(Input input) {
+		this.markcheck().copy(input);
+		assert this.bom != this.tom;
+		return this.marked[this.tom];
+	}
+
+	private Input getMarked() {
+		if (this.bom != this.tom) {
+			this.bom = this.nextMarked(this.bom);
+			return this.marked[this.bom];
+		}
+		return null;
+	}
+	
+	private int nextMarked(int index) {
+		return ++index < this.marked.length ? index : 0;
 	}
 }

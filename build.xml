@@ -36,7 +36,7 @@
 	<property name="regex.linux.kernel" value="([JFMASOND][a-z]+ [0-9]+ (?:[0-9]+:)+[0-9]+) ([-.:A-Za-z_0-9]*) kernel: \[[ ]*[0-9]+\.[0-9]+\] (DROPPED|ABORTED|LIMITED) IN=([-.:A-Za-z_0-9]*) OUT=([-.:A-Za-z_0-9]*)(?: MAC=([-.:A-Za-z_0-9]*))? SRC=([-.:A-Za-z_0-9]*) DST=([-.:A-Za-z_0-9]*).* PROTO=([-.:A-Za-z_0-9]*)(?:.* SPT=([-.:A-Za-z_0-9]*) DPT=([-.:A-Za-z_0-9]*))?"/>
 	<property name="jargs.jit.ribose" value="-XX:CompileCommandFile=etc/jit/ribose.jit"/>
 	<property name="ribose.block.size" value="65536"/>
-	<property name="ea" value=""/>
+	<property name="ea" value="-ea"/>
 <!--
 	<property name="ea" value="-ea"/>
 	<property name="regex.linux.kernel" value="([JFMASOND][a-z]+ [0-9]+ ([0-9]+:)+[0-9]+) ([-.:A-Za-z_0-9]*) kernel: \[[ ]*[0-9]+\.[0-9]+\] (DROPPED|ABORTED|LIMITED) ((IN=([-.:A-Za-z_0-9]*)|OUT=([-.:A-Za-z_0-9]*)|MAC=([-.:A-Za-z_0-9]*)|SRC=([-.:A-Za-z_0-9]*)|DST=([-.:A-Za-z_0-9]*)) )+.* PROTO=([-.:A-Za-z_0-9]*)(.* SPT=([-.:A-Za-z_0-9]*) DPT=([-.:A-Za-z_0-9]*))?"/>
@@ -74,9 +74,9 @@
 		<exec outputproperty="git.commit" executable="/usr/bin/git">
 			<arg line="log -1 --format='%H'"/>
 		</exec>
-		<echo message="Version: ${ribose.version}"/>
 		<echo message="Git branch:${git.branch}"/>
 		<echo message="Git commit:${git.commit}"/>
+		<echo message="Version: ${ribose.version}"/>
 		<mkdir dir="${build.java.classes}"/>
 		<mkdir dir="${build.java.test}"/>
 		<mkdir dir="${build.patterns.automata}"/>
@@ -293,7 +293,7 @@
 			<jvmarg line="${ea} -Djrte.out.enabled=false -Dregex.out.enabled=false ${jargs.jit.ribose}"/>
 			<arg line="--nil Tintervals patterns/test/inputs/verbosegc.vgc build/Test.model cycle-start.id=.*type=.*contextid=.*timestamp=.*intervalms=.([0-9]+'.'[0-9]+)[^0-9]"/>
 		</java>
-		<echo>Ribose output equivalence tests (showing "lines words bytes path" wc output for input/output files):</echo>
+		<echo>Ribose output equivalence tests (showing "lines words bytes path" wc output for input/output files): [${ribose.block.size}b block size]</echo>
 		<delete quiet="true" dir="/tmp">
 			<include name="vgc.verbosegc*.out"/>
 			<include name="vgc.verbosegc*.err"/>

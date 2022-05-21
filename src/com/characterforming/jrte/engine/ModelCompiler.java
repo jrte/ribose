@@ -432,6 +432,8 @@ public class ModelCompiler implements ITarget {
 			this.error(String.format("%1$s: RteException compiling '%2$s'; %3$s", 
 				name, inrFile.getPath(), e.getMessage()));
 			return false;
+		} catch (AssertionError e) {
+			throw e;
 		} finally {
 			this.transductor.stop();
 		}

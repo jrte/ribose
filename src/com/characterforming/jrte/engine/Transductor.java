@@ -81,6 +81,8 @@ public final class Transductor implements ITransductor, ITarget, IOutput {
 	public static final int RTE_EFFECTOR_START = 12;
 	public static final int RTE_EFFECTOR_PAUSE = 13;
 	public static final int RTE_EFFECTOR_STOP = 14;
+	
+	static final int INITIAL_STACK_SIZE = 8;
 
 	private Model model;
 	private IEffector<?>[] effectors;
@@ -114,8 +116,8 @@ public final class Transductor implements ITransductor, ITarget, IOutput {
 				this.namedValueHandles[valueIndex] = new NamedValue(entry.getKey(), valueIndex, valueBuffer, 0);
 			}
 			this.selected = this.namedValueHandles[Base.ANONYMOUS_VALUE_ORDINAL];
-			this.inputStack = new InputStack(8, this.model.getSignalCount(), this.namedValueHandles.length);
-			this.transducerStack = new TransducerStack(8);
+			this.inputStack = new InputStack(INITIAL_STACK_SIZE, this.model.getSignalCount(), this.namedValueHandles.length);
+			this.transducerStack = new TransducerStack(INITIAL_STACK_SIZE);
 		} else {
 			this.namedValueOrdinalMap = null;
 			this.namedValueHandles = null;
@@ -336,7 +338,6 @@ T:		do {
 					// flag input stack condition if at end of frame
 					if (input.position >= input.limit) {
 						signalInput = -1;
-
 					}
 					
 					int action = RTE_EFFECTOR_NUL;
@@ -368,7 +369,6 @@ I:				do {
 							}
 						} else if (token < Base.RTE_SIGNAL_BASE) {
 							assert !this.inputStack.peek().hasRemaining();
-							this.inputStack.pop();
 							break;
 						} else {
 							signalInput = -1;
@@ -508,6 +508,8 @@ I:				do {
 					}
 				} while (status == Status.RUNNABLE);
 			} while (status == Status.RUNNABLE);
+		} catch (AssertionError e) {
+			throw e;
 		} finally {
 			// Prepare to pause (or stop) transduction
 			if (!this.transducerStack.isEmpty()) {
