@@ -311,12 +311,8 @@
 			<arg line="/tmp/vgc.regex.out"/>
 		</exec>		
 		<exec failonerror="true" executable="/usr/bin/grep">
-			<arg line="'gc,heap,exit' /tmp/vgc.regex.gc"/>
+			<arg line="'G1 Evacuation Pause.*->\|gc,heap,exit' /tmp/vgc.regex.gc"/>
 		</exec>		
-		<exec failonerror="true" executable="/usr/bin/grep" outputproperty="vgc.regex.gc">
-			<arg line="-c 'G1 Evacuation Pause.*->' /tmp/vgc.regex.gc"/>
-		</exec>		
-		<echo message="${vgc.regex.gc} G1 evacuation pauses"/>
 		<echo message="TRun: Tintervals -Xms2m -Xlog:gc*:file=/tmp/vgc.tintervals.gc -> /tmp/vgc.tintervals.out"/>
 		<java fork="true" dir="." classname="com.characterforming.ribose.TRun" classpathref="jrte.classpath" failonerror="true" output="/tmp/vgc.tintervals.out" error="/tmp/vgc.tintervals.err">
 			<jvmarg line="${ea} -Xms2m -Xlog:gc*:file=/tmp/vgc.tintervals.gc -Dribose.block.size=${ribose.block.size} -Djrte.out.enabled=true ${jargs.jit.ribose}"/>
@@ -326,12 +322,8 @@
 			<arg line="/tmp/vgc.tintervals.out"/>
 		</exec>		
 		<exec failonerror="true" executable="/usr/bin/grep">
-			<arg line="'gc,heap,exit' /tmp/vgc.tintervals.gc"/>
+			<arg line="'G1 Evacuation Pause.*->\|gc,heap,exit' /tmp/vgc.tintervals.gc"/>
 		</exec>		
-		<exec failonerror="true" executable="/usr/bin/grep" outputproperty="vgc.tintervals.gc">
-			<arg line="-c 'G1 Evacuation Pause.*->' /tmp/vgc.tintervals.gc"/>
-		</exec>		
-		<echo message="${vgc.tintervals.gc} G1 evacuation pauses"/>
 		<echo message="TRun: Sintervals -Xms2m -Xlog:gc*:file=/tmp/vgc.sintervals.gc -> /tmp/vgc.sintervals.out"/>
 		<java fork="true" dir="." classname="com.characterforming.ribose.TRun" classpathref="jrte.classpath" failonerror="true" output="/tmp/vgc.sintervals.out" error="/tmp/vgc.sintervals.err">
 			<jvmarg line="${ea} -Xms2m -Xlog:gc*:file=/tmp/vgc.sintervals.gc -Dribose.block.size=${ribose.block.size} -Djrte.out.enabled=true ${jargs.jit.ribose}"/>
@@ -341,12 +333,8 @@
 			<arg line="/tmp/vgc.sintervals.out"/>
 		</exec>		
 		<exec failonerror="true" executable="/usr/bin/grep">
-			<arg line="'gc,heap,exit' /tmp/vgc.sintervals.gc"/>
+			<arg line="'G1 Evacuation Pause.*->\|gc,heap,exit' /tmp/vgc.sintervals.gc"/>
 		</exec>		
-		<exec failonerror="true" executable="/usr/bin/grep" outputproperty="vgc.sintervals.gc">
-			<arg line="-c 'G1 Evacuation Pause.*->' /tmp/vgc.sintervals.gc"/>
-		</exec>		
-		<echo message="${vgc.sintervals.gc} G1 evacuation pauses"/>
 		<condition property="intervals.match">
 			<and>
 				<filesmatch file1="${build.test}/vgc.regex.out" file2="${build.test}/vgc.sintervals.out"/>
@@ -371,12 +359,8 @@
 			<arg line="/tmp/linuxkernelregex.out"/>
 		</exec>		
 		<exec failonerror="true" executable="/usr/bin/grep">
-			<arg line="'gc,heap,exit' /tmp/linuxkernelregex.gc"/>
+			<arg line="'G1 Evacuation Pause.*->\|gc,heap,exit' /tmp/linuxkernelregex.gc"/>
 		</exec>		
-		<exec failonerror="true" executable="/usr/bin/grep" outputproperty="linuxkernelregex.gc">
-			<arg line="-c 'G1 Evacuation Pause.*->' /tmp/linuxkernelregex.gc"/>
-		</exec>		
-		<echo message="${linuxkernelregex.gc} G1 evacuation pauses"/>
 		<echo message="TRun: LinuxKernel -Xms2m -Xlog:gc*:file=/tmp/linuxkernel.gc -> /tmp/linuxkernel.out"/>
 		<java fork="true" dir="." classname="com.characterforming.ribose.TRun" classpathref="jrte.classpath" failonerror="true" output="/tmp/linuxkernel.out" error="/tmp/linuxkernel.err">
 			<jvmarg line="${ea} -Xms2m -Xlog:gc*:file=/tmp/linuxkernel.gc -Dribose.block.size=${ribose.block.size} -Djrte.out.enabled=true ${jargs.jit.ribose}"/>
@@ -386,12 +370,8 @@
 			<arg line="/tmp/linuxkernel.out"/>
 		</exec>		
 		<exec failonerror="true" executable="/usr/bin/grep">
-			<arg line="'gc,heap,exit' /tmp/linuxkernel.gc"/>
+			<arg line="'G1 Evacuation Pause.*->\|gc,heap,exit' /tmp/linuxkernel.gc"/>
 		</exec>		
-		<exec failonerror="true" executable="/usr/bin/grep" outputproperty="linuxkernel.gc">
-			<arg line="-c 'G1 Evacuation Pause.*->' /tmp/linuxkernel.gc"/>
-		</exec>		
-		<echo message="${linuxkernel.gc} G1 evacuation pauses"/>
 		<echo message="TRun: LinuxKernelLoose -Xms2m -Xlog:gc*:file=/tmp/linuxkernelloose.gc -> /tmp/linuxkernelloose.out"/>
 		<java fork="true" dir="." classname="com.characterforming.ribose.TRun" classpathref="jrte.classpath" failonerror="true" output="/tmp/linuxkernelloose.out" error="/tmp/linuxkernelloose.err">
 			<jvmarg line="${ea} -Xms2m -Xlog:gc*:file=/tmp/linuxkernelloose.gc -Dribose.block.size=${ribose.block.size} -Djrte.out.enabled=true ${jargs.jit.ribose}"/>
@@ -401,12 +381,8 @@
 			<arg line="/tmp/linuxkernelloose.out"/>
 		</exec>		
 		<exec failonerror="true" executable="/usr/bin/grep">
-			<arg line="'gc,heap,exit' /tmp/linuxkernelloose.gc"/>
+			<arg line="'G1 Evacuation Pause.*->\|gc,heap,exit' /tmp/linuxkernelloose.gc"/>
 		</exec>		
-		<exec failonerror="true" executable="/usr/bin/grep" outputproperty="linuxkernelloose.gc">
-			<arg line="-c 'G1 Evacuation Pause.*->' /tmp/linuxkernelloose.gc"/>
-		</exec>		
-		<echo message="${linuxkernelloose.gc} G1 evacuation pauses"/>
 		<echo message="TRun: LinuxKernelStrict -Xms2m -Xlog:gc*:file=/tmp/linuxkernelstrict.gc -> /tmp/linuxkernelstrict.out"/>
 		<java fork="true" dir="." classname="com.characterforming.ribose.TRun" classpathref="jrte.classpath" failonerror="true" output="/tmp/linuxkernelstrict.out" error="/tmp/linuxkernelstrict.err">
 			<jvmarg line="${ea} -Xms2m -Xlog:gc*:file=/tmp/linuxkernelstrict.gc -Dribose.block.size=${ribose.block.size} -Djrte.out.enabled=true ${jargs.jit.ribose}"/>
@@ -416,12 +392,8 @@
 			<arg line="/tmp/linuxkernelstrict.out"/>
 		</exec>		
 		<exec failonerror="true" executable="/usr/bin/grep">
-			<arg line="'gc,heap,exit' /tmp/linuxkernelstrict.gc"/>
+			<arg line="'gc,heap,exit\|G1 Evacuation Pause.*->' /tmp/linuxkernelstrict.gc"/>
 		</exec>		
-		<exec failonerror="true" executable="/usr/bin/grep" outputproperty="linuxkernelstrict.gc">
-			<arg line="-c 'G1 Evacuation Pause.*->' /tmp/linuxkernelstrict.gc"/>
-		</exec>		
-		<echo message="${linuxkernelstrict.gc} G1 evacuation pauses"/>
 		<condition property="kernel.match">
 			<and>
 				<filesmatch file1="log.regex.out" file2="log.linuxkernel.out"/>
