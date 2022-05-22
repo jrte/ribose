@@ -246,7 +246,9 @@ final class InputStack {
 			bytes = null;
 		}
 		if (bytes != null && this.bom != this.tom) {
-			for (int i = this.nextMarked(this.bom); i != this.tom; i = this.nextMarked(i)) {
+			int end = this.nextMarked(this.bom);
+			int start = this.nextMarked(this.tom);
+			for (int i = start; i != end; i = this.nextMarked(i)) {
 				if (bytes == this.marked[i].array) {
 					bytes = null;
 					break;
@@ -326,15 +328,6 @@ final class InputStack {
 	 */
 	int tos() {
 		return this.tos;
-	}
-	
-	/**
-	 * Get the data buffer most recently in bottom frame if not marked
-	 * 
-	 * @return most recent unmarked input buffer, or null if marking/resetting marked data segments
-	 */
-	byte[] data() {
-		return this.markState == MarkState.clear ? this.stack[0].array : null;
 	}
 
 	private Input stackcheck() {

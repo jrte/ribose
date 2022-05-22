@@ -50,7 +50,8 @@ import com.characterforming.ribose.base.TargetBindingException;
  * Runtime transductor instances are instantiated using {@link IRuntime#newTransductor(ITarget)}.
  * Client applications drive transduction using the Transductor.run() method, 
  * which processes the bound IInput stack until one of the following conditions is 
- * satisfied: <br>
+ * satisfied:
+ * <br><br>
  * <ol>
  * <li>the input stack is empty
  * <li>the transducer stack is empty

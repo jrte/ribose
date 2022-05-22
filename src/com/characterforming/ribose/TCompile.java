@@ -13,12 +13,12 @@ import com.characterforming.ribose.base.TargetBindingException;
  * The ribose model compiler is a transducer of ginr DFAs as represented in {@code dfamin:save}
  * format in {@code *.dfa} files. As such it is contained in a compiler model, for which this
  * class is the model target class.
- * <br>
+ * <br><br>
  * The default constructor {@link TCompile()} is used only when building a new compiler model. In 
  * that context is serves as model target only to present its effectors and compile effector
  * paramters. The {@link TCompile(Model)} constructor instantiates a runtime instance of the
  * model compiler to compile a ribose model for domain-specifi0 target and related transducers.
- * <br>
+ * <br><br>
  * Main method runs the ribose runtime compiler to build a runtime model for a target 
  * class from a collection of ginr automata generated from ribose patterns.
  * <br><br>

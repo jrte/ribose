@@ -55,12 +55,12 @@ public class Base {
 	
 	/**
 	 * General signals available in all ribose models.
-	 * <br>
+	 * <br><br>
 	 * Transductors send {@code nul} to transductions when no transition is defined for
 	 * the current symbol from the input stream. This gives the transduction a first chance
    * synchronize with the input. If no transition is defined for the received {@code nul}
    * the {@link ITransductor#run()} method will throw {@code DomainErrorException}. 
-	 * <br>
+	 * <br><br>
 	 * Transductors send {@code eos} to transductions when the input stack runs dry. 
 	 * If the receiving transduction has no transition defined for received {@code eos}
 	 * it is ignored. In any case {@code run()} will return normally with {@code Status.PAUSED}

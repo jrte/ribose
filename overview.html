@@ -10,7 +10,7 @@ when IBM et al figured out how to implement a programmable typewriter feature fo
 programmable calculator behemoths. Eventually this begot EBCDIC and ASCII and UNICODE
 and programming languages that could more easily expresses algorithms involving these
 new typewriter features. 
-<br>
+<br><br>
 Why stop there? Letters and digits are fine I have some on my keyboard but they become 
 interesting only in combination with each other. These combinations can often be 
 described in regular patterns expressed in terms alternation (+), concatenation (*)
@@ -25,7 +25,7 @@ syntactic patterns to stacked transducers mapping input to code snippets (effect
 that reduce input data into specific target domains. And a runtime like ribose to host
 transduction stacks to extract information from sequential inputs and assimilate it into
 runtime process state. 
-<br>
+<br><br>
 The ribose runtime is a container for any number of transduction processes,
 each driving an input source through a composite stack of finite state transducers onto
 an instance of a target class that expresses tightly-focused effector methods. Below is
@@ -83,7 +83,7 @@ cut points delimiting features of potential interest to complete the API descrip
 wanting to engage with a service could then cut and paste the formal response pattern and 
 easily reduce it to a composition of domain-specific transducers (transduction) that identifies
 and extracts just the features of interest in domain context. 
-<br>
+<br><br>
 A pattern-oriented approach to API specification would confer advantages to the developer
 and to service providers and consumers. Design and development are eased because semantically
 labeled formal API patterns are precise, compilable functional specifications for transducer, 
@@ -93,7 +93,7 @@ transducer transition logic. With this specification the developer can specializ
 pattern to gloss over uninteresting features, identify and capture interesting feature data, 
 and invoke domain-specific effectors corresponding to feature labels to assimilate feature data
 into the target at semantically labeled cut points.   
-<br>
+<br><br>
 Services that transduce text-based service requests and responses would have reduced power
 and memory requirements because transductions are typically fast and do not need to burn
 CPU cycles carefully checking and validating every character in the input against a complex 
@@ -106,12 +106,12 @@ and widening from {@code byte[]} to {@code char[]}. Service APIs are self docume
 necessarily up to date, all the time. Service consumer dependency on complex software 
 libraries is reduced, developers are more effective, pressure on CPU and memory resources
 are reduced, and it's all good. 
-<br>
+<br><br>
 Ribose with ginr is nothing like Java regex or any of the similar PEG etc frameworks
 currently employed to match and extract data from streams of text, and it can easily be
 adapted for use in generalized sequential information processing settings.
-<br><img alt="LinuxKernelLog" src="resources/LinuxKernelLog.png">
-<br>
+<br><br><img alt="LinuxKernelLog" src="resources/LinuxKernelLog.png">
+<br><br>
 And it's just way cooler than pushing a rope with an instruction pointer. Try it and see for yourself.
 </body>
 </html>

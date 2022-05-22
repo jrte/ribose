@@ -34,12 +34,12 @@ import com.characterforming.ribose.base.RiboseException;
  * provides a capability to run serial transductions. A transduction is a pattern-driven
  * process that selects and invokes target effectors serially to extract and assimilate
  * features of interest into the target in response to syntactic cues in the input.
- * <br>
+ * <br><br>
  * Transductors operate a transducer stack and an input stack.  syntactic features onto effectors under the direction of a stack
  * of finite state transducers compiled from patterns in a domain-specific
  * {@code (<feature-syntax>, <feature-sematics>)*} semi-ring and collected
  * in a ribose runtime model.
- * <br>
+ * <br><br>
  * Each ribose runtime model is compiled from a collection of ginr automata produced 
  * from semi-ring patterns mapping input features to patterns of effector invocations.
  * The ribose model compiler compresses and assembles these into ribose transducers 

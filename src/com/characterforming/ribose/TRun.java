@@ -45,7 +45,7 @@ import com.characterforming.ribose.base.TargetBindingException;
  * <tr><td><i>pause</i></td><td>Force immediate return from {@code ITransductor.run()}</td></tr>
  * <tr><td><i>stop</i></td><td>Pop the transducer stack</td></tr>
  * </table>
- * <br>
+ * <br><br>
  * To build a text transduction model, compile with ginr a set of ribose-conformant
  * ginr patterns, saving automata (*.dfa) to be compiled into the model into a directory.
  * Run {@link TCompile#main(String[])} specifying {@link TRun} as target class,  

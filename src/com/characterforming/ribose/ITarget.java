@@ -27,7 +27,7 @@ import com.characterforming.ribose.base.TargetBindingException;
  * Interface for transduction target classes, which express IEffector instances
  * that are invoked from runtime transductions. Target implementations supplement
  * BaseTarget with specialized effectors.
- * <br>
+ * <br><br>
  * Target classes must present a public default constructor with no arguments. A
  * proxy instance of the target implementation class is instantiated during
  * model compilation to determine the names and types of the target effectors
@@ -35,7 +35,7 @@ import com.characterforming.ribose.base.TargetBindingException;
  * {@link IParameterizedEffector#newParameters(int)} will be called first and then
  * {@link IParameterizedEffector#compileParameter(int, byte[][])} methods will be
  * called for each IParameterizedEffector.
- * <br>
+ * <br><br>
  * At runtime, targets are bound only once to a transductor and the binding
  * persists for the lifetime of the transductor. Note that transductors are 
  * restartable and reuseable and may serially run more than one transduction.   
@@ -53,7 +53,7 @@ public interface ITarget {
 	/**
 	 * Lists the names and types of the effectors expressed by the target class
 	 * for binding to the runtime model.
-	 * <br>
+	 * <br><br>
 	 * Implementation classes must include their effectors in the IEffector 
 	 * array returned. Targets may be composite, arranged in an inhetritance
 	 * chain or encapsulated in discrete component classes, or a mixture of
