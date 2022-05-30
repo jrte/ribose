@@ -36,8 +36,6 @@ public class Base {
 	public final static String RTC_LOGGER_NAME = "ribose-compile";
 	
 	public final static String AUTOMATON_FILE_SUFFIX = ".dfa";
-	public final static int BLOCK_SIZE = Integer.parseInt(System.getProperty("ribose.block.size", "65536"));
-	
 	public static final int MAX_ORDINAL = Short.MAX_VALUE;
 	public static final byte TYPE_ORDINAL_INDICATOR = (byte)0xff;
 	public static final byte TYPE_REFERENCE_NONE = (byte)0x0;

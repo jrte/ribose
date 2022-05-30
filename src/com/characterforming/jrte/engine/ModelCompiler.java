@@ -296,7 +296,7 @@ public class ModelCompiler implements ITarget {
 						continue;
 					}
 					if (t.tape != 0) {
-						target.error(String.format("%1$s: Ambiguous state %1$d", 
+						target.error(String.format("%1$s: Ambiguous state %2$d", 
 							target.getTransducerName(), t.from));
 						continue;
 					} 
@@ -326,7 +326,7 @@ public class ModelCompiler implements ITarget {
 						}
 					} catch (CompilationException e) {
 						target.error(String.format("%1$s: %2$s", 
-								target.getTransducerName(), e.getMessage()));
+							target.getTransducerName(), e.getMessage()));
 					}
 				}
 			}
@@ -540,7 +540,7 @@ public class ModelCompiler implements ITarget {
 				int outS = -1;
 				for (final Transition t : outT) {
 					if (t.tape > 0) {
-						this.error(String.format("%1$s: Ambiguous state %1$d", this.getName(), t.from));
+						this.error(String.format("%1$s: Ambiguous state %2$d", this.getName(), t.from));
 					} else {
 						outS = t.from;
 					}
@@ -550,7 +550,7 @@ public class ModelCompiler implements ITarget {
 				}
 			} else {
 				for (final Transition t : outT) {
-					this.error(String.format("%1$s: Ambiguous state %1$d", this.getName(), t.from));
+					this.error(String.format("%1$s: Ambiguous state %2$d", this.getName(), t.from));
 				}
 			}
 		}

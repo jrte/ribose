@@ -112,11 +112,11 @@ public interface ITransductor extends ITarget {
 	/**
 	 * Test the status of the transduction's input and transducer stacks.
 	 * 
-	 * A RUNNABLE transduction can be resumed immediately by calling run(). A PAUSED 
-	 * transduction can be resumed when new input is pushed. Transducers may deliberately
-	 * invoke the {@code pause} effector to break out of run() with transducer and input
-	 * stacks not empty to allow the caller to take some action before calling run() to 
-	 * resume the transduction. A STOPPED transduction can be reused to start a new 
+	 * A RUNNABLE or PAUSED transduction can be resumed immediately by calling run(). A 
+	 * WAITING transduction can be resumed when new input is pushed. Transducers may 
+	 * deliberately invoke the {@code pause} effector to break out of run() with transducer
+	 * and input stacks not empty to allow the caller to take some action before calling
+	 * run() to resume the transduction. A STOPPED transduction can be reused to start a new 
 	 * transduction with a different transducer stack and new input after calling stop()
 	 * to reset the transduction stack to its original bound state.
 	 * 
@@ -125,7 +125,8 @@ public interface ITransductor extends ITarget {
 	public Status status();
 
 	/**
-	 * Set up transduction data. Data pushed onto empty stack constitute the
+	 * Push an initial segment {@code [0..limit)} of a data array onto the 
+	 * transduction input stack. Data pushed onto empty stack constitute the
 	 * primary input stream for the purpose or marking and resetting via
 	 * the `mark` and `reset` effectors. These effectors project their effect 
 	 * onto the primary input stream if they are invoked while other data are
@@ -158,11 +159,10 @@ public interface ITransductor extends ITarget {
 
 	/**
 	 * Run the transduction with current input until the input or transduction
-	 * stack is empty, an effector returns {@link IEffector#RTE_EFFECT_PAUSE}, or
-	 * an exception is thrown. This method should be called repeatedly until
-	 * {@code status().hasInput()} returns {@code false}, although this check
-	 * can be ignored if it is known that the {@code pause} effector is not
-	 * engaged in the transduction.
+	 * stack is empty, trabsduction paues or stops, or an exception is thrown. 
+	 * This method should be called repeatedly until {@code status().hasInput()}
+	 * returns {@code false}, although this check can be ignored if it is known 
+	 * that the {@code pause} effector is not engaged in the transduction.
 	 * <br><br>
 	 * If a mark is set, it applies to the primary input stream and marked input
 	 * buffers held in the transduction mark set cannot be reused by the caller 
@@ -176,6 +176,16 @@ public interface ITransductor extends ITarget {
 	 * @see #status()
 	 */
 	public Status run() throws RiboseException, DomainErrorException;
+
+	/**
+	 * Clear input and transductor stacks and reset all named values to
+	 * an empty state. This resets the transductor to original state 
+	 * ready for reuse.
+	 * 
+	 * @return {@link Status#STOPPED} 
+	 * @see #status()
+	 */
+	public Status stop();
 	
 	/**
 	 * Check whether the input stack is marked. Byte arrays passed as input
@@ -210,14 +220,4 @@ public interface ITransductor extends ITarget {
 	 * @return the number of domain errors counted in the most recent run() call.
 	 */
 	public int getErrorCount();
-
-	/**
-	 * Clear input and transductor stacks and reset all named values to
-	 * an empty state. This resets the transductor to original state 
-	 * ready for reuse.
-	 * 
-	 * @return {@link Status#STOPPED} 
-	 * @see #status()
-	 */
-	public Status stop();
 }

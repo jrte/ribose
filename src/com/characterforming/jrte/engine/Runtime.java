@@ -91,7 +91,7 @@ public final class Runtime implements IRuntime, AutoCloseable {
 	@Override
 	public boolean transduce(ITarget target, Bytes transducer, Signal prologue, InputStream in) throws RiboseException {
 		try {
-			byte[] bytes = new byte[Base.BLOCK_SIZE];
+			byte[] bytes = new byte[InputStack.BLOCK_SIZE];
 			int read = in.read(bytes);
 			int position = read;
 			if (read > 0) {
@@ -106,7 +106,7 @@ public final class Runtime implements IRuntime, AutoCloseable {
 					if (!status.hasInput()) {
 						bytes = trex.recycle(bytes);
 						if (bytes == null) {
-							bytes = new byte[Base.BLOCK_SIZE];
+							bytes = new byte[InputStack.BLOCK_SIZE];
 						}
 						read = in.read(bytes);
 						position += read;

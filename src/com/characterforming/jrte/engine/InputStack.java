@@ -23,6 +23,8 @@ package com.characterforming.jrte.engine;
 
 import java.util.Arrays;
 import java.util.LinkedList;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import com.characterforming.ribose.base.Base;
 
@@ -30,11 +32,14 @@ import com.characterforming.ribose.base.Base;
  * @author Kim Briggs
  */
 final class InputStack {
+	public final static int BLOCK_SIZE = Integer.parseInt(System.getProperty("ribose.block.size", "65536"));
+	private static final Logger logger = Logger.getLogger(Base.RTE_LOGGER_NAME);
 	enum MarkState { clear, marked, reset };
 	private final byte[][] signals;
 	private final byte[][] values;
 	private Input[] stack;
 	private int tos;
+	private boolean markLimitFlagged;
 	private MarkState markState;
 	private Input[] marked;
 	private int bom, tom;
@@ -56,6 +61,7 @@ final class InputStack {
 		this.stack = InputStack.stack(initialSize);
 		this.marked = InputStack.stack(initialSize);
 		this.markState = MarkState.clear;
+		this.markLimitFlagged = false;
 		this.bom = this.tom = 0;
 		this.tos = -1;
 	}
@@ -117,8 +123,8 @@ final class InputStack {
 	
 	/**
 	 * Push a value onto the stack 
-	 * @param value 
-	 * 
+	 * 	private static final Logger logger = Logger.getLogger(Base.RTE_LOGGER_NAME);
+
 	 * @param value The value ordinal
 	 */
 	void value(byte[] value, int length) {
@@ -173,7 +179,8 @@ final class InputStack {
 		return input;
 	}
 
-	/**
+	/**	private static final Logger logger = Logger.getLogger(Base.RTE_LOGGER_NAME);
+
 	 * Get the Nth item from the stack counting up from bottom if +ve index
 	 * or down from top if index -ve. 
 	 * 
@@ -353,6 +360,15 @@ final class InputStack {
 			this.tom = this.marked.length;
 			this.marked = marked;
 		}
+		if ((this.tom > this.bom) && (this.tom - this.bom) > 2
+		|| ((this.tom < this.bom) && ((this.marked.length - this.bom) + this.tom) > 2)
+		) {
+			if (!this.markLimitFlagged) {
+				logger.log(Level.WARNING,
+					"Mark limit exceeded. Try increasing ribose.block.size to exceed maximal expected marked extent.");
+				this.markLimitFlagged = true;
+			}
+		}
 		return this.marked[this.tom];
 	}
 	
@@ -361,6 +377,7 @@ final class InputStack {
 		assert this.bom != this.tom;
 		return this.marked[this.tom];
 	}
+	public final static int MARK_LIMIT = Integer.parseInt(System.getProperty("ribose.mark.limit", "65536"));
 
 	private Input getMarked() {
 		if (this.bom != this.tom) {
