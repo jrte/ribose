@@ -58,7 +58,7 @@ $ for n in '' 0 00 000 0000 00000 000000 0000000 00000000 000000000 0000000000; 
 0000000000000000000000000000000000
 0000000000000000000000000000000000000000000000000000000
 ```
-This is _pattern-oriented programming_. It is based almost entirely on semi-ring algebra, so patterns can be expressed and  manipulated algebraically. When domain concerns escape the semi-ring we add a transducer stack and extend the range of applicable use cases to include context-free input structures and continue. The addition of an input stack allows transduction processes to inject media into the input stream, extending the range of potential use cases into context-sensitive territory (eg, the Fibonacci transducer maps the dull monoid **0*** onto the context-sensitive Fibonacci series). Similar advantages accrue from applying pattern algebra in other symbolic domains. Complex real-time control systems that effect rule-based governance can be expressed concisely as transducer patterns mapping event flows to control actions that effect governance.
+This is _pattern-oriented programming_. It is based almost entirely on semi-ring algebra, so patterns can be expressed and  manipulated algebraically. When domain concerns escape the semi-ring we add a transducer stack and extend the range of applicable use cases to include context-free input structures and continue. The addition of an input stack allows transduction processes to inject media into the input stream, and effector access to RAM extends the range of transduction use cases into context-sensitive territory (eg, the Fibonacci transducer maps the dull monoid **0*** onto the context-sensitive Fibonacci series). Similar advantages accrue from applying pattern algebra in other symbolic domains. Complex real-time control systems that effect rule-based governance can be expressed concisely as transducer patterns mapping event flows to control actions that effect governance.
 
 Run `ant -f build.xml ribose` to build the ribose library in the `jars/` folder. The `test` ant target runs the CI test suite.
 
@@ -69,3 +69,13 @@ For some background reading and historical perspective visit the [Stories](https
 The current version of ribose is packaged in `jars/ribose-0.0.0.jar`.
 
 See [LICENSE](https://github.com/jrte/ribose/blob/master/LICENSE) for licensing details.
+
+![YourKit](https://www.yourkit.com/images/yklogo.png)
+
+The jrte project uses YourKit to identify and eliminate bottlenecks and turbulence in stream processing workflows and to reduce object creation to a bare minimum while maintaining high throughput.
+
+YourKit supports open source projects with innovative and intelligent tools
+for monitoring and profiling Java and .NET applications.
+YourKit is the creator of <a href="https://www.yourkit.com/java/profiler/">YourKit Java Profiler</a>,
+<a href="https://www.yourkit.com/.net/profiler/">YourKit .NET Profiler</a>,
+and <a href="https://www.yourkit.com/youmonitor/">YourKit YouMonitor</a>.
