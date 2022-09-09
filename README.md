@@ -17,11 +17,11 @@ A simple example, taken from the ribose transducer that reduces the serialized f
 ```
 # INR210	3	565	127	282
 Header = ('INR', clear select)
-	(digit, paste)+ (tab, select[`~version`] cut select)
-	(digit, paste)+ (tab, select[`~tapes`] cut select)
-	(digit, paste)+ (tab, select[`~transitions`] cut select)
-	(digit, paste)+ (tab, select[`~states`] cut select)
-	(digit, paste)+ (nl, select[`~symbols`] cut select header)
+  (digit, paste)+ (tab, select[`~version`] cut select)
+  (digit, paste)+ (tab, select[`~tapes`] cut select)
+  (digit, paste)+ (tab, select[`~transitions`] cut select)
+  (digit, paste)+ (tab, select[`~states`] cut select)
+  (digit, paste)+ (nl, select[`~symbols`] cut select header)
 );
 ```
 This example is developed more fully below and in the ribose wiki. It is previewed here to show the algebraic binary structure of ribose transducer patterns. The branching and repeating patterns expressed in the input syntax drive the selection of non-branching effect vectors, obviating all of the fine-grained control logic that would otherwise be expressed in line with effect in a high-level programming language without support from an external parsing library. Expressions such as this can be combined with other expressions using concatenation, alternation, repetition and composition operators to construct more complex patterns. More generally, ribose patterns are amenable to algebraic manipulation in the *-semiring, and ginr enables this to be exploited to considerable advantage. For example `Transducer = Header Transition*` covers a complete serialized automaton, `Transducer210 = 'INR210' (digit* tab* nl*)* @@ Transducer` restricts `Transducer` to accept only version 210 automata (ginr's `@` composition operator absorbs matching input and reduces pattern arity, the `@@` join operator retains matching input and conserves arity). 
@@ -61,11 +61,11 @@ Hello World
 This next example computes unary Fibonacci numbers from unary inputs, using built-in ribose compositing effectors to manipulate a collection of user-defined named values (`~X`) that accumulate data mapped from the input. This is interesting because, formally, FSTs effect linear transforms and can only produce regular outputs while the Fibonacci sequence is not regular (it is strictly context sensitive). This is possible because the Fibonacci FST generates a regular sequence of effectors that retain intermediate results in named value registers. 
 ```
 Fibonacci = (
-	(
-		('0', select[`~q`] paste['1')
-		('0', select[`~r`] cut[`~p`] select[`~p`] copy[`~q`] select[`~q`] cut[`~r`])*
-	)?
-	(nl, paste out stop)
+  (
+    ('0', select[`~q`] paste['1')
+    ('0', select[`~r`] cut[`~p`] select[`~p`] copy[`~q`] select[`~q`] cut[`~r`])*
+  )?
+  (nl, paste out stop)
 );
 
 (Fibonacci$(0,1 2)):prsseq;
@@ -92,66 +92,66 @@ Ginr represents compiled patterns as FSTs in tab-delimited ASCII text files begi
 ```
 # INR210	3	565	127	282
 Header = ('INR', clear[`~version`] clear[`~tapes`] clear[`~transitions`] clear[`~states`] clear[`~symbols`] clear select)
-	(digit, paste)+ (tab, select[`~version`] cut select)
-	(digit, paste)+ (tab, select[`~tapes`] cut select)
-	(digit, paste)+ (tab, select[`~transitions`] cut select)
-	(digit, paste)+ (tab, select[`~states`] cut select)
-	(digit, paste)+ (nl, select[`~symbols`] cut select header)
+  (digit, paste)+ (tab, select[`~version`] cut select)
+  (digit, paste)+ (tab, select[`~tapes`] cut select)
+  (digit, paste)+ (tab, select[`~transitions`] cut select)
+  (digit, paste)+ (tab, select[`~states`] cut select)
+  (digit, paste)+ (nl, select[`~symbols`] cut select header)
 );
 ```
 This transducer pattern initially, on receipt of the INR version prefix, `clear`s a collection of named values and pre`select`s the anonymous value to receive digits `paste`d from the input stream. On receipt of a tab or newline delimiting a numeric field the appropriate named value is `select`ed to receive data `cut` (implicitly cleared) from the anonymous value, which is then reselected to receive the next field. All of the above is accomplished using the built-in compositing effectors. When this is done a specialized effector, `header`, is invoked to marshal the header fields into the target model (`ModelCompiler`). This is supported by an immutable data object and simple Java `HeaderEffector` class that implements the `IEffector` interface (value range and sanity checks omitted):
 ```
 class Header {
-	final int version;
-	final int tapes;
-	final int transitions;
-	final int states;
-	final int symbols;
-	Header(int version, int tapes, int transitions, int states, int symbols) 
-		throws EffectorException
-	{
-		this.version = version;
-		this.tapes = tapes;
-		this.transitions = transitions;
-		this.states = states;
-		this.symbols = symbols;
-	//	Apply value range and sanity checks here
-	}
+  final int version;
+  final int tapes;
+  final int transitions;
+  final int states;
+  final int symbols;
+  Header(int version, int tapes, int transitions, int states, int symbols) 
+    throws EffectorException
+  {
+    this.version = version;
+    this.tapes = tapes;
+    this.transitions = transitions;
+    this.states = states;
+    this.symbols = symbols;
+  //  Apply value range and sanity checks here
+  }
 }
 
 class HeaderEffector extends BaseEffector<ModelCompiler> {
-	INamedValue fields[];
+  INamedValue fields[];
 
-	HeaderEffector(ModelCompiler automaton) {
-		super(automaton, Bytes.encode("header"));
-	}
+  HeaderEffector(ModelCompiler automaton) {
+    super(automaton, Bytes.encode("header"));
+  }
 
-	@Override // Called once, when the containing model is loaded into the ribose runtime
-	public void setOutput(IOutput output) throws TargetBindingException {
-		super.setOutput(output);
-		fields = new INamedValue[] {
-			super.output.getNamedValue(Bytes.encode("version")),
-			super.output.getNamedValue(Bytes.encode("tapes")),
-			super.output.getNamedValue(Bytes.encode("transitions")),
-			super.output.getNamedValue(Bytes.encode("states")),
-			super.output.getNamedValue(Bytes.encode("symbols"))
-		};
-	}
+  @Override // Called once, when the containing model is loaded into the ribose runtime
+  public void setOutput(IOutput output) throws TargetBindingException {
+    super.setOutput(output);
+    fields = new INamedValue[] {
+      super.output.getNamedValue(Bytes.encode("version")),
+      super.output.getNamedValue(Bytes.encode("tapes")),
+      super.output.getNamedValue(Bytes.encode("transitions")),
+      super.output.getNamedValue(Bytes.encode("states")),
+      super.output.getNamedValue(Bytes.encode("symbols"))
+    };
+  }
 
-	@Override // Called once for each input automaton, when the header line has been consumed
-	public int invoke() throws EffectorException {
-		Header h = new Header(
-			(int)fields[0].asInteger(),
-			(int)fields[1].asInteger(),
-			(int)fields[2].asInteger(),
-			(int)fields[3].asInteger(),
-			(int)fields[4].asInteger()
-		);
-		target.header = h;
-		target.stateTransitionMap = new HashMap<Integer, ArrayList<Transition>>((h.states * 5) >> 2);
-		target.transitions = new Transition[h.transitions];
-		return IEffector.RTE_EFFECT_NONE;
-	}
+  @Override // Called once for each input automaton, when the header line has been consumed
+  public int invoke() throws EffectorException {
+    Header h = new Header(
+      (int)fields[0].asInteger(),
+      (int)fields[1].asInteger(),
+      (int)fields[2].asInteger(),
+      (int)fields[3].asInteger(),
+      (int)fields[4].asInteger()
+    );
+    target.header = h;
+    target.stateTransitionMap = new HashMap<Integer, ArrayList<Transition>>((h.states * 5) >> 2);
+    target.transitions = new Transition[h.transitions];
+    return IEffector.RTE_EFFECT_NONE;
+  }
 }
 ```
 The snippets above support the ribose model compiler, which imports compiled ginr automata and reduces them to construct ribose transducers for inclusion in ribose runtime models. This example is presented in more detail in the ribose wiki (see [Ginr as a Service Provider](https://github.com/jrte/ribose/wiki#ginr-as-a-service-provider)). This demonstrates the clear separation of syntactic (input) and semantic (target) concerns. All of the fine-grained character-level code that would otherwise be involved to navigate the input stream is relegated to transduction patterns expressed in a symbolic, algebraic framework supported by a robust compiler for multidimensional regular patterns. Target and effector implementations are thereby greatly reduced. For comparison, here is a snippet of C source from the ginr repo that decodes the number of tapes from the header pattern `(digit+ tab)`:
@@ -160,10 +160,10 @@ if ( c < '0' || c > '9' ) { fail(8); }
 number_tapes = c - '0';
 c = getc( fp );
 while ( c != '\t' ) {
-	if ( c < '0' || c > '9' ) { fail(9); }
-	number_tapes = number_tapes * 10  +  ( c - '0' );
-	c = getc( fp );
-	if ( number_tapes >= MAXSHORT ) { fail(10); }
+  if ( c < '0' || c > '9' ) { fail(9); }
+  number_tapes = number_tapes * 10  +  ( c - '0' );
+  c = getc( fp );
+  if ( number_tapes >= MAXSHORT ) { fail(10); }
 }
 A-> A_nT = number_tapes;
 ```
@@ -174,11 +174,11 @@ It is often necessary to extract features that are embedded in otherwise irrelev
 ```
 # <cycle-start id="4" type="scavenge" contextid="0" timestamp="2021-04-05T23:12:58.597" intervalms="5243.468" />
 interval = (
-	'<cycle-start id="' digit+ '" type="scavenge" contextid="' digit+ '" timestamp="' (digit+ ('.:-T':alph))+ digit+ '" '
-	('intervalms="', select[`~interval`] clear)
-	(digit, paste)+ ('.', paste) (digit, paste)+
-	('"', out[`~interval` NL])
-	space* '/>' (utf8 - '<')*
+  '<cycle-start id="' digit+ '" type="scavenge" contextid="' digit+ '" timestamp="' (digit+ ('.:-T':alph))+ digit+ '" '
+  ('intervalms="', select[`~interval`] clear)
+  (digit, paste)+ ('.', paste) (digit, paste)+
+  ('"', out[`~interval` NL])
+  space* '/>' (utf8 - '<')*
 );
 
 # tape alphabets (with nl mapped to NL on (interval$2) so all alphabets are disjoint)
@@ -188,20 +188,20 @@ a2 = (interval$2):alph;
 
 # nullify to construct a synchronizing pattern for everything that is not an interval
 null = (
-	(
-		# inject nul? everywhere in the input and flatten to one tape
-		((AnyOrNul* @ interval)$(0 1 2))
-		# copy everything up to and including the first nul, projecting back onto 3 tapes
-	@	((a0$(0,0))* (a1$(0,,0))* (a2$(0,,,0))*)*
-		(nul$(0,0)) (nul* a0* a1* a2*)* 
-	)
-	# absorb input up to next '<' after nul
-	(nul* (utf8 - '<')*)*
+  (
+    # inject nul? everywhere in the input and flatten to one tape
+    ((AnyOrNul* @ interval)$(0 1 2))
+    # copy everything up to and including the first nul, projecting back onto 3 tapes
+  @  ((a0$(0,0))* (a1$(0,,0))* (a2$(0,,,0))*)*
+    (nul$(0,0)) (nul* a0* a1* a2*)* 
+  )
+  # absorb input up to next '<' after nul
+  (nul* (utf8 - '<')*)*
 );
 
 # revert NL to nl on (interval$2), transduce recognized intervals, ignore null input
 Tintervals = ( 
-	(null* interval*)* @ (((a2 - NL)$(0,0))* (NL, nl)*)*
+  (null* interval*)* @ (((a2 - NL)$(0,0))* (NL, nl)*)*
 ):dfamin;
 
 # verify transducer is single-valued and print subsequential map
@@ -215,15 +215,15 @@ Nullification for subpatterns requiring specific synchronization patterns can be
 It is sometimes necessary to look ahead in the input, without effect, to syntactically validate a prospective feature or resolve an ambiguous pattern before selecting a course of action. Ribose supports this in two ways: using `mark/reset` effectors or using the `paste` effector to copy input until a classifying enumerator can be selected and injected into the input, followed by the copied input. The snippet below, from the `LinuxKernelStrict` transducer in the ribose test suite, demonstrates the `mark/reset` method. 
 ```
 LinuxKernelDropped = (
-	header (space, select[`~tag`]) ('DROPPED' @@ PasteAny) capture (nl, store in[`!nil`] stop)
+  header (space, select[`~tag`]) ('DROPPED' @@ PasteAny) capture (nl, store in[`!nil`] stop)
 );
 
 LinuxKernelLimited = (
-	header (space, select[`~tag`]) ('LIMITED' @@ PasteAny) capture (nl, store in[`!nil`] stop)
+  header (space, select[`~tag`]) ('LIMITED' @@ PasteAny) capture (nl, store in[`!nil`] stop)
 );
 
 LinuxKernelAborted = (
-	header (space, select[`~tag`]) ('ABORTED' @@ PasteAny) capture (nl, store in[`!nil`] stop)
+  header (space, select[`~tag`]) ('ABORTED' @@ PasteAny) capture (nl, store in[`!nil`] stop)
 );
 
 LinuxKernelInput = ((LinuxKernelDropped$0) | (LinuxKernelLimited$0) | (LinuxKernelAborted$0));
@@ -231,17 +231,17 @@ LinuxKernelInput = ((LinuxKernelDropped$0) | (LinuxKernelLimited$0) | (LinuxKern
 LinuxKernelPrefix = (LinuxKernelInput / nl):pref;
 
 LinuxKernelStrict = (
-	(
-		(nil, mark clear[`~*`] select[`~timestamp`])
-		(
-			(
-				((LinuxKernelDropped$0), reset start[`@LinuxKernelDropped`])
-			|	((LinuxKernelLimited$0), reset start[`@LinuxKernelLimited`])
-			|	((LinuxKernelAborted$0), reset start[`@LinuxKernelAborted`])
-			)
-		|	LinuxKernelPrefix nul notnl* (nl, in[`!nil`])
-		)
-	)*
+  (
+    (nil, mark clear[`~*`] select[`~timestamp`])
+    (
+      (
+        ((LinuxKernelDropped$0), reset start[`@LinuxKernelDropped`])
+      |  ((LinuxKernelLimited$0), reset start[`@LinuxKernelLimited`])
+      |  ((LinuxKernelAborted$0), reset start[`@LinuxKernelAborted`])
+      )
+    |  LinuxKernelPrefix nul notnl* (nl, in[`!nil`])
+    )
+  )*
 ):dfamin;
 ```
 This also demonstrates nesting of ribose FSTs. The top-level `LinuxKernelStrict` transducer marks an input anchor and looks ahead to verify syntax before selecting one of three transducers. It then resets to the input anchor and starts the selected transducer to reduce the marked input before signaling `nil` and returning to the top-level transducer. The charts below show the results of a data extraction benchmarking runoff between Java regex and three ribose variants. 
