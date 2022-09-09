@@ -93,6 +93,7 @@ public final class Runtime implements IRuntime, AutoCloseable {
 		try {
 			byte[] bytes = new byte[InputStack.BLOCK_SIZE];
 			int read = in.read(bytes);
+			@SuppressWarnings("unused")
 			int position = read;
 			if (read > 0) {
 				ITransductor trex = newTransductor(target);

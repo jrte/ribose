@@ -12,6 +12,7 @@ java_pid*
 *.pr
 *.last
 .settings/
+.vscode/
 .classpath
 .project
 TRun.*

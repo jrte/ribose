@@ -123,8 +123,7 @@ final class InputStack {
 	
 	/**
 	 * Push a value onto the stack 
-	 * 	private static final Logger logger = Logger.getLogger(Base.RTE_LOGGER_NAME);
-
+	 *
 	 * @param value The value ordinal
 	 */
 	void value(byte[] value, int length) {
@@ -179,8 +178,7 @@ final class InputStack {
 		return input;
 	}
 
-	/**	private static final Logger logger = Logger.getLogger(Base.RTE_LOGGER_NAME);
-
+	/**	
 	 * Get the Nth item from the stack counting up from bottom if +ve index
 	 * or down from top if index -ve. 
 	 * 

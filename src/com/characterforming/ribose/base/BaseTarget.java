@@ -27,7 +27,7 @@ import com.characterforming.ribose.ITarget;
 /**
  * This class is used as target for collections of utf8- or byte-oriented
  * transducers that use only the inline transductor effectors. These effectors
- * are availahle to all transductions and are enumerated by the transductor
+ * are available to all transductions and are enumerated by the transductor
  * itself. Subclasses must call and include {@code super.bindEffectors()}
  * effectors if overriding it to inject own effectors.
  * 

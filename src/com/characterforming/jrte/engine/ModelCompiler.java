@@ -209,7 +209,6 @@ public class ModelCompiler implements ITarget {
 				super.output.getNamedValue(Bytes.encode("from")),
 				super.output.getNamedValue(Bytes.encode("to")),
 				super.output.getNamedValue(Bytes.encode("tape")),
-				super.output.getNamedValue(Bytes.encode("length")),
 				super.output.getNamedValue(Bytes.encode("symbol"))
 			};
 		}
@@ -220,7 +219,7 @@ public class ModelCompiler implements ITarget {
 				(int)fields[0].asInteger(),
 				(int)fields[1].asInteger(),
 				(int)fields[2].asInteger(),
-				fields[4].copyValue()
+				fields[3].copyValue()
 			);
 			if (t.isFinal) {
 				return IEffector.RTE_EFFECT_NONE;
