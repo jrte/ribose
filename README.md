@@ -266,13 +266,13 @@ Navigating complex text natively is an arduous task in any modern programming la
 
 Algorithmic programming languages face a similar difficulty in expressing control solutions for event-driven workflows in distributed environments, where events are reported asynchronously with respect to the controlling process that receives and responds to external events. In these contexts, the programming language can only express the local actions that effect controller responses to events. The workflow control structures that describe the pattern of events that drive the workflow must be expressed in some other idiom, like a flow chart, that can be compiled to something like a finite state transducer mapping events to local controller actions. This latter construction can then be represented in the programming language, perhaps as an incomprehensible cascade of `switch` statements branching down to specific responses from a top-level event loop, to complete the system. It can be very difficult to reconstruct control flows from examination of the source code, so these systems are also difficult to compose and maintain. 
 # The Ribose Manifesto
-Ribose encourages *pattern-oriented programming*, which based almost entirely on semi-ring algebra. Input patterns in text and other sequential media can be expressed and manipulated algebraically and extended to map syntactic features onto vectors of machine instructions. Similar advantages accrue from applying pattern algebra in other symbolic domains. Complex distributed or asynchronous process control systems that effect rule-based governance can be expressed concisely as transducer patterns mapping event flows to control actions that effect governance. A transducer stack extends the range of sequential use cases to include context-free input structures that escape semi-ring confinement. The addition of an input stack allows transduction processes to inject media for immediate transduction, and effector access to RAM extends the range of transduction use cases into context-sensitive territory. 
+Ribose encourages *pattern-oriented programming*, which is based almost entirely on semi-ring algebra. Input patterns in text and other symbolic domains can be expressed and manipulated algebraically and extended to map syntactic features onto vectors of machine instructions. A transducer stack extends the range of sequential use cases to include context-free input structures that escape semi-ring confinement. Effector access to RAM and an input stack allows transducers to inject media for immediate transduction, which extends the range of transduction use cases into context-sensitive territory. 
 
 In this way the notion of a *program*, whereby a branching and looping series of *instructions select data* in RAM and mutate application state, is replaced by a *pattern* that extends a description of an input source so that the *data select instructions (effectors)* that merge the input data into application state. Here *target*, *effector* and *pattern* are analogues of *machine*, *instruction*, *program*. A *transduction* is a *process* that applies a specific input sequence to a stack of nested FSTs to direct the application of effectors to a target model in RAM.
 
 Ribose suggests that the von Neumann CPU model would benefit from inclusion of a finite state transduction unit (FTU) to coordinate the sequencing of instructions under the direction of FSTs driven by streams of numerically encoded sequential media, and that programming languages should express robust support for \*-semiring algebra to enable construction of multidimensional regular patterns and compilation to runtime FSTs.
 
-Finally, developers might want to bone up on \*-semiring algebra. While it may look intimidating at first it's just like arithmetic with nonnegative integers and addition and multiplication, but with strings and alternation and concatenation -- analogous rules apply in both domains, only concatentation does not commute in semirings. The `*` semiring operator constructs an alternation of all concatenation powers of its operand. 
+Finally, developers might want to bone up on \*-semiring algebra. While it may look intimidating at first it's just like arithmetic with nonnegative integers and addition and multiplication, but with strings and alternation and concatenation. Analogous rules apply in both domains, only concatenation does not commute in semirings. The `*` semiring operator constructs an alternation of all concatenation powers of its operand. Best of all, *-semiring algebra is free of bugs and vulnerabilities and does not morph and sprout new idiomatic features every few months. 
 
 Good luck with that.
 # Disclaimer
@@ -280,11 +280,15 @@ Ribose is intended for demonstration only and is not regularly maintained. You m
 
 Run `ant -f build.xml ribose` to build the ribose library in the `jars/` folder. The `test` ant target runs the CI test suite.
 
-To learn how to harness ribose in development workflows, see the tutorial and examples on the [ribose wiki](https://github.com/jrte/ribose/wiki).
+For some background reading and historical perspective visit the [ribose wiki](https://github.com/jrte/ribose/wiki).
 
-For some background reading and historical perspective visit the [Stories](https://github.com/jrte/ribose/wiki/Stories) page.
+To learn how to build a ribose runtime model emulate the procedure for building `Test.model` in build.xml.
+
+To learn how to use ribose models in the JVM runtime see the ribose javadoc pages. 
 
 The current version of ribose is packaged in `jars/ribose-0.0.0.jar`.
+
+A [ginr user guide](https://github.com/ntozubod/ginr/blob/main/USAGE.md) can be found in the ginr repo.
 
 ![YourKit](https://www.yourkit.com/images/yklogo.png)
 
