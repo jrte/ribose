@@ -28,8 +28,8 @@ import com.characterforming.ribose.ITarget;
  * This class is used as target for collections of utf8- or byte-oriented
  * transducers that use only the inline transductor effectors. These effectors
  * are available to all transductions and are enumerated by the transductor
- * itself. Subclasses must call and include {@code super.bindEffectors()}
- * effectors if overriding it to inject own effectors.
+ * itself. Subclasses that express specialized effectors must override 
+ * {@code getEffectors()} to present them to transductors.
  * 
  * @author Kim Briggs
  */
@@ -39,10 +39,10 @@ public class BaseTarget implements ITarget {
 
 	/*
 	 * (non-Javadoc)
-	 * @see com.characterforming.ribose.ITarget#bindEffectors()
+	 * @see com.characterforming.ribose.ITarget#getEffectors()
 	 */
 	@Override
-	public IEffector<?>[] bindEffectors() throws TargetBindingException {
+	public IEffector<?>[] getEffectors() throws TargetBindingException {
 		return new IEffector<?>[] { };
 	}
 

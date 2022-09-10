@@ -6,10 +6,10 @@
  * Transducers from text transduction models built with {@link TRun} as model target class
  * can be run from the command line using {@link TRun#main(String[])}. 
  * <br><br>
- * To use ribose in an application or service, load an {@link IRuntime} instance from a compiled 
- * ribose model {@link Ribose#loadRiboseModel(File, ITarget)}. Use {@link IRuntime#newTransductor(ITarget)}
- * to bind the target to a ribose transduction stack and apply {@link ITransductor} 
- * methods to set up transduction input and transducer and run the transduction. 
+ * To use ribose in an application or service, call {@link Ribose#loadRiboseModel(File, ITarget)}
+ * to load an {@link IRuntime} instance from a compiled ribose model. Use {@link IRuntime#newTransductor(ITarget)}
+ * to bind targets to ribose transductors and apply {@link ITransductor} methods to set up
+ * inputs and transducers and run transductions. 
  *
  * @author Kim Briggs
  */

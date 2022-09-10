@@ -130,10 +130,10 @@ public final class Transductor implements ITransductor, ITarget, IOutput {
 
 	/*
 	 * (non-Javadoc)
-	 * @see com.characterforming.ribose.ITarget#bindEffectors()
+	 * @see com.characterforming.ribose.ITarget#getEffectors()
 	 */
 	@Override
-	public IEffector<?>[] bindEffectors() throws TargetBindingException {
+	public IEffector<?>[] getEffectors() throws TargetBindingException {
 		return new IEffector<?>[] {
 	/* 0*/	new InlineEffector(this, Bytes.encode("0")),
 	/* 1*/	new InlineEffector(this, Bytes.encode("1")),

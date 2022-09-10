@@ -98,8 +98,8 @@ public final class Model implements AutoCloseable {
 		this.modelTarget = target;
 		this.modelPath = modelPath;
 		this.modelTransductor = new Transductor(this, Mode.compile);
-		IEffector<?>[] trexFx = this.modelTransductor.bindEffectors();
-		IEffector<?>[] targetFx = this.modelTarget.bindEffectors();
+		IEffector<?>[] trexFx = this.modelTransductor.getEffectors();
+		IEffector<?>[] targetFx = this.modelTarget.getEffectors();
 		this.modelEffectors = new IEffector<?>[trexFx.length + targetFx.length];
 		System.arraycopy(trexFx, 0, this.modelEffectors, 0, trexFx.length);
 		System.arraycopy(targetFx, 0, this.modelEffectors, trexFx.length, targetFx.length);
@@ -213,8 +213,8 @@ public final class Model implements AutoCloseable {
 				this.modelTarget.getClass().getName()));
 		}
 		Transductor trex = new Transductor(this, this.mode);
-		IEffector<?>[] trexFx = trex.bindEffectors();
-		IEffector<?>[] targetFx = target.bindEffectors();
+		IEffector<?>[] trexFx = trex.getEffectors();
+		IEffector<?>[] targetFx = target.getEffectors();
 		IEffector<?>[] boundFx = new IEffector<?>[trexFx.length + targetFx.length];
 		System.arraycopy(trexFx, 0, boundFx, 0, trexFx.length);
 		System.arraycopy(targetFx, 0, boundFx, trexFx.length, targetFx.length);

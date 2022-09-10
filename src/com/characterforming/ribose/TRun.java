@@ -14,9 +14,9 @@ import com.characterforming.ribose.base.Bytes;
 import com.characterforming.ribose.base.TargetBindingException;
 
 /**
- * Basic target class for building UTF-8 text transduction models containing 
- * transducers that use only the built-in ribose {@link Transductor} effectors,
- * which are implicit in all {@link ITarget} implementations and available to 
+ * Basic target class for building and running UTF-8 text transduction models involving 
+ * transducers that use only the built-in ribose {@link Transductor} effectors, below. 
+ * These are implicit in all {@link ITarget} implementations and available to 
  * transducers in all ribose models.
  * <br><br>
  * <table>
@@ -83,12 +83,12 @@ public final class TRun extends BaseTarget implements ITarget {
 	
 	/*
 	 * (non-Javadoc)
-	 * @see com.characterforming.ribose.ITarget#bindEffectors()
+	 * @see com.characterforming.ribose.ITarget#getEffectors()
 	 */
 	@Override
-	public IEffector<?>[] bindEffectors() throws TargetBindingException {
-		// This is just a proxy for Transductor.bindEffectors()
-		return super.bindEffectors();
+	public IEffector<?>[] getEffectors() throws TargetBindingException {
+		// This is just a proxy for Transductor.getEffectors()
+		return super.getEffectors();
 	}
 
 	/*

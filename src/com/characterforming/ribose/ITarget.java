@@ -55,11 +55,11 @@ public interface ITarget {
 	 * for binding to the runtime model.
 	 * <br><br>
 	 * Implementation classes must include their effectors in the IEffector 
-	 * array returned. Targets may be composite, arranged in an inhetritance
+	 * array returned. Targets may be composite, arranged in an inheritance
 	 * chain or encapsulated in discrete component classes, or a mixture of
-	 * these. In any case, a top-level target class is responsible for gathering
-	 * effectors from all involved target instances and it is this target that 
-	 * must be presented for effector binding. 
+	 * these. In any case, the top-level target class is responsible for gathering
+	 * effectors from all involved target instances into a single array to present
+	 * when the target is bound to a runtime model. 
 	 * 
 	 * After runtime binding is complete effectors are invoked when triggered
 	 * by running transductions in response to cues in the input stream.
@@ -67,5 +67,5 @@ public interface ITarget {
 	 * @return An array of IEffector instances bound to the target instance
 	 * @throws TargetBindingException on error
 	 */
-	public IEffector<?>[] bindEffectors() throws TargetBindingException;
+	public IEffector<?>[] getEffectors() throws TargetBindingException;
 }

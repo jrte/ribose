@@ -54,8 +54,8 @@ public final class TCompile extends ModelCompiler implements ITarget {
 	 * com.characterforming.ribose.ITarget#bindeEffectors()
 	 */
 	@Override
-	public IEffector<?>[] bindEffectors() throws TargetBindingException {
-		return super.bindEffectors();
+	public IEffector<?>[] getEffectors() throws TargetBindingException {
+		return super.getEffectors();
 	}
 
 	/*

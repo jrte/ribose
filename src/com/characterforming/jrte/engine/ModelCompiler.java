@@ -345,7 +345,7 @@ public class ModelCompiler implements ITarget {
 	}
 
 	@Override
-	public IEffector<?>[] bindEffectors() throws TargetBindingException {
+	public IEffector<?>[] getEffectors() throws TargetBindingException {
 		return new IEffector<?>[] {
 			new HeaderEffector(this),
 			new TransitionEffector(this),

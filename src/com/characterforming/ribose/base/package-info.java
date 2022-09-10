@@ -21,11 +21,11 @@
 
 /**
  * Ribose integration base classes for extension into other domains. 
- * Domain-specific {@link com.characterforming.ribose.ITarget} classes with associated 
- * {@link com.characterforming.ribose.IEffector} classes are bound
- * to collections of transducers in a ribose runtime file by the ribose compiler. In the 
- * ribose runtime applications instantiate target instances and bind them to runtime 
- * transductions that drive data through a stacked composition of transducers to the target.  
+ * The ribose compiler binds domain-specific {@link com.characterforming.ribose.ITarget}
+ * classes and associated {@link com.characterforming.ribose.IEffector} implementations
+ * to collections of transducers in a ribose runtime file. In the ribose runtime applications 
+ * instantiate target instances and bind them to runtime transductors to drive data through
+ a stacked composition of transducers and assimilate information into the target.
  *
  * @author Kim Briggs
  */
