@@ -99,12 +99,12 @@ Ginr represents compiled patterns as FSTs in tab-delimited ASCII text files begi
 Field = clear[X] select[X];
 Number = (digit, paste)+;
 Header = (
-	('INR', Field @ (X,`~version`)*) Number
-	(tab, Field @ (X,`~tapes`)*) Number
-	(tab, Field @ (X,`~transitions`)*) Number
-	(tab, Field @ (X,`~states`)*) Number
-	(tab, Field @ (X,`~symbols`)*) Number
-	(nl, header)
+  ('INR', Field @ (X,`~version`)*) Number
+  (tab, Field @ (X,`~tapes`)*) Number
+  (tab, Field @ (X,`~transitions`)*) Number
+  (tab, Field @ (X,`~states`)*) Number
+  (tab, Field @ (X,`~symbols`)*) Number
+  (nl, header)
 );
 ```
 This pattern is involved in the ribose model compiler, which transduces ginr automata compiled from ribose patterns. The compiler model target class, `ModelCompiler`, implements the `ITarget` interface and expresses a `HeaderEffector<ModelCompiler>` effector class implementing an `invoke()` method. The ribose runtime FST maps the `header` token in the patten to this method and invokes it when the terminal `nl` token is received. The effector uses its `IOutput` view of the named field values to decode and marshal them as integer values into an immutable `Header` value object in the target. 
