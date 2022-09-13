@@ -126,6 +126,7 @@
 	<target name="clean-patterns">
 		<delete dir="${build.patterns}" quiet="true"/>
 		<delete file="build/Test.model" quiet="true"/>
+		<delete file="build/Test.map" quiet="true"/>
 	</target>
 
 	<target name="clean-test">

@@ -251,6 +251,9 @@ public final class Transductor implements ITransductor, ITarget, IOutput {
 		if (this.inputStack != null) {
 			this.inputStack.unmark();
 			while (!this.inputStack.isEmpty()) {
+				if (this.inputStack.peek().hasRemaining()) {
+					this.inputStack.peek().clear();
+				}
 				this.inputStack.pop();
 			}
 		}

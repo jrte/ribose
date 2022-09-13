@@ -180,8 +180,8 @@ public class ModelCompiler implements ITarget {
 				(int)fields[3].asInteger(),
 				(int)fields[4].asInteger()
 			);
-			target.stateTransitionMap = new HashMap<Integer, ArrayList<Transition>>((h.states * 5) >> 2);
-			if (h.version != ModelCompiler.VERSION) {
+			target.header = h;
+			if (target.header.version != ModelCompiler.VERSION) {
 				target.error(String.format("%1$s: Invalid INR version %2$d", 
 					target.getTransducerName(), h.version));
 			}
@@ -189,8 +189,8 @@ public class ModelCompiler implements ITarget {
 				target.error(String.format("%1$s: Invalid tape count %2$d", 
 					target.getTransducerName(), h.tapes));
 			}
-			target.header = h;
 			target.transitions = new Transition[h.transitions];
+			target.stateTransitionMap = new HashMap<Integer, ArrayList<Transition>>((h.states * 5) >> 2);
 			return IEffector.RTE_EFFECT_NONE;
 		}
 	}

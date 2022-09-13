@@ -132,6 +132,7 @@ public final class TCompile extends ModelCompiler implements ITarget {
 		} finally {
 			if (exitCode != 0) {
 				System.out.println("Runtime compilation failed, see log for details.");
+				riboseModelFile.delete();
 			}
 		}
 		System.exit(exitCode);

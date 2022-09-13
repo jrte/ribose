@@ -1,34 +1,36 @@
 # The General Idea
 Ribose (formerly jrte) is about inversion of control for high-volume text analysis and information extraction and transformation in general. Many stream oriented tasks, such as cleaning and extraction for data analytic workflows, involve recognizing and acting upon features embedded, more or less sparsely, within a larger context. Software developers receive some onerous help in that regard from generic software libraries that support common document standards (eg, XML, JSON, MS Word, etc), but dependency on these libraries adds complexity, vulnerability and significant runtime costs to software deployments. And these libraries are of no use at all when information is presented in idiomatic formats that require specialized software to deserialize.
 
-Ribose specializes _[ginr](https://github.com/ntozubod/ginr)_, an industrial strength open source compiler for multidimensional regular patterns, to produce finite state transducers (FSTs) that map syntactic features to semantic effector methods expressed by a target class. Ribose transduction patterns are composed and manipulated using algebraic (\*-semiring) operators and compiled to FSTs for runtime deployment. Patterns may be nested to cover context-free inputs, and the ribose runtime supports unbounded lookahead to resolve ambiguities or deal with context-sensitive inputs.
+Ribose specializes _[ginr](https://github.com/ntozubod/ginr)_, an industrial strength open source compiler for multidimensional regular patterns, to produce finite state transducers (FSTs) that map syntactic features to semantic effector methods expressed by a target class. Ribose transduction patterns are composed and manipulated using algebraic (`*`-semiring) operators and compiled to FSTs for runtime deployment. Patterns may be nested to cover context-free inputs, and the ribose runtime supports unbounded lookahead to resolve ambiguities or deal with context-sensitive inputs.
 
 Ribose is a ship-in-a-bottle showpiece put together to demonstrate what computing might be if finite state transduction, augmented with a transducer stack and coupled with a classical CPU/RAM computer, was a common modality for processing sequential information (i.e. almost everything except arithmetic). This has no connection whatsoever with POSIX and Perl 'regular expressions' (regex) or 'pattern expression grammars' (PEG), that are commonly used for ad hoc pattern matching. In the following I refer to the algebraic expressions used to specify ribose transducers as 'regular patterns' to distinguish them from regex and PEG constructs. 
 
 The general idea is to show how to make information work for you rather than you having to work to instruct a computer about how to work with information. Or, at least, how to reduce costs associated with information workflows. This is outlined below and explored, a bit snarkily, in the stories posted in the _[ribose wiki](https://github.com/jrte/ribose/wiki)_.
 ## Some Motivation, and A Simple Example
-Ribose demonstrates a pattern oriented approach to information that minimizes dependency on external libraries and reduces complexity, vulnerability and development and runtime costs in information workflows. Ribose generalizes the *transducer* design pattern that is commonly used to filter, map and reduce collections of data in functional programming paradigms. Common usage of this design pattern treats the presentation of inputs as a simple series **T\*** without structure. Ribose extends and refines this design pattern, allowing transducers to precisely navigate (filter), map (select effect vector) and reduce (execute effect vector) complex information under the direction of syntactic cues in the input. 
+Ribose demonstrates a pattern oriented approach to information that minimizes dependency on external libraries and reduces complexity, vulnerability and development and runtime costs in information workflows. Ribose generalizes the *transducer* design pattern that is commonly used to `filter`, `map` and `reduce` collections of data in functional programming paradigms. Common usage of this design pattern treats the presentation of inputs as a simple series **T\*** without structure. Ribose extends and refines this design pattern, allowing transducers to precisely navigate (filter), map (select effect vector) and reduce (execute effect vector) complex information under the direction of syntactic cues in the input. 
 
-Here the `filter` component is expressed as a collection of nested regular patterns describing an input source, using symbolic algebraic (\*-semiring) expressions to articulate the syntactic structure of the input. These unary input patterns are then extended to binary transduction patterns that `map` syntactic features to effect vectors that incrementally `reduce` information extracted from the input. The syntactic structure provides a holistic map of the input and exposes cut points where semantic actions should be applied. This presents a clear separation of syntactic and semantic concerns: Syntax is expressed in a purely symbolic domain where patterns are described and manipulated algebraically, while semantics are implemented in effectors expressed poetically in a native programming language in a domain-specific target class. Effector implementation of semantic actions is greatly simplified in the absence of syntactic concerns.
+Here the `filter` component is expressed as a collection of nested regular patterns describing an input source, using symbolic algebraic (`*`-semiring) expressions to articulate the syntactic structure of the input. These unary input patterns are then extended to binary transduction patterns that `map` syntactic features to effect vectors that incrementally `reduce` information extracted from the input. The syntactic structure provides a holistic map of the input and exposes cut points where semantic actions should be applied. This presents a clear separation of syntactic and semantic concerns: Syntax is expressed in a purely symbolic domain where patterns are described and manipulated algebraically, while semantics are implemented in effectors expressed poetically in a native programming language in a domain-specific target class. Effector implementation of semantic actions is greatly simplified in the absence of syntactic concerns.
 
-The ribose runtime operates multiple concurrent transductions, each encapsulated in a `Transductor` object that coordinates a transduction process. Nested FSTs are pushed and popped on transductor stacks, with two-way communication between caller and callee effected by injecting input parameters and return values into the input stream for immediate transduction. Incremental effects are applied immediately as each input symbol (byte or out-of-band signal) is read, culminating in complete reduction and assimilation of the input into the target domain. For regular and most context-free input patterns transduction is effected in a single pass without lookahead. Unbounded lookahead and backtracking, supported by `mark` and `reset` effectors, can be used to resolve context-sensitive or ambiguous input patterns.
+The ribose model compiler and runtime are simple, compact (≾120K) and free from external dependencies. The runtime operates multiple concurrent transductions, each encapsulated in a `Transductor` object that coordinates a transduction process. Nested FSTs are pushed and popped on transductor stacks, with two-way communication between caller and callee effected by injecting input parameters and return values into the input stream for immediate transduction. Incremental effects are applied synchronously as each input symbol (byte or out-of-band control signal) is read, culminating in complete reduction and assimilation of the input into the target domain. For regular and most context-free input patterns transduction is effected in a single pass without lookahead. Unbounded lookahead and backtracking, supported by `mark` and `reset` effectors, can be used to resolve context-sensitive or ambiguous input patterns.
 
-A simple example, taken from the ribose transducer that reduces the serialized form of compiled ginr automata to construct ribose transducers: The input pattern `('INR' (digit+ tab):5 nl)` is extended to check for a specific tag and marshal 5 integer fields into an immutable value object. Fields are extracted as named values in raw `byte[]` arrays using the `select`, `paste`, and `cut` effectors before the domain-specific `header` effector is finally invoked to decode them to integer-valued fields in an immutable `Header` object.
+A simple example, taken from the ribose transducer that reduces the serialized form of compiled ginr automata to construct ribose transducers: The input pattern `('INR' (digit+ tab):5 nl)` is extended to check for a specific tag and marshal 5 integer fields into an immutable `Header` value class. Fields are extracted to named values in raw `byte[]` arrays using the `select`, `paste`, and `cut` effectors before the domain-specific `header` effector is finally invoked to decode and marshal them into the `Header`.
 ```
 # INR210	3	565	127	282
-Header = ('INR', clear select)
-  (digit, paste)+ (tab, select[`~version`] cut select)
-  (digit, paste)+ (tab, select[`~tapes`] cut select)
-  (digit, paste)+ (tab, select[`~transitions`] cut select)
-  (digit, paste)+ (tab, select[`~states`] cut select)
-  (digit, paste)+ (nl, select[`~symbols`] cut select header)
+
+Header = (
+  ('INR', clear[`~version`] select[`~version`]) (digit, paste)+
+  (tab, clear[`~tapes`] select[`~tapes`]) (digit, paste)+
+  (tab, clear[`~transitions`] select[`~transitions`]) (digit, paste)+
+  (tab, clear[`~states`] select[`~states`]) (digit, paste)+
+  (tab, clear[`~symbols`] select[`~symbols`]) (digit, paste)+
+  (nl, header)
 );
 ```
-This example is developed more fully below and in the ribose wiki. It is previewed here to show the algebraic binary structure of ribose transducer patterns. The branching and repeating patterns expressed in the input syntax drive the selection of non-branching effect vectors, obviating all of the fine-grained control logic that would otherwise be expressed in line with effect in a high-level programming language without support from an external parsing library. Expressions such as this can be combined with other expressions using concatenation, alternation, repetition and composition operators to construct more complex patterns. More generally, ribose patterns are amenable to algebraic manipulation in the *-semiring, and ginr enables this to be exploited to considerable advantage. For example `Transducer = Header Transition* eos` covers a complete serialized automaton, `Transducer210 = ('INR210' byte* eos) @@ Transducer` restricts `Transducer` to accept only version 210 automata (ginr's `@` composition operator absorbs matching input and reduces pattern arity, the `@@` join operator retains matching input and conserves arity). 
+This example is developed more fully below and in the ribose wiki. It is previewed here to show the algebraic binary structure of ribose transducer patterns. The branching and repeating patterns expressed in the input syntax drive the selection of non-branching effect vectors, obviating much of the fine-grained control logic that would otherwise be expressed in line with effect in a high-level programming language without support from an external parsing library. Expressions such as this can be combined with other expressions using concatenation, alternation, repetition and composition operators to construct more complex patterns. More generally, ribose patterns are amenable to algebraic manipulation in the `*`-semiring, and ginr enables this to be exploited to considerable advantage. For example `Transducer = Header Transition* eos` covers a complete serialized automaton, `Transducer210 = ('INR210' byte* eos) @@ Transducer` restricts `Transducer` to accept only version 210 automata (ginr's `@` composition operator absorbs matching input and reduces pattern arity, the `@@` join operator retains matching input and conserves arity). 
 
-Ginr is the star of the ribose circus. It was developed by J Howard Johnson at the University of Waterloo in the early 1980s on a 16-bit VAX computer. One of its first applications was to [transduce the typesetting code for the entire Oxford English Dictionary](https://cs.uwaterloo.ca/research/tr/1986/CS-86-20.pdf) from an archaic layout to SGML. I first used it at Bell Northern Research to implement a ribose-like framework to serve in a distributed database mediation system involving diverse remote services and data formats. The involved services were all driven by a controller transducing conversational scripts from a control channel. The controller drove a serial data link, transmitting commands and queries to remote services on a serial output channel and switching context-specific response transducers onto the serial input channel. Response transducers reduced input data and injected guidance into the control channel to condition the course of the ongoing conversation.
+Ginr is the star of the ribose circus. It was developed by J Howard Johnson at the University of Waterloo in the early 1980s on a 16-bit VAX computer. One of its first applications was to [transduce the typesetting code for the entire Oxford English Dictionary](https://cs.uwaterloo.ca/research/tr/1986/CS-86-20.pdf) from an archaic layout to SGML. I first used it at Bell Northern Research to implement a ribose-like framework to serve in a distributed database mediation system involving diverse remote services and data formats. The involved services were all driven by a controller transducing conversational scripts from a control channel. The controller drove a serial data link, transmitting queries and commands to remote services on the output channel and switching context-specific response transducers onto the input channel. Response transducers reduced query responses to SQL statements for the mediator and reduced command responses to guidance to be injected into the control channel to condition the course of the ongoing conversation.
 
-Ginr subsequently disappeared from the public domain and has only recently been republished with an open source license on GitHub. It has been upgraded with substantial improvements, including expansion of state and input cardinality from 2^16 to 2^32 and native support for transcoding Unicode inputs to UTF-8 bytes. It provides a full complement of algebraic operators that can be applied to reliably produce very complex (and very large) automata. Large and complex patterns can be decomposed into smaller and simpler patterns, compiled to FSTs, and reconstituted on ribose runtime stacks, just as complex procedural algorithms in Java are decomposed into simpler methods and composed by Java threads on call stacks in the Java runtime.
+Ginr subsequently disappeared from the public domain and has only recently been republished with an open source license on GitHub. It has been upgraded with substantial improvements, including 32-bit state and symbol enumerators and native support for transcoding Unicode symbols to UTF-8 bytes. It provides a full complement of algebraic operators that can be applied to reliably produce very complex (and very large) automata. Large and complex patterns can be decomposed into smaller and simpler patterns, compiled to FSTs, and reconstituted on ribose runtime stacks, just as complex procedural algorithms in Java are decomposed into simpler methods that Java threads orchestrate on call stacks in the JVM to effect the algorithm.
 ## The Basics
 Ginr operates in a symbolic domain involving a finite set of symbols and algebraic semiring operators that recombine symbols to express syntactic patterns. Support for Unicode symbols is built in, and Unicode in ginr source patterns is rendered as UTF-8 byte sequences in compiled automata. Ribose transduction patterns introduce additional atomic symbols as tokens representing transducers, effectors, byte-encoded effector parameters, out-of-band (>255) input signals, or named values. 
 
@@ -46,7 +48,7 @@ All ribose models implicitly inherit these core ribose effectors, along with an 
 
 More complex targets presenting domain-specific effectors can be implemented in a target class that extends `BaseTarget` and overrides the `ITarget` interface methods `String getName()` and `IEffector[] getEffectors()`. All effectors are provided with a reference to the containing target instance and an `IOutput` view for extracting named values as `byte[]`, integer, floating point, or Unicode `char[]` values, typically for inclusion in immutable value objects that are incorporated into the target model.
 ## Some Examples
-Here are some examples to get things started. These are abridged from the ginr source for the patterns in the ribose test suite. 
+Here are some examples to get things started. These are abridged from the ginr source for the patterns in the ribose test suite (`patterns/test/*.inr`). 
 
 Ribose specializes ginr to accept only regular patterns comprised of ternary terms *(input, effector\[parameters\] ...)*, using the tape shifting operator `[]` to associate parameters with effectors (so `(X, Y[Z])` is equivalent to `(X, Y, Z)`). Such terms are combined and composed using regular operators to specify and recombine ribose transducers. Below, the `(X, Y, Z))$(0, 1 2) -> (X, Y Z)` operation uses the projection operator `$` to flatten effectors and parameters onto a single tape in canonical order. The `:prsseq` operator is then applied to verify that the pattern is a single-valued (subsequential) function sequentially mapping input to target effectors `X -> Y Z` and to provide a readable listing of the compiled FST transitions. 
 ### Hello World
@@ -90,19 +92,22 @@ $ for n in '' 0 00 000 0000 00000 000000 0000000 00000000 000000000 0000000000; 
 1111111111111111111111111111111111111111111111111111111
 ```
 ### Tuple Extraction
-Ginr represents compiled patterns as FSTs in tab-delimited ASCII text files beginning with a header line listing ginr version number and the number of tapes, transitions, states, and symbols. This example, demonstrating simple field extraction and marshaling, was previewed above (`INR (digit+ tab):5 nl`):
+Ginr represents compiled patterns as FSTs in tab-delimited ASCII text files beginning with a header line listing ginr version number and the number of tapes, transitions, states, and symbols. This example, demonstrating simple field extraction, was previewed above (`INR (digit+ tab):5 nl`). Here it is refined a bit to show how ginr's composition operator (`@`) can be used to replace formal parameters in a template pattern (`Field`).
 ```
 # INR210	3	565	127	282
 
-Header = ('INR', clear[`~version`] clear[`~tapes`] clear[`~transitions`] clear[`~states`] clear[`~symbols`] clear select)
-  (digit, paste)+ (tab, select[`~version`] cut select)
-  (digit, paste)+ (tab, select[`~tapes`] cut select)
-  (digit, paste)+ (tab, select[`~transitions`] cut select)
-  (digit, paste)+ (tab, select[`~states`] cut select)
-  (digit, paste)+ (nl, select[`~symbols`] cut select header)
+Field = clear[X] select[X];
+Number = (digit, paste)+;
+Header = (
+	('INR', Field @ (X,`~version`)*) Number
+	(tab, Field @ (X,`~tapes`)*) Number
+	(tab, Field @ (X,`~transitions`)*) Number
+	(tab, Field @ (X,`~states`)*) Number
+	(tab, Field @ (X,`~symbols`)*) Number
+	(nl, header)
 );
 ```
-This transducer pattern initially, on receipt of the INR version prefix, `clear`s a collection of named values and pre`select`s the anonymous value to receive digits `paste`d from the input stream. On receipt of a tab or newline delimiting a numeric field the appropriate named value is `select`ed to receive data `cut` (implicitly cleared) from the anonymous value, which is then reselected to receive the next field. All of the above is accomplished using the built-in compositing effectors. When this is done a specialized effector, `header`, is invoked to marshal the header fields into the target model (`ModelCompiler`). This is supported by an immutable data object and simple Java `HeaderEffector` class that implements the `IEffector` interface (value range and sanity checks omitted):
+This pattern is involved in the ribose model compiler, which transduces ginr automata compiled from ribose patterns. The compiler model target class, `ModelCompiler`, implements the `ITarget` interface and expresses a `HeaderEffector<ModelCompiler>` effector class implementing an `invoke()` method. The ribose runtime FST maps the `header` token in the patten to this method and invokes it when the terminal `nl` token is received. The effector uses its `IOutput` view of the named field values to decode and marshal them as integer values into an immutable `Header` value object in the target. 
 ```
 class Header {
   final int version;
@@ -110,9 +115,8 @@ class Header {
   final int transitions;
   final int states;
   final int symbols;
-  Header(int version, int tapes, int transitions, int states, int symbols) 
-    throws EffectorException
-  {
+  Header(int version, int tapes, int transitions, int states, int symbols)
+  throws EffectorException {
     this.version = version;
     this.tapes = tapes;
     this.transitions = transitions;
@@ -130,7 +134,8 @@ class HeaderEffector extends BaseEffector<ModelCompiler> {
   }
 
   @Override // Called once, when the containing model is loaded into the ribose runtime
-  public void setOutput(IOutput output) throws TargetBindingException {
+  public void setOutput(IOutput output)
+  throws TargetBindingException {
     super.setOutput(output);
     fields = new INamedValue[] {
       super.output.getNamedValue(Bytes.encode("version")),
@@ -142,7 +147,8 @@ class HeaderEffector extends BaseEffector<ModelCompiler> {
   }
 
   @Override // Called once for each input automaton, when the header line has been consumed
-  public int invoke() throws EffectorException {
+  public int invoke()
+  throws EffectorException {
     Header h = new Header(
       (int)fields[0].asInteger(),
       (int)fields[1].asInteger(),
@@ -150,14 +156,14 @@ class HeaderEffector extends BaseEffector<ModelCompiler> {
       (int)fields[3].asInteger(),
       (int)fields[4].asInteger()
     );
-    target.header = h;
-    target.stateTransitionMap = new HashMap<Integer, ArrayList<Transition>>((h.states * 5) >> 2);
-    target.transitions = new Transition[h.transitions];
+    super.target.header = h;
+    super.target.stateTransitionMap = new HashMap<Integer, ArrayList<Transition>>((h.states * 5) >> 2);
+    super.target.transitions = new Transition[h.transitions];
     return IEffector.RTE_EFFECT_NONE;
   }
 }
 ```
-The snippets above support the ribose model compiler, which imports compiled ginr automata and reduces them to construct ribose transducers for inclusion in ribose runtime models. This example is presented in more detail in the ribose wiki (see [Ginr as a Service Provider](https://github.com/jrte/ribose/wiki#ginr-as-a-service-provider)). This demonstrates the clear separation of syntactic (input) and semantic (target) concerns. All of the fine-grained character-level code that would otherwise be involved to navigate the input stream is relegated to transduction patterns expressed in a symbolic, algebraic framework supported by a robust compiler for multidimensional regular patterns. Target and effector implementations are thereby greatly reduced. For comparison, here is a snippet of **C** source from the ginr repo that decodes the number of tapes from the header pattern `(digit+ tab)`:
+The snippets above support the ribose model compiler, which imports compiled ginr automata and reduces them to construct FSTs for inclusion in ribose runtime models. This example is presented in more detail in the ribose wiki (see [Ginr as a Service Provider](https://github.com/jrte/ribose/wiki#ginr-as-a-service-provider)). This demonstrates the clear separation of syntactic (input) and semantic (target) concerns. All of the fine-grained character-level code that would otherwise be involved to navigate the input stream is relegated to transduction patterns expressed in a symbolic, algebraic framework supported by a robust compiler for multidimensional regular patterns. Target and effector implementations are thereby greatly reduced. For comparison, here is a snippet of **C** source from the ginr repo that decodes the number of tapes from the header pattern `(digit+ tab)`:
 ```
 if ( c < '0' || c > '9' ) { fail(8); }
 number_tapes = c - '0';
@@ -198,7 +204,7 @@ null = (
     # inject nul? everywhere in the input and flatten to one tape
     ((AnyOrNul* @ interval)$(0 1 2))
     # copy everything up to and including the first nul, projecting back onto 3 tapes
-  @  ((a0$(0,0))* (a1$(0,,0))* (a2$(0,,,0))*)*
+  @ ((a0$(0,0))* (a1$(0,,0))* (a2$(0,,,0))*)*
     (nul$(0,0)) (nul* a0* a1* a2*)* 
   )
   # absorb input up to next '<' after nul
@@ -216,9 +222,9 @@ Tintervals$(0,1 2):prsseq `build/patterns/automata/Tintervals.pr`;
 # persist transducer for incorporation in ribose model
 Tintervals:save `build/patterns/automata/Tintervals.dfa`;
 ```
-Nullification for subpatterns requiring specific synchronization patterns can be applied similarly to effect fine-grained context-sensitive error handling.
+Nullification can be applied similarly to subpatterns to effect fine-grained context-sensitive error handling.
 ## Resolving Ambiguous Inputs (Classification)
-It is sometimes necessary to look ahead in the input, without effect, to syntactically validate a prospective feature or resolve an ambiguous pattern before selecting a course of action. Ribose supports this in two ways: using `mark/reset` effectors or using the `paste` effector to copy input until a classifying enumerator can be selected and injected into the input, followed by the copied input. The snippet below, from the `LinuxKernelStrict` transducer in the ribose test suite, demonstrates the `mark/reset` method. 
+It is sometimes necessary to look ahead in the input, without effect, to syntactically validate a prospective feature or resolve an ambiguous pattern before selecting a course of action. The snippet below, from the `LinuxKernelStrict` transducer in the ribose test suite, demonstrates this using the built-in `mark` and `reset` effectors. 
 ```
 #May 15 07:58:52 kb-ubuntu kernel: [ 1794.599801] DROPPED IN=eth0 OUT= MAC=01:00:5e:00:00:fb:00:13:20:c0:36:32:08:00 SRC=192.168.144.101 DST=224.0.0.251 LEN=32 TOS=0x00 PREC=0x00 TTL=1 ID=8596 OPT (94040000) PROTO=2
 #May 16 07:59:13 kb-ubuntu kernel: [  285.950056] __ratelimit: 225 callbacks suppressed
@@ -251,21 +257,21 @@ LinuxKernelStrict = (
     (
       (
         ((LinuxKernelDropped$0), reset start[`@LinuxKernelDropped`])
-      |  ((LinuxKernelLimited$0), reset start[`@LinuxKernelLimited`])
-      |  ((LinuxKernelAborted$0), reset start[`@LinuxKernelAborted`])
+      | ((LinuxKernelLimited$0), reset start[`@LinuxKernelLimited`])
+      | ((LinuxKernelAborted$0), reset start[`@LinuxKernelAborted`])
       )
-    |  LinuxKernelPrefix nul notnl* (nl, in[`!nil`])
+    | LinuxKernelPrefix nul notnl* (nl, in[`!nil`])
     )
   )*
 ):dfamin;
 ```
-This also demonstrates nesting of ribose FSTs. The top-level `LinuxKernelStrict` transducer marks an input anchor and looks ahead to verify syntax before selecting one of three transducers. It then resets to the input anchor and starts the selected transducer to reduce the marked input before signaling `nil` and returning to the top-level transducer. The charts below show the results of a data extraction benchmarking runoff between Java regex and three ribose variants. 
+This also demonstrates nesting of ribose FSTs. The top-level `LinuxKernelStrict` transducer marks an input anchor and looks ahead to verify syntax before selecting one of three transducers. It then resets to the input anchor and starts the selected transducer to reduce the marked input and inject a `nil` signal into the input before returning to the top-level transducer. The charts below show the results of a data extraction benchmarking runoff between Java regex and three ribose variants. 
 
 ![LinuxKernelBench](https://user-images.githubusercontent.com/24707461/169666924-49f934dc-0f43-4ce0-ad65-0809508a2541.png)
 
-The `LinuxKernel` FST does no lookahead, `LinuxKernelLoose` looks ahead only as far as the distinguishing tag, and `LinuxKernelStrict` looks ahead up to the end of line. All benchmark outputs (regex and ribose) were binary equivalent.
+The `LinuxKernel` FST does no lookahead, `LinuxKernelLoose` looks ahead only as far as the distinguishing tag, and `LinuxKernelStrict` looks ahead up to the end of line. Heap usage was similar for all three ribose FSTs (<2M). All benchmark outputs (regex and ribose) were binary equivalent.
 ## Everything is Code
-Regular patterns and their equivalent automata, like bacteria in biological ecosystems, are ubiquitous and do almost all of the work in computing ecosystems. 
+Regular patterns and their equivalent automata, like microbes in biological ecosystems, are ubiquitous and do almost all of the work in computing ecosystems. String them out on another construct like a stack or a spine and they can perform new tricks. 
 
 Consider ribonucleic acid (RNA), a strip of sugar (ribose) molecules strung together, each bound to one of four nitrogenous bases (A|U|G|C|), encoding genetic information. Any ordered contiguous group of 3 bases constitutes a *codon*, and 61 of the 64 codons are mapped deterministically onto the 21 amino acids used in protein synthesis (the other three are control codons). This mapping is effected by remarkable molecular machine, the *ribosome*, which ratchets messenger RNA (mRNA) through an aperture to align the codons for translation and build a protein molecule, one amino acid at a time (click on the gears below to see a real-time animation of this process). Over aeons, nature has programmed myriad mRNA scripts and compiled them into DNA libraries to be distributed among the living. So this trick of using sequential information from one domain (eg, mRNA->codons) to drive a process in another domain (amino acids->protein) is not new. 
 
@@ -273,21 +279,25 @@ Consider ribonucleic acid (RNA), a strip of sugar (ribose) molecules strung toge
   <a href="https://www.youtube.com/watch?v=TfYf_rPWUdY"><img src="https://github.com/jrte/ribose/blob/master/etc/javadoc/api/resources/2-gears-white.jpeg"></a>
 </p>
 
-For a more recent example, consider a **C** function compiled to sequences of machine instructions with an entry point (call) and maybe one or more exit points (return). This can be decomposed into a set of vectors of non-branching instructions, each terminating with a branch (or return) instruction. These vectors are ratcheted through the control unit of a CPU and each sequential instruction is mapped (decoded and executed) to effect specific local changes in the state of the machine. Branching instructions evaluate machine state to select the next vector for execution. All of this is effected by a von Neumann CPU, which sequentially decodes and executes instructions as they are presented by an instruction pointer. 
+For a more recent example, consider a **C** function compiled to sequences of machine instructions with an entry point (call) and maybe one or more exit points (return). This can be decomposed into a set of vectors of non-branching instructions, each terminating with a branch (or return) instruction. These vectors are ratcheted through the control unit of a CPU and each sequential instruction is mapped (decoded and executed) to effect specific local changes in the state of the machine. Branching instructions evaluate machine state to select the next vector for execution. All of this is effected by a von Neumann CPU, chasing an instruction pointer. As long as the stack pointer is fixed on the frame containing a function the instruction pointer will trace a regular pattern within the bounds of the compiled function. This regularity would be obvious in the source code for the function as implemented in a procedural programming language like **C**, where the interplay of concatenation (';'), alternation (if/else/switch) and repetition (while/do/for) is apparent. It may not be so obvious in source code written in other, eg [functional](https://www.cs.nott.ac.uk/~pszgmh/Parsing.hs), programming languages, but it all gets compiled down to machine code to run on von Neumann CPUs, on the ground or in the cloud. 
 
-As long as the stack pointer is fixed on the frame containing a function the instruction pointer will trace a regular pattern within the bounds of the compiled function. This regularity would be obvious in the source code for the function as implemented in a procedural programming language like **C**, where the interplay of concatenation (';'), alternation (if/else/switch) and repetition (while/do/for) is apparent. It may not be so obvious in source code written in other, eg functional, programming languages, but it all gets compiled down to machine code to run on von Neumann CPUs, on the ground or in the cloud. 
+From an extreme but directionally correct perspective it can be said that almost all software processes operating today are running on programmable calculators with keyboards and heaps of RAM. Modern computing machines are the multigenerational inheritors of von Neumann's architecture, which was originally developed to support numeric use cases. These machines are "[Turing complete](https://en.wikipedia.org/wiki/Brainfuck)", so all that is required to accommodate textual data is a numeric encoding of text characters. [Programmers can do the rest](https://www.youtube.com/watch?v=dDtZLm7HIJs). Since von Neumann's day we've seen lots of giddy-up but the focus in machine development has mainly been on miniaturization and optimizations to compensate for RAM access lag.
 
-From an extreme but directionally correct perspective it can be said that almost all software processes operating today are running on programmable calculators with keyboards and heaps of RAM. Since von Neumann's day we've seen lots of giddy-up but the focus in machine development has mainly been on miniaturization and optimizations to compensate for RAM access lag. Modern computing machines are the multigenerational inheritors of von Neumann's architecture, which was originally developed to support numeric use cases. These machines are "Turing complete" ([just like BrainF*ck](https://en.wikipedia.org/wiki/Brainfuck)!), so all that is required to accommodate textual data is a numeric encoding of text characters. [Programmers can do the rest](https://www.youtube.com/watch?v=dDtZLm7HIJs). 
+Programming instruction-driven machines to navigate complex patterns in sequential data or asynchronous workflows is an arduous task in any modern programming language, requiring a mess of fussy, fine-grained twiddling that is error prone and difficult to compose and maintain. Refactoring the twiddling into a nest of regular input patterns leaves a simplified collection of code snippets that just need to be sequenced correctly as effectors, and extending input patterns to select correct sequencing of effectors via transduction seems like a natural thing to do. Patterns expressed in symbolic terms can be manipulated algebraically, often without impacting effector semantics. Effector semantics are very specific and generally expressed in a few lines of code, free from syntactic concerns, in a procedural programming language. 
 
-Programming instruction-driven machines to navigate complex patterns in sequential data or asynchronous workflows is an arduous task in any modern programming language, requiring a mess of fussy, fine-grained twiddling that is error prone and difficult to compose and maintain. It is great mystery why support for \*-semi-ring algebra is nonexistent in almost all programming idioms and why hardware support for finite state transduction is absent in commercial CPUs. It may have something to do with money and the vaunted market forces that drive continuous invention and refinement. When the folks that design and develop computing hardware and compilers also extract rents for CPU and RAM bandwidth the monetary incentive to improve support for compute-intensive tasks like parsing reams of text may be weak.
+It is great mystery why support for \*-semi-ring algebra is nonexistent in almost all programming idioms and why hardware support for finite state transduction is absent in commercial CPUs. It may have something to do with money and the vaunted market forces that drive continuous invention and refinement. The folks that design and develop computing hardware and compilers are heavily invested in the status quo, and may directly or indirectly extract rents for CPU and RAM bandwidth. So the monetary incentive to improve support for compute-intensive tasks like parsing reams of text may be weak. 
+
+Unfortunately I can only imagine what computing hardware and programming tools would be like today if they had evolved with these features built in from the get go. But I think it's a sure bet that the machines would burn a lot less oil and software development tools would be more streamlined and productive.
 # The Ribose Manifesto
 Ribose encourages *pattern-oriented programming*, which is based almost entirely on semi-ring algebra. Input patterns in text and other symbolic domains can be expressed and manipulated algebraically and extended to map syntactic features onto vectors of machine instructions. A transducer stack extends the range of transduction to cover context-free input structures that escape semi-ring confinement. Effector access to RAM and an input stack supports transductions involving context-sensitive inputs. 
 
 In this way the notion of a *program*, whereby a branching and looping series of *instructions select data* in RAM and mutate target state, is replaced by a *pattern* that extends a description of an input source so that the *data select instructions (effectors)* that merge the input data into target state. Here *target*, *effector* and *pattern* are analogues of *machine*, *instruction*, *program*. A *transduction* is a *process* that applies a specific input sequence to a stack of nested FSTs to direct the application of effectors to a target model in RAM.
 
-Ribose suggests that the von Neumann CPU model would benefit from inclusion of a finite state transduction unit (FTU) to coordinate the sequencing of instructions under the direction of FSTs driven by streams of numerically encoded sequential media, and that programming languages should express robust support for \*-semiring algebra to enable construction of multidimensional regular patterns and compilation to runtime FSTs.
+Ribose suggests that the von Neumann CPU model would benefit from inclusion of a finite state transduction unit (FTU) to coordinate the sequencing of instructions under the direction of FSTs driven by streams of numerically encoded sequential media, and that programming languages should express robust support for `*`-semiring algebra to enable construction of multidimensional regular patterns and compilation to runtime FSTs. 
 
-Finally, developers might want to bone up on \*-semiring algebra. It is stable and free from bugs and vulnerabilities. It may look intimidating at first but it is just like arithmetic with nonnegative integers and addition and multiplication and corresponding identity elements **0** and **1**, but with sets of strings and union and concatenation with identity elements **Ø** (empty set) and **ϵ** (empty string). The `*` semiring operator is defined as the union of all concatenation powers of its operand. Analogous rules apply identically in both domains, although concatenation does not commute in semirings.
+Finally, developers might want to bone up on `*`-semiring algebra. It may look intimidating at first but it is just like arithmetic with nonnegative integers and addition and multiplication and corresponding identity elements **0** and **1**, but with sets of strings and union and concatenation with identity elements **Ø** (empty set) and **ϵ** (empty string). The `*` semiring operator is defined as the union of all concatenation powers of its operand. Analogous rules apply identically in both domains, although concatenation does not commute in semirings. 
+
+Best of all, `*`-semiring algebra is stable and free from bugs and vulnerabilities. 
 
 Good luck with that.
 # Disclaimer
@@ -297,7 +307,7 @@ Run `ant -f build.xml ribose` to build the ribose library in the `jars/` folder.
 
 For some background reading and a historical perspective visit the [ribose wiki](https://github.com/jrte/ribose/wiki).
 
-To learn how to build a ribose runtime model emulate the procedure for building `Test.model` in build.xml.
+To build a ribose runtime model emulate the procedure for building `Test.model` in build.xml.
 
 To learn how to use ribose models in the JVM runtime see the ribose javadoc pages. 
 

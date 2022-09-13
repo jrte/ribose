@@ -1,20 +1,21 @@
-clearHeader = clear[`~version`] clear[`~tapes`] clear[`~transitions`] clear[`~states`] clear[`~symbols`];
-clearTransition = clear[`~from`] clear[`~to`] clear[`~tape`] clear[`~length`] clear[`~symbol`];
-
-Automaton = (
-	(nil? 'INR', clearHeader clearTransition select)
-	(digit, paste)+ (tab, select[`~version`] cut select)
-	(digit, paste)+ (tab, select[`~tapes`] cut select)
-	(digit, paste)+ (tab, select[`~transitions`] cut select)
-	(digit, paste)+ (tab, select[`~states`] cut select)
-	(digit, paste)+ (nl, select[`~symbols`] cut select header clearHeader)
+Sign = ('-', paste)?;
+Number = (digit, paste)+;
+Binary = [count[`~length` `!eol`]] (byte, paste count)* eol;
+Field = clear[X] select[X];
+Automaton = (nil?
+	('INR', Field @ (X,`~version`)*) Number
+	(tab, Field @ (X,`~tapes`)*) Number
+	(tab, Field @ (X,`~transitions`)*) Number
+	(tab, Field @ (X,`~states`)*) Number
+	(tab, Field @ (X,`~symbols`)*) Number
+	(nl, header) [Field @ (X,`~from`)*]
 	(
-		(digit, paste)+ (tab, select[`~from`] cut select)
-		(digit, paste)+ (tab, select[`~to`] cut select)
-		('-', paste)? (digit, paste)+ (tab, select[`~tape`] cut select)
-		(digit, paste)+ (tab, select[`~length`] cut select count[`~length` `!eol`])
-		(byte, paste count)* (eol, select[`~symbol`] cut select)
-		(nl, transition clearTransition)
+		Number
+		(tab, Field @ (X,`~to`)*) Number
+		(tab, Field @ (X,`~tape`)*) Sign? Number
+		(tab, Field @ (X,`~length`)*) Number
+		(tab, Field @ (X,`~symbol`)*) Binary
+		(nl, transition) [Field @ (X,`~from`)*]
 	)*
 	(eos, automaton stop)
 ):dfamin;
