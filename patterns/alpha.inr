@@ -155,11 +155,11 @@ symbol = alnum | '_';
 notnl = utf8 - nl;
 notcr = utf8 - cr;
 
-# Restrict AnyOrNul to exclude nul extension for nl
-NotNlOrNul = AnyOrNul @@ notnl;
-
 # all utf8 bytes corresponding to single-byte (ASCII/UNICODE) characters 
 utf7 = {ctrl, punct, space, digit, lower, upper};
+
+# Restrict AnyOrNul to exclude nul extension for nl
+NotNlOrNul = AnyOrNul @@ notnl;
 
 hexlower = digit | 'abcdef':alph;
 hexupper = digit | 'ABCDEF':alph;

@@ -16,8 +16,8 @@ import com.characterforming.ribose.base.TargetBindingException;
  * <br><br>
  * The default constructor {@link TCompile()} is used only when building a new compiler model. In 
  * that context is serves as model target only to present its effectors and compile effector
- * paramters. The {@link TCompile(Model)} constructor instantiates a runtime instance of the
- * model compiler to compile a ribose model for domain-specifi0 target and related transducers.
+ * parameters. The {@link TCompile(Model)} constructor instantiates a runtime instance of the
+ * model compiler to compile a ribose model for domain-specific target and related transducers.
  * <br><br>
  * Main method runs the ribose runtime compiler to build a runtime model for a target 
  * class from a collection of ginr automata generated from ribose patterns.
@@ -137,5 +137,4 @@ public final class TCompile extends ModelCompiler implements ITarget {
 		}
 		System.exit(exitCode);
 	}
-
 }
