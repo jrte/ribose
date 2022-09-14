@@ -113,7 +113,7 @@ LinuxKernelStrict = (
 			|	(aborted, next start[`@LinuxKernelAborted`])
 			)
 		| null (nl, in[`!nil`])
-		)
+		)?
 	)*
 ):dfamin;
 
@@ -136,7 +136,7 @@ LinuxKernelLoose = (
 		(
 			(prefix, next start[`@LinuxKernelCapture`])
 		|	null (nl, in[`!nil`])
-		)
+		)?
 	)*
 ):dfamin;
 

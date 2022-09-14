@@ -231,35 +231,38 @@ store = out[
 
 LinuxKernelDropped = (
   header (space, select[`~tag`]) ('DROPPED' @@ PasteAny) capture (nl, store in[`!nil`] stop)
-);
+):dfamin;
+dropped = LinuxKernelDropped$0;
 
 LinuxKernelLimited = (
   header (space, select[`~tag`]) ('LIMITED' @@ PasteAny) capture (nl, store in[`!nil`] stop)
-);
+):dfamin;
+limited = LinuxKernelLimited$0;
 
 LinuxKernelAborted = (
   header (space, select[`~tag`]) ('ABORTED' @@ PasteAny) capture (nl, store in[`!nil`] stop)
-);
+):dfamin;
+aborted = LinuxKernelAborted$0;
 
-LinuxKernelInput = ((LinuxKernelDropped$0) | (LinuxKernelLimited$0) | (LinuxKernelAborted$0));
+line = (dropped | limited | aborted) / nl;
 
-LinuxKernelNull = ((LinuxKernelInput / nl):pref) nul (byte - nl)*;
+null = (line:pref) nul (byte - nl)*;
 
-Call = reset clear[`~*`] select[`~timestamp`] start[T];
+next = reset continue;
 
 LinuxKernelStrict = (
   (
     (nil, mark)
     (
       (
-        ((LinuxKernelDropped$0), Call @ (T, `@LinuxKernelDropped`))
-      | ((LinuxKernelLimited$0), Call @ (T, `@LinuxKernelLimited`))
-      | ((LinuxKernelAborted$0), Call @ (T, `@LinuxKernelAborted`))
+         (dropped, next start[`@LinuxKernelDropped`])
+      |  (limited, next start[`@LinuxKernelLimited`])
+      |  (aborted, next start[`@LinuxKernelAborted`])
       )
-    | LinuxKernelNull (nl, in[`!nil`])
-    )?
+    | null (nl, in[`!nil`])
+    )
   )*
-);
+):dfamin;
 ```
 This also demonstrates nesting of ribose FSTs. The top-level `LinuxKernelStrict` transducer marks an input anchor and looks ahead to verify syntax before selecting one of three transducers. It then resets to the input anchor and starts the selected transducer to reduce the marked input and inject a `nil` signal into the input before returning to the top-level transducer. The charts below show the results of a data extraction benchmarking runoff between Java regex and three ribose variants. 
 
