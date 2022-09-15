@@ -1,117 +1,118 @@
 <html>
+
 <body>
-<a href="https://github.com/jrte/ribose" target="_blank"><img alt="a-b-gears" src="resources/a-b-gears-white.gif"></a>
-<a href="https://github.com/jrte/ribose" target="_blank"><b>Ribose</b></a> is about inversion of control 
-for high-volume text analysis and information extraction and transformation. It is a 
-ship-in-bottle implementation of a runtime that is driven not so much by complex algorithms
-that attempt to deal with text in traditional programming languages (or build on top of
-a stack of these). All of these languages, and the hardware they run on, missed the boat
-when IBM et al figured out how to implement a programmable typewriter feature for their new 
-programmable calculator behemoths. Eventually this begot EBCDIC and ASCII and UNICODE
-and programming languages that could more easily expresses algorithms involving these
-new typewriter features. 
-<br><br>
-Why stop there? Letters and digits are fine I have some on my keyboard but they become 
-interesting only in combination with each other. These combinations can often be 
-described in regular patterns expressed in terms alternation (+), concatenation (*)
-and derived operations on regular sets. It's just arithmetic, but with strings. And
-always-galloping instruction-driven machines aren't the right sort of hardware for it. 
-It wants data-driven machines controlled by patterns that transduce sequential 
-information streams onto sequences of instructions to drive RAM and arithmetic
-number-crunching circuits. Transducers that can stop and wait quietly when the input
-stream runs dry and pick up where they left off when things get wet again. A compiler
-like <a href=https://github.com/ntozubod/ginr target="_blank"><b>ginr</b></a> to compile nested regular
-syntactic patterns to stacked transducers mapping input to code snippets (effectors)
-that reduce input data into specific target domains. And a runtime like ribose to host
-transduction stacks to extract information from sequential inputs and assimilate it into
-runtime process state. 
-<br><br>
-The ribose runtime is a container for any number of transduction processes,
-each driving an input source through a composite stack of finite state transducers onto
-an instance of a target class expressing tightly-focused effector methods. Below is
-a very simple example that shows how ribose specializes ginr patterns for its purposes.
-<pre class="code">
-Fibonacci = (
-   <i># ~r, ~q, ~p are sequences of 1s preset to empty sequence ^</i>
-   (
-      <i># fib(0): ~q &lt;- 0</i>
-      ('0', select[`~q`] paste[`1`])
-      <i># fib(n&gt;1): cycle (~r) &lt;- (~q) &lt;- (~p) &lt;- (~p)(~r), (~r) &lt;- ^</i>
-      ('0', select[`~r`] cut[`~p`] select[`~p`] copy[`~q`] select[`~q`] cut[`~r`])*
-   )?
-   <i># (~q) is empty or selected and holds the result, so append nl and print result</i>
-   (nl, paste out stop)
-);
+	<a href="https://github.com/jrte/ribose" target="_blank"><img alt="a-b-gears" src="{@docRoot}/a-b-gears-white.gif"></a>
+	<a href="https://github.com/jrte/ribose" target="_blank"><b>Ribose</b></a> is about inversion of control
+	for high-volume text analysis and information extraction and transformation. It is a
+	ship-in-bottle implementation of a runtime that is driven not so much by complex algorithms
+	that attempt to deal with text in traditional programming languages (or build on top of
+	a stack of these). All of these languages, and the hardware they run on, missed the boat
+	when IBM et al figured out how to implement a programmable typewriter feature for their new
+	programmable calculator behemoths. Eventually this begot EBCDIC and ASCII and UNICODE
+	and programming languages that could more easily expresses algorithms involving these
+	new typewriter features.
+	<br><br>
+	Why stop there? Letters and digits are fine I have some on my keyboard but they become
+	interesting only in combination with each other. These combinations can often be
+	described in regular patterns expressed in terms alternation (+), concatenation (*)
+	and derived operations on regular sets. It's just arithmetic, but with strings. And
+	always-galloping instruction-driven machines aren't the right sort of hardware for it.
+	It wants data-driven machines controlled by patterns that transduce sequential
+	information streams onto sequences of instructions to drive RAM and arithmetic
+	number-crunching circuits. Transducers that can stop and wait quietly when the input
+	stream runs dry and pick up where they left off when things get wet again. A compiler
+	like <a href=https://github.com/ntozubod/ginr target="_blank"><b>ginr</b></a> to compile nested regular
+	syntactic patterns to stacked transducers mapping input to code snippets (effectors)
+	that reduce input data into specific target domains. And a runtime like ribose to host
+	transduction stacks to extract information from sequential inputs and assimilate it into
+	runtime process state.
+	<br><br>
+	The ribose runtime is a container for any number of transduction processes,
+	each driving an input source through a composite stack of finite state transducers onto
+	an instance of a target class expressing tightly-focused effector methods. Below is
+	a very simple example that shows how ribose specializes ginr patterns for its purposes.
+	<pre class="code">
+		Fibonacci = (
+		<i># ~r, ~q, ~p are sequences of 1s preset to empty sequence ^</i>
+		(
+		<i># fib(0): ~q &lt;- 0</i>
+		('0', select[`~q`] paste[`1`])
+		<i># fib(n&gt;1): cycle (~r) &lt;- (~q) &lt;- (~p) &lt;- (~p)(~r), (~r) &lt;- ^</i>
+		('0', select[`~r`] cut[`~p`] select[`~p`] copy[`~q`] select[`~q`] cut[`~r`])*
+		)?
+		<i># (~q) is empty or selected and holds the result, so append nl and print result</i>
+		(nl, paste out stop)
+		);
 
-(Fibonacci$(0,1 2)):prsseq;
+		(Fibonacci$(0,1 2)):prsseq;
 
-(START)  0  [ select ~q paste 1 ]                                   1
-(START)  nl [ paste out stop ]                                      (FINAL)
-1        0  [ select ~r cut ~p select ~p copy ~q select ~q cut ~r ] 1
-1        nl [ paste out stop ]                                      (FINAL)
+		(START) 0 [ select ~q paste 1 ] 1
+		(START) nl [ paste out stop ] (FINAL)
+		1 0 [ select ~r cut ~p select ~p copy ~q select ~q cut ~r ] 1
+		1 nl [ paste out stop ] (FINAL)
 
-$ for n in '' 0 00 000 0000 00000 000000 0000000 00000000 000000000; do echo $n | ribose Fibonacci; done
+		$ for n in '' 0 00 000 0000 00000 000000 0000000 00000000 000000000; do echo $n | ribose Fibonacci; done
 
-1
-1
-11
-111
-11111
-11111111
-1111111111111
-111111111111111111111
-1111111111111111111111111111111111
-</pre>
-The ribose compiler performs some transition-minimizing transformations on ginr automata to build 
-transducers and package them in a persistent store (model) for runtime use. See the package
-documentation for ribose, jrte and base for more guidance on using the ribose compiler to
-marshal transducers into a model and loading the ribose runtime. The ribose runtime 
-creates {@link com.characterforming.ribose.ITransductor} instances and binds them to domain-specific
-target instances. Sequential input read by the transduction drives target effectors to reduce
-and assimilate features extracted from input into the bound target. {@link com.characterforming.ribose.ITransductor}
-provides a simple interface for running and controlling runtime transductions. Application developers
-provide transducer patterns to ginr and target and effector models to ribose. Target and effector 
-implementations are light-weight and tightly focused because all of the logic required to
-identify and extract features from input is encoded in transducer transitions. 
-<h2>Use Cases</h2>
-Ribose transduction could be applied in any domain involving sequential or temporal information
-sources but text-related use cases, like data mining and lexical analysis, and process control
-are prime domains. An interesting use case is formal abstract expression of service APIs as 
-nested regular patterns built up character-by-character to describe the input/output forms 
-of request/response. A service provider would express these with semantic labels at syntactic 
-cut points delimiting features of potential interest to complete the API description. Any developer 
-wanting to engage with a service could then cut and paste the formal response pattern and 
-easily reduce it to a composition of domain-specific transducers (transduction) that identifies
-and extracts just the features of interest in domain context. 
-<br><br>
-A pattern-oriented approach to API specification would confer advantages to the developer
-and to service providers and consumers. Design and development are eased because semantically
-labeled formal API patterns are precise, compilable functional specifications for transducer, 
-target and effector design. Target and effector implementations are simple and tightly focused
-because code that would otherwise be expressed to parse and navigate input is all encoded in
-transducer transition logic. With this specification the developer can specialize the syntactic 
-pattern to gloss over uninteresting features, identify and capture interesting feature data, 
-and invoke domain-specific effectors corresponding to feature labels to assimilate feature data
-into the target at semantically labeled cut points.   
-<br><br>
-Services that transduce text-based service requests and responses would have reduced power
-and memory requirements because transductions are typically fast and do not need to burn
-CPU cycles carefully checking and validating every character in the input against a complex 
-generalized schema to navigate features that are of no interest. Uninteresting features 
-are quickly skipped while features of interest are extracted and presented to transduction
-targets as soon as they are read from the input, without involving a complex stack of 
-dependencies. Moreover, since text is generally stored and transmitted in a byte-encoded
-form like UTF-8, transduction can take place in the encoded domain, obviating much decoding
-and widening from {@code byte[]} to {@code char[]}. Service APIs are self documenting and
-necessarily up to date, all the time. Service consumer dependency on complex software 
-libraries is reduced, developers are more effective, pressure on CPU and memory resources
-are reduced, and it's all good. 
-<br><br>
-Ribose with ginr is nothing like Java regex or any of the similar PEG etc frameworks
-currently employed to match and extract data from streams of text, and it can easily be
-adapted for use in generalized sequential information processing settings.
-<br><br><img alt="LinuxKernelLog" src="resources/LinuxKernelLog.png">
-<br><br>
-And it's just way cooler than pushing a rope with an instruction pointer. Try it and see for yourself.
+		1
+		1
+		11
+		111
+		11111
+		11111111
+		1111111111111
+		111111111111111111111
+		1111111111111111111111111111111111
+	</pre>
+	The ribose compiler performs some transition-minimizing transformations on ginr automata to build
+	transducers and package them in a persistent store (model) for runtime use. See the package
+	documentation for ribose, jrte and base for more guidance on using the ribose compiler to
+	marshal transducers into a model and loading the ribose runtime. The ribose runtime
+	creates {@link com.characterforming.ribose.ITransductor} instances and binds them to domain-specific
+	target instances. Sequential input read by the transduction drives target effectors to reduce
+	and assimilate features extracted from input into the bound target. {@link com.characterforming.ribose.ITransductor}
+	provides a simple interface for running and controlling runtime transductions. Application developers
+	provide transducer patterns to ginr and target and effector models to ribose. Target and effector
+	implementations are light-weight and tightly focused because all of the logic required to
+	identify and extract features from input is encoded in transducer transitions.
+	<h2>Use Cases</h2>
+	Ribose transduction could be applied in any domain involving sequential or temporal information
+	sources but text-related use cases, like data mining and lexical analysis, and process control
+	are prime domains. An interesting use case is formal abstract expression of service APIs as
+	nested regular patterns built up character-by-character to describe the input/output forms
+	of request/response. A service provider would express these with semantic labels at syntactic
+	cut points delimiting features of potential interest to complete the API description. Any developer
+	wanting to engage with a service could then cut and paste the formal response pattern and
+	easily reduce it to a composition of domain-specific transducers (transduction) that identifies
+	and extracts just the features of interest in domain context.
+	<br><br>
+	A pattern-oriented approach to API specification would confer advantages to the developer
+	and to service providers and consumers. Design and development are eased because semantically
+	labeled formal API patterns are precise, compilable functional specifications for transducer,
+	target and effector design. Target and effector implementations are simple and tightly focused
+	because code that would otherwise be expressed to parse and navigate input is all encoded in
+	transducer transition logic. With this specification the developer can specialize the syntactic
+	pattern to gloss over uninteresting features, identify and capture interesting feature data,
+	and invoke domain-specific effectors corresponding to feature labels to assimilate feature data
+	into the target at semantically labeled cut points.
+	<br><br>
+	Services that transduce text-based service requests and responses would have reduced power
+	and memory requirements because transductions are typically fast and do not need to burn
+	CPU cycles carefully checking and validating every character in the input against a complex
+	generalized schema to navigate features that are of no interest. Uninteresting features
+	are quickly skipped while features of interest are extracted and presented to transduction
+	targets as soon as they are read from the input, without involving a complex stack of
+	dependencies. Moreover, since text is generally stored and transmitted in a byte-encoded
+	form like UTF-8, transduction can take place in the encoded domain, obviating much decoding
+	and widening from {@code byte[]} to {@code char[]}. Service APIs are self documenting and
+	necessarily up to date, all the time. Service consumer dependency on complex software
+	libraries is reduced, developers are more effective, pressure on CPU and memory resources
+	are reduced, and it's all good.
+	<br><br>
+	Ribose with ginr is nothing like Java regex or any of the similar PEG etc frameworks
+	currently employed to match and extract data from streams of text, and it can easily be
+	adapted for use in generalized sequential information processing settings.
+	<br><br>
+	And it's just way cooler than pushing a rope with an instruction pointer. Try it and see for yourself.
 </body>
+
 </html>

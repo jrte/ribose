@@ -1,45 +1,45 @@
 #May 15 07:58:52 kb-ubuntu kernel: [ 1794.599801] DROPPED IN=eth0 OUT= MAC=01:00:5e:00:00:fb:00:13:20:c0:36:32:08:00 SRC=192.168.144.101 DST=224.0.0.251 LEN=32 TOS=0x00 PREC=0x00 TTL=1 ID=8596 OPT (94040000) PROTO=2 
 
-timestamp = upper lower+ space digit digit? space (digit digit ':')+ digit digit;
+### LinuxKernel
+# This will extract up to 10 field values from iptables log messages in a Linux kernel log 
+# containing mixed messages from various sources. Input is reduced in a single pass without
+# lookahead, fields extracted from iptables messages are reordered for output to stdout. 
+###
 
+timestamp = upper lower+ space digit digit? space (digit digit ':')+ digit digit;
 value = {alpha, digit, punct}*;
 
 header = (
 	(timestamp @@ PasteAny)
 	(space, select[`~hostname`])
-	(value* @@ PasteAny) 
+	(value @@ PasteAny) 
 	(space 'kernel: [' space* digit+ '.' digit+ space* ']')
 );
 
-tag = (space, select[`~tag`]) (('DROPPED' | 'LIMITED' | 'ABORTED') @@ PasteAny);
-
-capture = (
+field = (
 	(
-		space
-		(
-			(
-				('IN=', select[`~in`])
-			|	('OUT=', select[`~out`])
-			|	('MAC=', select[`~macaddress`])
-			|	('SRC=', select[`~srcip`])
-			|	('DST=', select[`~dstip`])
-			|	('SPT=', select[`~srcport`])
-			|	('DPT=', select[`~dstport`]) 
-			|	('PROTO=', select[`~protocol`])
-			)
-			(value* @@ PasteAny)
-		||
-			value*
-		)
-	)+
-	space
+			('IN=', select[`~in`])
+		|	('OUT=', select[`~out`])
+		|	('MAC=', select[`~macaddress`])
+		|	('SRC=', select[`~srcip`])
+		|	('DST=', select[`~dstip`])
+		|	('SPT=', select[`~srcport`])
+		|	('DPT=', select[`~dstport`]) 
+		|	('PROTO=', select[`~protocol`])
+	)
+	(value @@ PasteAny)
 );
 
-line = header tag capture;
+tag = (space, select[`~tag`]) (('DROPPED' | 'LIMITED' | 'ABORTED') @@ PasteAny);
+data = (space (field || value))+ space;
+line = header tag data;
 
 a0 = (line$0):alph;
 a1 = (line$1):alph;
 a2 = (line$2):alph;
+
+# Restrict AnyOrNul to exclude nul injection for nl
+NotNlOrNul = AnyOrNul @@ (byte - nl);
 
 null = (
 	(
@@ -47,7 +47,7 @@ null = (
 		@	((a0$(0,0))* (a1$(0,,0))* (a2$(0,,,0))*)*
 			(nul$(0,0)) (nul* a0* a1* a2*)* 
 	)
-	(nul* (byte - nl)*)*
+	(byte - nl)*
 );
 
 store = out[
@@ -83,24 +83,23 @@ LinuxKernel = (
 ###
 
 LinuxKernelDropped = (
-	header (space, select[`~tag`]) ('DROPPED' @@ PasteAny) capture (nl, store in[`!nil`] stop)
+	header (space, select[`~tag`]) ('DROPPED' @@ PasteAny) data (nl, store in[`!nil`] stop)
 ):dfamin;
-dropped = LinuxKernelDropped$0;
 
 LinuxKernelLimited = (
-	header (space, select[`~tag`]) ('LIMITED' @@ PasteAny) capture (nl, store in[`!nil`] stop)
+	header (space, select[`~tag`]) ('LIMITED' @@ PasteAny) data (nl, store in[`!nil`] stop)
 ):dfamin;
-limited = LinuxKernelLimited$0;
 
 LinuxKernelAborted = (
-	header (space, select[`~tag`]) ('ABORTED' @@ PasteAny) capture (nl, store in[`!nil`] stop)
+	header (space, select[`~tag`]) ('ABORTED' @@ PasteAny) data (nl, store in[`!nil`] stop)
 ):dfamin;
+
+dropped = LinuxKernelDropped$0;
+limited = LinuxKernelLimited$0;
 aborted = LinuxKernelAborted$0;
 
 line = (dropped | limited | aborted) / nl;
-
 null = (line:pref) nul (byte - nl)*;
-
 next = reset continue;
 
 LinuxKernelStrict = (
@@ -118,23 +117,24 @@ LinuxKernelStrict = (
 ):dfamin;
 
 ### LinuxKernelLoose 
-# This will mark and look ahead only far enough to choose capable transducer 
+# This will mark and look ahead only far enough to select a capable transducer 
 # or skip a line. If the called transducer fails to match after the verified 
 # prefix nul will be signaled but not caught and the transduction will throw
 # a DomainErrorException.
 ###
 
-prefix = (header tag)$0;
+LinuxKernelCapture = (
+	LinuxKernelDropped | LinuxKernelLimited | LinuxKernelAborted
+):dfamin;
 
-null = ((prefix:pref) - prefix) nul (byte - nl)*;
-
-LinuxKernelCapture = LinuxKernelDropped | LinuxKernelLimited | LinuxKernelAborted;
+type = (header tag)$0;
+null = ((type:pref) - type) nul (byte - nl)*;
 
 LinuxKernelLoose = (
 	(
 		(nil, mark) 
 		(
-			(prefix, next start[`@LinuxKernelCapture`])
+			(type, next start[`@LinuxKernelCapture`])
 		|	null (nl, in[`!nil`])
 		)?
 	)*

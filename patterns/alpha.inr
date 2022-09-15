@@ -1,4 +1,4 @@
-# Associate each byte X with {nul, X}. Use (AnyOrNul* @ T) to admit nul input everywhere in T.
+# Associate each byte X with {nul, X}. Use (AnyOrNul* @ T) to inject nul signal everywhere in T.
 AnyOrNul = {
 	(nul|'\x00','\x00'), (nul|'\x01','\x01'), (nul|'\x02','\x02'), (nul|'\x03','\x03'), 
 	(nul|'\x04','\x04'), (nul|'\x05','\x05'), (nul|'\x06','\x06'), (nul|'\x07','\x07'),
@@ -67,40 +67,36 @@ AnyOrNul = {
 };
 
 # any byte
-any = AnyOrNul$1;
-byte = any;
-
-# illegal utf-8 bytes reserved for internal use (signaling)
-reserved = {'\xf8', '\xf9', '\xfa', '\xfb', '\xfc', '\xfd', '\xfe', '\xff'};
-
-# legal utf-8 bytes
-utf8 = any - reserved;
+byte = AnyOrNul$1;
 
 # byte order mark
 bom = '\xEF\xBB\xBF';
 
-# Restrict PasteAny to any pattern P (T = P @@ PasteAny); T will paste P-matching input into current selection
-PasteUTF8 = (utf8, paste)*;
-PasteAny = PasteUTF8;
+# illegal utf-8 bytes reserved for internal use
+reserved = {'\xf8','\xf9','\xfa','\xfb','\xfc','\xfd','\xfe','\xff'};
 
-# Restrict PasteBinary to any pattern P (T = P @@ PasteBinary); T will paste binary bytes from input into current selection
-PasteBinary = (utf8 | reserved, paste)*;
-
-# Restrict AnyOrNul to exclude nul extension for nl, eg (PasteNotNl @@ T) ((nl, out[..] end) | (nul notnl* nl, end))
-PasteNotNl = AnyOrNul @@ (utf8 - '\x0a');
+# legal utf-8 bytes
+utf8 = byte - reserved;
 
 # 7-bit control characters
-ctrl = (
-	'\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f'
-	'\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f'
+ctrl = {
+	'\x00','\x01','\x02','\x03','\x04','\x05','\x06','\x07','\x08','\x09','\x0a','\x0b','\x0c','\x0d','\x0e','\x0f',
+	'\x10','\x11','\x12','\x13','\x14','\x15','\x16','\x17','\x18','\x19','\x1a','\x1b','\x1c','\x1d','\x1e','\x1f',
 	'\x7f'
-):alph;
+};
+tab ='\x09';
+nl = '\x0a';
+cr = '\x0d';
 
 # common names for printable 7-bit bytes
+letters = {
+	(a,A),(b,B),(c,C),(d,D),(e,E),(f,F),(g,G),(h,H),(i,I),(j,J),(k,K),(l,L),(m,M),
+	(n,N),(o,O),(p,P),(q,Q),(r,R),(s,S),(t,T),(u,U),(v,V),(w,W),(x,X),(y,Y),(z,Z)
+};
 space = ' ';
+comma = ',';
 dot = '.';
 dash = '-';
-comma = ',';
 pipe = '|';
 equals = '=';
 lparen = '(';
@@ -113,37 +109,6 @@ backslash = '\\';
 quote = '\'';
 digit = '0123456789':alph;
 punct = '!\"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~':alph;
-tab ='\t';
-nl = '\x0a';
-cr = '\x0d';
-letters = {
-	(a,A),
-	(b,B),
-	(c,C),
-	(d,D),
-	(e,E),
-	(f,F),
-	(g,G),
-	(h,H),
-	(i,I),
-	(j,J),
-	(k,K),
-	(l,L),
-	(m,M),
-	(n,N),
-	(o,O),
-	(p,P),
-	(q,Q),
-	(r,R),
-	(s,S),
-	(t,T),
-	(u,U),
-	(v,V),
-	(w,W),
-	(x,X),
-	(y,Y),
-	(z,Z)
-};
 lower = letters$0;
 upper = letters$1;
 alpha = lower | upper;
@@ -155,17 +120,46 @@ symbol = alnum | '_';
 notnl = utf8 - nl;
 notcr = utf8 - cr;
 
-# all utf8 bytes corresponding to single-byte (ASCII/UNICODE) characters 
-utf7 = {ctrl, punct, space, digit, lower, upper};
-
-# Restrict AnyOrNul to exclude nul extension for nl
-NotNlOrNul = AnyOrNul @@ notnl;
-
 hexlower = digit | 'abcdef':alph;
 hexupper = digit | 'ABCDEF':alph;
 hexbyte = (hexupper:2) | (hexlower:2);
 
-ipoctet = {digit, (digit - 0) digit, {1,2} digit digit};
-iphost = ((black - dot)+ dot)* (black - dot)+;
-ipV4 = ((ipoctet dot):3) ipoctet;
-ipV4OrHost = (ipV4 || iphost);
+# all utf8 bytes corresponding to single-byte (ASCII/UNICODE) characters 
+utf7 = {ctrl, punct, space, digit, lower, upper};
+
+# compose PasteAny with input pattern (P @@ PasteAny) to inject paste after any byte in P
+PasteAny = (byte, paste)*;
+
+# restrict PasteAny to UTF-8 bytes
+PasteUTF8 = utf8* @@ PasteAny;
+
+# restrict PasteAny to exclude nl
+PasteNotNl = (utf8 - '\x0a')* @@ PasteAny;
+
+# cardinality checks
+byte:card;
+`256=byte`:enum;
+reserved:card;
+`8=reserved`:enum;
+byte-reserved:card;
+`248=byte-reserved`:enum;
+utf8:card;
+`248=utf8`:enum;
+utf7:card;
+`128=utf7`:enum;
+utf8-utf7:card;
+`120=utf8-utf7`:enum;
+ctrl:card;
+`33=ctrl`:enum;
+punct:card;
+`32=punct`:enum;
+space:card;
+`1=space`:enum;
+digit:card;
+`10=digit`:enum;
+lower:card;
+`26=lower`:enum;
+upper:card;
+`26=upper`:enum;
+
+
