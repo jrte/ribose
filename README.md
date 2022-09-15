@@ -201,7 +201,7 @@ a2 = (interval$2):alph;
 # nullify to construct a synchronizing pattern for everything that is not an interval
 null = (
   (
-    # inject nul? everywhere in the input and flatten to one tape
+    # map all input symbols x->x|nul in (interval$0) and flatten interval to one tape
     ((AnyOrNul* @ interval)$(0 1 2))
     # copy everything up to and including the first nul, projecting back onto 3 tapes
   @ ((a0$(0,0))* (a1$(0,,0))* (a2$(0,,,0))*)*
@@ -218,12 +218,15 @@ Tintervals = (
 ```
 Nullification can be applied similarly to subpatterns to effect fine-grained context-sensitive error handling. The technique of flattening a transducer pattern and  transforming it with an editor pattern while projecting the result back onto the original tapes can be applied in many other ways. Like [CRISPR](https://www.newscientist.com/definition/what-is-crispr/) in genetics, it can be used to inject new behaviors or alter existing behaviors in existing transducer patterns.
 ## Resolving Ambiguous Inputs (Classification)
-It is sometimes necessary to look ahead in the input, without effect, to syntactically validate a prospective feature or resolve an ambiguous pattern before selecting a course of action. The snippet below, from the `LinuxKernelStrict` transducer in the ribose test suite, demonstrates this using the built-in `mark` and `reset` effectors. 
+It is sometimes necessary to look ahead in the input, without effect, to syntactically validate a prospective feature or resolve an ambiguous pattern before selecting a course of action. The snippet below, from the `LinuxKernelStrict` transducer in the ribose test suite, demonstrates this using the built-in `mark` and `reset` effectors. The _`header`_ and _`capture`_ subpatterns, referenced but not shown here, effect field extraction from iptables messages in Linux kernel logs.
 ```
 #May 15 07:58:52 kb-ubuntu kernel: [ 1794.599801] DROPPED IN=eth0 OUT= MAC=01:00:5e:00:00:fb:00:13:20:c0:36:32:08:00 SRC=192.168.144.101 DST=224.0.0.251 LEN=32 TOS=0x00 PREC=0x00 TTL=1 ID=8596 OPT (94040000) PROTO=2
 #May 16 07:59:13 kb-ubuntu kernel: [  285.950056] __ratelimit: 225 callbacks suppressed
 
-# write pipe-delimited fields extracted in header and capture subpatterns to stdout
+# distribute paste effector over any input sequence of bytes
+PasteAny = (byte, paste)*;
+
+# reorder and write fields extracted from the header and capture subpatterns to stdout
 store = out[
   `~timestamp` '|' `~hostname` '|' `~tag` '|' `~in` '|' `~out` '|' `~macaddress` '|' `~srcip`
   '|' `~dstip` '|' `~protocol` '|' `~srcport` '|' `~dstport` `\n`
@@ -232,23 +235,22 @@ store = out[
 LinuxKernelDropped = (
   header (space, select[`~tag`]) ('DROPPED' @@ PasteAny) capture (nl, store in[`!nil`] stop)
 ):dfamin;
-dropped = LinuxKernelDropped$0;
 
 LinuxKernelLimited = (
   header (space, select[`~tag`]) ('LIMITED' @@ PasteAny) capture (nl, store in[`!nil`] stop)
 ):dfamin;
-limited = LinuxKernelLimited$0;
 
 LinuxKernelAborted = (
   header (space, select[`~tag`]) ('ABORTED' @@ PasteAny) capture (nl, store in[`!nil`] stop)
 ):dfamin;
+
+dropped = LinuxKernelDropped$0;
+limited = LinuxKernelLimited$0;
 aborted = LinuxKernelAborted$0;
 
+next = reset clear[`~*`] select[`~timestamp`];
 line = (dropped | limited | aborted) / nl;
-
 null = (line:pref) nul (byte - nl)*;
-
-next = reset continue;
 
 LinuxKernelStrict = (
   (
@@ -282,11 +284,11 @@ For a more recent example, consider a **C** function compiled to sequences of ma
 
 From an extreme but directionally correct perspective it can be said that almost all software processes operating today are running on programmable calculators with keyboards and heaps of RAM. Modern computing machines are the multigenerational inheritors of von Neumann's architecture, which was originally developed to support numeric use cases. These machines are "[Turing complete](https://en.wikipedia.org/wiki/Brainfuck)", so all that is required to accommodate textual data is a numeric encoding of text characters. [Programmers can do the rest](https://www.cs.nott.ac.uk/~pszgmh/Parsing.hs). Since von Neumann's day we've seen lots of giddy-up but the focus in machine development has mainly been on miniaturization and optimizations to compensate for RAM access lag.
 
-Programming instruction-driven machines to navigate complex patterns in sequential data or asynchronous workflows is an arduous task in any modern programming language, requiring a mess of fussy, fine-grained twiddling that is error prone and difficult to compose and maintain. Refactoring the twiddling into a nest of regular input patterns leaves a simplified collection of code snippets that just need to be sequenced correctly as effectors, and extending input patterns to orchestrate effector sequencing via transduction seems like a natural thing to do. Regular patterns expressed in symbolic terms can be manipulated using well-founded and wide-ranging algebraic techniques, often without impacting effector semantics. Effector semantics are very specific and generally expressed in a few lines of code, free from syntactic concerns, in a procedural programming language. 
+Programming instruction-driven machines to navigate complex patterns in sequential data or asynchronous workflows is an arduous task in any modern programming language, requiring a mess of fussy, fine-grained twiddling that is error prone and difficult to compose and maintain. Refactoring the twiddling into a nest of regular input patterns leaves a simplified collection of code snippets that just need to be sequenced correctly as effectors, and extending input patterns to orchestrate effector sequencing via transduction seems like a natural thing to do. Transducer patterns expressed in symbolic terms can be manipulated using well-founded and wide-ranging algebraic techniques, often without impacting effector semantics. Effector semantics are very specific and generally expressed in a few lines of code, free from syntactic concerns, in a procedural programming language. 
 
-It is great mystery why support for `*`-semiring algebra is nonexistent in almost all programming idioms and why hardware support for finite state transduction is absent from commercial CPUs, even though a much greater proportion of computing bandwidth is now consumed to process sequential byte-encoded information. It may have something to do with money and the vaunted market forces that drive continuous invention and refinement. The folks that design and develop computing hardware and compilers are heavily invested in the von Neumann status quo, and may directly or indirectly extract rents for CPU and RAM bandwidth. They profit enormously as, globally, the machines generate an ever-increasing volume of data to feed back into themselves. So the monetary incentive to improve support for compute-intensive tasks like parsing reams of text may be weak.
+It is great mystery why support for `*`-semiring algebra is nonexistent in almost all programming idioms and why hardware support for finite state transduction is absent from commercial computing machinery, even though a much greater proportion of computing bandwidth is now consumed to process sequential byte-encoded information. It may have something to do with money and the vaunted market forces that drive continuous invention and refinement. The folks that design and develop computing hardware and compilers are heavily invested in the von Neumann status quo, and may directly or indirectly extract rents for CPU and RAM bandwidth. They profit enormously as, globally, the machines generate an ever-increasing volume of data to feed back into themselves. So the monetary incentive to improve support for compute-intensive tasks like parsing reams of text may be weak.
 
-Unfortunately I can only imagine what commercial hardware and programming tools would be like today if they had evolved with FST logic and pattern algebra built in from the get go. But I think it's a sure bet that the machines would burn a lot less oil and software development workflows would be more streamlined and productive.
+Unfortunately I can only imagine what commercial hardware and software engineering tools would be like today if they had evolved with FST logic and pattern algebra built in from the get go. But it's a sure bet that the machines would burn a lot less oil and software development workflows would be more streamlined and productive.
 
 See _[Everything is Hard](https://github.com/jrte/ribose/wiki/Stories#everything-is-hard)_.
 # The Ribose Manifesto

@@ -297,7 +297,7 @@
 			<arg line="--nil Tintervals patterns/test/inputs/verbosegc.vgc build/Test.model cycle-start.id=.*type=.*contextid=.*timestamp=.*intervalms=.([0-9]+'.'[0-9]+)[^0-9]"/>
 		</java>
 <!-- I/O equivalence tests -->
-		<echo>Ribose output equivalence tests (showing "lines words bytes path" wc output for input/output files): [${ribose.block.size}b block size]</echo>
+		<echo>Ribose output equivalence tests (showing "lines bytes path" wc output for input/output files): [${ribose.block.size}b block size]</echo>
 <!-- verbose gc run -->
 		<delete quiet="true" dir="/tmp">
 			<include name="vgc.verbosegc*.out"/>
@@ -321,16 +321,16 @@
 		</java>
 <!-- verbose gc verify -->
 		<exec failonerror="true" executable="/usr/bin/wc">
-			<arg line="patterns/test/inputs/verbosegc.vgc"/>
+			<arg line="--lines --bytes patterns/test/inputs/verbosegc.vgc"/>
 		</exec>		
 		<exec failonerror="true" executable="/usr/bin/wc">
-			<arg line="/tmp/vgc.regex.out"/>
+			<arg line="--lines --bytes /tmp/vgc.regex.out"/>
 		</exec>		
 		<exec failonerror="true" executable="/usr/bin/wc">
-			<arg line="/tmp/vgc.tintervals.out"/>
+			<arg line="--lines --bytes /tmp/vgc.tintervals.out"/>
 		</exec>		
 		<exec failonerror="true" executable="/usr/bin/wc">
-			<arg line="/tmp/vgc.sintervals.out"/>
+			<arg line="--lines --bytes /tmp/vgc.sintervals.out"/>
 		</exec>		
 		<condition property="intervals.match">
 			<and>
@@ -367,19 +367,19 @@
 		</java>
 <!-- linux kernel verify -->
 		<exec failonerror="true" executable="/usr/bin/wc">
-			<arg line="patterns/test/inputs/kern-10.log"/>
+			<arg line="--lines --bytes patterns/test/inputs/kern-10.log"/>
 		</exec>		
 		<exec failonerror="true" executable="/usr/bin/wc">
-			<arg line="/tmp/linuxkernelregex.out"/>
+			<arg line="--lines --bytes /tmp/linuxkernelregex.out"/>
 		</exec>		
 		<exec failonerror="true" executable="/usr/bin/wc">
-			<arg line="/tmp/linuxkernel.out"/>
+			<arg line="--lines --bytes /tmp/linuxkernel.out"/>
 		</exec>		
 		<exec failonerror="true" executable="/usr/bin/wc">
-			<arg line="/tmp/linuxkernelloose.out"/>
+			<arg line="--lines --bytes /tmp/linuxkernelloose.out"/>
 		</exec>		
 		<exec failonerror="true" executable="/usr/bin/wc">
-			<arg line="/tmp/linuxkernelstrict.out"/>
+			<arg line="--lines --bytes /tmp/linuxkernelstrict.out"/>
 		</exec>		
 		<condition property="kernel.match">
 			<and>
