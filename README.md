@@ -272,7 +272,7 @@ This also demonstrates nesting of ribose transducers. The top-level `LinuxKernel
 ### Some Metrics (Intermission)
 The charts below summarize the results of a data extraction benchmarking runoff between Java regex and three ribose variants. Initial heap size (2M) and region size (1M) were identical for all runs. The `LinuxKernel` transducer does no lookahead, `LinuxKernelLoose` looks ahead only as far as the distinguishing tag, and `LinuxKernelStrict` looks ahead up to the end of line. All benchmark outputs (regex and ribose) were binary equivalent. All three ribose transducers presented similar heap usage profiles, incurring 2 G1 collections and driving the heap to a maximal 4M size (2M young, 1M survivor). Regex incurred 54 collections, reclaiming more than 450M of transient object space as the heap grew to 20M (8M young, 1M survivor). 
 
-![LinuxKernelBench](https://github.com/jrte/ribose/raw/dev/etc/markdown/LinuxKernelLog.png)
+![LinuxKernelBench](https://github.com/jrte/ribose/raw/master/etc/markdown/LinuxKernelLog.png)
 
 Ginr automata are state-minimized but the ribose model compiler is able to obtain some lossless compression of ginr FSTs by coalescing equivalent input symbols to eliminate columns in the state transition matrix and collapsing vectors of >1 effectors and parameters to eliminate connecting states and transitions. The dimensions of the ginr FST and the ribose transducer compiled for `LinuxKernelStrict` are shown in the table below. 
 
@@ -290,7 +290,7 @@ In computing ecosystems regular patterns and their equivalent automata, like mic
 Consider ribonucleic acid (RNA), a strip of sugar (ribose) molecules strung together, each bound to one of four nitrogenous bases (A|U|G|C|), encoding genetic information. Any ordered contiguous group of 3 bases constitutes a *codon*, and 61 of the 64 codons are mapped deterministically onto the 21 amino acids used in protein synthesis (the other three are control codons). This mapping is effected by remarkable molecular machine, the *ribosome*, which ratchets messenger RNA (mRNA) through an aperture to align the codons for translation and build a protein molecule, one amino acid at a time (click on the gears below to see a real-time animation of this process). Over aeons, nature has programmed myriad mRNA scripts and compiled them into DNA libraries to be distributed among the living. So this trick of using sequential information from one domain (eg, mRNA->codons) to drive a process in another domain (amino acids->protein) is not new. 
 
 <p align="center">
-  <a href="https://www.youtube.com/watch?v=TfYf_rPWUdY"><img src="https://github.com/jrte/ribose/raw/dev/etc/markdown/2-gears-white.jpeg"></a>
+  <a href="https://www.youtube.com/watch?v=TfYf_rPWUdY"><img src="https://github.com/jrte/ribose/raw/master/etc/markdown/2-gears-white.jpeg"></a>
 </p>
 
 For a more recent example, consider a **C** function compiled to sequences of machine instructions with an entry point (call) and maybe one or more exit points (return). This can be decomposed into a set of vectors of non-branching instructions, each terminating with a branch (or return) instruction. These vectors are ratcheted through the control unit of a CPU and each sequential instruction is mapped (decoded and executed) to effect specific local changes in the state of the machine. Branching instructions evaluate machine state to select the next vector for execution. All of this is effected by a von Neumann CPU, chasing an instruction pointer. As long as the stack pointer is fixed on the frame containing a function the instruction pointer will trace a regular pattern within the bounds of the compiled function. This regularity would be obvious in the source code for the function as implemented in a procedural programming language like **C**, where the interplay of concatenation (';'), union (if/else/switch) and repetition (while/do/for) is apparent. It may not be so obvious in source code written in other, eg functional, programming languages, but it all gets compiled down to machine code to run on von Neumann CPUs, on the ground or in the cloud. 
@@ -331,7 +331,7 @@ To learn how to use ribose models in the JVM runtime see the ribose javadoc page
 
 The current version of ribose is packaged in `jars/ribose-0.0.0.jar`.
 
-See [LICENSE](https://github.com/jrte/ribose/raw/dev/LICENSE) for ribose licensing details.
+See [LICENSE](https://github.com/jrte/ribose/raw/master/LICENSE) for ribose licensing details.
 
 ---
 
