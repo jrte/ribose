@@ -2,6 +2,7 @@ Sign = ('-', paste)?;
 Number = (digit, paste)+;
 Binary = [count[`~length` `!eol`]] (byte, paste count)* eol;
 Field = clear[X] select[X];
+
 Automaton = (nil?
 	('INR', Field @ (X,`~version`)*) Number
 	(tab, Field @ (X,`~tapes`)*) Number
