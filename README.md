@@ -30,7 +30,9 @@ This example is developed more fully below and in the ribose wiki. It is preview
 
 Ginr is the star of the ribose circus. It was developed by J Howard Johnson at the University of Waterloo in the early 1980s on a 16-bit VAX computer. One of its first applications was to [transduce the typesetting code for the entire Oxford English Dictionary](https://cs.uwaterloo.ca/research/tr/1986/CS-86-20.pdf) from an archaic layout to SGML. I first used it at Bell Northern Research to implement a ribose-like framework to serve in a distributed database mediation system involving diverse remote services and data formats. The involved services were all driven by a controller transducing conversational scripts from a control channel. The controller drove a serial data link, transmitting queries and commands to remote services on the output channel and switching context-specific response transducers onto the input channel. Response transducers reduced query responses to SQL statements for the mediator and reduced command responses to guidance to be injected into the control channel to condition the course of the ongoing conversation.
 
-Ginr subsequently disappeared from the public domain and has only recently been republished with an open source license on GitHub. It has been upgraded with substantial improvements, including 32-bit state and symbol enumerators and native support for transcoding Unicode symbols to UTF-8 bytes. It provides a full complement of algebraic operators that can be applied to reliably produce very complex (and very large) automata. Large and complex patterns can be decomposed into smaller and simpler patterns, compiled to FSTs, and reconstituted on ribose runtime stacks, just as complex procedural algorithms in Java are decomposed into simpler methods that Java threads orchestrate on call stacks in the JVM to effect the algorithm.
+Ginr subsequently disappeared from the public domain and has only recently been republished with an open source license on GitHub. It has been upgraded with substantial improvements, including 32-bit state and symbol enumerators and native support for transcoding Unicode symbols to UTF-8 bytes. It provides a full complement of algebraic operators that can be applied to reliably produce very complex (and very large) automata. Large and complex patterns can be decomposed into smaller and simpler patterns, compiled to FSTs, and reconstituted on ribose runtime stacks, just as complex procedural algorithms in Java are decomposed into simpler methods that Java threads orchestrate on call stacks in the JVM runtime.
+
+Ribose is presented only to demonstrate the general idea of pattern oriented design and development. It successfully runs a limited suite of test cases and it can be used to build domain-specific ribose models, but it is not regularly maintained and not suitable for general use. Others are encouraged to clone and improve it or implement more robust expressions of the general idea.
 ## Basic Concepts
 Ginr operates in a symbolic domain involving a finite set of symbols and algebraic semiring operators that recombine symbols to express syntactic patterns. Support for Unicode symbols is built in, and Unicode in ginr source patterns is rendered as UTF-8 byte sequences in compiled automata. Ribose transduction patterns introduce additional atomic symbols as tokens representing transducers, effectors, byte-encoded effector parameters, out-of-band (>255) input signals, or named values. 
 
@@ -216,7 +218,7 @@ Tintervals = (
   (null* interval*)* @ (((a2 - NL)$(0,0))* (NL, nl)*)*
 );
 ```
-Nullification can be applied similarly to subpatterns to effect fine-grained context-sensitive error handling. The technique of flattening a transducer pattern and  transforming it with an editor pattern while projecting the result back onto the original tapes can be applied in many other ways. Like [CRISPR](https://www.newscientist.com/definition/what-is-crispr/) in genetics, it can be used to inject new behaviors or alter existing behaviors in existing transducer patterns.
+Nullification can be applied similarly to subpatterns to effect fine-grained context-sensitive error handling. The general technique of flattening a transducer pattern and  transforming it with an editor pattern while projecting the result back onto the original tapes can be applied in many other ways. Like [CRISPR](https://www.newscientist.com/definition/what-is-crispr/) in genetics, it can be used to inject new behaviors or alter existing behaviors in existing transducer patterns. The `null` expression above presents this technique but its application here is superfluous; the same result can be expressed more succinctly as shown in the next example. 
 ## Resolving Ambiguous Inputs (Classification)
 It is sometimes necessary to look ahead in the input, without effect, to syntactically validate a prospective feature or resolve an ambiguous pattern before selecting a course of action. The snippet below, from the `LinuxKernelStrict` transducer in the ribose test suite, demonstrates this using the built-in `mark` and `reset` effectors. The _`header`_ and _`capture`_ subpatterns, referenced but not shown here, effect field extraction from iptables messages in Linux kernel logs.
 ```
@@ -248,25 +250,23 @@ dropped = LinuxKernelDropped$0;
 limited = LinuxKernelLimited$0;
 aborted = LinuxKernelAborted$0;
 
-next = reset clear[`~*`] select[`~timestamp`];
 line = (dropped | limited | aborted) / nl;
-null = (line:pref) nul (byte - nl)*;
+null = ((line:pref) - line) nul (byte - nl)*;
+next = reset clear[`~*`] select[`~timestamp`];
 
 LinuxKernelStrict = (
   (
     (nil, mark)
     (
-      (
-         (dropped, next start[`@LinuxKernelDropped`])
-      |  (limited, next start[`@LinuxKernelLimited`])
-      |  (aborted, next start[`@LinuxKernelAborted`])
-      )
+      (dropped, next start[`@LinuxKernelDropped`])
+    | (limited, next start[`@LinuxKernelLimited`])
+    | (aborted, next start[`@LinuxKernelAborted`])
     | null (nl, in[`!nil`])
     )
   )*
 ):dfamin;
 ```
-This also demonstrates nesting of ribose transducers. The top-level `LinuxKernelStrict` transducer marks an input anchor and looks ahead to verify syntax before selecting one of three transducers. It then resets to the input anchor and starts the selected transducer to reduce the marked input and inject a `nil` signal into the input before returning to the top-level transducer.
+This also demonstrates nesting of ribose transducers. The top-level `LinuxKernelStrict` transducer marks an input anchor and looks ahead to verify syntax before selecting one of three transducers. It then resets to the input anchor and starts the selected transducer to reduce the marked input and inject a `nil` signal into the input before returning to the top-level transducer. Again, this is a contrived example. The `LinuxKernel` transducer in the ribose test suite effects the same transduction without lookahead.
 
 ---
 ### Some Metrics (Intermission)
@@ -311,7 +311,7 @@ In this way the notion of a *program*, whereby a branching and looping series of
 
 Ribose suggests that the von Neumann CPU model would benefit from inclusion of finite state transduction logic to coordinate the sequencing of instructions under the direction of FSTs driven by streams of numerically encoded sequential media, and that programming languages should express robust support for `*`-semiring algebra to enable construction of multidimensional regular patterns and compilation to runtime FSTs. 
 
-Developers might want to bone up on `*`-semiring algebra. It may look intimidating at first but it is just like arithmetic with nonnegative integers and addition and multiplication and corresponding identity elements **0** and **1**, but with sets of strings and union and concatenation with identity elements **Ø** (empty set) and **ϵ** (empty string). The '__`*`__' semiring operator is defined as the union of all concatenation powers of its operand. Analogous rules apply identically in both domains, although concatenation does not commute in semirings. 
+Developers might want to bone up on `*`-semiring algebra. It may look intimidating at first but it is just like arithmetic with nonnegative integers and addition and multiplication and corresponding identity elements **0** and **1**, but with sets of strings and union and concatenation with identity elements **Ø** (empty set) and **ϵ** (empty string). The '__`*`__' semiring operator is defined as the union of all concatenation powers of its operand. Analogous rules apply identically in both domains, although concatenation does not commute in semirings. See _[Math is Hard?](https://github.com/jrte/ribose/wiki#math-is-hard)_ for a scolding.
 
 Best of all, `*`-semiring algebra is stable and free from bugs and vulnerabilities. 
 
@@ -323,18 +323,17 @@ Clone the ginr repo and `cd src/; make -f Makefile install` to build and install
 
 Clone the ribose repo and run `ant -f build.xml ribose` to build the ribose library in the `jars/` folder. The `test` ant target runs the CI test suite.
 
-For some background reading and a historical perspective visit the [ribose wiki](https://github.com/jrte/ribose/wiki).
-
 To build a ribose runtime model emulate the procedure for building `Test.model` in `build.xml`.
 
 To learn how to use ribose models in the JVM runtime see the ribose javadoc pages. 
+
+For some background reading and a historical perspective visit the [ribose wiki](https://github.com/jrte/ribose/wiki).
 
 The current version of ribose is packaged in `jars/ribose-0.0.0.jar`.
 
 See [LICENSE](https://github.com/jrte/ribose/raw/master/LICENSE) for ribose licensing details.
 
 ---
-
 ![YourKit](https://www.yourkit.com/images/yklogo.png)
 
 The jrte project uses YourKit to identify and eliminate bottlenecks and turbulence in stream processing workflows and to reduce object creation to a bare minimum while maintaining high throughput.

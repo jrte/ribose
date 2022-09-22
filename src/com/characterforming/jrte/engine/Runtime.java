@@ -72,6 +72,7 @@ public final class Runtime implements IRuntime, AutoCloseable {
 	 */
 	public Runtime(final File modelPath, final ITarget target) throws ModelException {
 		this.model = new Model(Mode.run, modelPath, target);
+		this.model.initialize();
 		this.model.load();
 	}
 

@@ -107,6 +107,7 @@ public final class Transductor implements ITransductor, ITarget, IOutput {
 		this.effectors = null;
 		this.namedValueHandles = null;
 		this.namedValueOrdinalMap = null;
+		this.selected = null;
 		this.errorCount = 0;
 		if (mode == Mode.run) {
 			this.namedValueOrdinalMap = this.model.getNamedValueMap();
@@ -120,11 +121,8 @@ public final class Transductor implements ITransductor, ITarget, IOutput {
 			this.inputStack = new InputStack(INITIAL_STACK_SIZE, this.model.getSignalCount(), this.namedValueHandles.length);
 			this.transducerStack = new TransducerStack(INITIAL_STACK_SIZE);
 		} else {
-			this.namedValueOrdinalMap = null;
-			this.namedValueHandles = null;
 			this.inputStack = null;
 			this.transducerStack = null;
-			this.selected = null;
 		}
 	}
 
@@ -543,9 +541,7 @@ I:				do {
 	 */
 	@Override
 	public int getValueOrdinal(final Bytes valueName) {
-		assert this.namedValueHandles != null;
-		if (this.namedValueHandles != null
-		&& this.namedValueOrdinalMap.containsKey(valueName)) {
+		if (this.namedValueOrdinalMap.containsKey(valueName)) {
 			return this.namedValueOrdinalMap.get(valueName);
 		}
 		return -1;
@@ -953,6 +949,7 @@ I:				do {
 			if (Base.getReferentType(parameterList[1]) == Base.TYPE_REFERENCE_SIGNAL) {
 				Bytes signalName = new Bytes(Base.getReferenceName(parameterList[1]));
 				int signalOrdinal = super.getTarget().getModel().getSignalOrdinal(signalName);
+				assert signalOrdinal >= Signal.nul.signal();
 				super.setParameter(parameterIndex, new int[] { count, signalOrdinal });
 				return super.getParameter(parameterIndex);
 			} else {

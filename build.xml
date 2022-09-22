@@ -36,7 +36,7 @@
 	<property name="regex.linux.kernel" value="([JFMASOND][a-z]+ [0-9]+ (?:[0-9]+:)+[0-9]+) ([-.:A-Za-z_0-9]*) kernel: \[[ ]*[0-9]+\.[0-9]+\] (DROPPED|ABORTED|LIMITED) IN=([-.:A-Za-z_0-9]*) OUT=([-.:A-Za-z_0-9]*)(?: MAC=([-.:A-Za-z_0-9]*))? SRC=([-.:A-Za-z_0-9]*) DST=([-.:A-Za-z_0-9]*).* PROTO=([-.:A-Za-z_0-9]*)(?:.* SPT=([-.:A-Za-z_0-9]*) DPT=([-.:A-Za-z_0-9]*))?"/>
 	<property name="jargs.jit.ribose" value="-XX:CompileCommandFile=etc/jit/ribose.jit"/>
 	<property name="ribose.block.size" value="65536"/>
-	<property name="ea" value=""/>
+	<property name="ea" value="-ea"/>
 <!--
 	<property name="ea" value="-ea"/>
 	<property name="regex.linux.kernel" value="([JFMASOND][a-z]+ [0-9]+ ([0-9]+:)+[0-9]+) ([-.:A-Za-z_0-9]*) kernel: \[[ ]*[0-9]+\.[0-9]+\] (DROPPED|ABORTED|LIMITED) ((IN=([-.:A-Za-z_0-9]*)|OUT=([-.:A-Za-z_0-9]*)|MAC=([-.:A-Za-z_0-9]*)|SRC=([-.:A-Za-z_0-9]*)|DST=([-.:A-Za-z_0-9]*)) )+.* PROTO=([-.:A-Za-z_0-9]*)(.* SPT=([-.:A-Za-z_0-9]*) DPT=([-.:A-Za-z_0-9]*))?"/>
@@ -210,6 +210,7 @@
 	</target>
 
 	<target name="package-test-patterns" depends="check-package-test-patterns" unless="patterns.packaged">
+		<delete file="build/Test.model" quiet="true"/>
 		<java fork="true" dir="." classname="com.characterforming.ribose.TCompile" classpathref="jrte.classpath" failonerror="true">
 			<jvmarg line="${ea}"/>
 			<arg line="--target com.characterforming.ribose.TRun ${build.patterns.automata} build/Test.model"/>

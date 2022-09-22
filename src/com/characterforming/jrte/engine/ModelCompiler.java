@@ -136,22 +136,6 @@ public class ModelCompiler implements ITarget {
 		}
 	}
 	
-	class Transition {
-		final int from;
-		final int to;
-		final int tape;
-		final byte symbol[];
-		final boolean isFinal;
-
-		Transition(int from, int to, int tape, byte[] symbol) {
-			this.isFinal = (to == 1 && tape == 0 && symbol.length == 0);
-			this.from = from;
-			this.to = to;
-			this.tape = tape;
-			this.symbol = symbol;
-		}
-	}
-		
 	class HeaderEffector extends BaseEffector<ModelCompiler> {
 		INamedValue fields[];
 		
@@ -195,6 +179,22 @@ public class ModelCompiler implements ITarget {
 		}
 	}
 
+	class Transition {
+		final int from;
+		final int to;
+		final int tape;
+		final byte symbol[];
+		final boolean isFinal;
+
+		Transition(int from, int to, int tape, byte[] symbol) {
+			this.isFinal = (to == 1 && tape == 0 && symbol.length == 0);
+			this.from = from;
+			this.to = to;
+			this.tape = tape;
+			this.symbol = symbol;
+		}
+	}
+		
 	public class TransitionEffector extends BaseEffector<ModelCompiler> {
 		INamedValue fields[];
 		
@@ -379,10 +379,7 @@ public class ModelCompiler implements ITarget {
 		this.transducerName = Bytes.encode(name);
 		int size = (int)inrFile.length();
 		byte bytes[] = null;
-		try (
-			FileInputStream s = new FileInputStream(inrFile);
-			DataInputStream f = new DataInputStream(s);
-		) {
+		try (DataInputStream f = new DataInputStream(new FileInputStream(inrFile))) {
 			int position = 0, length = size;
 			bytes = new byte[length];
 			while (length > 0) {

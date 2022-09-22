@@ -1,0 +1,48 @@
+# definitions for basic schema elements
+
+#optional non-execute prefix prevents json execution by <script> tags
+noscript = ')]}\'\n';
+
+zero = '0';
+negative = '-';
+digits = (digit - zero) digit*;
+exponent = {'e','E'} {'+','-'}? digit+;
+none = 'null';
+boolean = 'true' | 'false';
+integer = zero | negative? digits;
+real = negative? (digits '.' digit+ | zero '.' digit+ exponent?);
+number = integer | real;
+
+quoted = '"'$(0,0);
+backtoken = {backslash, quoted$0};
+ctrltoken = {backspace,formfeed,tab,nl,cr};
+escape = (
+  backslash
+  (
+      ('"', '\\"')
+    | (('\\'|'/')$(0,0))
+    | ('b', backspace)
+    | ('f', formfeed)
+    | ('t', tab)
+    | ('n', nl)
+    | ('r', cr)
+    | ('u') (('cdefCDEF':alph) hexnibble ('89abcdefABCDEF':alph) hexnibble @@ (HexToByte:2))
+  )
+);
+
+# wip
+
+quoted = '"'$(0,0);
+nametext = (letter* digit* punct*)*;
+fieldtext = (utf8 - backtoken) - ctrl;
+jsontext = (('{[:,.+-]}':alph)* digit*)*$(0,0);
+string = quoted ((fieldtext$(0,0))* escape*)* quoted;
+erasewhite = (space* tab* nl* cr* string* jsontext*)*;
+
+Text = ('"' fieldtext* '"') @@ PasteAny;
+Name = ('"', clear) (nametext @ PasteAny) ('"', name[`!nil`]);
+Primitive = (none | number | boolean) @@ PasteAny;
+Property = Name (':', clear) X;
+Object = ('{', push) | Property (',' Property)* ('}', pop);
+Value = (Primitive | Text | Object);
+Array = ('[', head) (Value (',' Value)*) (']', tail);

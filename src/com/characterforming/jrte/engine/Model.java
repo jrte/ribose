@@ -58,17 +58,17 @@ public final class Model implements AutoCloseable {
 
 	public enum Mode { none, compile, run; }
 
+	private final Mode mode;
+	private final String ioMode;
 	private final File modelPath;
-	private final ITarget modelTarget;
-	private final IEffector<?>[] modelEffectors;
-	private final Transductor modelTransductor;
+	private final ITarget proxyTarget;
 	private final HashMap<Bytes, Integer> signalOrdinalMap;
 	private final HashMap<Bytes, Integer> namedValueOrdinalMap;
 	private final HashMap<Bytes, Integer> transducerOrdinalMap;
-	private final HashMap<Bytes, Integer> effectorOrdinalMap;
-	private final ArrayList<HashMap<BytesArray, Integer>> effectorParametersMaps;
-	private final String ioMode;
-	private final Mode mode;
+	private HashMap<Bytes, Integer> effectorOrdinalMap;
+	private ArrayList<HashMap<BytesArray, Integer>> effectorParametersMaps;
+	private IEffector<?>[] proxyEffectors;
+	private Transductor proxyTransductor;
 
 	private volatile Transducer transducerObjectIndex[];
 	private Bytes transducerNameIndex[];
@@ -77,11 +77,22 @@ public final class Model implements AutoCloseable {
 	private RandomAccessFile io;
 	private boolean deleteOnClose;
 
-	public Model(Mode mode, final File modelPath, final ITarget target) throws ModelException {
+	public Model(Mode mode, final File modelPath, final ITarget proxyTarget) throws ModelException {
+		if (mode == Mode.none) {
+			throw new ModelException("Model.Mode.none is not a viable option for model instantiation");
+		}
+		this.mode = mode;
+		this.ioMode = Mode.compile.equals(this.mode) ? "rw" : "r";
+		this.modelPath = modelPath;
+		this.proxyTarget = proxyTarget;
+		this.signalOrdinalMap = new HashMap<Bytes, Integer>(256);
+		this.transducerOrdinalMap = new HashMap<Bytes, Integer>(256);
+		this.namedValueOrdinalMap = new HashMap<Bytes, Integer>(256);
+		this.deleteOnClose = false;
+	}
+	
+	public void initialize() throws ModelException {
 		try {
-			if (mode == Mode.none) {
-				throw new ModelException("Model.Mode.none is not a viable option for model instantiation");
-			}
 			final FileHandler rteHandler = new FileHandler(Base.RTE_LOGGER_NAME + ".log", true);
 			rteHandler.setFormatter(new SimpleFormatter());
 			Model.rteLogger.addHandler(rteHandler);
@@ -93,28 +104,20 @@ public final class Model implements AutoCloseable {
 		} catch (IOException e) {
 			throw new ModelException("IOException caught while initializing logs", e);
 		}
-		this.mode = mode;
-		this.ioMode = this.mode.equals(Mode.compile) ? "rw" : "r";
-		this.modelTarget = target;
-		this.modelPath = modelPath;
-		this.modelTransductor = new Transductor(this, Mode.compile);
-		IEffector<?>[] trexFx = this.modelTransductor.getEffectors();
-		IEffector<?>[] targetFx = this.modelTarget.getEffectors();
-		this.modelEffectors = new IEffector<?>[trexFx.length + targetFx.length];
-		System.arraycopy(trexFx, 0, this.modelEffectors, 0, trexFx.length);
-		System.arraycopy(targetFx, 0, this.modelEffectors, trexFx.length, targetFx.length);
-		this.effectorParametersMaps = new ArrayList<HashMap<BytesArray, Integer>>(this.modelEffectors.length);
-		this.effectorOrdinalMap = new HashMap<Bytes, Integer>((this.modelEffectors.length * 5) / 4);
-		this.signalOrdinalMap = new HashMap<Bytes, Integer>(256);
-		this.namedValueOrdinalMap = new HashMap<Bytes, Integer>(256);
-		this.transducerOrdinalMap = new HashMap<Bytes, Integer>(256);
-		this.modelTransductor.setNamedValueOrdinalMap(Collections.unmodifiableMap(this.namedValueOrdinalMap));
-		this.modelTransductor.setEffectors(this.modelEffectors);
-		for (int effectorOrdinal = 0; effectorOrdinal < this.modelEffectors.length; effectorOrdinal++) {
+		this.proxyTransductor = new Transductor(this, Mode.compile);
+		this.proxyTransductor.setNamedValueOrdinalMap(this.namedValueOrdinalMap);
+		IEffector<?>[] trexFx = this.proxyTransductor.getEffectors();
+		IEffector<?>[] targetFx = this.proxyTarget.getEffectors();
+		this.proxyEffectors = new IEffector<?>[trexFx.length + targetFx.length];
+		System.arraycopy(trexFx, 0, this.proxyEffectors, 0, trexFx.length);
+		System.arraycopy(targetFx, 0, this.proxyEffectors, trexFx.length, targetFx.length);
+		this.effectorParametersMaps = new ArrayList<HashMap<BytesArray, Integer>>(this.proxyEffectors.length);
+		this.effectorOrdinalMap = new HashMap<Bytes, Integer>((this.proxyEffectors.length * 5) >> 2);
+		for (int effectorOrdinal = 0; effectorOrdinal < this.proxyEffectors.length; effectorOrdinal++) {
 			this.effectorParametersMaps.add(null);
-			this.effectorOrdinalMap.put(this.modelEffectors[effectorOrdinal].getName(), effectorOrdinal);
+			this.effectorOrdinalMap.put(this.proxyEffectors[effectorOrdinal].getName(), effectorOrdinal);
 		}
-		this.deleteOnClose = false;
+		this.proxyTransductor.setEffectors(this.proxyEffectors);
 	}
 	
 	/**
@@ -143,18 +146,18 @@ public final class Model implements AutoCloseable {
 					Base.RTE_VERSION, fileVersion, this.modelPath.getPath()));
 			}
 			final String targetClassname = this.getString();
-			if (!targetClassname.equals(this.modelTarget.getClass().getName())) {
+			if (!targetClassname.equals(this.proxyTarget.getClass().getName())) {
 				throw new ModelException(String.format("Can't load model for target class '%1$s'; '%2$s' is target class for model file '%3$s'",
-					this.modelTarget.getName(), targetClassname, this.modelPath.getPath()));
+					this.proxyTarget.getName(), targetClassname, this.modelPath.getPath()));
 			}
 			this.io.seek(indexPosition);
 			this.getOrdinalMap(this.signalOrdinalMap);
 			this.getOrdinalMap(this.namedValueOrdinalMap);
 			this.getOrdinalMap(this.effectorOrdinalMap);
 			this.getOrdinalMap(this.transducerOrdinalMap);
-			assert this.effectorOrdinalMap.size() == this.modelEffectors.length;
-			if (!this.transducerOrdinalMap.containsKey(Bytes.encode(this.modelTarget.getName()))) {
-				throw new ModelException(String.format("Target name '%1$s' not found in name offset map for this file '%2$s'", this.modelTarget.getName(), this.modelPath.getPath()));
+			assert this.effectorOrdinalMap.size() == this.proxyEffectors.length;
+			if (!this.transducerOrdinalMap.containsKey(Bytes.encode(this.proxyTarget.getName()))) {
+				throw new ModelException(String.format("Target name '%1$s' not found in name offset map for this file '%2$s'", this.proxyTarget.getName(), this.modelPath.getPath()));
 			}
 			int transducerCount = this.transducerOrdinalMap.size();
 			this.transducerNameIndex = new Bytes[transducerCount];
@@ -166,14 +169,12 @@ public final class Model implements AutoCloseable {
 				this.transducerObjectIndex[transducerOrdinal] = null;
 				assert this.transducerOrdinalMap.get(this.transducerNameIndex[transducerOrdinal]) == transducerOrdinal;
 			}
-			assert this.modelTransductor == (Transductor)this.modelEffectors[0].getTarget();
-			this.modelTransductor.setNamedValueOrdinalMap(this.namedValueOrdinalMap);
-			this.modelTransductor.setEffectors(this.modelEffectors);
+			assert this.proxyTransductor == (Transductor)this.proxyEffectors[0].getTarget();
 			for (int effectorOrdinal = 0; effectorOrdinal < this.effectorOrdinalMap.size(); effectorOrdinal++) {
 				byte[][][] effectorParameters = this.getBytesArrays();
 				assert effectorParameters != null;
-				if (this.modelEffectors[effectorOrdinal] instanceof IParameterizedEffector<?,?>) {
-					IParameterizedEffector<?,?> effector = (IParameterizedEffector<?,?>)this.modelEffectors[effectorOrdinal];
+				if (this.proxyEffectors[effectorOrdinal] instanceof IParameterizedEffector<?,?>) {
+					IParameterizedEffector<?,?> effector = (IParameterizedEffector<?,?>)this.proxyEffectors[effectorOrdinal];
 					effector.newParameters(effectorParameters.length);
 					for (int index = 0; index < effectorParameters.length; index++) {
 						effector.compileParameter(index, effectorParameters[index]);
@@ -203,14 +204,14 @@ public final class Model implements AutoCloseable {
 	 */
 	public Transductor bindTransductor(ITarget target) throws ModelException {
 		Class<? extends ITarget> targetClass = target.getClass();
-		Class<? extends ITarget> modelClass = this.modelTarget.getClass();
+		Class<? extends ITarget> modelClass = this.proxyTarget.getClass();
 		if (!modelClass.isAssignableFrom(targetClass)) {
 			throw new ModelException(String.format("Cannot bind instance of target class '%1$s', can only bind to model target class '%2$s'",
-				target.getClass().getName(), this.modelTarget.getClass().getName()));
+				target.getClass().getName(), this.proxyTarget.getClass().getName()));
 		}
-		if (target == this.modelTarget) {
+		if (target == this.proxyTarget) {
 			throw new ModelException(String.format("Cannot use model target instance as runtime target: $%s",
-				this.modelTarget.getClass().getName()));
+				this.proxyTarget.getClass().getName()));
 		}
 		Transductor trex = new Transductor(this, this.mode);
 		IEffector<?>[] trexFx = trex.getEffectors();
@@ -227,16 +228,11 @@ public final class Model implements AutoCloseable {
 	 * @return false if compilation fails
 	 * @throws ModelException on error
 	 */
-	public boolean compile(File inrAutomataDirectory) throws ModelException {
-		if (!inrAutomataDirectory.isDirectory()) {
-			throw new ModelException(String.format("Not a directory :'%1$s'",	inrAutomataDirectory));
-		}
-		if (this.modelPath.exists()) {
-			this.modelPath.delete();
-		}
+	public boolean create() throws ModelException {
+		assert this.modelPath.exists();
+		assert this.modelPath.length() == 0;
 		try {
-			this.setDeleteOnClose(false);
-			this.modelPath.createNewFile();
+			this.setDeleteOnClose(true);
 			this.io = new RandomAccessFile(this.modelPath, this.ioMode);
 			for (int ordinal = 0; ordinal < Base.RTE_SIGNAL_BASE; ordinal++) {
 				Bytes name = new Bytes(new byte[] { 0, (byte)ordinal });
@@ -254,40 +250,54 @@ public final class Model implements AutoCloseable {
 			this.transducerNameIndex = new Bytes[256];
 			this.putLong(0);
 			this.putString(Base.RTE_VERSION);
-			this.putString(this.modelTarget.getClass().getName());
-			
-			if (!ModelCompiler.compileAutomata(this, inrAutomataDirectory)) {
-				this.setDeleteOnClose(true);
+			this.putString(this.proxyTarget.getClass().getName());
+		} catch (IOException e) {
+			String msg = String.format("IOException caught creating model file '%1$s'",
+				this.modelPath.getPath());
+			rtcLogger.log(Level.SEVERE, msg, e);
+			return false;
+		} catch (RiboseException e) {
+			String msg = String.format("RiboseException caught compiling model file '%1$s'",
+				this.modelPath.getPath());
+			rtcLogger.log(Level.SEVERE, msg, e);
+			return false;
+		}
+		return true;
+	}
+	
+	/**
+	 * @return false if compilation fails
+	 * @throws ModelException on error
+	 */
+	public boolean save() throws ModelException {
+		try {
+			long filePosition = this.seek(-1);
+			int targetOrdinal = this.addTransducer(new Bytes(this.proxyTarget.getName().getBytes()));
+			this.setTransducerOffset(targetOrdinal, filePosition);
+			long indexPosition = this.io.getFilePointer();
+			assert indexPosition == this.io.length();
+			this.putOrdinalMap(signalOrdinalMap);
+			this.putOrdinalMap(namedValueOrdinalMap);
+			this.putOrdinalMap(effectorOrdinalMap);
+			this.putOrdinalMap(transducerOrdinalMap);
+			int transducerCount = this.transducerOrdinalMap.size();
+			for (int index = 0; index < transducerCount; index++) {
+				assert this.transducerOffsetIndex[index] > 0;
+				this.putBytes(this.transducerNameIndex[index]);
+				this.putLong(this.transducerOffsetIndex[index]);
 			}
-			
-			if (!this.deleteOnClose) {
-				long filePosition = this.seek(-1);
-				int targetOrdinal = this.addTransducer(new Bytes(this.modelTarget.getName().getBytes()));
-				this.setTransducerOffset(targetOrdinal, filePosition);
-				long indexPosition = this.io.getFilePointer();
-				assert indexPosition == this.io.length();
-				this.putOrdinalMap(signalOrdinalMap);
-				this.putOrdinalMap(namedValueOrdinalMap);
-				this.putOrdinalMap(effectorOrdinalMap);
-				this.putOrdinalMap(transducerOrdinalMap);
-				int transducerCount = this.transducerOrdinalMap.size();
-				for (int index = 0; index < transducerCount; index++) {
-					assert this.transducerOffsetIndex[index] > 0;
-					this.putBytes(this.transducerNameIndex[index]);
-					this.putLong(this.transducerOffsetIndex[index]);
-				}
-				this.compileModelParameters();
-				this.seek(0);
-				this.putLong(indexPosition);
-				saveMapFile(new File(this.modelPath.getPath().replaceAll(".model", ".map")));
-				String msg = String.format("Ribose model %1$s: target class %2$s", 
-					this.modelPath.getPath(),	this.modelTarget.getClass().getName());
-				Model.rtcLogger.log(Level.INFO, msg);
-				msg = String.format("Ribose model %1$s: %2$d transducers; %5$d effectors; %3$d named values; %4$d signal ordinals",
-					this.modelPath.getPath(), this.transducerOrdinalMap.size() - 1, this.namedValueOrdinalMap.size(),
-					this.getSignalCount(), this.effectorOrdinalMap.size());
-				Model.rtcLogger.log(Level.INFO, msg);
-			}
+			this.compileModelParameters();
+			this.seek(0);
+			this.putLong(indexPosition);
+			saveMapFile(new File(this.modelPath.getPath().replaceAll(".model", ".map")));
+			String msg = String.format("Ribose model %1$s: target class %2$s", 
+				this.modelPath.getPath(),	this.proxyTarget.getClass().getName());
+			Model.rtcLogger.log(Level.INFO, msg);
+			msg = String.format("Ribose model %1$s: %2$d transducers; %5$d effectors; %3$d named values; %4$d signal ordinals",
+				this.modelPath.getPath(), this.transducerOrdinalMap.size() - 1, this.namedValueOrdinalMap.size(),
+				this.getSignalCount(), this.effectorOrdinalMap.size());
+			Model.rtcLogger.log(Level.INFO, msg);
+			setDeleteOnClose(false);
 		} catch (IOException e) {
 			this.setDeleteOnClose(true);
 			throw new ModelException(String.format("IOException caught compiling model file '%1$s'",  this.modelPath.getPath()), e);
@@ -296,8 +306,8 @@ public final class Model implements AutoCloseable {
 			throw new ModelException(String.format("RteException caught compiling model file '%1$s'",  this.modelPath.getPath()), e);
 		} finally {
 			if (this.transducerOrdinalMap.size() <= 1) {
-				Model.rtcLogger.log(Level.WARNING, String.format("No transducers compiled from %1$s to %2$s",
-					inrAutomataDirectory.getPath(), this.modelPath.getPath()));
+				Model.rtcLogger.log(Level.WARNING, String.format("No transducers compiled to %1$s",
+					this.modelPath.getPath()));
 				setDeleteOnClose(true);
 			}
 			if (this.deleteOnClose) {
@@ -310,16 +320,16 @@ public final class Model implements AutoCloseable {
 
 	@Override
 	public void close() {
-		if (this.io != null) {
-			try {
+		try {
+			if (this.io != null) {
 				this.io.close();
-			} catch (IOException e) {
-				Model.rtcLogger.log(Level.SEVERE, "Unable to close model file %1$s " + this.modelPath.getPath(), e);
-			} finally {
-				if (this.deleteOnClose && this.modelPath.exists() && !this.modelPath.delete()) {
-					Model.rtcLogger.warning("Unable to delete invalid model file %1$s " + this.modelPath.getPath());
-				}
-				this.io = null;
+			}
+		} catch (IOException e) {
+			Model.rtcLogger.log(Level.SEVERE, "Unable to close model file %1$s " + this.modelPath.getPath(), e);
+		} finally {
+			this.io = null;
+			if (this.deleteOnClose && this.modelPath.exists() && !this.modelPath.delete()) {
+				Model.rtcLogger.warning("Unable to delete invalid model file %1$s " + this.modelPath.getPath());
 			}
 		}
 	}
@@ -328,7 +338,7 @@ public final class Model implements AutoCloseable {
 		PrintWriter mapWriter = null;
 		try {
 			mapWriter = new PrintWriter(mapFile);
-			mapWriter.println(String.format("target\t%1$s", this.modelTarget.getClass().getName()));
+			mapWriter.println(String.format("target\t%1$s", this.proxyTarget.getClass().getName()));
 			Bytes[] transducerIndex = new Bytes[this.transducerOrdinalMap.size()];
 			for (Map.Entry<Bytes, Integer> m : this.transducerOrdinalMap.entrySet()) {
 				transducerIndex[m.getValue()] = m.getKey();
@@ -368,15 +378,15 @@ public final class Model implements AutoCloseable {
 	}
 
 	private IEffector<?>[] getModelEffectors() {
-		return this.modelEffectors;
+		return this.proxyEffectors;
 	}
 
 	private boolean compileModelParameters() throws ModelException {
 		boolean fail = false;
 		final Map<Bytes, Integer> effectorOrdinalMap = this.getEffectorOrdinalMap();
 		final IEffector<?>[] effectors = this.getModelEffectors();
-		modelTransductor.setEffectors(effectors);
-		modelTransductor.setNamedValueOrdinalMap(this.namedValueOrdinalMap);
+		this.proxyTransductor.setEffectors(effectors);
+		this.proxyTransductor.setNamedValueOrdinalMap(this.namedValueOrdinalMap);
 		for (int effectorOrdinal = 0; effectorOrdinal < effectors.length; effectorOrdinal++) {
 			IEffector<?> effector = effectors[effectorOrdinal];
 			HashMap<BytesArray, Integer> parameters = this.effectorParametersMaps.get(effectorOrdinal);
@@ -399,7 +409,7 @@ public final class Model implements AutoCloseable {
 					this.putBytesArrays(effectorParameters);
 				} else if (parameters.size() > 0) {
 					Model.rtcLogger.severe(String.format("%1$s.%2$s: effector does not accept parameters\n",
-						this.modelTarget.getName(), effector.getName()));
+						this.proxyTarget.getName(), effector.getName()));
 					fail = true;
 				} else {
 					this.putInt(-1);
@@ -411,7 +421,7 @@ public final class Model implements AutoCloseable {
 		for (final Map.Entry<Bytes, Integer> entry : effectorOrdinalMap.entrySet()) {
 			if (effectors[entry.getValue()] == null) {
 				Model.rtcLogger.log(Level.SEVERE, String.format("%1$s.%2$s: effector ordinal not found\n",
-					this.modelTarget.getName(), entry.getKey().toString()));
+					this.proxyTarget.getName(), entry.getKey().toString()));
 				fail = true;
 			}
 		}
@@ -434,11 +444,11 @@ public final class Model implements AutoCloseable {
 	}
 
 	private void bindParameters(IOutput output, IEffector<?>[] runtimeEffectors) throws TargetBindingException {
-		assert runtimeEffectors.length == this.modelEffectors.length;
-		for (int i = 0; i < this.modelEffectors.length; i++) {
+		assert runtimeEffectors.length == this.proxyEffectors.length;
+		for (int i = 0; i < this.proxyEffectors.length; i++) {
 			runtimeEffectors[i].setOutput(output);
-			if (this.modelEffectors[i] instanceof IParameterizedEffector<?,?>) {
-				IParameterizedEffector<?,?> modelEffector = (IParameterizedEffector<?,?>)this.modelEffectors[i];
+			if (this.proxyEffectors[i] instanceof IParameterizedEffector<?,?>) {
+				IParameterizedEffector<?,?> modelEffector = (IParameterizedEffector<?,?>)this.proxyEffectors[i];
 				IParameterizedEffector<?,?> boundEffector = (IParameterizedEffector<?,?>)runtimeEffectors[i];
 				int parameterCount = modelEffector.getParameterCount();
 				boundEffector.newParameters(parameterCount);

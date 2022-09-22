@@ -4,7 +4,7 @@ interval = (
 	'<cycle-start id="' digit+ '" type="scavenge" contextid="' digit+ '" timestamp="' (digit+ ('.:-T':alph))+ digit+ '" '
 	('intervalms="', select[`~interval`] clear)
 	(digit, paste)+ ('.', paste) (digit, paste)+
-	('"', out[`~interval` NL])
+	('"', out[`~interval` X_])
 	space* '/>' (utf8 - '<')*
 );
 
@@ -22,11 +22,16 @@ null = (
 	@	((a0$(0,0))* (a1$(0,,0))* (a2$(0,,,0))*)*
 		(nul$(0,0)) (nul* a0* a1* a2*)* 
 	)
-	((utf8 - '>')* nul*)* '>' (utf8 - '<')*
+	(utf8 - '<')*
 );
 
-Tintervals = (
-	(null* interval*)* @ (((a2 - NL)$(0,0))* (NL, nl)*)*
+Tintervals = nil? (
+	((null* interval*)*$(0 1 2))
+@	(
+		({a0,nul}$(0,0))* (a1$(0,,0))*
+		((a2-X_)$(0,,,0))*
+		(X_, [[`nl`]])* 
+	)*
 ):dfamin;
 
 Tintervals$(0,1 2):prsseq `build/patterns/automata/Tintervals.pr`;
@@ -39,7 +44,7 @@ interval = (
 		(
 				('intervalms="', select clear)
 				(digit, paste)+ ('.', paste) (digit, paste)+
-				('"', out[ANON NL] )
+				('"', out[X_ Y_])
 		||	((lower* '="') - 'intervalms="')
 				(utf8 - '"')* '"'
 		)
@@ -64,8 +69,12 @@ null = (
 	((utf8 - '>')* nul*)* '>' (utf8 - '<')*
 );
 
-Sintervals = (
-	(null* interval*)* @ (((a2 - {ANON, NL})$(0,0))* (ANON, `~`)* (NL, nl)*)*
+Sintervals = nil? (
+	((null* interval*)*$(0 1 2))
+@	(
+		({a0,nul}$(0,0))* (a1$(0,,0))* ((a2-{X_,Y_})$(0,,,0))*
+		(X_, [[`~`]])* (Y_, [[`nl`]])*
+	)*
 ):dfamin;
 
 Sintervals$(0,1 2):prsseq `build/patterns/automata/Sintervals.pr`;

@@ -58,6 +58,36 @@ public final class Bytes {
 	}
 
 	/**
+	 * Decode a subrange of UTF-8 bytes to a String. The subrange {@code inpoint}
+	 * is a nonnegative offset relative to the head of the {@code bytes} array. 
+	 * The {@code outpoint} is also relative to the head of the array unless it
+	 * is negative, in which case it is relative to the end of the array. For
+	 * example, {@code decode(['abc'], 1, -1) -> "abc"} strips single quotes.
+	 *
+	 * The outpoint is truncated to the array length if necessary and {@code null}
+	 * is return if the inpoint exceeds the effective outpoint.
+	 *
+	 * @param bytes The bytes to decode
+	 * @param inpoint The position to start decoding at, relative to head of array
+	 ^ @param outpoint Decoding endpoint, relative to array head or tail depending on sign
+	 * @return the decoded string, or null if inpoint exceeds effective outpoint
+	 */
+	public static String decode(final byte[] bytes, final int inpoint, int outpoint) {
+		if (0 > outpoint) {
+			outpoint += bytes.length;
+			if (outpoint < 0) {
+				return null;
+			}
+		} else if (outpoint > bytes.length) {
+			outpoint = bytes.length;
+		}
+		if (inpoint < outpoint) {
+			return charset.decode(ByteBuffer.wrap(bytes).position(inpoint).limit(outpoint)).toString();
+		}
+		return (inpoint == outpoint) ? "" : null;
+	}
+
+	/**
 	 * Decode UTF-8 bytes to a String.
 	 * 
 	 * @param bytes The bytes to decode
