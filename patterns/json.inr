@@ -19,14 +19,13 @@ ctrltoken = {backspace,formfeed,tab,nl,cr};
 escape = (
   backslash
   (
-      ('"', '\\"')
-    | (('\\'|'/')$(0,0))
+     ('u', '\u') ((hexnibble:4)$(0,0))
+    | (('\\'|'/'|'"')$(0,0))
     | ('b', backspace)
     | ('f', formfeed)
     | ('t', tab)
     | ('n', nl)
     | ('r', cr)
-    | ('u') (('cdefCDEF':alph) hexnibble ('89abcdefABCDEF':alph) hexnibble @@ (HexToByte:2))
   )
 );
 
