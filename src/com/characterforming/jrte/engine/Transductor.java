@@ -369,17 +369,15 @@ I:				do {
 							if (input.position >= input.limit) {
 								signalInput = -1;
 							}
-						} else if (token < Base.RTE_SIGNAL_BASE) {
-							assert !this.inputStack.peek().hasRemaining();
-							break;
 						} else {
-							signalInput = -1;
+							if (token >= Base.RTE_SIGNAL_BASE) {
+								signalInput = -1;
+							}
 							break I;
 						} 
 					} while (true);
 					
 					// invoke a vector of 1 or more effectors and record side effects on transducer and input stacks 
-					
 					aftereffects[0] = 0;
 					do {
 						int effect = 0;

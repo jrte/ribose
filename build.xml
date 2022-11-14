@@ -152,9 +152,7 @@
 	</target>
 
 	<target name="package-java" depends="compile-java,check-package-java" unless="java.uptodate">
-		<copy file="LICENSE" todir="${build.java.classes}"/>
 		<copy file="LICENSE-gpl-3.0" todir="${build.java.classes}"/>
-		<copy file="LICENSE-lgpl-3.0" todir="${build.java.classes}"/>
 		<echo message="Version: ${ribose.version}" file="${build.java.classes}/VERSION" append="false"/>
 		<echo message="Git branch:${git.branch}" file="${build.java.classes}/VERSION" append="true"/>
 		<echo message="Git commit:${git.commit}" file="${build.java.classes}/VERSION" append="true"/>
