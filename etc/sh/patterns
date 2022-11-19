@@ -28,13 +28,18 @@ prologue="$2"
 epilogue="$3"
 out="$4"
 
+ginr="etc/ginr/ginr"
+if [[ "$OS" =~ ^Windows ]]; then
+	ginr="$ginr.exe"
+fi
+
 failed=0
-echo ":bye;" | etc/ginr/ginr | grep ' '
+echo ":bye;" | $ginr | grep ' '
 for f in "$src"/*.inr; do
 	file=$(basename "$f")
 	if [[ "$f" != "$prologue" && "$f" != "$epilogue" ]]; then
 		name=${file%.inr}
-		cat "$prologue" "$f" "$epilogue" | etc/ginr/ginr &> "/tmp/$file.out"
+		cat "$prologue" "$f" "$epilogue" | $ginr &> "/tmp/$file.out"
 		grep '^[ ]*\* \* \*\|^[ ]*\*\*\*\|^Error detected at state [0-9]*:\|^Reserved character:\|^Warning:' "/tmp/$file.out" &> /tmp/errors
 		if [[ -s "/tmp/errors" ]]; then
 			((++failed))

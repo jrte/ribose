@@ -120,7 +120,7 @@ final class InputStack {
 	void signal(int signal) {
 		this.push(this.signals[signal - Base.RTE_SIGNAL_BASE]);
 	}
-	
+
 	/**
 	 * Push a value onto the stack 
 	 *
@@ -147,33 +147,42 @@ final class InputStack {
 	 */
 	Input pop() {
 		assert this.stack.length <= Transductor.INITIAL_STACK_SIZE;
- 		Input input = this.peek();
-		while (input != Input.empty && !input.hasRemaining()) {
-			input = --this.tos >= 0 ? this.stack[this.tos] : Input.empty;
-		}
-		if (this.tos == 0) {
-			if (this.markState == MarkState.reset) {
-				if (!input.hasMark()) {
+ 		Input input = Input.empty;
+		while (this.tos >= 0) {
+			input = this.stack[this.tos];
+			if (input.hasRemaining()) {
+				if (this.tos == 0
+				&& this.markState == MarkState.reset
+				&& !input.hasMark()
+				) {
 					assert this.tom >= 0;
 					assert !Base.isReferenceOrdinal(input.array);
 					this.addMarked(this.stack[this.tos--]);
 					input.copy(this.getMarked());
 				}
+				return input;
 			}
-		} else if (this.tos < 0) {
-			assert input == Input.empty;
-			if (this.markState == MarkState.reset) {
-				assert this.bom != this.tom;
-				assert this.stack[0].array == this.marked[this.bom].array;
-				input = this.push(this.getMarked());
-				if (this.bom == this.tom) {
-					this.markState = MarkState.clear;
-				} 
-			} else if (this.markState == MarkState.marked) {
-				Input marked = this.addMarked(this.stack[0]);
-				marked.position = Math.max(0, marked.mark);
-				marked.mark = -1;
+			input = Input.empty;
+			--this.tos;
+ 		}
+		assert this.tos == -1;
+		assert !input.hasRemaining();
+		switch (this.markState) {
+		case reset:
+			assert this.bom != this.tom;
+			assert this.stack[0].array == this.marked[this.bom].array;
+			input = this.push(this.getMarked());
+			if (this.bom == this.tom) {
+				this.markState = MarkState.clear;
 			}
+			break;
+		case marked:
+			Input marked = this.addMarked(this.stack[0]);
+			marked.position = Math.max(0, marked.mark);
+			marked.mark = -1;
+			break;
+		default:
+			break;
 		}
 		return input;
 	}
@@ -358,8 +367,8 @@ final class InputStack {
 			this.tom = this.marked.length;
 			this.marked = marked;
 		}
-		if ((this.tom > this.bom) && (this.tom - this.bom) > 2
-		|| ((this.tom < this.bom) && ((this.marked.length - this.bom) + this.tom) > 2)
+		if ((this.tom > this.bom) && ((this.tom - this.bom) > 2)
+		|| ((this.tom < this.bom) && (((this.marked.length - this.bom) + this.tom) > 2))
 		) {
 			if (!this.markLimitFlagged) {
 				logger.log(Level.WARNING,

@@ -1,9 +1,9 @@
 Sign = ('-', paste)?;
 Number = (digit, paste)+;
-Binary = [count[X `!eol`]] (byte, paste count)* eol;
-Symbol = Binary @ {(X, `~length`), `!eol`$(0,0)}*;
+Symbol = [count[`~length` `!eol`]] (byte, paste count)* eol;
 Field = clear[X] select[X];
 Next = Field @ (X,`~from`)*;
+Eol = cr? nl;
 
 Automaton = (nil?
 	('INR', Field @ (X,`~version`)*) Number
@@ -11,14 +11,14 @@ Automaton = (nil?
 	(tab, Field @ (X,`~transitions`)*) Number
 	(tab, Field @ (X,`~states`)*) Number
 	(tab, Field @ (X,`~symbols`)*) Number
-	(nl, header) [Next]
+	(Eol, header) [Next]
 	(
 		Number
 		(tab, Field @ (X,`~to`)*) Number
 		(tab, Field @ (X,`~tape`)*) Sign? Number
 		(tab, Field @ (X,`~length`)*) Number
 		(tab, Field @ (X,`~symbol`)*) Symbol
-		(nl, transition) [Next]
+		(Eol, transition) [Next]
 	)*
 	(eos, automaton stop)
 ):dfamin;

@@ -69,7 +69,7 @@ public final class Bytes {
 	 *
 	 * @param bytes The bytes to decode
 	 * @param inpoint The position to start decoding at, relative to head of array
-	 ^ @param outpoint Decoding endpoint, relative to array head or tail depending on sign
+	 * @param outpoint Decoding endpoint, relative to array head or tail depending on sign
 	 * @return the decoded string, or null if inpoint exceeds effective outpoint
 	 */
 	public static String decode(final byte[] bytes, final int inpoint, int outpoint) {
