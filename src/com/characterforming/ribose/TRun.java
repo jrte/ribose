@@ -1,7 +1,12 @@
 package com.characterforming.ribose;
 
+import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -111,19 +116,33 @@ public final class TRun extends BaseTarget {
 		final Logger rteLogger = Logger.getLogger(Base.RTE_LOGGER_NAME);
 		int argc = args.length;
 		final boolean nil = (argc > 0) ? (args[0].compareTo("--nil") == 0) : false;
-		if (nil) {
-			--argc;
-		}
-		if (argc != 4) {
-			System.out.println(String.format("Usage: java -cp <classpath> [-Djrte.out.enabled=false] [--nil] <target-class> <transducer-name> <input-path> <model-path>"));
+		int arg = nil ? 1 : 0;
+		if ((argc - arg) != 4 && (argc - arg) != 5) {
+			System.out.println(String.format("Usage: java -cp <classpath> [-Djrte.out.enabled=false] [--nil] <target-class> <transducer-name> <input-path> <model-path> [<output-path>]"));
+			System.out.println("Default output is System.out, unless <output-path> specified");
 			System.exit(1);
 		}
-		int arg = nil ? 1 : 0;
 		final String targetClassname = args[arg++];
 		final String transducerName = args[arg++];
 		final String inputPath = args[arg++];
 		final String modelPath = args[arg++];
-		
+		final String outputPath = arg < argc ? args[arg++] : null;
+		final File outputFile = outputPath != null ? new File(outputPath) : null;
+		if (outputFile != null) {
+			if (outputFile.exists()) {
+				outputFile.delete();
+			}
+		}
+		OutputStream osw = System.out;
+		if (outputFile != null) {
+			try {
+				osw = outputFile != null ? new BufferedOutputStream(new FileOutputStream(outputFile)) : System.out;
+			} catch (FileNotFoundException e) {
+				Ribose.rtcLogger.log(Level.SEVERE, String.format("Unable to open output file %s", outputPath), e);
+				System.exit(1);
+			}
+		}
+	
 		final File input = inputPath.charAt(0) == '-' ? null : new File(inputPath);
 		if (input != null && !input.exists()) {
 			System.out.println("No input file found at " + inputPath);
@@ -151,7 +170,7 @@ public final class TRun extends BaseTarget {
 			if (ribose != null) {
 				ITarget runTarget = new TRun();
 				Bytes transducer = Bytes.encode(transducerName);
-				if (ribose.transduce(runTarget, transducer, nil ? Signal.nil : null, isr)) {
+				if (ribose.transduce(runTarget, transducer, nil ? Signal.nil : null, isr, osw)) {
 					exitCode = 0;
 				}
 			}
@@ -164,6 +183,16 @@ public final class TRun extends BaseTarget {
 			System.out.println("Runtime assertion failed, see log for details.");
 			exitCode = 1;
 		} finally {
+			if (outputFile != null) {
+				try {
+					osw.close();
+				} catch (IOException e) {
+					String message = String.format("Unable to close output file %s", outputPath);
+					rteLogger.log(Level.SEVERE, message, e);
+					System.out.println(message);
+					exitCode = 1;
+				}
+			}
 			System.exit(exitCode);
 		}
 	}

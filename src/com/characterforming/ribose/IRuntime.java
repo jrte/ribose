@@ -22,6 +22,7 @@
 package com.characterforming.ribose;
 
 import java.io.InputStream;
+import java.io.OutputStream;
 
 import com.characterforming.ribose.base.Base.Signal;
 import com.characterforming.ribose.base.Bytes;
@@ -68,25 +69,27 @@ public interface IRuntime extends AutoCloseable{
 	 * @param target the model target instance to bind to the transduction
 	 * @param transducer the name of the transducer to start the transduction
 	 * @param in the input stream to transduce
+	 * @param out the output stream to render output to
 	 * @return true if either transducer or input stack is empty
 	 * @throws RiboseException on error
 	 * @see ITransductor#status()
 	 */
-	boolean transduce(ITarget target, Bytes transducer, InputStream in) throws RiboseException;
+	boolean transduce(ITarget target, Bytes transducer, InputStream in, OutputStream out) throws RiboseException;
 	
 	/**
-	 * Catenate and transduce an initial signal (eg, {@code nil}) and a byte input stream onto a target instance.
+	 * Catenate and transduce an initial signal (eg, {@code Signal.nil}) and a byte input stream onto a target instance.
 	 * 
 	 * @param target the model target instance to bind to the transduction
 	 * @param transducer the name of the transducer to start the transduction
 	 * @param prologue signal to transduce prior to {@code in}
 	 * @param in the input stream to transduce
+	 * @param out the output stream to render output to
 	 * @return true if either transducer or input stack is empty
 	 * @throws RiboseException on error
-	 * @see IRuntime#transduce(ITarget, Bytes, InputStream)
+	 * @see IRuntime#transduce(ITarget, Bytes, InputStream, OutputStream)
 	 * @see ITransductor#status()
 	 */
-	boolean transduce(ITarget target, Bytes transducer, Signal prologue, InputStream in) throws RiboseException;
+	boolean transduce(ITarget target, Bytes transducer, Signal prologue, InputStream in, OutputStream out) throws RiboseException;
 
 	/**
 	 * Instantiate a new transductor and bind it to a target instance. 

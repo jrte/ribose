@@ -21,6 +21,8 @@
 
 package com.characterforming.jrte.engine;
 
+import java.io.IOException;
+import java.io.OutputStream;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -92,6 +94,7 @@ public final class Transductor implements ITransductor, IOutput {
 	private Map<Bytes, Integer> namedValueOrdinalMap;
 	private final TransducerStack transducerStack;
 	private final InputStack inputStack;
+	private OutputStream output;
 	private int errorCount;
 	
 
@@ -107,6 +110,7 @@ public final class Transductor implements ITransductor, IOutput {
 		this.effectors = null;
 		this.namedValueHandles = null;
 		this.namedValueOrdinalMap = null;
+		this.output = System.out;
 		this.selected = null;
 		this.errorCount = 0;
 		if (mode == Mode.run) {
@@ -177,6 +181,17 @@ public final class Transductor implements ITransductor, IOutput {
 		} else {
 			return Status.NULL;
 		}
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * @see com.characterforming.ribose.ITransductor#input(byte[], int)
+	 */
+	@Override
+	public OutputStream output(OutputStream output) {
+		OutputStream out = this.output;
+		this.output = output;
+		return out;
 	}
 
 	/*
@@ -428,7 +443,11 @@ I:				do {
 							break;
 						case RTE_EFFECTOR_OUT: {
 							if (Transductor.isOutEnabled && this.selected.getLength() > 0) {
-								System.out.write(this.selected.getValue(), 0, this.selected.getLength());
+								try {
+									this.output.write(this.selected.getValue(), 0, this.selected.getLength());
+								} catch (IOException e) {
+									throw new EffectorException("Unable to write() to output", e);
+								}
 							}
 							break;
 						}
@@ -893,13 +912,17 @@ I:				do {
 		public int invoke(final int parameterIndex) throws EffectorException {
 			if (this.isOutEnabled) {
 				for (final byte[] bytes : super.getParameter(parameterIndex)) {
-					if (Base.isReferenceOrdinal(bytes)) {
-						assert Base.getReferenceType(bytes) == Base.TYPE_REFERENCE_VALUE;
-						int ordinal = Base.decodeReferenceOrdinal(Base.TYPE_REFERENCE_VALUE, bytes);
-						NamedValue handle = (NamedValue)super.getTarget().getNamedValue(ordinal);
-						System.out.write(handle.getValue(), 0, handle.getLength());
-					} else {
-						System.out.write(bytes, 0, bytes.length);
+					try {
+						if (Base.isReferenceOrdinal(bytes)) {
+							assert Base.getReferenceType(bytes) == Base.TYPE_REFERENCE_VALUE;
+							int ordinal = Base.decodeReferenceOrdinal(Base.TYPE_REFERENCE_VALUE, bytes);
+							NamedValue handle = (NamedValue)super.getTarget().getNamedValue(ordinal);
+							super.target.output.write(handle.getValue(), 0, handle.getLength());
+						} else {
+							super.target.output.write(bytes, 0, bytes.length);
+						}
+					} catch (IOException e) {
+						throw new EffectorException("Unable to write() to output", e);
 					}
 				}
 			}

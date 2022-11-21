@@ -24,6 +24,7 @@ package com.characterforming.jrte.engine;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -90,7 +91,7 @@ public final class Runtime implements IRuntime {
 	 * @see com.characterforming.ribose.IRuntime#transduce(Bytes, Signal, InputStream)
 	 */
 	@Override
-	public boolean transduce(ITarget target, Bytes transducer, Signal prologue, InputStream in) throws RiboseException {
+	public boolean transduce(ITarget target, Bytes transducer, Signal prologue, InputStream in, OutputStream out) throws RiboseException {
 		try {
 			byte[] bytes = new byte[InputStack.BLOCK_SIZE];
 			int read = in.read(bytes);
@@ -99,6 +100,7 @@ public final class Runtime implements IRuntime {
 			if (read > 0) {
 				ITransductor trex = newTransductor(target);
 				trex.input(bytes, read);
+				trex.output(out);
 				if (prologue != null) {
 					trex.signal(prologue);
 				}
@@ -140,8 +142,8 @@ public final class Runtime implements IRuntime {
 	 * @see com.characterforming.ribose.IRuntime#transduce(Bytes, InputStream)
 	 */
 	@Override
-	public boolean transduce(ITarget target, Bytes transducer, InputStream in) throws RiboseException {
-		return this.transduce(target, transducer, null, in);
+	public boolean transduce(ITarget target, Bytes transducer, InputStream in, OutputStream out) throws RiboseException {
+		return this.transduce(target, transducer, null, in, out);
 	}
 
 	/*

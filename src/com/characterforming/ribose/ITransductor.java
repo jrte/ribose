@@ -22,6 +22,9 @@
 package com.characterforming.ribose;
 
 import com.characterforming.ribose.base.Base.Signal;
+
+import java.io.OutputStream;
+
 import com.characterforming.ribose.base.Bytes;
 import com.characterforming.ribose.base.DomainErrorException;
 import com.characterforming.ribose.base.ModelException;
@@ -124,6 +127,20 @@ public interface ITransductor extends ITarget {
 	 */
 	public Status status();
 
+	/**
+	 * Set the output stream to be used for {@code out[]} effector. The only method
+	 * called on this stream is {@code write(byte[] data, int offset, int length)}.
+	 * Caller is responsible for conducting all other stream operations. 
+	 * 
+	 * The default output stream is set to {@code System.out}. This may filter output
+	 * to convert line endings, flush frequently, etc. For raw binary output (including
+	 * UTF-8 text) use a {@code BufferedOutputStream}.
+	 * 
+	 * @param output the output stream to write to
+	 * @return The previous output stream  
+	 */
+	public OutputStream output(OutputStream output);
+	
 	/**
 	 * Push an initial segment {@code [0..limit)} of a data array onto the 
 	 * transduction input stack. Data pushed onto empty stack constitute the

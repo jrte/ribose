@@ -73,7 +73,7 @@ public class FileRunner {
 		}
 		
 		final Logger rteLogger = Logger.getLogger(Base.RTE_LOGGER_NAME);
-		final FileHandler rteHandler = new FileHandler("FileHandler.log");
+		final FileHandler rteHandler = new FileHandler("FileRunner.log");
 		rteHandler.setFormatter(new SimpleFormatter());
 		rteLogger.addHandler(rteHandler);
 		
@@ -121,9 +121,9 @@ public class FileRunner {
 						double mbps = (tjrte > 0) ? ((double)(clen) / (double)(tjrte*1024*1024)) * (Math.min(loops,10)*1000) : -1;
 						System.out.println(String.format(" : %7.3f mb/s %7.3f nul/kb", mbps, epkb));
 					} else if (nil) {
-						ribose.transduce(runTarget, Bytes.encode(transducerName), Signal.nil, isr);
+						ribose.transduce(runTarget, Bytes.encode(transducerName), Signal.nil, isr, System.out);
 					} else {
-						ribose.transduce(runTarget, Bytes.encode(transducerName), isr);
+						ribose.transduce(runTarget, Bytes.encode(transducerName), isr, System.out);
 					}
 				} catch (Exception e) {
 					System.out.println("Runtime exception thrown.");

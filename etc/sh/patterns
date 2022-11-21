@@ -2,8 +2,8 @@
 if (($# != 4)); then
 	echo "Usage: patterns <ginr-source-directory> <prologue-file> <epilogue-file> <dfa-output-directory>"
 	echo "Effect: 'cat <prologue-file><ginr-source-file>.inr<epilogue-file> | ginr' for each ginr source in <ginr-source-directory>"
-	echo "Compiled automata (*.dfa) are placed in <dfa-output-directory>"
 	echo "Tracing info including ginr error messages for X.inr are wrutten to /tmp/X.inr.out"
+	echo "Compiled automata (*.dfa) are placed in <dfa-output-directory>"
 	exit 1
 fi
 if [[ ! -d "$1" ]]; then 

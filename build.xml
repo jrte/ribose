@@ -255,11 +255,13 @@
 		<echo message="${ant.version}"/>
 		<echo>Fibonacci:</echo>
 		<exec failonerror="true" executable="bash">
-			<arg line="etc/sh/ribose --nil Fibonacci ${pattern.source.dir}/inputs/fib.txt build/Test.model"/>
+			<arg value="-c"/>
+			<arg value="etc/sh/ribose --nil Fibonacci ${pattern.source.dir}/inputs/fib.txt build/Test.model"/>
 		</exec>
 		<echo>DateExtractor:</echo>
 		<exec failonerror="true" executable="bash">
-			<arg line="etc/sh/ribose --nil DateExtractor ${pattern.source.dir}/inputs/dates.txt build/Test.model"/>
+			<arg value="-c"/>
+			<arg value="etc/sh/ribose --nil DateExtractor ${pattern.source.dir}/inputs/dates.txt build/Test.model"/>
 		</exec>
 <!-- TestRunner benchmarks -->
 		<echo>TestRunner benchmarking (simple fsts driving base transduction effectors):</echo>
@@ -307,18 +309,18 @@
 			<arg line="--lines --bytes ${pattern.source.dir}/inputs/verbosegc.vgc"/>
 		</exec>		
 		<echo message="Regex: -Xms2m -Xlog:gc*:file=vgc.regex.gc -> ${build.test}/vgc.regex.out"/>
-		<java fork="true" dir="." classname="com.characterforming.jrte.test.FileRunner" classpathref="test.classpath" failonerror="true" output="${build.test}/vgc.regex.out" error="${build.test}/vgc.regex.err">
+		<java fork="true" dir="." classname="com.characterforming.jrte.test.FileRunner" classpathref="test.classpath" failonerror="true" output="${build.test}/vgc.regex.out">
 			<jvmarg line="${jargs} ${jargs.gc.test}/vgc.regex.gc -Djrte.out.enabled=false -Dregex.out.enabled=true"/>
 			<arg line="--nil Tintervals ${pattern.source.dir}/inputs/verbosegc.vgc build/Test.model &quot;cycle-start id=.[0-9]+. type=.scavenge. contextid=.[0-9]+. timestamp=.(?:[0-9]+[-.:T])+[0-9]+. intervalms=.([0-9]+.[0-9]+)[^0-9]&quot;" />
 		</java>
-		<java fork="true" dir="." classname="com.characterforming.ribose.TRun" classpathref="jrte.classpath" failonerror="true" output="${build.test}/vgc.sintervals.out" error="${build.test}/vgc.sintervals.err">
+		<java fork="true" dir="." classname="com.characterforming.ribose.TRun" classpathref="jrte.classpath" failonerror="true">
 			<jvmarg line="${jargs} ${jargs.gc.test}/vgc.sintervals.gc -Djrte.out.enabled=true -Dregex.out.enabled=false"/>
-			<arg line="--nil com.characterforming.ribose.TRun Sintervals ${pattern.source.dir}/inputs/verbosegc.vgc build/Test.model"/>
+			<arg line="--nil com.characterforming.ribose.TRun Sintervals ${pattern.source.dir}/inputs/verbosegc.vgc build/Test.model ${build.test}/vgc.sintervals.out"/>
 		</java>
 		<echo message="TRun: Tintervals -Xms2m -Xlog:gc*:file=${build.test}/vgc.tintervals.gc -> ${build.test}/vgc.tintervals.out"/>
-		<java fork="true" dir="." classname="com.characterforming.ribose.TRun" classpathref="jrte.classpath" failonerror="true" output="${build.test}/vgc.tintervals.out" error="${build.test}/vgc.tintervals.err">
+		<java fork="true" dir="." classname="com.characterforming.ribose.TRun" classpathref="jrte.classpath" failonerror="true">
 			<jvmarg line="${jargs} ${jargs.gc.test}/vgc.tintervals.gc -Djrte.out.enabled=true -Dregex.out.enabled=false"/>
-			<arg line="--nil com.characterforming.ribose.TRun Tintervals ${pattern.source.dir}/inputs/verbosegc.vgc build/Test.model"/>
+			<arg line="--nil com.characterforming.ribose.TRun Tintervals ${pattern.source.dir}/inputs/verbosegc.vgc build/Test.model ${build.test}/vgc.tintervals.out"/>
 		</java>
 <!-- verbose gc verify -->
 		<fixcrlf srcDir="${build.test}" includes="vgc.*.out"/>
@@ -362,19 +364,19 @@
 			<arg line="--nil LinuxKernel ${pattern.source.dir}/inputs/kern-10.log build/Test.model &quot;${regex.linux.kernel}&quot;" />
 		</java>
 		<echo message="TRun: LinuxKernel -Xms2m -Xlog:gc*:file=${build.test}/linuxkernel.gc -> ${build.test}/linuxkernel.out"/>
-		<java fork="true" dir="." classname="com.characterforming.ribose.TRun" classpathref="jrte.classpath" failonerror="true" output="${build.test}/linuxkernel.out" error="${build.test}/linuxkernel.err">
+		<java fork="true" dir="." classname="com.characterforming.ribose.TRun" classpathref="jrte.classpath" failonerror="true">
 			<jvmarg line="${jargs} ${jargs.gc.test}/linuxkernel.gc -Djrte.out.enabled=true -Dregex.out.enabled=false"/>
-			<arg line="--nil com.characterforming.ribose.TRun LinuxKernel ${pattern.source.dir}/inputs/kern-10.log build/Test.model"/>
+			<arg line="--nil com.characterforming.ribose.TRun LinuxKernel ${pattern.source.dir}/inputs/kern-10.log build/Test.model ${build.test}/linuxkernel.out"/>
 		</java>
 		<echo message="TRun: LinuxKernelLoose -Xms2m -Xlog:gc*:file=${build.test}/linuxkernelloose.gc -> ${build.test}/linuxkernelloose.out"/>
-		<java fork="true" dir="." classname="com.characterforming.ribose.TRun" classpathref="jrte.classpath" failonerror="true" output="${build.test}/linuxkernelloose.out" error="${build.test}/linuxkernelloose.err">
+		<java fork="true" dir="." classname="com.characterforming.ribose.TRun" classpathref="jrte.classpath" failonerror="true">
 			<jvmarg line="${jargs} ${jargs.gc.test}/linuxkernelloose.gc -Djrte.out.enabled=true -Dregex.out.enabled=false"/>
-			<arg line="--nil com.characterforming.ribose.TRun LinuxKernelLoose ${pattern.source.dir}/inputs/kern-10.log build/Test.model"/>
+			<arg line="--nil com.characterforming.ribose.TRun LinuxKernelLoose ${pattern.source.dir}/inputs/kern-10.log build/Test.model ${build.test}/linuxkernelloose.out"/>
 		</java>
 		<echo message="TRun: LinuxKernelStrict -Xms2m -Xlog:gc*:file=${build.test}/linuxkernelstrict.gc -> ${build.test}/linuxkernelstrict.out"/>
-		<java fork="true" dir="." classname="com.characterforming.ribose.TRun" classpathref="jrte.classpath" failonerror="true" output="${build.test}/linuxkernelstrict.out" error="${build.test}/linuxkernelstrict.err">
+		<java fork="true" dir="." classname="com.characterforming.ribose.TRun" classpathref="jrte.classpath" failonerror="true">
 			<jvmarg line="${jargs} ${jargs.gc.test}/linuxkernelstrict.gc -Djrte.out.enabled=true -Dregex.out.enabled=false"/>
-			<arg line="--nil com.characterforming.ribose.TRun LinuxKernelStrict ${pattern.source.dir}/inputs/kern-10.log build/Test.model"/>
+			<arg line="--nil com.characterforming.ribose.TRun LinuxKernelStrict ${pattern.source.dir}/inputs/kern-10.log build/Test.model ${build.test}/linuxkernelstrict.out"/>
 		</java>
 <!-- linux kernel verify -->
 		<fixcrlf srcDir="${build.test}" includes="linuxkernel*.out"/>

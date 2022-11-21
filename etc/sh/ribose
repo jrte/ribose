@@ -1,5 +1,9 @@
 #! /bin/bash
+#echo "ALL: $*"
+#set -x
 vmargs=""
+jars="$(dirname $(readlink -f $0))/../../jars"
+trun="java -cp $jars/ribose-0.0.0.jar com.characterforming.ribose.TRun"
 while [[ "$1" =~ ^[-][^-] ]]; do
 	vmargs="$vmargs $1";
 	shift
@@ -14,14 +18,14 @@ if [[ "$1" == "--target" ]]; then
   target="$2"
   shift 2
 fi
-if (($#!=3)); then
-	echo "Usage:\tribose [<vm-arg> ...] [--nil] [--target <target-class-name>] <transducer> <input-file> <model-file>"
-  echo "Default target is com.characterforming.ribose.TRun"
+if (($#!=3 && $# != 4)); then
+	echo 'Usage: ribose [<vm-arg> ...] [--nil] [--target <target-class-name>] <transducer> <input-file> <model-file> [<output-file>]'
+  echo 'Default target is com.characterforming.ribose.TRun; default output stream is System.out'
 else
-  transducer="$1"
-  infile="$2"
-  model="$3"
-  jars=$(dirname $(readlink -f $0))/../../jars
-	java -cp $jars/ribose-0.0.0.jar com.characterforming.ribose.TRun $nil $target $transducer "$infile" "$model"
+  args="$1 $2 $3"
+  if (($#==4)); then
+    args="$args $4"
+  fi
+	$trun $nil $target $args
 fi
-
+#set +x
