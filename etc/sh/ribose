@@ -6,23 +6,22 @@ while [[ "$1" =~ ^[-][^-] ]]; do
 done
 nil=""
 if [[ "$1" == "--nil" ]]; then
-	nil=$1
-	shift
+  nil="$1"
+  shift
+fi
+target="com.characterforming.ribose.TRun"
+if [[ "$1" == "--target" ]]; then
+  target="$2"
+  shift 2
 fi
 if (($#!=3)); then
-	echo -e "Usage:\tjrte.sh [<vm-arg ...] [--nil] <transducer-name> <input-path> <model-path>"
-	exit 1
-elif [[ ! -f "$2" || ! -f "$3" ]]; then
-	if [[ ! -f "$2" ]]; then
-		echo "No file found at $2"
-	fi
-	if [[ ! -f "$3" ]]; then
-		echo "No model found at $3"
-	fi
-	exit 1
+	echo "Usage:\tribose [<vm-arg> ...] [--nil] [--target <target-class-name>] <transducer> <input-file> <model-file>"
+  echo "Default target is com.characterforming.ribose.TRun"
+else
+  transducer="$1"
+  infile="$2"
+  model="$3"
+  jars=$(dirname $(readlink -f $0))/../../jars
+	java -cp $jars/ribose-0.0.0.jar com.characterforming.ribose.TRun $nil $target $transducer "$infile" "$model"
 fi
-transducer=$1
-input="$2"
-model="$3"
-java $vmargs -cp jars/ribose-0.0.0.jar com.characterforming.ribose.TRun $nil $transducer $input $model
 

@@ -1,6 +1,5 @@
 package com.characterforming.ribose;
 
-import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.util.logging.Level;
@@ -73,7 +72,7 @@ import com.characterforming.ribose.base.TargetBindingException;
  * <tr><td><i>model</i></td><td>The path to the model file.</tr>
  * </table>
  */
-public final class TRun extends BaseTarget implements ITarget {
+public final class TRun extends BaseTarget {
 	/**
 	 * Constructor
 	 */
@@ -106,7 +105,7 @@ public final class TRun extends BaseTarget implements ITarget {
 	 * signal as prologue. The named transducer, to be pushed to begin the transduction, 
 	 * must be contained in the specified model file.
 	 *    
-	 * @param args [--nil] &lt;transducer-name&gt; &lt;input-file-path&gt; &lt;trun-model-path&gt;
+	 * @param args [--nil] &lt;target-class&gt; &lt;transducer-name&gt; &lt;input-file-path&gt; &lt;trun-model-path&gt;
 	 */
 	public static void main(final String[] args) {
 		final Logger rteLogger = Logger.getLogger(Base.RTE_LOGGER_NAME);
@@ -115,31 +114,39 @@ public final class TRun extends BaseTarget implements ITarget {
 		if (nil) {
 			--argc;
 		}
-		if (argc != 3) {
-			System.out.println(String.format("Usage: java -cp <classpath> [-Djrte.out.enabled=false] [--nil] <transducer-name> <input-path> <runtime-path>"));
+		if (argc != 4) {
+			System.out.println(String.format("Usage: java -cp <classpath> [-Djrte.out.enabled=false] [--nil] <target-class> <transducer-name> <input-path> <model-path>"));
 			System.exit(1);
 		}
 		int arg = nil ? 1 : 0;
+		final String targetClassname = args[arg++];
 		final String transducerName = args[arg++];
 		final String inputPath = args[arg++];
-		final String runtimePath = args[arg++];
+		final String modelPath = args[arg++];
 		
 		final File input = inputPath.charAt(0) == '-' ? null : new File(inputPath);
 		if (input != null && !input.exists()) {
 			System.out.println("No input file found at " + inputPath);
 			System.exit(1);
 		}
-		final File model = new File(runtimePath);
+		final File model = new File(modelPath);
 		if (!model.exists()) {
-			System.out.println("No ribose model file found at " + runtimePath);
+			System.out.println("No ribose model file found at " + modelPath);
 			System.exit(1);
 		}
 
 		int exitCode = 1;
-		ITarget modelTarget = new TRun();
+		ITarget modelTarget = null;
+		try {
+			Class<?> targetClass = Class.forName(targetClassname);
+			modelTarget = (ITarget) targetClass.getDeclaredConstructor().newInstance();
+		} catch (Exception e) {
+			Ribose.rtcLogger.log(Level.SEVERE, String.format("target-class '%1$s' could not be instantiated as model target", targetClassname), e);
+			System.exit(exitCode);
+		}
 		try (
 			IRuntime ribose = Ribose.loadRiboseModel(model, modelTarget);
-			DataInputStream isr = new DataInputStream(new FileInputStream(input));
+			FileInputStream isr = new FileInputStream(input);
 		) {
 			if (ribose != null) {
 				ITarget runTarget = new TRun();

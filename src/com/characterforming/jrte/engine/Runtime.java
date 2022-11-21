@@ -48,7 +48,7 @@ import com.characterforming.ribose.base.RiboseException;
  * 
  * @author Kim Briggs
  */
-public final class Runtime implements IRuntime, AutoCloseable {
+public final class Runtime implements IRuntime {
 	public final static Logger rteLogger = Logger.getLogger(Base.RTE_LOGGER_NAME);
 	private final Model model;
 	

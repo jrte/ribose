@@ -31,7 +31,7 @@ import com.characterforming.ribose.base.TargetBindingException;
  * <tr><td><i>model</i></td><td>The path to the file to contain the model.</tr>
  * </table>
  */
-public final class TCompile extends ModelCompiler implements ITarget {
+public final class TCompile extends ModelCompiler {
 	/**
 	 * Constructor (as model target for compilation of TCompile.model)
 	 */

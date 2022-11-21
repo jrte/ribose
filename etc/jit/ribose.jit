@@ -1,11 +1,14 @@
 quiet
-inline com/characterforming/jrte/engine/TransductorStack stackcheck
-inline com/characterforming/jrte/engine/TransductorStack push
-inline com/characterforming/jrte/engine/TransductorStack peek
-inline com/characterforming/jrte/engine/TransductorStack pop
-inline com/characterforming/jrte/engine/InputStack stackcheck
-inline com/characterforming/jrte/engine/InputStack push
-inline com/characterforming/jrte/engine/InputStack peek
-inline com/characterforming/jrte/engine/InputStack pop
-inline com/characterforming/jrte/engine/InputStack signal
-inline com/characterforming/jrte/engine/InputStack value
+inline com.characterforming.jrte.engine.TransductorStack::stackcheck
+inline com.characterforming.jrte.engine.TransductorStack::push
+inline com.characterforming.jrte.engine.TransductorStack::peek
+inline com.characterforming.jrte.engine.TransductorStack::pop
+inline com.characterforming.jrte.engine.InputStack::stackcheck
+inline com.characterforming.jrte.engine.InputStack::push
+inline com.characterforming.jrte.engine.InputStack::peek
+inline com.characterforming.jrte.engine.InputStack::pop
+inline com.characterforming.jrte.engine.InputStack::signal
+inline com.characterforming.jrte.engine.InputStack::value
+inline com.characterforming.jrte.engine.InputStack::signal
+inline com.characterforming.jrte.engine.NamedValue::append
+inline com.characterforming.jrte.engine.NamedValue::growValue

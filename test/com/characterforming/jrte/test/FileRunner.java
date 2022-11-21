@@ -22,7 +22,6 @@
 package com.characterforming.jrte.test;
 
 import java.io.BufferedReader;
-import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -79,7 +78,7 @@ public class FileRunner {
 		rteLogger.addHandler(rteHandler);
 		
 		final File f = new File(inputPath);
-		try (final DataInputStream isr = new DataInputStream(new FileInputStream(f))) {
+		try (final FileInputStream isr = new FileInputStream(f)) {
 			long ejrte = 0, tjrte = 0, t0 = 0, t1 = 0;
 			int clen = (jrteOutEnabled || regexOutEnabled) ? 0 : (int)f.length();
 			byte[] cbuf = null;

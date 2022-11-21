@@ -342,13 +342,17 @@ Good luck with all that.
 # Disclaimer
 Ribose is presented for demonstration only and is not regularly maintained. You may use it to compile and run the included examples, or create your own transducers to play with. Or clone and refine it and make it available to the rest of the world. Transcode it to **C** and wrap it in a Python thing. Do what you will, it's open source.
 
-Clone the ginr repo (`main` branch) and `cd src/; make -f Makefile install` to build and install ginr in `~/bin`. A [ginr user guide](https://github.com/ntozubod/ginr/blob/main/doc/intro_1988/inr_intro.pdf) can be found in the ginr repo. 
+Clone the ribose repo and run `ant ribose` to build the ribose library in the `jars/` folder. The `test` ant target runs the CI test suite, `ci-test` runs a clean build with tests. This should work on any unix-ish platform, including `git bash` or `Msys2\mingw` for Windows, with `ant`, `java`, `bash`, `wc`, `grep` in the executable search path. Binary executable copies of `ginr` (for linux) and `ginr.exe` (for Windows) are included in etc/ginr. 
 
-Clone the ribose repo and run `ant -f build.xml ribose` to build the ribose library in the `jars/` folder. The `test` ant target runs the CI test suite.
+The base `ITarget` presents a set of built-in effectors that are sufficient for basic ribose runtime models with transductions that only write to `stdout`. Domain-specific ribose models can extend these with custom effectors in `ITarget` implementations that interact with other domain objects. In any case, to build a ribose model for a collection of transduction patterns, emulate the procedure for building `Test.model` (see the `compile-test-patterns` and `package-test-patterns` targets in `build.xml`).
 
-To build a ribose runtime model emulate the procedure for building `Test.model` in `build.xml`.
+Shell scripts are available in `etc/sh` to support compiling patterns, packaging transducers into models, and running transductions with ribose models:
 
-To learn how to use ribose models in the JVM runtime see the ribose javadoc pages. 
+- _patterns_: compile ginr patterns from a containing folder to DFAs
+- _compile_: package DFAs into a ribose model
+- _ribose_: run a transducer from a ribose model on an input file
+
+To learn how to use ribose models in the JVM runtime build ribose and see the javadoc pages in `doc/`. 
 
 For some background reading and a historical perspective visit the [ribose wiki](https://github.com/jrte/ribose/wiki).
 

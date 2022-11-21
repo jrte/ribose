@@ -61,7 +61,7 @@ import com.characterforming.ribose.base.TargetBindingException;
  * 
  * @author Kim Briggs
  */
-public final class Transductor implements ITransductor, ITarget, IOutput {
+public final class Transductor implements ITransductor, IOutput {
 	private static final boolean isOutEnabled = System.getProperty("jrte.out.enabled", "true").equals("true");
 	private static final Logger logger = Logger.getLogger(Base.RTE_LOGGER_NAME);
 	static int INITIAL_NAMED_VALUE_BUFFERS = 256;
