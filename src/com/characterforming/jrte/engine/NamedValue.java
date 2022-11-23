@@ -23,9 +23,12 @@ package com.characterforming.jrte.engine;
 
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
+import java.nio.charset.CharsetDecoder;
+import java.nio.charset.CoderResult;
 import java.util.Arrays;
 
 import com.characterforming.ribose.INamedValue;
+import com.characterforming.ribose.base.Base;
 import com.characterforming.ribose.base.Bytes;
 
 /**
@@ -42,14 +45,18 @@ class NamedValue implements INamedValue {
 	private byte[] value;
 	private int length;
 
+	private final CharsetDecoder decoder;
+
 	/**
 	 * Constructor
+	 * @param charset
 	 */
 	NamedValue(Bytes name, int ordinal, byte[] value, int length) {
 		if (value == null) {
 			value = new byte[Math.min(INITIAL_NAMED_VALUE_BYTES, length)];
 		}
 		assert value.length >= length;
+		this.decoder = Base.getRuntimeCharset().newDecoder();
 		this.name = name;
 		this.ordinal = ordinal;
 		this.value = value;
@@ -61,6 +68,7 @@ class NamedValue implements INamedValue {
 		this.ordinal = namedValue.ordinal;
 		this.length = namedValue.length;
 		this.value = new byte[this.length];
+		this.decoder = Base.getRuntimeCharset().newDecoder();
 		System.arraycopy(namedValue.value, 0, this.value, 0, namedValue.length);
 	}
 
@@ -106,9 +114,15 @@ class NamedValue implements INamedValue {
 	 */
 	@Override
 	public char[] decodeValue() {
-		CharBuffer buffer = Bytes.charset.decode(ByteBuffer.wrap(this.value, 0, this.getLength()));
-		char chars[] = new char[buffer.position()];
-		buffer.get(chars);
+		char chars[] = null;
+		ByteBuffer in = ByteBuffer.wrap(this.value, 0, this.getLength());
+		CharBuffer out = CharBuffer.allocate(this.getLength());
+		CoderResult result = this.decoder.decode(in, out, true);
+		assert !result.isOverflow() && !result.isError();
+		if (!result.isOverflow() && !result.isError()) {
+			chars = new char[out.length()];
+			out.get(chars);
+		}
 		return chars;
 	}
 
@@ -118,7 +132,7 @@ class NamedValue implements INamedValue {
 	 */
 	@Override
 	public String asString() {
-		return Bytes.decode(this.value, this.getLength());
+		return new String(this.decodeValue());
 	}
 	
 	/*

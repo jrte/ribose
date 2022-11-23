@@ -21,6 +21,9 @@
 
 package com.characterforming.ribose.base;
 
+import java.nio.charset.Charset;
+import java.nio.charset.CharsetEncoder;
+
 import com.characterforming.ribose.ITransductor;
 
 /**
@@ -30,12 +33,12 @@ import com.characterforming.ribose.ITransductor;
  * @author Kim Briggs
  */
 public class Base {
-	public static String RTE_VERSION = "ribose-HEAD";
-
-	public final static String RTE_LOGGER_NAME = "ribose-runtime";
-	public final static String RTC_LOGGER_NAME = "ribose-compile";
+	public static final String RTE_VERSION = "ribose-HEAD";
 	
-	public final static String AUTOMATON_FILE_SUFFIX = ".dfa";
+	public static final String RTE_LOGGER_NAME = "ribose-runtime";
+	public static final String RTC_LOGGER_NAME = "ribose-compile";
+	
+	public static final String AUTOMATON_FILE_SUFFIX = ".dfa";
 	public static final int MAX_ORDINAL = Short.MAX_VALUE;
 	public static final byte TYPE_ORDINAL_INDICATOR = (byte)0xff;
 	public static final byte TYPE_REFERENCE_NONE = (byte)0x0;
@@ -43,13 +46,15 @@ public class Base {
 	public static final byte TYPE_REFERENCE_SIGNAL = '!';
 	public static final byte TYPE_REFERENCE_VALUE = '~';
 	
-	public static final int RTE_SIGNAL_BASE = 256;
+	private static final Charset runtimeCharset = Charset.forName(System.getProperty("ribose.runtime.charset", "UTF-8"));
+	private static final CharsetEncoder encoder = runtimeCharset.newEncoder();
 	public static final Bytes[] RTE_SIGNAL_NAMES = {
-		Bytes.encode("nul"),
-		Bytes.encode("nil"),
-		Bytes.encode("eol"),
-		Bytes.encode("eos")
+		Bytes.encode(Base.encoder, "nul"),
+		Bytes.encode(Base.encoder, "nil"),
+		Bytes.encode(Base.encoder, "eol"),
+		Bytes.encode(Base.encoder, "eos")
 	};
+	public static final int RTE_SIGNAL_BASE = 256;
 	
 	/**
 	 * General signals available in all ribose models.
@@ -119,6 +124,17 @@ public class Base {
 		super();
 	}
 	
+	/**
+	 * Get a runtime charset instance. This is used to encode and decode ribose 
+	 * runtime resources (effector names, transducer names, all textual data in
+	 * ribose models are represented in encoded form, eg UTF-8 byte arrays).
+	 * 
+	 * @return a reference to the runtime charset insstance
+	 */
+	static public Charset getRuntimeCharset() {
+		return Base.runtimeCharset;
+	}
+
 	/**
 	 * Check for value reference (a 4-byte encoding of a value ordinal).
 	 * 
@@ -250,19 +266,22 @@ public class Base {
 	 * @return the decoded integer
 	 * @throws NumberFormatException on error
 	 */
-	static public int decodeInt(final byte bytes[], final int length) throws NumberFormatException {
-		int value = 0, sign = 1;
-		for (int i = 0; i < length; i++) {
-			if (bytes[i] == '-') {
-				sign = (value == 0) ? -1 : 0;
-			} else if (bytes[i] >= '0' && bytes[i] <= '9') {
+	static public int decodeInt(final byte bytes[], int length) throws NumberFormatException {
+		int value = 0;
+		assert bytes.length >= length;
+		if (length > bytes.length) {
+			length = bytes.length;
+		}
+		int sign = (length > 0 && bytes[0] == '-') ? -1 : 1;
+		for (int i = (sign > 0) ? 0 : 1; i < length && sign != 0; i++) {
+			if (bytes[i] >= '0' && bytes[i] <= '9') {
 				value = (value * 10) + (bytes[i] - '0');
 			} else {
 				sign = 0;
 			}
-			if (sign == 0) {
-				throw new NumberFormatException("Not a number " + Bytes.decode(bytes, length));
-			}
+		}
+		if (sign == 0) {
+			throw new NumberFormatException("Base::decodeInt(): Not a number");
 		}
 		return sign * value;
 	}

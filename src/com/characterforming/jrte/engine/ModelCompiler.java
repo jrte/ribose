@@ -26,6 +26,9 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.nio.charset.Charset;
+import java.nio.charset.CharsetDecoder;
+import java.nio.charset.CharsetEncoder;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -61,6 +64,9 @@ public class ModelCompiler implements ITarget {
 	protected final Model model;
 	
 	private static final long VERSION = 210;
+	private final Charset charset = Base.getRuntimeCharset();
+	private final CharsetEncoder encoder = charset.newEncoder();
+	private final CharsetDecoder decoder = charset.newDecoder();
 	private final ArrayList<String> errors;
 	private Bytes transducerName;
 	private ITransductor transductor;
@@ -85,10 +91,25 @@ public class ModelCompiler implements ITarget {
 		this.reset();
 	}
 	
+	@Override
+	public String getName() {
+		return this.getClass().getSimpleName();
+	}
+
+	@Override
+	public IEffector<?>[] getEffectors() throws TargetBindingException {
+		return new IEffector<?>[] {
+			new HeaderEffector(this),
+			new TransitionEffector(this),
+			new AutomatonEffector(this)
+		};
+	}
+
 	public static boolean compileAutomata(Model targetModel, File inrAutomataDirectory) throws ModelException {
-		File workingDirectory = new File(System.getProperty("user.dir"));
+		File workingDirectory = new File(System.getProperty("user.dir", "."));
 		File compilerModelFile = new File(workingDirectory, "TCompile.model");
 		try (IRuntime compilerRuntime = Ribose.loadRiboseModel(compilerModelFile, new TCompile())) {
+			final CharsetEncoder encoder = Base.getRuntimeCharset().newEncoder();
 			TCompile compiler = new TCompile(targetModel);
 			compiler.setTransductor(compilerRuntime.newTransductor(compiler));
 			for (final String filename : inrAutomataDirectory.list()) {
@@ -99,7 +120,7 @@ public class ModelCompiler implements ITarget {
 					long filePosition = targetModel.seek(-1);
 					if (compiler.compile(new File(inrAutomataDirectory, filename))) {
 						String transducerName = filename.substring(0, filename.length() - Base.AUTOMATON_FILE_SUFFIX.length());
-						int transducerOrdinal = targetModel.addTransducer(Bytes.encode(transducerName));
+						int transducerOrdinal = targetModel.addTransducer(Bytes.encode(encoder, transducerName));
 						targetModel.setTransducerOffset(transducerOrdinal, filePosition);
 					} else {
 						for (String error : compiler.getErrors()) {
@@ -140,18 +161,18 @@ public class ModelCompiler implements ITarget {
 		INamedValue fields[];
 		
 		HeaderEffector(ModelCompiler automaton) {
-			super(automaton, Bytes.encode("header"));
+			super(automaton, "header");
 	 }
 		
 		@Override
 		public void setOutput(IOutput output) throws TargetBindingException {
 			super.setOutput(output);
 			fields = new INamedValue[] {
-				super.output.getNamedValue(Bytes.encode("version")),
-				super.output.getNamedValue(Bytes.encode("tapes")),
-				super.output.getNamedValue(Bytes.encode("transitions")),
-				super.output.getNamedValue(Bytes.encode("states")),
-				super.output.getNamedValue(Bytes.encode("symbols"))
+				super.output.getNamedValue(Bytes.encode(super.runtimeEncoder, "version")),
+				super.output.getNamedValue(Bytes.encode(super.runtimeEncoder, "tapes")),
+				super.output.getNamedValue(Bytes.encode(super.runtimeEncoder, "transitions")),
+				super.output.getNamedValue(Bytes.encode(super.runtimeEncoder, "states")),
+				super.output.getNamedValue(Bytes.encode(super.runtimeEncoder, "symbols"))
 			};
 		}
 		
@@ -199,17 +220,17 @@ public class ModelCompiler implements ITarget {
 		INamedValue fields[];
 		
 		TransitionEffector(ModelCompiler automaton) {
-			super(automaton, Bytes.encode("transition"));
+			super(automaton, "transition");
 		}
 		
 		@Override
 		public void setOutput(IOutput output) throws TargetBindingException {
 			super.setOutput(output);
 			fields = new INamedValue[] {
-				super.output.getNamedValue(Bytes.encode("from")),
-				super.output.getNamedValue(Bytes.encode("to")),
-				super.output.getNamedValue(Bytes.encode("tape")),
-				super.output.getNamedValue(Bytes.encode("symbol"))
+				super.output.getNamedValue(Bytes.encode(super.runtimeEncoder, "from")),
+				super.output.getNamedValue(Bytes.encode(super.runtimeEncoder, "to")),
+				super.output.getNamedValue(Bytes.encode(super.runtimeEncoder, "tape")),
+				super.output.getNamedValue(Bytes.encode(super.runtimeEncoder, "symbol"))
 			};
 		}
 		
@@ -263,7 +284,7 @@ public class ModelCompiler implements ITarget {
 
 	public class AutomatonEffector extends BaseEffector<ModelCompiler> {		
 		public AutomatonEffector(ModelCompiler target) {
-			super(target, Bytes.encode("automaton"));
+			super(target, "automaton");
 		}
 
 		@Override
@@ -339,20 +360,6 @@ public class ModelCompiler implements ITarget {
 		}
 	}
 
-	@Override
-	public String getName() {
-		return this.getClass().getSimpleName();
-	}
-
-	@Override
-	public IEffector<?>[] getEffectors() throws TargetBindingException {
-		return new IEffector<?>[] {
-			new HeaderEffector(this),
-			new TransitionEffector(this),
-			new AutomatonEffector(this)
-		};
-	}
-
 	protected void setTransductor(ITransductor transductor) {
 		this.transductor = transductor;
 	}
@@ -376,7 +383,7 @@ public class ModelCompiler implements ITarget {
 		this.reset();
 		String name = inrFile.getName();
 		name = name.substring(0, name.length() - Base.AUTOMATON_FILE_SUFFIX.length());
-		this.transducerName = Bytes.encode(name);
+		this.transducerName = Bytes.encode(this.encoder, name);
 		int size = (int)inrFile.length();
 		byte bytes[] = null;
 		try (DataInputStream f = new DataInputStream(new FileInputStream(inrFile))) {
@@ -403,7 +410,7 @@ public class ModelCompiler implements ITarget {
 			this.transductor.stop();
 			this.transductor.input(bytes, size);
 			this.transductor.signal(Signal.nil);
-			Status status = this.transductor.start(Bytes.encode("Automaton"));
+			Status status = this.transductor.start(Bytes.encode(this.encoder, "Automaton"));
 			while (status == Status.RUNNABLE) {
 				status = this.transductor.run();
 			}
@@ -607,7 +614,7 @@ public class ModelCompiler implements ITarget {
 				return;
 			}
 			this.error(String.format("%1$s: Invalid input token '%2$s' of %3$s type on tape 0",
-				this.getTransducerName(), Bytes.decode(bytes, bytes.length), type));
+				this.getTransducerName(), Bytes.decode(this.decoder, bytes, bytes.length), type));
 		}
 	}
 	
@@ -615,24 +622,26 @@ public class ModelCompiler implements ITarget {
 		assert (bytes.length > 0);
 		if (0 > this.model.getEffectorOrdinal(new Bytes(bytes))) {
 			this.error(String.format("%1$s: Unknown effector token '%2$s' on tape 1",
-				this.getTransducerName(), Bytes.decode(bytes, bytes.length)));
+				this.getTransducerName(), Bytes.decode(this.decoder, bytes, bytes.length)));
 		}
 	}
 
 	private void compileParameterToken(byte[] bytes) {
-		assert (bytes.length > 0);
+		assert bytes.length > 1;
 		if (bytes.length > 1) {
+			Bytes token = new Bytes(bytes, 1, bytes.length - 1);
 			switch (bytes[0]) {
 			case Base.TYPE_REFERENCE_TRANSDUCER:
-				this.model.addTransducer(Bytes.getBytes(bytes, 1, bytes.length));
+				this.model.addTransducer(token);
 				break;
 			case Base.TYPE_REFERENCE_VALUE:
-				this.model.addNamedValue(Bytes.getBytes(bytes, 1, bytes.length));
+				this.model.addNamedValue(token);
 				break;
 			case Base.TYPE_REFERENCE_SIGNAL:
-				this.model.addSignal(Bytes.getBytes(bytes, 1, bytes.length));
+				this.model.addSignal(token);
 				break;
 			default:
+				assert false;
 				break;
 			}
 		}

@@ -28,7 +28,8 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
-import java.nio.charset.Charset;
+import java.nio.charset.CharsetDecoder;
+import java.nio.charset.CharsetEncoder;
 import java.util.logging.FileHandler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -72,6 +73,8 @@ public class FileRunner {
 			System.exit(1);
 		}
 		
+		final CharsetDecoder decoder = Base.getRuntimeCharset().newDecoder();
+		final CharsetEncoder encoder = Base.getRuntimeCharset().newEncoder();
 		final Logger rteLogger = Logger.getLogger(Base.RTE_LOGGER_NAME);
 		final FileHandler rteHandler = new FileHandler("FileRunner.log");
 		rteHandler.setFormatter(new SimpleFormatter());
@@ -86,7 +89,7 @@ public class FileRunner {
 			if (clen > 0) {
 				cbuf = new byte[clen];
 				clen = isr.read(cbuf, 0, clen);
-				charInput = Charset.defaultCharset().decode(ByteBuffer.wrap(cbuf, 0, cbuf.length));
+				charInput = decoder.decode(ByteBuffer.wrap(cbuf, 0, cbuf.length));
 			}
 			
 			int loops = 1;
@@ -103,7 +106,7 @@ public class FileRunner {
 							if (nil) {
 								trex.signal(Signal.nil);
 							}
-							Status status = trex.start(Bytes.encode(transducerName));
+							Status status = trex.start(Bytes.encode(encoder, transducerName));
 							t0 = System.currentTimeMillis();
 							while (status == Status.RUNNABLE) {
 								status = trex.run();
@@ -121,9 +124,9 @@ public class FileRunner {
 						double mbps = (tjrte > 0) ? ((double)(clen) / (double)(tjrte*1024*1024)) * (Math.min(loops,10)*1000) : -1;
 						System.out.println(String.format(" : %7.3f mb/s %7.3f nul/kb", mbps, epkb));
 					} else if (nil) {
-						ribose.transduce(runTarget, Bytes.encode(transducerName), Signal.nil, isr, System.out);
+						ribose.transduce(runTarget, Bytes.encode(encoder, transducerName), Signal.nil, isr, System.out);
 					} else {
-						ribose.transduce(runTarget, Bytes.encode(transducerName), isr, System.out);
+						ribose.transduce(runTarget, Bytes.encode(encoder, transducerName), isr, System.out);
 					}
 				} catch (Exception e) {
 					System.out.println("Runtime exception thrown.");

@@ -21,6 +21,9 @@
 
 package com.characterforming.ribose.base;
 
+import java.nio.charset.CharsetDecoder;
+import java.nio.charset.CharsetEncoder;
+
 import com.characterforming.ribose.IEffector;
 import com.characterforming.ribose.IOutput;
 import com.characterforming.ribose.ITarget;
@@ -45,16 +48,24 @@ public abstract class BaseEffector<T extends ITarget> implements IEffector<T> {
 	 */
 	protected T target;
 
+	/*
+	 * Charset encoder/decoder
+	 */
+	protected final CharsetDecoder runtimeDecoder;
+	protected final CharsetEncoder runtimeEncoder;
+	
 	/**
 	 * Constructor receivs target and a name.
 	 * 
 	 * @param target The target that binds the effector
 	 * @param name The effector name
 	 */
-	public BaseEffector(final T target, final Bytes name) {
+	public BaseEffector(final T target, final String name) {
+		this.runtimeDecoder = target.getEffectiveCharset().newDecoder();
+		this.runtimeEncoder = target.getEffectiveCharset().newEncoder();
+		this.name = Bytes.encode(this.runtimeEncoder, name);
 		this.target = target;
 		this.output = null;
-		this.name = name;
 	}
 	
 	/*

@@ -32,7 +32,7 @@ import com.characterforming.ribose.base.Base;
  * @author Kim Briggs
  */
 final class InputStack {
-	public final static int BLOCK_SIZE = Integer.parseInt(System.getProperty("ribose.block.size", "65536"));
+	public final static int BLOCK_SIZE = Integer.parseInt(System.getProperty("ribose.inbuffer.size", "65536"));
 	private static final Logger logger = Logger.getLogger(Base.RTE_LOGGER_NAME);
 	enum MarkState { clear, marked, reset };
 	private final byte[][] signals;
@@ -372,7 +372,7 @@ final class InputStack {
 		) {
 			if (!this.markLimitFlagged) {
 				logger.log(Level.WARNING,
-					"Mark limit exceeded. Try increasing ribose.block.size to exceed maximal expected marked extent.");
+					"Mark limit exceeded. Try increasing ribose.inbuffer.size to exceed maximal expected marked extent.");
 				this.markLimitFlagged = true;
 			}
 		}

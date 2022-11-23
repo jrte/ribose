@@ -23,6 +23,7 @@ package com.characterforming.jrte.test;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.CharsetEncoder;
 import java.util.logging.FileHandler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -83,6 +84,7 @@ public class TestRunner {
 			"SelectPasteTest", "PasteSpeedTest", "NilPauseTest", "PastePauseTest", "PasteCutTest", "StackTest", "PasteCountTest", "CounterTest", "NilSpeedTest"
 		};
 		final TRun proxyTarget = new TRun();
+		final CharsetEncoder encoder = Base.getRuntimeCharset().newEncoder();
 		try (final IRuntime ribose = Ribose.loadRiboseModel(new File(modelPath), proxyTarget)) {
 			final TRun runTarget = new TRun();
 			final ITransductor trex = ribose.newTransductor(runTarget);
@@ -93,7 +95,7 @@ public class TestRunner {
 					assert trex.status() == Status.STOPPED;
 					trex.input(abytes, abytes.length);
 					trex.signal(Signal.nil);
-					Status status = trex.start(Bytes.encode(test));
+					Status status = trex.start(Bytes.encode(encoder, test));
 					t0 = System.currentTimeMillis();
 					while (status == Status.RUNNABLE) {
 						status = trex.run();

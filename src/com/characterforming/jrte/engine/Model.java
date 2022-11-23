@@ -27,6 +27,8 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
+import java.nio.charset.CharsetDecoder;
+import java.nio.charset.CharsetEncoder;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -55,13 +57,15 @@ import com.characterforming.ribose.base.TargetBindingException;
 public final class Model implements AutoCloseable {
 	final static Logger rteLogger = Logger.getLogger(Base.RTE_LOGGER_NAME);
 	final static Logger rtcLogger = Logger.getLogger(Base.RTC_LOGGER_NAME);
-
+	
 	public enum Mode { none, compile, run; }
-
+	
 	private final Mode mode;
 	private final String ioMode;
 	private final File modelPath;
 	private final ITarget proxyTarget;
+	private final CharsetEncoder encoder = Base.getRuntimeCharset().newEncoder();
+	private final CharsetDecoder decoder = Base.getRuntimeCharset().newDecoder();
 	private final HashMap<Bytes, Integer> signalOrdinalMap;
 	private final HashMap<Bytes, Integer> namedValueOrdinalMap;
 	private final HashMap<Bytes, Integer> transducerOrdinalMap;
@@ -156,7 +160,7 @@ public final class Model implements AutoCloseable {
 			this.getOrdinalMap(this.effectorOrdinalMap);
 			this.getOrdinalMap(this.transducerOrdinalMap);
 			assert this.effectorOrdinalMap.size() == this.proxyEffectors.length;
-			if (!this.transducerOrdinalMap.containsKey(Bytes.encode(this.proxyTarget.getName()))) {
+			if (!this.transducerOrdinalMap.containsKey(Bytes.encode(this.encoder, this.proxyTarget.getName()))) {
 				throw new ModelException(String.format("Target name '%1$s' not found in name offset map for this file '%2$s'", this.proxyTarget.getName(), this.modelPath.getPath()));
 			}
 			int transducerCount = this.transducerOrdinalMap.size();
@@ -471,7 +475,7 @@ public final class Model implements AutoCloseable {
 		final StringBuilder strings = new StringBuilder();
 		for (final byte[] bytes : parameterBytes) {
 			strings.append('[');
-			strings.append(Bytes.decode(bytes, bytes.length));
+			strings.append(Bytes.decode(this.decoder, bytes, bytes.length));
 			strings.append(']');
 		}
 		return strings.toString();
@@ -487,7 +491,7 @@ public final class Model implements AutoCloseable {
 		} else {
 			Integer ordinal = this.getSignalOrdinal(new Bytes(input));
 			if (ordinal < 0) {
-				throw new CompilationException(String.format("Invalid input token %s", Bytes.decode(input)));
+				throw new CompilationException(String.format("Invalid input token %s", Bytes.decode(this.decoder, input, input.length)));
 			}
 			return ordinal;
 		}
@@ -776,14 +780,14 @@ public final class Model implements AutoCloseable {
 
 	String getString() throws ModelException {
 		byte bytes[] = this.getBytes();
-		return Bytes.decode(bytes, bytes.length);
+		return Bytes.decode(this.decoder, bytes, bytes.length).toString();
 	}
 
 	String[] getStringArray() throws ModelException {
 		final byte[][] bytesArray = this.getBytesArray();
 		final String[] stringArray = new String[bytesArray.length];
 		for (int i = 0; i < bytesArray.length; i++) {
-			stringArray[i++] = Bytes.decode(bytesArray[i], bytesArray[i].length);
+			stringArray[i++] = Bytes.decode(this.decoder, bytesArray[i], bytesArray[i].length).toString();
 		}
 		return stringArray;
 	}
@@ -924,7 +928,7 @@ public final class Model implements AutoCloseable {
 	}
 
 	public void putString(final String s) throws ModelException {
-		this.putBytes(Bytes.encode(s));
+		this.putBytes(Bytes.encode(this.encoder, s));
 	}
 
 	public long seek(final long filePosition) throws ModelException {

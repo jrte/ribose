@@ -37,7 +37,7 @@ abstract class BaseInputOutputEffector extends BaseParameterizedEffector<Transdu
 	 * @param transductor The transductor target that binds the effector  
 	 * @param name the value name
 	 */
-	protected BaseInputOutputEffector(Transductor transductor, Bytes name) {
+	protected BaseInputOutputEffector(Transductor transductor, String name) {
 		super(transductor, name);
 	}
 

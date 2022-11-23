@@ -28,7 +28,7 @@ import com.characterforming.ribose.ITarget;
  * Base {@link IParameterizedEffector} implementation class. The
  * {@link #newParameters(int)} {@link #compileParameter(int, byte[][])},
  * {@link #invoke()}, and {@link #invoke(int)} methods must be implemented by
- * subclasses. Subclasses can use {@link Bytes#decode(byte[], int)} to decode UTF-8
+ * subclasses. Subclasses can use {@link Bytes#decode(CharsetDecoder, byte[], int)} to decode UTF-8
  * byte[] to char[] or String from parameter byte arrays using the default Charset.
  * 
  * @param <T> The effector target type
@@ -48,7 +48,7 @@ public abstract class BaseParameterizedEffector<T extends ITarget, P> extends Ba
 	 * @param target The target for the effector
 	 * @param name The effector name as referenced from ginr transducers
 	 */
-	protected BaseParameterizedEffector(final T target, final Bytes name) {
+	protected BaseParameterizedEffector(final T target, final String name) {
 		super(target, name);
 	}
 

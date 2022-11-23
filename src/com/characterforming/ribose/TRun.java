@@ -7,6 +7,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.charset.CharsetEncoder;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -114,6 +115,7 @@ public final class TRun extends BaseTarget {
 	 */
 	public static void main(final String[] args) {
 		final Logger rteLogger = Logger.getLogger(Base.RTE_LOGGER_NAME);
+		final CharsetEncoder encoder = Base.getRuntimeCharset().newEncoder();
 		int argc = args.length;
 		final boolean nil = (argc > 0) ? (args[0].compareTo("--nil") == 0) : false;
 		int arg = nil ? 1 : 0;
@@ -136,7 +138,8 @@ public final class TRun extends BaseTarget {
 		OutputStream osw = System.out;
 		if (outputFile != null) {
 			try {
-				osw = outputFile != null ? new BufferedOutputStream(new FileOutputStream(outputFile)) : System.out;
+				int outsize = Integer.parseInt(System.getProperty("ribose.outbuffer.size", "8196"));
+				osw = outputFile != null ? new BufferedOutputStream(new FileOutputStream(outputFile), outsize) : System.out;
 			} catch (FileNotFoundException e) {
 				Ribose.rtcLogger.log(Level.SEVERE, String.format("Unable to open output file %s", outputPath), e);
 				System.exit(1);
@@ -169,7 +172,7 @@ public final class TRun extends BaseTarget {
 		) {
 			if (ribose != null) {
 				ITarget runTarget = new TRun();
-				Bytes transducer = Bytes.encode(transducerName);
+				Bytes transducer = Bytes.encode(encoder, transducerName);
 				if (ribose.transduce(runTarget, transducer, nil ? Signal.nil : null, isr, osw)) {
 					exitCode = 0;
 				}

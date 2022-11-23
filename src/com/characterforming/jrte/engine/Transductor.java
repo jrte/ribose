@@ -64,11 +64,9 @@ import com.characterforming.ribose.base.TargetBindingException;
  * @author Kim Briggs
  */
 public final class Transductor implements ITransductor, IOutput {
-	private static final boolean isOutEnabled = System.getProperty("jrte.out.enabled", "true").equals("true");
+	private final boolean isOutEnabled = System.getProperty("jrte.out.enabled", "true").equals("true");
 	private static final Logger logger = Logger.getLogger(Base.RTE_LOGGER_NAME);
-	static int INITIAL_NAMED_VALUE_BUFFERS = 256;
-	static int INITIAL_NAMED_VALUE_BYTES = 256;
-
+	
 	public static final int RTE_EFFECTOR_NUL = 0;
 	public static final int RTE_EFFECTOR_NIL = 1;
 	public static final int RTE_EFFECTOR_PASTE = 2;
@@ -86,6 +84,8 @@ public final class Transductor implements ITransductor, IOutput {
 	public static final int RTE_EFFECTOR_STOP = 14;
 	
 	static final int INITIAL_STACK_SIZE = 8;
+	static final int INITIAL_NAMED_VALUE_BYTES = 256;
+	static final int INITIAL_NAMED_VALUE_BUFFERS = 256;
 
 	private Model model;
 	private IEffector<?>[] effectors;
@@ -96,7 +96,6 @@ public final class Transductor implements ITransductor, IOutput {
 	private final InputStack inputStack;
 	private OutputStream output;
 	private int errorCount;
-	
 
 	/**
 	 *  Constructor
@@ -137,8 +136,8 @@ public final class Transductor implements ITransductor, IOutput {
 	@Override
 	public IEffector<?>[] getEffectors() throws TargetBindingException {
 		return new IEffector<?>[] {
-	/* 0*/	new InlineEffector(this, Bytes.encode("0")),
-	/* 1*/	new InlineEffector(this, Bytes.encode("1")),
+	/* 0*/	new InlineEffector(this, "0"),
+	/* 1*/	new InlineEffector(this, "1"),
 	/* 2*/	new PasteEffector(this),
 	/* 3*/	new SelectEffector(this),
 	/* 4*/	new CopyEffector(this),
@@ -147,8 +146,8 @@ public final class Transductor implements ITransductor, IOutput {
 	/* 7*/	new CountEffector(this),
 	/* 8*/	new InEffector(this),
 	/* 9*/	new OutEffector(this),
-	/*10*/	new InlineEffector(this, Bytes.encode("mark")),
-	/*11*/	new InlineEffector(this, Bytes.encode("reset")),
+	/*10*/	new InlineEffector(this, "mark"),
+	/*11*/	new InlineEffector(this, "reset"),
 	/*12*/	new StartEffector(this),
 	/*13*/	new PauseEffector(this),
 	/*14*/	new StopEffector(this)
@@ -442,7 +441,7 @@ I:				do {
 							effect = IEffector.RTE_EFFECT_PUSH;
 							break;
 						case RTE_EFFECTOR_OUT: {
-							if (Transductor.isOutEnabled && this.selected.getLength() > 0) {
+							if (this.isOutEnabled && this.selected.getLength() > 0) {
 								try {
 									this.output.write(this.selected.getValue(), 0, this.selected.getLength());
 								} catch (IOException e) {
@@ -772,7 +771,7 @@ I:				do {
 	}
 
 	private final class InlineEffector extends BaseEffector<Transductor> {
-		private InlineEffector(final Transductor transductor, final Bytes name) {
+		private InlineEffector(final Transductor transductor, final String name) {
 			super(transductor, name);
 		}
 
@@ -784,7 +783,7 @@ I:				do {
 
 	private final class PasteEffector extends BaseInputOutputEffector {
 		private PasteEffector(final Transductor transductor) {
-			super(transductor, Bytes.encode("paste"));
+			super(transductor, "paste");
 		}
 
 		@Override
@@ -812,7 +811,7 @@ I:				do {
 
 	private final class SelectEffector extends BaseNamedValueEffector {
 		private SelectEffector(final Transductor transductor) {
-			super(transductor, Bytes.encode("select"));
+			super(transductor, "select");
 		}
 
 		@Override
@@ -829,7 +828,7 @@ I:				do {
 
 	private final class CopyEffector extends BaseNamedValueEffector {
 		private CopyEffector(final Transductor transductor) {
-			super(transductor, Bytes.encode("copy"));
+			super(transductor, "copy");
 		}
 
 		@Override
@@ -847,7 +846,7 @@ I:				do {
 
 	private final class CutEffector extends BaseNamedValueEffector {
 		private CutEffector(final Transductor transductor) {
-			super(transductor, Bytes.encode("cut"));
+			super(transductor, "cut");
 		}
 
 		@Override
@@ -864,7 +863,7 @@ I:				do {
 
 	private final class ClearEffector extends BaseNamedValueEffector {
 		private ClearEffector(final Transductor transductor) {
-			super(transductor, Bytes.encode("clear"));
+			super(transductor, "clear");
 		}
 
 		@Override
@@ -881,7 +880,7 @@ I:				do {
 
 	private final class InEffector extends BaseInputOutputEffector {
 		private InEffector(final Transductor transductor) {
-			super(transductor, Bytes.encode("in"));
+			super(transductor, "in");
 		}
 
 		@Override
@@ -899,15 +898,15 @@ I:				do {
 		private final boolean isOutEnabled;
 
 		private OutEffector(final Transductor transductor) {
-			super(transductor, Bytes.encode("out"));
-			this.isOutEnabled = System.getProperty("jrte.out.enabled", "true").equals("true");
+			super(transductor, "out");
+			this.isOutEnabled = super.target.isOutEnabled;
 		}
-
+		
 		@Override
 		public int invoke() throws EffectorException {
 			return IEffector.RTE_EFFECT_NONE;
 		}
-
+		
 		@Override
 		public int invoke(final int parameterIndex) throws EffectorException {
 			if (this.isOutEnabled) {
@@ -929,17 +928,18 @@ I:				do {
 			return IEffector.RTE_EFFECT_NONE;
 		}
 	}
-
+	
 	private final class CountEffector extends BaseParameterizedEffector<Transductor, int[]> {
+		
 		private CountEffector(final Transductor transductor) {
-			super(transductor, Bytes.encode("count"));
+			super(transductor, "count");
 		}
 		
 		@Override
 		public void newParameters(final int parameterCount) {
 			super.parameters = new int[parameterCount][];
 		}
-
+		
 		@Override
 		public int invoke() throws EffectorException {
 			throw new EffectorException(String.format("Cannot invoke inline effector '%1$s'", super.getName()));
@@ -975,7 +975,7 @@ I:				do {
 				return super.getParameter(parameterIndex);
 			} else {
 				throw new TargetBindingException(String.format("%1$s.%2$s: invalid signal '%3$%s' for count effector",
-					super.getTarget().getName(), super.getName(), Bytes.decode(parameterList[1], parameterList[1].length)));
+					super.getTarget().getName(), super.getName(), Bytes.decode(super.runtimeDecoder, parameterList[1], parameterList[1].length)));
 			}		
 		}
 
@@ -987,7 +987,7 @@ I:				do {
 
 	private final class StartEffector extends BaseParameterizedEffector<Transductor, Integer> {
 		private StartEffector(final Transductor transductor) {
-			super(transductor, Bytes.encode("start"));
+			super(transductor, "start");
 		}
 
 		@Override
@@ -1029,7 +1029,7 @@ I:				do {
 
 	private final class PauseEffector extends BaseEffector<Transductor> {
 		private PauseEffector(final Transductor transductor) {
-			super(transductor, Bytes.encode("pause"));
+			super(transductor, "pause");
 		}
 
 		@Override
@@ -1040,7 +1040,7 @@ I:				do {
 
 	private final class StopEffector extends BaseEffector<Transductor> {
 		private StopEffector(final Transductor transductor) {
-			super(transductor, Bytes.encode("stop"));
+			super(transductor, "stop");
 		}
 
 		@Override

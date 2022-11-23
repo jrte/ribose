@@ -112,7 +112,7 @@ public final class TCompile extends ModelCompiler {
 			System.exit(1);
 		}
 		System.out.println(String.format("Ribose runtime compiler version %1$s%2$sCopyright (C) 2011,2022 Kim Briggs%2$sDistributed under GPLv3 (http://www.gnu.org/licenses/gpl-3.0.txt)", 
-			Base.RTE_VERSION, System.getProperty("line.separator")));
+			Base.RTE_VERSION, System.getProperty("line.separator", "\n")));
 		System.out.println(String.format("Compiling %1$s to runtime file %2$s", 
 			ginrAutomataDirectory.getPath(), riboseModelFile.getPath()));
 		

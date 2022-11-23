@@ -40,7 +40,7 @@ abstract class BaseNamedValueEffector extends BaseParameterizedEffector<Transduc
 	 * @param transductor The transductor target that binds the effector  
 	 * @param name the value name
 	 */
-	protected BaseNamedValueEffector(final Transductor transductor, final Bytes name) {
+	protected BaseNamedValueEffector(final Transductor transductor, final String name) {
 		super(transductor, name);
 	}
 
@@ -86,7 +86,7 @@ abstract class BaseNamedValueEffector extends BaseParameterizedEffector<Transduc
 			throw new TargetBindingException(String.format("%1$s.%2$s: effector accepts exactly one parameter", 
 				super.getTarget().getName(), super.getName()));
 		}
-		final Bytes valueName = Bytes.getBytes(parameterList[0], 1, parameterList[0].length - 1);
+		final Bytes valueName = new Bytes(parameterList[0], 1, parameterList[0].length - 1);
 		final Integer valueOrdinal = super.getTarget().getValueOrdinal(valueName);
 		if (valueOrdinal < 0) {
 			throw new TargetBindingException(String.format("%1$s.%2$s: value name '%3$s' not enumerated for parameter compilation", 

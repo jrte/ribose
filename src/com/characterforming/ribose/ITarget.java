@@ -21,6 +21,9 @@
 
 package com.characterforming.ribose;
 
+import java.nio.charset.Charset;
+
+import com.characterforming.ribose.base.Base;
 import com.characterforming.ribose.base.TargetBindingException;
 
 /**
@@ -68,4 +71,14 @@ public interface ITarget {
 	 * @throws TargetBindingException on error
 	 */
 	public IEffector<?>[] getEffectors() throws TargetBindingException;
+
+	/**
+	 * Return the @{code Charset} to be used by transductors bound to the
+	 * target instance. 
+	 * 
+	 * @return the @{code Charset} to be used with this target instance
+	 */
+	public default Charset getEffectiveCharset() {
+		return Base.getRuntimeCharset();
+	}
 }

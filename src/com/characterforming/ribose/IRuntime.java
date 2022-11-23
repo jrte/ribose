@@ -63,8 +63,10 @@ public interface IRuntime extends AutoCloseable{
 	 * short run in the next sequential buffer. Consuming an entire input buffer while holding
 	 * a nonempty mark set is considered an anomaly and a one-time warning is logged for the
 	 * first such event. This warning may signal a runaway mark or a marked feature of large 
-	 * extent. In the latter case consider increasing the JVM property {@code ribose.block.size}
+	 * extent. In the latter case consider increasing the JVM property {@code ribose.inbuffer.size}
 	 * to exceed the maximal expected marked extent. The default block size is 65536 bytes.
+	 * 
+	 * The transduction will assume UTF-8 encoding for the input and output streams.
 	 *  
 	 * @param target the model target instance to bind to the transduction
 	 * @param transducer the name of the transducer to start the transduction
@@ -77,7 +79,9 @@ public interface IRuntime extends AutoCloseable{
 	boolean transduce(ITarget target, Bytes transducer, InputStream in, OutputStream out) throws RiboseException;
 	
 	/**
-	 * Catenate and transduce an initial signal (eg, {@code Signal.nil}) and a byte input stream onto a target instance.
+	 * Catenate and transduce an initial signal (eg, {@code Signal.nil}) and a byte input 
+	 * stream onto a target instance. The transduction will assume UTF-8 encoding for the
+	 * input and output streams.
 	 * 
 	 * @param target the model target instance to bind to the transduction
 	 * @param transducer the name of the transducer to start the transduction
@@ -92,7 +96,8 @@ public interface IRuntime extends AutoCloseable{
 	boolean transduce(ITarget target, Bytes transducer, Signal prologue, InputStream in, OutputStream out) throws RiboseException;
 
 	/**
-	 * Instantiate a new transductor and bind it to a target instance. 
+	 * Instantiate a new transductor and bind it to a target instance. The UTF-8 Charset
+	 * will be used to decode/encode UTF-8 bytes in input/output streams.
 	 * 
 	 * @param target The target instance to bind to the transductor.
 	 * @return A new transductor

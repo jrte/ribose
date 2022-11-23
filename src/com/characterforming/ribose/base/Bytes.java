@@ -23,7 +23,9 @@ package com.characterforming.ribose.base;
 
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
-import java.nio.charset.Charset;
+import java.nio.charset.CharacterCodingException;
+import java.nio.charset.CharsetDecoder;
+import java.nio.charset.CharsetEncoder;
 import java.util.Arrays;
 
 /**
@@ -32,8 +34,8 @@ import java.util.Arrays;
  * @author Kim Briggs
  */
 public final class Bytes {
-	public static Charset charset = Charset.defaultCharset();
 	private static final char[] HEX = "0123456789ABCDEF".toCharArray();
+	private static final char[] EMPTY_CHARS = new char[] { };
 	private final byte[] bytes;
 	private int hash;
 
@@ -48,95 +50,71 @@ public final class Bytes {
 	}
 	
 	/**
-	 * Decode UTF-8 bytes to a String.
-	 * 
-	 * @param bytes The bytes to decode
-	 * @return the decoded string
-	 */
-	public static String decode(final byte[] bytes) {
-		return charset.decode(ByteBuffer.wrap(bytes).limit(bytes.length)).toString();
-	}
-
-	/**
-	 * Decode a subrange of UTF-8 bytes to a String. The subrange {@code inpoint}
-	 * is a nonnegative offset relative to the head of the {@code bytes} array. 
-	 * The {@code outpoint} is also relative to the head of the array unless it
-	 * is negative, in which case it is relative to the end of the array. For
-	 * example, {@code decode(['abc'], 1, -1) -> "abc"} strips single quotes.
-	 *
-	 * The outpoint is truncated to the array length if necessary and {@code null}
-	 * is return if the inpoint exceeds the effective outpoint.
-	 *
-	 * @param bytes The bytes to decode
-	 * @param inpoint The position to start decoding at, relative to head of array
-	 * @param outpoint Decoding endpoint, relative to array head or tail depending on sign
-	 * @return the decoded string, or null if inpoint exceeds effective outpoint
-	 */
-	public static String decode(final byte[] bytes, final int inpoint, int outpoint) {
-		if (0 > outpoint) {
-			outpoint += bytes.length;
-			if (outpoint < 0) {
-				return null;
-			}
-		} else if (outpoint > bytes.length) {
-			outpoint = bytes.length;
-		}
-		if (inpoint < outpoint) {
-			return charset.decode(ByteBuffer.wrap(bytes).position(inpoint).limit(outpoint)).toString();
-		}
-		return (inpoint == outpoint) ? "" : null;
-	}
-
-	/**
-	 * Decode UTF-8 bytes to a String.
-	 * 
-	 * @param bytes The bytes to decode
-	 * @param length The number of bytes to decode
-	 * @return the decoded string
-	 */
-	public static String decode(final byte[] bytes, final int length) {
-		return charset.decode(ByteBuffer.wrap(bytes).limit(Math.min(length, bytes.length))).toString();
-	}
-
-	/**
-	 * Encode a String to UTF-8 bytes.
-	 * 
-	 * @param chars The string to encode
-	 * @return the encoded Bytes
-	 */
-	public static Bytes encode(final String chars) {
-		return Bytes.encode(CharBuffer.wrap(chars.toCharArray()));
-	}
-
-	/**
-	 * Encode a CharBuffer to UTF-8 bytes.
-	 * 
-	 * @param chars The CharBuffer to encode
-	 * @return the encoded Bytes
-	 */
-	public static Bytes encode(final CharBuffer chars) {
-		ByteBuffer buffer = charset.encode(chars);
-		byte bytes[] = new byte[buffer.limit()];
-		buffer.get(bytes, 0, bytes.length);
-		return new Bytes(bytes);
-	}
-	
-	/**
-	 * Copy and wrap bytes.
+	 * Constructor copies and wraps an segment of an array of bytes
 	 * 
 	 * @param from The source array
 	 * @param offset The position in the source array to copy from
 	 * @param length The number of bytes to copy
+	 */
+	public Bytes(final byte[] from, int offset, int length) {
+		assert from.length >= offset && from.length >= (offset + length);
+		offset = from.length >= offset ? offset : from.length;
+		length = from.length >= (offset + length) ? length : from.length - offset;
+		this.bytes = new byte[length];
+		System.arraycopy(from, offset, bytes, 0, length);
+		this.hash = 0;
+	}
+
+	/**
+	 * Decode UTF-8 bytes to a String.
+	 * 
+	 * @param decoder The decoder to use
+	 * @param bytes The bytes to decode
+	 * @param length The number of bytes to decode
+	 * @return a CharBuffer containing the decoded text
+	 */
+	public static CharBuffer decode(CharsetDecoder decoder, final byte[] bytes, final int length) {
+		assert 0 <= length && length <= bytes.length;
+		int size = Math.max(Math.min(length, bytes.length), 0);
+		try {
+			return decoder.decode(ByteBuffer.wrap(bytes, 0, size));
+		} catch (CharacterCodingException e) {
+			System.err.println("NamedValue.decode(CharsetDecoder, byte[], int, int): " + e.getMessage());
+			assert false;
+		}
+		return CharBuffer.wrap(Bytes.EMPTY_CHARS);
+	}
+
+	/**
+	 * Encode a String.
+	 * 
+	 * @param encoder the encoder to use
+	 * @param chars The string to encode
 	 * @return the encoded Bytes
 	 */
-	public static Bytes getBytes(final byte[] from, int offset, int length) {
-		assert from.length >= offset;
-		int size = from.length - offset;
-		byte bytes[] = new byte[size];
-		if (size > 0) {
-			System.arraycopy(from, offset, bytes, 0, size);
+	public static Bytes encode(CharsetEncoder encoder, final String chars) {
+		return Bytes.encode(encoder, CharBuffer.wrap(chars.toCharArray()));
+	}
+
+	/**
+	 * Encode a CharBuffer.
+	 * 
+	 * @param encoder the encoder to use
+	 * @param chars The CharBuffer to encode
+	 * @return the encoded Bytes
+	 */
+	public static Bytes encode(CharsetEncoder encoder, final CharBuffer chars) {
+		Bytes bytes = null;
+		try {
+			ByteBuffer buffer = encoder.encode(chars);
+			byte b[] = new byte[buffer.limit()];
+			buffer.get(b, 0, b.length);
+			bytes = new Bytes(b);
+		} catch (CharacterCodingException e) {
+			System.err.println("NamedValue.encode(CharsetEncoder,CharBuffer): " + e.getMessage());
+			assert false;
 		}
-		return new Bytes(bytes);
+		return bytes;
 	}
 	
 	/**
@@ -163,7 +141,7 @@ public final class Bytes {
 
 	@Override
 	public String toString() {
-		return Bytes.decode(this.getBytes(), this.getLength());
+		return Bytes.decode(Base.getRuntimeCharset().newDecoder(), this.getBytes(), this.getLength()).toString();
 	}
 	
 	public String toHexString() {

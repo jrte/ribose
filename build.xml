@@ -41,10 +41,12 @@
 	<property name="build.patterns.automata" value="build/patterns/automata"/>
 	<property name="build.test" value="build/test"/>
 	<property name="regex.linux.kernel" value="([JFMASOND][a-z]+ [0-9]+ (?:[0-9]+:)+[0-9]+) ([-.:A-Za-z_0-9]*) kernel: \[[ ]*[0-9]+\.[0-9]+\] (DROPPED|ABORTED|LIMITED) IN=([-.:A-Za-z_0-9]*) OUT=([-.:A-Za-z_0-9]*)(?: MAC=([-.:A-Za-z_0-9]*))? SRC=([-.:A-Za-z_0-9]*) DST=([-.:A-Za-z_0-9]*).* PROTO=([-.:A-Za-z_0-9]*)(?:.* SPT=([-.:A-Za-z_0-9]*) DPT=([-.:A-Za-z_0-9]*))?"/>
-	<property name="ribose.block.size" value="65536"/>
+	<property name="ribose.inbuffer.size" value="65536"/>
+	<property name="ribose.outbuffer.size" value="8196"/>
 	<property name="jargs.jit.diagnostic" value="-XX:+UnlockDiagnosticVMOptions -XX:+PrintCompilation -XX:+PrintInlining"/>
 	<property name="jargs.jit.inline" value="-XX:CompileCommandFile=etc/jit/ribose.jit"/>
-	<property name="jargs.gc.test" value="-Xms2m -Dribose.block.size=${ribose.block.size} -Xlog:gc*:file=${build.test}"/>
+	<property name="jargs.gc.buffers" value="-Dribose.inbuffer.size=${ribose.inbuffer.size} -Dribose.outbuffer.size=${ribose.outbuffer.size}"/>
+	<property name="jargs.gc.test" value="-Xms2m ${jargs.gc.buffers} -Xlog:gc*:file=${build.test}"/>
 	<property name="jargs" value="-ea ${jargs.jit.inline}"/>
 	<condition property="linux">
 		<os family="unix" />
@@ -300,7 +302,7 @@
 			<arg line="--nil Tintervals ${pattern.source.dir}/inputs/verbosegc.vgc build/Test.model cycle-start.id=.*type=.*contextid=.*timestamp=.*intervalms=.([0-9]+'.'[0-9]+)[^0-9]"/>
 		</java>
 <!-- I/O equivalence tests -->
-		<echo>Ribose output equivalence tests with ${ribose.block.size}b input buffer (showing line and byte counts for input/output files)</echo>
+		<echo>Ribose output equivalence tests with ${ribose.inbuffer.size}b input buffer (showing line and byte counts for input/output files)</echo>
 		<delete quiet="true" dir="${build.test}"/>
 		<mkdir dir="${build.test}"/>
 <!-- verbose gc run -->
@@ -309,7 +311,7 @@
 			<arg line="--lines --bytes ${pattern.source.dir}/inputs/verbosegc.vgc"/>
 		</exec>		
 		<echo message="Regex: -Xms2m -Xlog:gc*:file=vgc.regex.gc -> ${build.test}/vgc.regex.out"/>
-		<java fork="true" dir="." classname="com.characterforming.jrte.test.FileRunner" classpathref="test.classpath" failonerror="true" output="${build.test}/vgc.regex.out">
+		<java fork="true" dir="." classname="com.characterforming.jrte.test.FileRunner" classpathref="test.classpath" failonerror="true" output="${build.test}/vgc.regex.out" error="${build.test}/vgc.regex.err">
 			<jvmarg line="${jargs} ${jargs.gc.test}/vgc.regex.gc -Djrte.out.enabled=false -Dregex.out.enabled=true"/>
 			<arg line="--nil Tintervals ${pattern.source.dir}/inputs/verbosegc.vgc build/Test.model &quot;cycle-start id=.[0-9]+. type=.scavenge. contextid=.[0-9]+. timestamp=.(?:[0-9]+[-.:T])+[0-9]+. intervalms=.([0-9]+.[0-9]+)[^0-9]&quot;" />
 		</java>
