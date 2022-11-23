@@ -196,7 +196,7 @@ public class ModelCompiler implements ITarget {
 			}
 			target.transitions = new Transition[h.transitions];
 			target.stateTransitionMap = new HashMap<Integer, ArrayList<Transition>>((h.states * 5) >> 2);
-			return IEffector.RTE_EFFECT_NONE;
+			return IEffector.RTX_NONE;
 		}
 	}
 
@@ -243,7 +243,7 @@ public class ModelCompiler implements ITarget {
 				fields[3].copyValue()
 			);
 			if (t.isFinal) {
-				return IEffector.RTE_EFFECT_NONE;
+				return IEffector.RTX_NONE;
 			}	else if (t.tape < 0) {
 				target.error(String.format("%1$s: Epsilon transition from state %2$d to %3$d (use :dfamin to remove these)",
 					target.getTransducerName(), t.from, t.to));
@@ -278,7 +278,7 @@ public class ModelCompiler implements ITarget {
 				target.transitions[target.transition] = t;
 				++target.transition;
 			}
-			return IEffector.RTE_EFFECT_NONE;
+			return IEffector.RTX_NONE;
 		}
 	}
 
@@ -356,7 +356,7 @@ public class ModelCompiler implements ITarget {
 				target.factor(transitionMatrix);
 			}
 			
-			return IEffector.RTE_EFFECT_NONE;
+			return IEffector.RTX_NONE;
 		}
 	}
 

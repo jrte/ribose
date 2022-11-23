@@ -44,7 +44,7 @@ public interface IParameterizedEffector<T extends ITarget, P> extends IEffector<
 	 * 
 	 * @param parameterCount The size of the array to create
 	 */
-	public void newParameters(int parameterCount);
+	void newParameters(int parameterCount);
 
 	/**
 	 * This method is invoked at runtime to determine the number of compiled parameters
@@ -53,7 +53,7 @@ public interface IParameterizedEffector<T extends ITarget, P> extends IEffector<
 	 * 
 	 * @return The number of compiled parameters
 	 */
-	public int getParameterCount();
+	int getParameterCount();
 
 	/**
 	 * Compile and set a parameter value from effector arguments specified in
@@ -69,7 +69,7 @@ public interface IParameterizedEffector<T extends ITarget, P> extends IEffector<
 	 * @return the compiled parameter value object 
 	 * @throws TargetBindingException on error
 	 */
-	public P compileParameter(int parameterIndex, byte[][] parameterList) throws TargetBindingException;
+	P compileParameter(int parameterIndex, byte[][] parameterList) throws TargetBindingException;
 
 	/**
 	 * Set a precompiled parameter value 
@@ -78,7 +78,7 @@ public interface IParameterizedEffector<T extends ITarget, P> extends IEffector<
 	 *           with the parameter value
 	 * @param parameter the parameter value to set
 	 */
-	public void setParameter(int parameterIndex, Object parameter);
+	void setParameter(int parameterIndex, Object parameter);
 
 	/**
 	 * Get a compiled parameter value
@@ -86,7 +86,7 @@ public interface IParameterizedEffector<T extends ITarget, P> extends IEffector<
 	 * @param parameterIndex The parameter index
 	 * @return The parameter value at the index
 	 */
-	public P getParameter(int parameterIndex);
+	P getParameter(int parameterIndex);
 
 	/**
 	 * This method is invoked at runtime when triggered by an input transition.
@@ -97,5 +97,5 @@ public interface IParameterizedEffector<T extends ITarget, P> extends IEffector<
 	 * @return User-defined effectors should return 0
 	 * @throws EffectorException on error
 	 */
-	public int invoke(int parameterIndex) throws EffectorException;
+	int invoke(int parameterIndex) throws EffectorException;
 }

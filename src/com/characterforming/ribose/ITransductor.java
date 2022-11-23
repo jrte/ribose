@@ -39,7 +39,7 @@ import com.characterforming.ribose.base.RiboseException;
  * <ol>
  * <li>the input stack is empty
  * <li>the transducer stack is empty
- * <li>an effector returns {@code IEffector.RTE_EFFECT_PAUSE}
+ * <li>an effector returns {@code IEffector.RTX_PAUSE}
  * <li>an exception is thrown
  * </ol>
  * <br><br>
@@ -73,7 +73,7 @@ public interface ITransductor extends ITarget {
 	 * 
 	 * @author Kim Briggs
 	 */
-	public enum Status {
+	enum Status {
 		/**
 		 * Transduction stack not empty, input stack not empty.
 		 */
@@ -125,7 +125,7 @@ public interface ITransductor extends ITarget {
 	 * 
 	 * @return Transduction status
 	 */
-	public Status status();
+	Status status();
 
 	/**
 	 * Set the output stream to be used for {@code out[]} effector. The only method
@@ -139,7 +139,7 @@ public interface ITransductor extends ITarget {
 	 * @param output the output stream to write to
 	 * @return The previous output stream  
 	 */
-	public OutputStream output(OutputStream output);
+	OutputStream output(OutputStream output);
 	
 	/**
 	 * Push an initial segment {@code [0..limit)} of a data array onto the 
@@ -153,7 +153,7 @@ public interface ITransductor extends ITarget {
 	 * @param limit truncate effective input range at {@code max(limit, data.length)}  
 	 * @return Run status of transduction at point of return 
 	 */
-	public Status input(byte[] input, int limit);
+	Status input(byte[] input, int limit);
 	
 	/**
 	 * Push a transducer onto the transductor's transducer stack and set it state
@@ -164,7 +164,7 @@ public interface ITransductor extends ITarget {
 	 * @return Run status of transduction at point of return 
 	 * @throws ModelException on error
 	 */
-	public Status start(Bytes transducer) throws ModelException;
+	Status start(Bytes transducer) throws ModelException;
 
 	/**
 	 * Push a signal onto the transductor's input stack to trigger next transition. 
@@ -172,7 +172,7 @@ public interface ITransductor extends ITarget {
 	 * @param signal the signal to push 
 	 * @return Run status of transduction at point of return 
 	 */
-	public Status signal(Signal signal);
+	Status signal(Signal signal);
 
 	/**
 	 * Run the transduction with current input until the input or transduction
@@ -192,7 +192,7 @@ public interface ITransductor extends ITarget {
 	 * @throws DomainErrorException on error
 	 * @see #status()
 	 */
-	public Status run() throws RiboseException, DomainErrorException;
+	Status run() throws RiboseException, DomainErrorException;
 
 	/**
 	 * Clear input and transductor stacks and reset all named values to
@@ -202,7 +202,7 @@ public interface ITransductor extends ITarget {
 	 * @return {@link Status#STOPPED} 
 	 * @see #status()
 	 */
-	public Status stop();
+	Status stop();
 	
 	/**
 	 * Check whether the input stack is marked. Byte arrays passed as input
@@ -217,7 +217,7 @@ public interface ITransductor extends ITarget {
 	 * 
 	 * @return true if a mark is set
 	 */
-	public boolean hasMark();
+	boolean hasMark();
 	
 	/**
 	 * If the {@code bytes} buffer is in the mark set try to recycle the buffer
@@ -227,7 +227,7 @@ public interface ITransductor extends ITarget {
 	 * @param bytes the most recently used buffer
 	 * @return an empty data buffer or null
 	 */
-	public byte[] recycle(byte[] bytes);
+	byte[] recycle(byte[] bytes);
 	
 	/**
 	 * Return the number of domain errors counted in the most recent run() call. A
@@ -236,5 +236,5 @@ public interface ITransductor extends ITarget {
 	 * 
 	 * @return the number of domain errors counted in the most recent run() call.
 	 */
-	public int getErrorCount();
+	int getErrorCount();
 }

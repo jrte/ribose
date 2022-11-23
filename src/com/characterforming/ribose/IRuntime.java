@@ -103,7 +103,7 @@ public interface IRuntime extends AutoCloseable{
 	 * @return A new transductor
 	 * @throws ModelException on error
 	 */
-	public ITransductor newTransductor(ITarget target) throws ModelException;
+	ITransductor newTransductor(ITarget target) throws ModelException;
 	
 	/**
 	 * Close the runtime model and file.
@@ -111,5 +111,5 @@ public interface IRuntime extends AutoCloseable{
 	 * @throws ModelException on error
 	 */
 	@Override
-	public void close() throws ModelException;
+	void close() throws ModelException;
 }

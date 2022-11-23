@@ -57,7 +57,7 @@ import com.characterforming.ribose.base.TargetBindingException;
  * <ol>
  * <li>the input stack is empty
  * <li>the transducer stack is empty
- * <li>an effector returns RTE_EFFECT_PAUSE
+ * <li>an effector returns RTX_PAUSE
  * <li>the transduction throws an exception.
  * </ol>
  * 
@@ -438,7 +438,7 @@ I:				do {
 							break;
 						case RTE_EFFECTOR_IN:
 							this.inputStack.value(this.selected.getValue(), this.selected.getLength());
-							effect = IEffector.RTE_EFFECT_PUSH;
+							effect = IEffector.RTX_PUSH;
 							break;
 						case RTE_EFFECTOR_OUT: {
 							if (this.isOutEnabled && this.selected.getLength() > 0) {
@@ -455,11 +455,11 @@ I:				do {
 							break;
 						case RTE_EFFECTOR_RESET:
 							if (this.inputStack.reset()) {
-								effect = IEffector.RTE_EFFECT_PUSH;
+								effect = IEffector.RTX_PUSH;
 							}
 							break;
 						case RTE_EFFECTOR_PAUSE:
-							effect = IEffector.RTE_EFFECT_PAUSE;
+							effect = IEffector.RTX_PAUSE;
 							break;
 						case RTE_EFFECTOR_STOP:
 							effect = popTransducer();
@@ -476,11 +476,11 @@ I:				do {
 						int breakout = 0;
 						for (int i = 1; i <= aftereffects[0]; i++) {
 							switch (aftereffects[i]) {
-							case IEffector.RTE_EFFECT_PUSH:
-							case IEffector.RTE_EFFECT_POP:
+							case IEffector.RTX_PUSH:
+							case IEffector.RTX_POP:
 								signalInput = -1;
 								break;
-							case IEffector.RTE_EFFECT_START:
+							case IEffector.RTX_START:
 								assert transducer == this.transducerStack.get(this.transducerStack.tos()-1);
 								transducer.countdown[0] = count;
 								transducer.state = state;
@@ -488,12 +488,12 @@ I:				do {
 									breakout = -1;
 								}
 								break;
-							case IEffector.RTE_EFFECT_STOP:
+							case IEffector.RTX_STOP:
 								if (breakout == 0) {
 									breakout = -1;
 								}
 								break;
-							case IEffector.RTE_EFFECT_COUNT:
+							case IEffector.RTX_COUNT:
 								assert (transducer == this.transducerStack.get(this.transducerStack.tos()))
 								|| (transducer == this.transducerStack.get(this.transducerStack.tos()-1));
 								if (transducer.countdown[0] < 0) {
@@ -506,8 +506,8 @@ I:				do {
 									transducer.countdown[0] = 0;
 								}
 								break;
-							case IEffector.RTE_EFFECT_PAUSE:
-							case IEffector.RTE_EFFECT_STOPPED:
+							case IEffector.RTX_PAUSE:
+							case IEffector.RTX_STOPPED:
 								breakout = 1;
 								break;
 							default:
@@ -639,23 +639,23 @@ I:				do {
 
 	private int select(final int selectionIndex) {
 		this.selected = this.namedValueHandles[selectionIndex];
-		return IEffector.RTE_EFFECT_NONE;
+		return IEffector.RTX_NONE;
 	}
 
 	private int paste(final byte[] bytes, int start, int length) {
 		this.selected.append(bytes);
-		return IEffector.RTE_EFFECT_NONE;
+		return IEffector.RTX_NONE;
 	}
 
 	private int copy(final int nameIndex) {
 		this.selected.append(this.namedValueHandles[nameIndex]);
-		return IEffector.RTE_EFFECT_NONE;
+		return IEffector.RTX_NONE;
 	}
 
 	private int cut(final int nameIndex) {
 		this.copy(nameIndex);
 		this.namedValueHandles[nameIndex].clear();
-		return IEffector.RTE_EFFECT_NONE;
+		return IEffector.RTX_NONE;
 	}
 
 	private int clear(final int nameIndex) {
@@ -666,14 +666,14 @@ I:				do {
 		} else {
 			clear();
 		}
-		return IEffector.RTE_EFFECT_NONE;
+		return IEffector.RTX_NONE;
 	}
 
 	private int clear() {
 		for (NamedValue nv : this.namedValueHandles) {
 			nv.clear();
 		}
-		return IEffector.RTE_EFFECT_NONE;
+		return IEffector.RTX_NONE;
 	}
 
 	private int count(final int[] countdown) {
@@ -681,18 +681,18 @@ I:				do {
 		TransducerState tos = this.transducerStack.peek();
 		tos.countdown[0] = countdown[0];
 		tos.countdown[1] = countdown[1];
-		return IEffector.RTE_EFFECT_COUNT;
+		return IEffector.RTX_COUNT;
 	}
 
 	private int in(final byte[][] input) {
 		this.inputStack.put(input);
-		return IEffector.RTE_EFFECT_PUSH;
+		return IEffector.RTX_PUSH;
 	}
 
 	private int pushTransducer(final Integer transducerOrdinal) throws EffectorException {
 		try {
 			this.transducerStack.push(this.model.loadTransducer(transducerOrdinal));
-			return IEffector.RTE_EFFECT_START;
+			return IEffector.RTX_START;
 		} catch (final ModelException e) {
 			throw new EffectorException(String.format("The start effector failed to load %1$s", this.model.getTransducerName(transducerOrdinal)), e);
 		}
@@ -701,9 +701,9 @@ I:				do {
 	private int popTransducer() {
 		this.transducerStack.pop();
 		if (this.transducerStack.isEmpty()) {
-			return IEffector.RTE_EFFECT_STOPPED;
+			return IEffector.RTX_STOPPED;
 		} else {
-			return IEffector.RTE_EFFECT_STOP;
+			return IEffector.RTX_STOP;
 		}
 	}
 
@@ -805,7 +805,7 @@ I:				do {
 					super.getTarget().paste(bytes, 0, bytes.length);
 				}
 			}
-			return IEffector.RTE_EFFECT_NONE;
+			return IEffector.RTX_NONE;
 		}
 	}
 
@@ -822,7 +822,7 @@ I:				do {
 		@Override
 		public int invoke(final int parameterIndex) throws EffectorException {
 			int valueOrdinal = super.getParameter(parameterIndex);
-			return (valueOrdinal != 1) ? super.getTarget().select(valueOrdinal) : IEffector.RTE_EFFECT_NONE;
+			return (valueOrdinal != 1) ? super.getTarget().select(valueOrdinal) : IEffector.RTX_NONE;
 		}
 	}
 
@@ -834,13 +834,13 @@ I:				do {
 		@Override
 		public int invoke() throws EffectorException {
 			assert false;
-			return IEffector.RTE_EFFECT_NONE;
+			return IEffector.RTX_NONE;
 		}
 
 		@Override
 		public int invoke(final int parameterIndex) throws EffectorException {
 			int valueOrdinal = super.getParameter(parameterIndex);
-			return (valueOrdinal != 1) ? super.getTarget().copy(valueOrdinal) : IEffector.RTE_EFFECT_NONE;
+			return (valueOrdinal != 1) ? super.getTarget().copy(valueOrdinal) : IEffector.RTX_NONE;
 		}
 	}
 
@@ -857,7 +857,7 @@ I:				do {
 		@Override
 		public int invoke(final int parameterIndex) throws EffectorException {
 			int valueOrdinal = super.getParameter(parameterIndex);
-			return (valueOrdinal != 1) ? super.getTarget().cut(valueOrdinal) : IEffector.RTE_EFFECT_NONE;
+			return (valueOrdinal != 1) ? super.getTarget().cut(valueOrdinal) : IEffector.RTX_NONE;
 		}
 	}
 
@@ -904,7 +904,7 @@ I:				do {
 		
 		@Override
 		public int invoke() throws EffectorException {
-			return IEffector.RTE_EFFECT_NONE;
+			return IEffector.RTX_NONE;
 		}
 		
 		@Override
@@ -925,7 +925,7 @@ I:				do {
 					}
 				}
 			}
-			return IEffector.RTE_EFFECT_NONE;
+			return IEffector.RTX_NONE;
 		}
 	}
 	
@@ -1034,7 +1034,7 @@ I:				do {
 
 		@Override
 		public int invoke() throws EffectorException {
-			return IEffector.RTE_EFFECT_PAUSE;
+			return IEffector.RTX_PAUSE;
 		}
 	}
 

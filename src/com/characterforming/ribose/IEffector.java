@@ -33,58 +33,61 @@ import com.characterforming.ribose.base.TargetBindingException;
  * @author Kim Briggs
  */
 public interface IEffector<T extends ITarget> {
+
 	/**
-	 * Return RTE_EFFECT_NONE from effector.invoke() methods that do not
-	 * affect the ITransductor transducer stack or input stack.
+	 * RTX bits are additive and accumulate as the effect vector is 
+	 * executed for a transition. Most RTX bits reflect the action 
+	 * of built-in effectors. Domain specific effectors should return
+	 * only {@code RTX_NONE} (to continue transduction normally) or 
+	 * {@code RTX_PAUSE} (to force resumable exit from run()).
+	 * 
+	 * Return RTX_NONE from effector.invoke() methods that do not
+	 * affect the {@link ITransductor} transducer stack or input 
+	 * stack.
 	 */
-	public static final int RTE_EFFECT_NONE = 0;
+	static final int RTX_NONE = 0;
 	/**
-	 * Return RTE_EFFECT_START from effector.invoke() methods that push the
+	 * Return RTX_START only if invoke() action is to push the
 	 * ITransductor transducer stack.
 	 */
-	public static final int RTE_EFFECT_START = 1;
+	static final int RTX_START = 1;
 	/**
-	 * Return RTE_EFFECT_STOP from effector.invoke() methods that pop the
+	 * Return RTX_STOP only if invoke() action is to pop the
 	 * ITransductor transducer stack.
 	 */
-	public static final int RTE_EFFECT_STOP = 2;
+	static final int RTX_STOP = 2;
 	/**
-	 * Return RTE_EFFECT_SHIFT from effector.invoke() methods that replace
-	 * the top transducer on the ITransductor transducer stack.
-	 */
-	public static final int RTE_EFFECT_SHIFT = 4;
-	/**
-	 * Return RTE_EFFECT_PUSH from effector.invoke() methods that push the
+	 * Return RTX_PUSH only if invoke() action is to push the
 	 * ITransductor input stack.
 	 */
-	public static final int RTE_EFFECT_PUSH = 8;
+	static final int RTX_PUSH = 4;
 	/**
-	 * Return RTE_EFFECT_POP from effector.invoke() methods that pop the
+	 * Return RTX_POP only if invoke() action is to pop the
 	 * ITransductor input stack.
 	 */
-	public static final int RTE_EFFECT_POP = 16;
+	static final int RTX_POP = 8;
 	/**
-	 * Return RTE_EFFECT_COUNT from effector.invoke() method that set 
-	 * a counter for the current transducer.
+	 * Return RTX_COUNT if invoke() action decremented the 
+	 * counter for the current transducer to 0.
 	 */
-	public static final int RTE_EFFECT_COUNT = 32;
+	static final int RTX_COUNT = 16;
 	/**
-	 * Return RTE_EFFECT_PAUSE from an effector.invoke() method to force
-	 * immediate and resumable exit from run().
+	 * Return RTX_PAUSE from invoke() to force immediate and 
+	 * resumable exit from run().
 	 */
-	public static final int RTE_EFFECT_PAUSE = 64;
+	static final int RTX_PAUSE = 32;
 	/**
-	 * Return RTE_EFFECT_STOPPED from an effector.invoke() method to force
-	 * immediate and final exit from run().
+	 * Return RTX_STOPPED from invoke() to force immediate and 
+	 * final exit from run().
 	 */
-	public static final int RTE_EFFECT_STOPPED = 128;
+	static final int RTX_STOPPED = 64;
 
 	/**
 	 * Returns the target that expresses the effector
 	 * 
 	 * @return The target that expresses the effector
 	 */
-	public T getTarget();
+	T getTarget();
 
 	/**
 	 * Returns the effector name. The name of the effector is the token 
@@ -92,7 +95,7 @@ public interface IEffector<T extends ITarget> {
 	 * 
 	 * @return The effector name.
 	 */
-	public Bytes getName();
+	Bytes getName();
 
 	/**
 	 * Receive an IOutput view of transduction named values. Named values are
@@ -104,7 +107,7 @@ public interface IEffector<T extends ITarget> {
 	 * @param output A object that provides a view or transduction runtime values
 	 * @throws TargetBindingException on error
 	 */
-	public void setOutput(IOutput output) throws TargetBindingException;
+	void setOutput(IOutput output) throws TargetBindingException;
 
 
 	/**
@@ -113,5 +116,5 @@ public interface IEffector<T extends ITarget> {
 	 * @return User-defined effectors should return 0
 	 * @throws EffectorException on error
 	 */
-	public int invoke() throws EffectorException;
+	int invoke() throws EffectorException;
 }

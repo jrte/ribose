@@ -65,12 +65,6 @@
 		<pathelement location="${jars.dir}/${ribose.version}.jar"/>
 	</path>
 
-	<target name="clean" depends="clean-java,clean-patterns,clean-test">
-		<touch file="patterns/ribose/Automaton.inr"/>
-  	<delete dir="javadoc" includes="**/*" quiet="true"/>
-  	<delete dir="build/ribose" quiet="true"/>
-	</target>
-
 	<target name="init">
 		<tstamp/>
 		<exec outputproperty="git.branch" executable="git">
@@ -119,6 +113,12 @@
 		<echo message="build/ribose/TCompile.(map,model) -> ./TCompile.(map,model)"/>
 		<move file="build/ribose/TCompile.map" tofile="./TCompile.map" preservelastmodified="true" failonerror="false" verbose="true"/>
 		<move file="build/ribose/TCompile.model" tofile="./TCompile.model" preservelastmodified="true" failonerror="false" verbose="true"/>
+	</target>
+
+	<target name="clean" depends="clean-java,clean-patterns,clean-test">
+		<touch file="patterns/ribose/Automaton.inr"/>
+  	<delete dir="javadoc" includes="**/*" quiet="true"/>
+  	<delete dir="build/ribose" quiet="true"/>
 	</target>
 
 	<target name="clean-java">

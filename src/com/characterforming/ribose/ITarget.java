@@ -51,7 +51,7 @@ public interface ITarget {
 	 * 
 	 * @return The name of of this target
 	 */
-	public String getName();
+	String getName();
 	
 	/**
 	 * Lists the names and types of the effectors expressed by the target class
@@ -70,7 +70,7 @@ public interface ITarget {
 	 * @return An array of IEffector instances bound to the target instance
 	 * @throws TargetBindingException on error
 	 */
-	public IEffector<?>[] getEffectors() throws TargetBindingException;
+	IEffector<?>[] getEffectors() throws TargetBindingException;
 
 	/**
 	 * Return the @{code Charset} to be used by transductors bound to the
@@ -78,7 +78,7 @@ public interface ITarget {
 	 * 
 	 * @return the @{code Charset} to be used with this target instance
 	 */
-	public default Charset getEffectiveCharset() {
+	default Charset getEffectiveCharset() {
 		return Base.getRuntimeCharset();
 	}
 }

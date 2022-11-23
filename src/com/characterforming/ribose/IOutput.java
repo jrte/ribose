@@ -39,7 +39,7 @@ public interface IOutput {
 	 * @return a named value instance or null
 	 * @throws TargetBindingException on error
 	 */
-	public INamedValue getNamedValue(Bytes valueName) throws TargetBindingException;
+	INamedValue getNamedValue(Bytes valueName) throws TargetBindingException;
 	
 	/**
 	 * Get the numeric index for a defined named value
@@ -48,7 +48,7 @@ public interface IOutput {
 	 * @return The numeric index of the value
 	 * @throws TargetBindingException on error
 	 */
-	public int getValueOrdinal(Bytes valueName) throws TargetBindingException;
+	int getValueOrdinal(Bytes valueName) throws TargetBindingException;
 
 	/**
 	 * Get a copy of the current value for a named value
@@ -56,19 +56,19 @@ public interface IOutput {
 	 * @param valueOrdinal The numeric index of the named value to get
 	 * @return The named value wrapped in an {@link INamedValue} instance
 	 */
-	public INamedValue getNamedValue(int valueOrdinal);
+	INamedValue getNamedValue(int valueOrdinal);
 
 	/**
 	 * Get the numeric index for the current selected named value
 	 * 
 	 * @return The numeric index of the selected value
 	 */
-	public int getSelectedOrdinal();
+	int getSelectedOrdinal();
 
 	/**
 	 * Get a copy of the current selected value
 	 * 
 	 * @return The selected value wrapped in an {@link INamedValue} instance
 	 */
-	public INamedValue getSelectedValue();
+	INamedValue getSelectedValue();
 }

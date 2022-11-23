@@ -40,54 +40,54 @@ public interface INamedValue {
 	 * 
 	 * @return The value name
 	 */
-	public Bytes getName();
+	Bytes getName();
 
 	/**
 	 * Get the value ordinal.
 	 * 
 	 * @return The value index
 	 */
-	public int getOrdinal();
+	int getOrdinal();
 
 	/**
 	 * Get the number of bytes in the value array as of the time of the call
 	 * 
 	 * @return The number of bytes in the value array
 	 */
-	public int getLength();
+	int getLength();
 
 	/**
 	 * Decode a UTF-8 encoded value using the default charset.
 	 * 
 	 * @return A Unicode char[] array holding the decoded value
 	 */
-	public char[] decodeValue();
+	char[] decodeValue();
 
 	/**
 	 * Get a copy of the value, trimmed to actual length.
 	 * 
 	 * @return A copy of the contents of the value array
 	 */
-	public byte[] copyValue();
+	byte[] copyValue();
 	
 	/**
 	 * Extract value as String
 	 * 
 	 * @return A string representation of the value
 	 */
-	public String asString();
+	String asString();
 	
 	/**
 	 * Extract value as long integer
 	 * 
 	 * @return A integral representation of the value
 	 */
-	public long asInteger();
+	long asInteger();
 	
 	/**
 	 * Extract value as floating point number
 	 * 
 	 * @return A floating point representation of the value
 	 */
-	public double asReal();
+	double asReal();
 }
