@@ -2,7 +2,9 @@ name: Java CI
 
 on: 
   push:
-    branches: [poc,$default-branch]
+    branches:
+      - master
+      - poc
 
 jobs:
   build:
