@@ -21,11 +21,9 @@
 
 package com.characterforming.jrte.test;
 
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.CharsetDecoder;
@@ -83,13 +81,16 @@ public class FileRunner {
 		final File f = new File(inputPath);
 		try (final FileInputStream isr = new FileInputStream(f)) {
 			long ejrte = 0, tjrte = 0, t0 = 0, t1 = 0;
-			int clen = (jrteOutEnabled || regexOutEnabled) ? 0 : (int)f.length();
+			int clen = (int)f.length();
 			byte[] cbuf = null;
 			CharBuffer charInput = null;
 			if (clen > 0) {
 				cbuf = new byte[clen];
 				clen = isr.read(cbuf, 0, clen);
 				charInput = decoder.decode(ByteBuffer.wrap(cbuf, 0, cbuf.length));
+			} else {
+				System.out.println(String.format("Input file is empty: %s", inputPath));
+				System.exit(1);
 			}
 			
 			int loops = 1;
@@ -173,25 +174,19 @@ public class FileRunner {
 					System.out.println(String.format(" : %7.3f mb/s %7.3f ribose:regex", mbps, tr));
 				} else {
 					int count = 0;
-					try (BufferedReader reader = new BufferedReader(new InputStreamReader(isr), 64<<10)) {
-						String line = reader.readLine();
-						while (line != null) {
-							Matcher matcher = pattern.matcher(line);
-							while (matcher.find()) {
-								int k = matcher.groupCount();
-								if (0 < k) {
-									for (int j = 1; j < k; j++) {
-										String match = matcher.group(j) != null ? matcher.group(j) : "";
-										System.out.printf("%s|", match);
-									}
-									String match = matcher.group(k) != null ? matcher.group(k) : "";
-									System.out.printf("%s", match);
-									System.out.println();
-								}
-								count += k;
+					Matcher matcher = pattern.matcher(charInput);
+					while (matcher.find()) {
+						int k = matcher.groupCount();
+						if (0 < k) {
+							for (int j = 1; j < k; j++) {
+								String match = matcher.group(j) != null ? matcher.group(j) : "";
+								System.out.printf("%s|", match);
 							}
-							line = reader.readLine();
+							String match = matcher.group(k) != null ? matcher.group(k) : "";
+							System.out.printf("%s", match);
+							System.out.println();
 						}
+						count += k;
 					}
 					assert count > 0;
 				}
