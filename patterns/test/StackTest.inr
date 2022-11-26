@@ -6,7 +6,7 @@ StackTestSub = (
 	(a* b, in[`!Bsig`] stop)* (a* eos, clear in[`!eos`] stop)
 ):dfamin;
 
-StackTest:save `build/patterns/automata/StackTest.dfa`;
-StackTest$(0,1 2):prsseq `build/patterns/automata/StackTest.pr`;
-StackTestSub:save `build/patterns/automata/StackTestSub.dfa`;
-StackTestSub$(0,1 2):prsseq `build/patterns/automata/StackTestSub.pr`;
+StackTest:save `build/automata/StackTest.dfa`;
+StackTest$(0,1 2):prsseq `build/automata/StackTest.pr`;
+StackTestSub:save `build/automata/StackTestSub.dfa`;
+StackTestSub$(0,1 2):prsseq `build/automata/StackTestSub.pr`;

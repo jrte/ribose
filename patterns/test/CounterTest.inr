@@ -2,5 +2,5 @@ CounterTest = (
 	(nil, count[9 `!zero`]) ((a, count)* (zero b, count[9 `!zero`]))* (eos, stop)
 ):dfamin;
 
-CounterTest$(0,1 2):prsseq `build/patterns/automata/CounterTest.pr`;
-CounterTest:save `build/patterns/automata/CounterTest.dfa`;
+CounterTest$(0,1 2):prsseq `build/automata/CounterTest.pr`;
+CounterTest:save `build/automata/CounterTest.dfa`;

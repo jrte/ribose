@@ -148,19 +148,19 @@ LinuxKernelNil = (
 	(LinuxKernel$0) (eos, stop)
 ):dfamin;
 
-LinuxKernelDropped:save `build/patterns/automata/LinuxKernelDropped.dfa`;
-LinuxKernelDropped$(0,1 2):prsseq `build/patterns/automata/LinuxKernelDropped.pr`;
-LinuxKernelLimited:save `build/patterns/automata/LinuxKernelLimited.dfa`;
-LinuxKernelLimited$(0,1 2):prsseq `build/patterns/automata/LinuxKernelLimited.pr`;
-LinuxKernelAborted:save `build/patterns/automata/LinuxKernelAborted.dfa`;
-LinuxKernelAborted$(0,1 2):prsseq `build/patterns/automata/LinuxKernelAborted.pr`;
-LinuxKernelLoose:save `build/patterns/automata/LinuxKernelLoose.dfa`;
-LinuxKernelLoose$(0,1 2):prsseq `build/patterns/automata/LinuxKernelLoose.pr`;
-LinuxKernelStrict:save `build/patterns/automata/LinuxKernelStrict.dfa`;
-LinuxKernelStrict$(0,1 2):prsseq `build/patterns/automata/LinuxKernelStrict.pr`;
-LinuxKernelCapture:save `build/patterns/automata/LinuxKernelCapture.dfa`;
-LinuxKernelCapture$(0,1 2):prsseq `build/patterns/automata/LinuxKernelCapture.pr`;
-LinuxKernelNil:save `build/patterns/automata/LinuxKernelNil.dfa`;
-LinuxKernelNil$(0,1 2):prsseq `build/patterns/automata/LinuxKernelNil.pr`;
-LinuxKernel:save `build/patterns/automata/LinuxKernel.dfa`;
-LinuxKernel$(0,1 2):prsseq `build/patterns/automata/LinuxKernel.pr`;
+LinuxKernelDropped:save `build/automata/LinuxKernelDropped.dfa`;
+LinuxKernelDropped$(0,1 2):prsseq `build/automata/LinuxKernelDropped.pr`;
+LinuxKernelLimited:save `build/automata/LinuxKernelLimited.dfa`;
+LinuxKernelLimited$(0,1 2):prsseq `build/automata/LinuxKernelLimited.pr`;
+LinuxKernelAborted:save `build/automata/LinuxKernelAborted.dfa`;
+LinuxKernelAborted$(0,1 2):prsseq `build/automata/LinuxKernelAborted.pr`;
+LinuxKernelLoose:save `build/automata/LinuxKernelLoose.dfa`;
+LinuxKernelLoose$(0,1 2):prsseq `build/automata/LinuxKernelLoose.pr`;
+LinuxKernelStrict:save `build/automata/LinuxKernelStrict.dfa`;
+LinuxKernelStrict$(0,1 2):prsseq `build/automata/LinuxKernelStrict.pr`;
+LinuxKernelCapture:save `build/automata/LinuxKernelCapture.dfa`;
+LinuxKernelCapture$(0,1 2):prsseq `build/automata/LinuxKernelCapture.pr`;
+LinuxKernelNil:save `build/automata/LinuxKernelNil.dfa`;
+LinuxKernelNil$(0,1 2):prsseq `build/automata/LinuxKernelNil.pr`;
+LinuxKernel:save `build/automata/LinuxKernel.dfa`;
+LinuxKernel$(0,1 2):prsseq `build/automata/LinuxKernel.pr`;

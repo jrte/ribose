@@ -23,5 +23,5 @@ Automaton = (nil?
 	(eos, automaton stop)
 ):dfamin;
 
-Automaton$(0,1 2):prsseq `build/ribose/automata/Automaton.pr`;
-Automaton:save `build/ribose/automata/Automaton.dfa`;
+Automaton$(0,1 2):prsseq `build/compiler/Automaton.pr`;
+Automaton:save `build/compiler/Automaton.dfa`;

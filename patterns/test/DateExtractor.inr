@@ -129,6 +129,6 @@ DateExtractor = (nil, clear[`~*`] select)? (
 	dates @ (identity* map*)*
 ):dfamin;
 
-DateExtractor$(0,1 2):prsseq `build/patterns/automata/DateExtractor.pr`;
-DateExtractor:save `build/patterns/automata/DateExtractor.dfa`;
+DateExtractor$(0,1 2):prsseq `build/automata/DateExtractor.pr`;
+DateExtractor:save `build/automata/DateExtractor.dfa`;
 

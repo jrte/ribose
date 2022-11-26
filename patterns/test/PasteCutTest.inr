@@ -2,5 +2,5 @@ PasteCutTest = (
 	nil? ((a, paste)* (b, select[`~buffer`] clear cut select))* (`eos`, clear[`~*`] stop)
 ):dfamin;
 
-PasteCutTest$(0,1 2):prsseq `build/patterns/automata/PasteCutTest.pr`;
-PasteCutTest:save `build/patterns/automata/PasteCutTest.dfa`;
+PasteCutTest$(0,1 2):prsseq `build/automata/PasteCutTest.pr`;
+PasteCutTest:save `build/automata/PasteCutTest.dfa`;

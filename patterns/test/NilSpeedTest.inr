@@ -2,5 +2,5 @@ NilSpeedTest = (
 	nil (a*b)* (eos, stop)
 ):dfamin;
 
-NilSpeedTest$(0,1 2):prsseq `build/patterns/automata/NilSpeedTest.pr`;
-NilSpeedTest:save `build/patterns/automata/NilSpeedTest.dfa`;
+NilSpeedTest$(0,1 2):prsseq `build/automata/NilSpeedTest.pr`;
+NilSpeedTest:save `build/automata/NilSpeedTest.dfa`;

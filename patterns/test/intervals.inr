@@ -34,8 +34,8 @@ Tintervals = nil? (
 	)*
 ):dfamin;
 
-Tintervals$(0,1 2):prsseq `build/patterns/automata/Tintervals.pr`;
-Tintervals:save `build/patterns/automata/Tintervals.dfa`;
+Tintervals$(0,1 2):prsseq `build/automata/Tintervals.pr`;
+Tintervals:save `build/automata/Tintervals.dfa`;
 
 interval = (
 	'<cycle-start id="' digit+ '" type="scavenge"'
@@ -77,5 +77,5 @@ Sintervals = nil? (
 	)*
 ):dfamin;
 
-Sintervals$(0,1 2):prsseq `build/patterns/automata/Sintervals.pr`;
-Sintervals:save `build/patterns/automata/Sintervals.dfa`;
+Sintervals$(0,1 2):prsseq `build/automata/Sintervals.pr`;
+Sintervals:save `build/automata/Sintervals.dfa`;

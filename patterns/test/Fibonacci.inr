@@ -12,5 +12,5 @@ Fibonacci = (
 	(eos, clear[`~*`] stop)
 ):dfamin;
 
-Fibonacci$(0,1 2):prsseq `build/patterns/automata/Fibonacci.pr`;
-Fibonacci:save `build/patterns/automata/Fibonacci.dfa`;
+Fibonacci$(0,1 2):prsseq `build/automata/Fibonacci.pr`;
+Fibonacci:save `build/automata/Fibonacci.dfa`;

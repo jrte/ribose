@@ -2,5 +2,5 @@ PastePauseTest = (
 	nil? ((a, paste)* (b, clear pause))* (eos, stop)
 ):dfamin;
 
-PastePauseTest:save `build/patterns/automata/PastePauseTest.dfa`;
-PastePauseTest$(0,1 2):prsseq `build/patterns/automata/PastePauseTest.pr`;
+PastePauseTest:save `build/automata/PastePauseTest.dfa`;
+PastePauseTest$(0,1 2):prsseq `build/automata/PastePauseTest.pr`;
