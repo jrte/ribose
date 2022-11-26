@@ -75,6 +75,7 @@ public final class TCompile extends ModelCompiler {
 	 */
 	public static void main(final String[] args) {
 		final Logger rtcLogger = Logger.getLogger(Base.RTC_LOGGER_NAME);
+		rtcLogger.setLevel(Level.INFO);
 		File ginrAutomataDirectory = null;
 		File riboseModelFile = null;
 		String targetClassname = null;

@@ -114,8 +114,9 @@ public final class TRun extends BaseTarget {
 	 * @param args [--nil] &lt;target-class&gt; &lt;transducer-name&gt; &lt;input-file-path&gt; &lt;trun-model-path&gt;
 	 */
 	public static void main(final String[] args) {
-		final Logger rteLogger = Logger.getLogger(Base.RTE_LOGGER_NAME);
 		final CharsetEncoder encoder = Base.getRuntimeCharset().newEncoder();
+		final Logger rteLogger = Logger.getLogger(Base.RTE_LOGGER_NAME);
+		rteLogger.setLevel(Level.WARNING);
 		int argc = args.length;
 		final boolean nil = (argc > 0) ? (args[0].compareTo("--nil") == 0) : false;
 		int arg = nil ? 1 : 0;

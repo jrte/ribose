@@ -65,6 +65,36 @@
 		<pathelement location="${jars.dir}/${ribose.version}.jar"/>
 	</path>
 
+	<target name="clean" depends="clean-java,clean-patterns,clean-test">
+		<touch file="patterns/ribose/Automaton.inr"/>
+		<delete quiet="true">
+			<fileset dir="${basedir}" includes="*.log,*.log.[0-9]"/>
+		</delete>
+  	<delete dir="javadoc" includes="**/*" quiet="true"/>
+  	<delete dir="build" quiet="true"/>
+	</target>
+
+	<target name="clean-java">
+		<delete dir="${bin.dir}/com" quiet="true"/>
+		<delete dir="${build.java}" quiet="true"/>
+		<delete dir="${build.java.test}" quiet="true"/>
+		<delete failonerror="false">
+		  <fileset dir="${jars.dir}" includes="*.jar"/>
+		</delete>
+	</target>
+
+	<target name="clean-patterns">
+		<delete dir="${build.patterns}" quiet="true"/>
+		<delete file="build/Test.model" quiet="true"/>
+		<delete file="build/Test.map" quiet="true"/>
+	</target>
+
+	<target name="clean-test">
+		<delete failonerror="false">
+		  <fileset dir="${build.test}" includes="*.out"/>
+		</delete>
+	</target>
+
 	<target name="init">
 		<tstamp/>
 		<exec outputproperty="git.branch" executable="git">
@@ -92,56 +122,12 @@
 		<echoproperties/>
 	</target>
 		
-	<target name="ribose" depends="init,package-java,build-compiler-model,javadoc" 
+	<target name="ribose" depends="init,package-java,javadoc,build-compiler-model" 
 		description="Clean build for java and patterns"/>
 	
 	<target name="ci-test" depends="clean,test,env" 
 		description="Full build with CI tests for java and patterns"/>
 	
-	<target name="build-compiler-model" unless="tcompile.uptodate" depends="package-java">
-		<exec failonerror="true" executable="bash">
-			<arg line="etc/sh/patterns patterns/ribose patterns/alpha.inr patterns/after.inr build/ribose/automata"/>
-		</exec>
-		<java fork="true" dir ="." classname="com.characterforming.ribose.TCompile" classpathref="jrte.classpath" failonerror="true">
-			<jvmarg line="${jargs}"/>
-			<arg line="--target com.characterforming.ribose.TCompile build/ribose/automata build/ribose/TCompile.model"/>
-		</java>
-		<fixcrlf file="build/ribose/TCompile.map" eol="lf"/>
-		<echo message="./TCompile.(map,model) -> ./TCompile.(map,model).last"/>
-		<move file="./TCompile.map" tofile="./TCompile.map.last" failonerror="false" verbose="true"/>
-		<move file="./TCompile.model" tofile="./TCompile.model.last" failonerror="false" verbose="true"/>
-		<echo message="build/ribose/TCompile.(map,model) -> ./TCompile.(map,model)"/>
-		<move file="build/ribose/TCompile.map" tofile="./TCompile.map" preservelastmodified="true" failonerror="false" verbose="true"/>
-		<move file="build/ribose/TCompile.model" tofile="./TCompile.model" preservelastmodified="true" failonerror="false" verbose="true"/>
-	</target>
-
-	<target name="clean" depends="clean-java,clean-patterns,clean-test">
-		<touch file="patterns/ribose/Automaton.inr"/>
-  	<delete dir="javadoc" includes="**/*" quiet="true"/>
-  	<delete dir="build/ribose" quiet="true"/>
-	</target>
-
-	<target name="clean-java">
-		<delete dir="${bin.dir}/com" quiet="true"/>
-		<delete dir="${build.java}" quiet="true"/>
-		<delete dir="${build.java.test}" quiet="true"/>
-		<delete failonerror="false">
-		  <fileset dir="${jars.dir}" includes="*.jar"/>
-		</delete>
-	</target>
-
-	<target name="clean-patterns">
-		<delete dir="${build.patterns}" quiet="true"/>
-		<delete file="build/Test.model" quiet="true"/>
-		<delete file="build/Test.map" quiet="true"/>
-	</target>
-
-	<target name="clean-test">
-		<delete failonerror="false">
-		  <fileset dir="${build.test}" includes="*.out"/>
-		</delete>
-	</target>
-
 	<target name="compile-java" depends="init">
 		<javac fork="true" includeantruntime="false" srcdir="${java.source.dir}" destdir="${build.java.classes}" release="11"
 			 debug="true" debuglevel="lines,vars,source">
@@ -183,6 +169,23 @@
 		</javadoc>
 		<copy todir="javadoc" file="etc/markdown/a-b-gears-white.gif"/>
 		<jar basedir="javadoc" destfile="jars/${ribose.version}-api.jar"/>
+	</target>
+
+	<target name="build-compiler-model" unless="tcompile.uptodate" depends="package-java">
+		<exec failonerror="true" executable="bash">
+			<arg line="etc/sh/patterns patterns/ribose patterns/alpha.inr patterns/after.inr build/ribose/automata"/>
+		</exec>
+		<java fork="true" dir ="." classname="com.characterforming.ribose.TCompile" classpathref="jrte.classpath" failonerror="true">
+			<jvmarg line="${jargs}"/>
+			<arg line="--target com.characterforming.ribose.TCompile build/ribose/automata build/ribose/TCompile.model"/>
+		</java>
+		<fixcrlf file="build/ribose/TCompile.map" eol="lf"/>
+		<echo message="./TCompile.(map,model) -> ./TCompile.(map,model).last"/>
+		<move file="./TCompile.map" tofile="./TCompile.map.last" failonerror="false" verbose="true"/>
+		<move file="./TCompile.model" tofile="./TCompile.model.last" failonerror="false" verbose="true"/>
+		<echo message="build/ribose/TCompile.(map,model) -> ./TCompile.(map,model)"/>
+		<move file="build/ribose/TCompile.map" tofile="./TCompile.map" preservelastmodified="true" failonerror="false" verbose="true"/>
+		<move file="build/ribose/TCompile.model" tofile="./TCompile.model" preservelastmodified="true" failonerror="false" verbose="true"/>
 	</target>
 
 	<target name="check-test-patterns" depends="ribose">

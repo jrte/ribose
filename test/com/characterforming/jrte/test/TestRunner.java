@@ -54,11 +54,12 @@ public class TestRunner {
 			System.exit(1);
 		}
 		
-		Logger rteLogger = Logger.getLogger(Base.RTE_LOGGER_NAME);
-		final FileHandler rteHandler = new FileHandler("TestRunner.log");
-		rteLogger.addHandler(rteHandler);
+		final Logger rteLogger = Logger.getLogger("TestRunner");
+		final FileHandler rteHandler = new FileHandler("TestRunner.log", true);
 		rteHandler.setFormatter(new SimpleFormatter());
-		
+		rteLogger.addHandler(rteHandler);
+		rteLogger.setLevel(Level.WARNING);
+	
 		final String modelPath = args[0];
 		final long arg = args.length > 1 ? Long.parseLong(args[1]) : 0;
 		final char[] achars = new char[10000000];

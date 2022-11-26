@@ -67,23 +67,24 @@ public class FileRunner {
 		final boolean jrteOutEnabled = System.getProperty("jrte.out.enabled", "false").equals("true");
 		final boolean regexOutEnabled = !regex.isEmpty() && System.getProperty("regex.out.enabled", "false").equals("true");
 		if (jrteOutEnabled && regexOutEnabled) {
-			System.out.println(String.format("Usage: java -cp <classpath> [-Djrte.out.enabled=true ^|^ -Dregex.out.enabled=true] %s [--nil] <transducer-name> <input-path> <model-path>\n(jrteOutputEnabled and regexOutputEnabled can't both be true)", FileRunner.class.getName()));
+			System.out.println(String.format("Usage: java -cp <classpath> [-Djrte.out.enabled=true ^|^ -Dregex.out.enabled=true] %s [--nil] <transducer-name> <input-path> <model-path> [regex]\n(jrteOutputEnabled and regexOutputEnabled can't both be true)", FileRunner.class.getName()));
 			System.exit(1);
 		}
 		
 		final CharsetDecoder decoder = Base.getRuntimeCharset().newDecoder();
 		final CharsetEncoder encoder = Base.getRuntimeCharset().newEncoder();
-		final Logger rteLogger = Logger.getLogger(Base.RTE_LOGGER_NAME);
-		final FileHandler rteHandler = new FileHandler("FileRunner.log");
+		final Logger rteLogger = Logger.getLogger("FileRunner");
+		final FileHandler rteHandler = new FileHandler("FileRunner.log", true);
 		rteHandler.setFormatter(new SimpleFormatter());
 		rteLogger.addHandler(rteHandler);
-		
+		rteLogger.setLevel(Level.WARNING);
+
 		final File f = new File(inputPath);
 		try (final FileInputStream isr = new FileInputStream(f)) {
 			long ejrte = 0, tjrte = 0, t0 = 0, t1 = 0;
+			CharBuffer charInput = null;
 			int clen = (int)f.length();
 			byte[] cbuf = null;
-			CharBuffer charInput = null;
 			if (clen > 0) {
 				cbuf = new byte[clen];
 				clen = isr.read(cbuf, 0, clen);
@@ -92,9 +93,8 @@ public class FileRunner {
 				System.out.println(String.format("Input file is empty: %s", inputPath));
 				System.exit(1);
 			}
-			
-			int loops = 1;
 			TRun proxyTarget = new TRun();
+			int loops = 1;
 			if (jrteOutEnabled || !regexOutEnabled) {
 				try (IRuntime ribose = Ribose.loadRiboseModel(new File(modelPath), proxyTarget)) {
 					TRun runTarget = new TRun();
@@ -117,17 +117,23 @@ public class FileRunner {
 							trex.stop();
 							t1 = System.currentTimeMillis() - t0;
 							System.out.print(String.format("%4d", t1));
-							if ((loops == 1) || (i >= 10)) {
+							if (i >= 10) {
 								tjrte += t1;
 							}
 						}
-						double epkb = (double)(ejrte*1024) / (double)10000000;
-						double mbps = (tjrte > 0) ? ((double)(clen) / (double)(tjrte*1024*1024)) * (Math.min(loops,10)*1000) : -1;
+						double epkb = (double)(ejrte*1024) / (double)clen;
+						double mbps = (tjrte > 0) ? ((double)clen / (double)(tjrte*1024*1024)) * (loops - 10) * 1000 : -1;
 						System.out.println(String.format(" : %7.3f mb/s %7.3f nul/kb", mbps, epkb));
-					} else if (nil) {
-						ribose.transduce(runTarget, Bytes.encode(encoder, transducerName), Signal.nil, isr, System.out);
 					} else {
-						ribose.transduce(runTarget, Bytes.encode(encoder, transducerName), isr, System.out);
+						t0 = System.currentTimeMillis();
+						if (nil) {
+							ribose.transduce(runTarget, Bytes.encode(encoder, transducerName), Signal.nil, isr, System.out);
+						} else {
+							ribose.transduce(runTarget, Bytes.encode(encoder, transducerName), isr, System.out);
+						}
+						tjrte = System.currentTimeMillis() - t0;
+						double mbps = (tjrte > 0) ? ((double)clen / (double)(tjrte*1024*1024)) * 1000 : -1;
+						rteLogger.log(Level.INFO, String.format("%20s : %7.3f mb/s; %s (%,d bytes)", transducerName, mbps, inputPath, clen));
 					}
 				} catch (Exception e) {
 					System.out.println("Runtime exception thrown.");
@@ -141,10 +147,10 @@ public class FileRunner {
 			}
 			if (regexOutEnabled || !jrteOutEnabled) {
 				Pattern pattern = Pattern.compile(regex);
+				long tregex = 0;
 				if (!regexOutEnabled) {
-					System.out.print(String.format("%20s: ", "RegEx"));
-					long tregex = 0;
 					loops = 20;
+					System.out.print(String.format("%20s: ", "RegEx"));
 					for (int i = 0; i < loops; i++) {
 						Matcher matcher = pattern.matcher(charInput);
 						t0 = System.currentTimeMillis();
@@ -164,17 +170,18 @@ public class FileRunner {
 						}
 						t1 = System.currentTimeMillis() - t0;
 						System.out.print(String.format("%4d", count > 0 ? t1 : -1));
-						if ((loops == 1) || (i >= 10)) {
+						if (i >= 10) {
 							tregex += t1;
 						}
 						assert count > 0;
 					}
 					double tr = (tjrte > 0) ? (double) tregex / tjrte : -1;
-					double mbps = (tjrte > 0) ? ((double)(clen) / (double)(tregex*1024*1024)) * (Math.min(loops,10)*1000) : -1;
+					double mbps = (tregex > 0) ? ((double)clen / (double)(tregex*1024*1024)) * (loops - 10) * 1000 : -1;
 					System.out.println(String.format(" : %7.3f mb/s %7.3f ribose:regex", mbps, tr));
 				} else {
 					int count = 0;
 					Matcher matcher = pattern.matcher(charInput);
+					t0 = System.currentTimeMillis();
 					while (matcher.find()) {
 						int k = matcher.groupCount();
 						if (0 < k) {
@@ -189,6 +196,9 @@ public class FileRunner {
 						count += k;
 					}
 					assert count > 0;
+					tregex = System.currentTimeMillis() - t0;
+					double mbps = (tregex > 0) ? ((double)clen / (double)(tregex*1024*1024)) * 1000 : -1;
+					rteLogger.log(Level.INFO, String.format("%20s : %7.3f mb/s; %s (%,d bytes)", "RegEx", mbps, inputPath, clen));
 				}
 			}
 		} catch (Exception e) {

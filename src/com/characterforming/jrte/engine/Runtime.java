@@ -93,6 +93,7 @@ public final class Runtime implements IRuntime {
 	@Override
 	public boolean transduce(ITarget target, Bytes transducer, Signal prologue, InputStream in, OutputStream out) throws RiboseException {
 		try {
+			long t0 = System.currentTimeMillis();
 			byte[] bytes = new byte[InputStack.BLOCK_SIZE];
 			int read = in.read(bytes);
 			@SuppressWarnings("unused")
@@ -121,7 +122,10 @@ public final class Runtime implements IRuntime {
 				}
 				trex.stop();
 			}
-		} catch (ModelException e) {
+			long tjrte = System.currentTimeMillis() - t0;
+			double mbps = (tjrte > 0) ? ((double)position / (double)(tjrte*1024*1024)) * 1000 : -1;
+			log(target, transducer, String.format("%7.3f mb/s; %s (%,d bytes)", mbps, in.toString(), position));
+	} catch (ModelException e) {
 			log(target, transducer, e);
 			return false;
 		} catch (DomainErrorException e) {
@@ -153,6 +157,11 @@ public final class Runtime implements IRuntime {
 	@Override
 	public void close() {
 		this.model.close();
+	}
+	
+	private void log(ITarget target, Bytes transducer, String message) {
+		Runtime.rteLogger.log(Level.INFO, String.format("Runtime.transduce(%1$s, %2$s, ...): %3$s",
+			target.getClass().getSimpleName(), transducer.toString(), message));
 	}
 	
 	private void log(ITarget target, Bytes transducer, Throwable e) {
