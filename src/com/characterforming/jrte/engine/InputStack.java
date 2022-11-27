@@ -44,10 +44,12 @@ final class InputStack {
 	private Input[] marked;
 	private int bom, tom;
 	
-	@SuppressWarnings("serial")
-	class MarkStack extends LinkedList<Input> { }
-	@SuppressWarnings("serial")
-	class FreeStack extends LinkedList<byte[]> { }
+	class MarkStack extends LinkedList<Input> {
+		private static final long serialVersionUID = 1L;
+	}
+	class FreeStack extends LinkedList<byte[]> {
+		private static final long serialVersionUID = 1L;
+	}
 	
 	InputStack(final int initialSize, final int signalCount, final int valueCount) {
 		this.signals = new byte[signalCount][]; 
@@ -259,24 +261,22 @@ final class InputStack {
 		if (bytes == this.stack[0].array && this.markState != MarkState.clear) {
 			bytes = null;
 		}
-		if (bytes != null && this.bom != this.tom) {
-			int end = this.nextMarked(this.bom);
-			int start = this.nextMarked(this.tom);
-			for (int i = start; i != end; i = this.nextMarked(i)) {
+		final int bom = this.nextMarked(this.bom);
+		final int tom = this.nextMarked(this.tom);
+		boolean noneMarked = tom == bom;
+		if (bytes != null && !noneMarked) {
+			for (int i = tom; i != bom; i = this.nextMarked(i)) {
 				if (bytes == this.marked[i].array) {
 					bytes = null;
 					break;
 				}
 			} 
 		}
-		if (bytes == null) {
-			int end = this.nextMarked(this.bom);
-			int start = this.nextMarked(this.tom);
-			boolean noneMarked = start == end;
-			if (noneMarked) {
-				end = this.marked.length;
-				start = 0;
+		if (bytes != null) {
+			return bytes;
 			}
+		final int start = noneMarked ? 0 : tom;
+		final int end = noneMarked ? this.marked.length : bom;
 			for (int i = start; i != end; i = noneMarked ? (i + 1) : this.nextMarked(i)) {
 				if (this.marked[i].array != null) {
 					for (int j = this.nextMarked(this.bom); j != this.nextMarked(this.tom); j = nextMarked(j)) {
@@ -292,8 +292,8 @@ final class InputStack {
 					}
 				}
 			}
-		}
-		return bytes;
+		assert bytes == null;
+		return new byte[InputStack.BLOCK_SIZE];
 	}
 	
 	/** 

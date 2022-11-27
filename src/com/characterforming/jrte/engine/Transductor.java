@@ -184,7 +184,7 @@ public final class Transductor implements ITransductor, IOutput {
 
 	/*
 	 * (non-Javadoc)
-	 * @see com.characterforming.ribose.ITransductor#input(byte[], int)
+	 * @see com.characterforming.ribose.ITransductor#output(OutputStream)
 	 */
 	@Override
 	public OutputStream output(OutputStream output) {
@@ -195,20 +195,20 @@ public final class Transductor implements ITransductor, IOutput {
 
 	/*
 	 * (non-Javadoc)
-	 * @see com.characterforming.ribose.ITransductor#input(byte[], int)
+	 * @see com.characterforming.ribose.ITransductor#push(byte[], int)
 	 */
 	@Override
-	public Status input(final byte[] input, int limit) {
+	public Status push(final byte[] input, int limit) {
 		this.inputStack.push(input).limit(limit);
 		return this.status();
 	}
 
 	/*
 	 * (non-Javadoc)
-	 * @see com.characterforming.ribose.ITransductor#signal(int)
+	 * @see com.characterforming.ribose.ITransductor#push(Signal)
 	 */
 	@Override
-	public Status signal(Signal signal) {
+	public Status push(Signal signal) {
 		this.inputStack.signal(signal.signal());
 		return this.status();
 	}

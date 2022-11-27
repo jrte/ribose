@@ -94,8 +94,8 @@ public class TestRunner {
 				System.out.format("%20s: ", test);
 				for (int i = 0; i < 20; i++) {
 					assert trex.status() == Status.STOPPED;
-					trex.input(abytes, abytes.length);
-					trex.signal(Signal.nil);
+					trex.push(abytes, abytes.length);
+					trex.push(Signal.nil);
 					Status status = trex.start(Bytes.encode(encoder, test));
 					t0 = System.currentTimeMillis();
 					while (status == Status.RUNNABLE) {

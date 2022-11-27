@@ -153,8 +153,16 @@ public interface ITransductor extends ITarget {
 	 * @param limit truncate effective input range at {@code max(limit, data.length)}  
 	 * @return Run status of transduction at point of return 
 	 */
-	Status input(byte[] input, int limit);
-	
+	Status push(byte[] input, int limit);
+
+	/**
+	 * Push a signal onto the transductor's input stack to trigger next transition. 
+	 * 
+	 * @param signal the signal to push 
+	 * @return Run status of transduction at point of return 
+	 */
+	Status push(Signal signal);
+
 	/**
 	 * Push a transducer onto the transductor's transducer stack and set it state
 	 * to the initial state. The topmost (last) pushed transducer will be activated 
@@ -165,14 +173,6 @@ public interface ITransductor extends ITarget {
 	 * @throws ModelException on error
 	 */
 	Status start(Bytes transducer) throws ModelException;
-
-	/**
-	 * Push a signal onto the transductor's input stack to trigger next transition. 
-	 * 
-	 * @param signal the signal to push 
-	 * @return Run status of transduction at point of return 
-	 */
-	Status signal(Signal signal);
 
 	/**
 	 * Run the transduction with current input until the input or transduction

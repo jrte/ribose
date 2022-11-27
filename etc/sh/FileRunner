@@ -1,17 +1,22 @@
 #!/bin/bash
-cd $(dirname $(readlink -f $0))/../..
-jout="-Djrte.out.enabled=false"
-if (($#>0)) && [[ "$1" == "--jrte-out" ]]; then
-	jout="-Djrte.out.enabled=true"
+#set -x
+vmargs=""
+while [[ "$1" =~ ^[-][^-] ]]; do
+	vmargs="$vmargs $1";
 	shift
-fi
-rout="-Dregex.out.enabled=false"
-if (($#>0)) && [[ "$1" == "--regex-out" ]]; then
-	rout="-Dregex.out.enabled=true"
-	shift
+done
+nil=""
+if [[ "$1" == "--nil" ]]; then
+  nil="$1"
+  shift
 fi
 if (($#<3)) || (($#>4)); then
 	echo "Usage: FileRunner [--jrte-out] [--regex-out] [--nil] <transducer> <infile-path> <model-path>"
 else
-	java $jout $rout -cp jars/ribose-0.0.0.jar:jars/ribose-0.0.0-test.jar com.characterforming.jrte.test.FileRunner $*
+	transducer="$1"
+	input="$2"
+	model="$3"
+	shift 3
+  jars="$(dirname $(readlink -f $0))/../../jars"
+	java -cp $jars/ribose-0.0.0.jar:$jars/ribose-0.0.0-test.jar $vmargs com.characterforming.jrte.test.FileRunner $nil "$*"
 fi

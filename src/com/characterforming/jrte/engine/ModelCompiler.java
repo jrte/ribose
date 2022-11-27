@@ -408,8 +408,8 @@ public class ModelCompiler implements ITarget {
 			this.stateMaps = (HashMap<Integer, Integer>[])new HashMap<?,?>[3];
 			this.stateTransitionMap = new HashMap<Integer, ArrayList<Transition>>(size >> 3);
 			this.transductor.stop();
-			this.transductor.input(bytes, size);
-			this.transductor.signal(Signal.nil);
+			this.transductor.push(bytes, size);
+			this.transductor.push(Signal.nil);
 			Status status = this.transductor.start(Bytes.encode(this.encoder, "Automaton"));
 			while (status == Status.RUNNABLE) {
 				status = this.transductor.run();

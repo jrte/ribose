@@ -82,30 +82,25 @@ public class FileRunner {
 		final File f = new File(inputPath);
 		try (final FileInputStream isr = new FileInputStream(f)) {
 			long ejrte = 0, tjrte = 0, t0 = 0, t1 = 0;
-			CharBuffer charInput = null;
 			int clen = (int)f.length();
-			byte[] cbuf = null;
-			if (clen > 0) {
-				cbuf = new byte[clen];
-				clen = isr.read(cbuf, 0, clen);
-				charInput = decoder.decode(ByteBuffer.wrap(cbuf, 0, cbuf.length));
-			} else {
+			if (clen <= 0) {
 				System.out.println(String.format("Input file is empty: %s", inputPath));
 				System.exit(1);
 			}
-			TRun proxyTarget = new TRun();
+			byte[] cbuf = new byte[clen];
 			int loops = 1;
 			if (jrteOutEnabled || !regexOutEnabled) {
-				try (IRuntime ribose = Ribose.loadRiboseModel(new File(modelPath), proxyTarget)) {
+				try (IRuntime ribose = Ribose.loadRiboseModel(new File(modelPath), new TRun())) {
 					TRun runTarget = new TRun();
 					ITransductor trex = ribose.newTransductor(runTarget);
 					if (!jrteOutEnabled) {
 						System.out.print(String.format("%20s: ", transducerName));
+						clen = isr.read(cbuf, 0, clen);
 						loops = 20;
 						for (int i = 0; i < loops; i++) {
-							trex.input(cbuf, clen);
+							trex.push(cbuf, clen);
 							if (nil) {
-								trex.signal(Signal.nil);
+								trex.push(Signal.nil);
 							}
 							Status status = trex.start(Bytes.encode(encoder, transducerName));
 							t0 = System.currentTimeMillis();
@@ -146,11 +141,13 @@ public class FileRunner {
 				}
 			}
 			if (regexOutEnabled || !jrteOutEnabled) {
+				clen = isr.read(cbuf, 0, clen);
+				CharBuffer charInput = decoder.decode(ByteBuffer.wrap(cbuf, 0, cbuf.length));
 				Pattern pattern = Pattern.compile(regex);
 				long tregex = 0;
 				if (!regexOutEnabled) {
-					loops = 20;
 					System.out.print(String.format("%20s: ", "RegEx"));
+					loops = 20;
 					for (int i = 0; i < loops; i++) {
 						Matcher matcher = pattern.matcher(charInput);
 						t0 = System.currentTimeMillis();
