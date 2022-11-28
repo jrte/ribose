@@ -54,16 +54,23 @@ public class FileRunner {
 	 * @throws IOException on error
 	 */
 	public static void main(final String[] args) throws InterruptedException, RiboseException, IOException {
-		if ((args.length < 3) || (args.length > 5)) {
+		final boolean nil = args[0].compareTo("--nil") == 0;
+		int arg = nil ? 1 : 0;
+		if ((args.length - arg) < 3) {
 			System.out.println(String.format("Usage: java -cp <classpath> [-Djrte.out.enabled=true ^|^ -Dregex.out.enabled=true] %s [--nil] <transducer-name> <input-path> <model-path>", FileRunner.class.getName()));
 			System.exit(1);
 		}
-		final boolean nil = args[0].compareTo("--nil") == 0;
-		int arg = nil ? 1 : 0;
 		final String transducerName = args[arg++];
 		final String inputPath = args[arg++];
 		final String modelPath = args[arg++];
-		final String regex = (args.length > arg) ? args[arg++] : "";
+		final StringBuffer regbuf = new StringBuffer();
+		while (arg < args.length) {
+			regbuf.append(args[arg++]);
+			if (arg < args.length) {
+				regbuf.append(' ');
+			}
+		}
+		final String regex = (regbuf.length() > 0) ? regbuf.toString() : "";
 		final boolean jrteOutEnabled = System.getProperty("jrte.out.enabled", "false").equals("true");
 		final boolean regexOutEnabled = !regex.isEmpty() && System.getProperty("regex.out.enabled", "false").equals("true");
 		if (jrteOutEnabled && regexOutEnabled) {
@@ -88,6 +95,8 @@ public class FileRunner {
 				System.exit(1);
 			}
 			byte[] cbuf = new byte[clen];
+			clen = isr.read(cbuf, 0, clen);
+			assert clen > 0;
 			int loops = 1;
 			if (jrteOutEnabled || !regexOutEnabled) {
 				try (IRuntime ribose = Ribose.loadRiboseModel(new File(modelPath), new TRun())) {
@@ -95,7 +104,6 @@ public class FileRunner {
 					ITransductor trex = ribose.newTransductor(runTarget);
 					if (!jrteOutEnabled) {
 						System.out.print(String.format("%20s: ", transducerName));
-						clen = isr.read(cbuf, 0, clen);
 						loops = 20;
 						for (int i = 0; i < loops; i++) {
 							trex.push(cbuf, clen);
@@ -141,7 +149,6 @@ public class FileRunner {
 				}
 			}
 			if (regexOutEnabled || !jrteOutEnabled) {
-				clen = isr.read(cbuf, 0, clen);
 				CharBuffer charInput = decoder.decode(ByteBuffer.wrap(cbuf, 0, cbuf.length));
 				Pattern pattern = Pattern.compile(regex);
 				long tregex = 0;

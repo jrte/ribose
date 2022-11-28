@@ -25,6 +25,7 @@ else
   if (($#==4)); then
     args="$args $4"
   fi
-	$trun $nil $target $args
+	{ time $trun $nil $target $args ; } 2>/tmp/$1.tmp
+	echo -e "$(cat /tmp/$1.tmp | tr '\r\n\t' ' ' | tr -s ' ')\t$1" >/tmp/$1.time
 fi
 #set +x

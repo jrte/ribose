@@ -17,6 +17,8 @@ else
 	input="$2"
 	model="$3"
 	shift 3
-  jars="$(dirname $(readlink -f $0))/../../jars"
-	java -cp $jars/ribose-0.0.0.jar:$jars/ribose-0.0.0-test.jar $vmargs com.characterforming.jrte.test.FileRunner $nil "$*"
+	jars="$(dirname $(readlink -f $0))/../../jars"
+	{ time java -cp $jars/ribose-0.0.0.jar:$jars/ribose-0.0.0-test.jar $vmargs com.characterforming.jrte.test.FileRunner $nil "$transducer" "$input" "$model" $* ; } 2>/tmp/$transducer.tmp
+	echo -e "$(cat /tmp/$transducer.tmp | tr '\r\n\t' ' ' | tr -s ' ')\t$transducer" >/tmp/$transducer.time
 fi
+set +x
