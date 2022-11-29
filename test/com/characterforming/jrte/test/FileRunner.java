@@ -28,6 +28,7 @@ import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.CharsetDecoder;
 import java.nio.charset.CharsetEncoder;
+import java.nio.charset.CoderResult;
 import java.util.logging.FileHandler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -78,8 +79,6 @@ public class FileRunner {
 			System.exit(1);
 		}
 		
-		final CharsetDecoder decoder = Base.getRuntimeCharset().newDecoder();
-		final CharsetEncoder encoder = Base.getRuntimeCharset().newEncoder();
 		final Logger rteLogger = Logger.getLogger("FileRunner");
 		final FileHandler rteHandler = new FileHandler("FileRunner.log", true);
 		rteHandler.setFormatter(new SimpleFormatter());
@@ -87,6 +86,8 @@ public class FileRunner {
 		rteLogger.setLevel(Level.WARNING);
 
 		final File f = new File(inputPath);
+		final CharsetDecoder decoder = Base.getRuntimeCharset().newDecoder();
+		final CharsetEncoder encoder = Base.getRuntimeCharset().newEncoder();
 		try (final FileInputStream isr = new FileInputStream(f)) {
 			long ejrte = 0, tjrte = 0, t0 = 0, t1 = 0;
 			int clen = (int)f.length();
@@ -186,18 +187,39 @@ public class FileRunner {
 					int count = 0;
 					Matcher matcher = pattern.matcher(charInput);
 					t0 = System.currentTimeMillis();
-					while (matcher.find()) {
-						int k = matcher.groupCount();
-						if (0 < k) {
-							for (int j = 1; j < k; j++) {
-								String match = matcher.group(j) != null ? matcher.group(j) : "";
-								System.out.printf("%s|", match);
+					try {
+						byte[] bytes = new byte[Base.getOutBufferSize()];
+						ByteBuffer bbuf = ByteBuffer.wrap(bytes);
+						CharBuffer sbuf = CharBuffer.allocate(bytes.length);
+						while (matcher.find()) {
+							int k = matcher.groupCount();
+							for (int j = 1; j <= k; j++) {
+								String match = matcher.group(j);
+								if (match == null) {
+									match = "";
+								}
+								if (sbuf.remaining() < (match.length() + 1)) {
+									CoderResult code = encoder.encode(sbuf.flip(), bbuf, false);
+									assert code.isUnderflow();
+									System.out.write(bbuf.array(), 0, bbuf.position());
+									bbuf.clear(); sbuf.clear();
+								}
+								sbuf.append(match).append(j < k ? '|' : '\n');
 							}
-							String match = matcher.group(k) != null ? matcher.group(k) : "";
-							System.out.printf("%s", match);
-							System.out.println();
+							if (k > 0) {
+								count++;
+							}
 						}
-						count += k;
+						if (sbuf.position() > 0) {
+							CoderResult code = encoder.encode(sbuf.flip(), bbuf, true);
+							assert code.isUnderflow();
+							System.out.write(bytes, 0, bbuf.position());
+						}
+						System.out.flush();
+					} catch (Exception e) {
+						System.out.println("Runtime exception thrown.");
+						rteLogger.log(Level.SEVERE, "Runtime failed, exception thrown.", e);
+						System.exit(1);
 					}
 					assert count > 0;
 					tregex = System.currentTimeMillis() - t0;

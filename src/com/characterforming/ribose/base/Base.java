@@ -46,6 +46,8 @@ public class Base {
 	public static final byte TYPE_REFERENCE_SIGNAL = '!';
 	public static final byte TYPE_REFERENCE_VALUE = '~';
 	
+	private static int INPUT_BUFFER_SIZE = Integer.parseInt(System.getProperty("ribose.inbuffer.size", "64436"));
+	private static int OUTPUT_BUFFER_SIZE = Integer.parseInt(System.getProperty("ribose.outbuffer.size", "8196"));
 	private static final Charset runtimeCharset = Charset.forName(System.getProperty("ribose.runtime.charset", "UTF-8"));
 	private static final CharsetEncoder encoder = runtimeCharset.newEncoder();
 	public static final Bytes[] RTE_SIGNAL_NAMES = {
@@ -133,6 +135,24 @@ public class Base {
 	 */
 	static public Charset getRuntimeCharset() {
 		return Base.runtimeCharset;
+	}
+
+	/**
+	 * Get the size (in bytes) to use for input buffers.
+	 * 
+	 * @return input buffer size in bytes
+	 */
+	static public int getInBufferSize() {
+		return Base.INPUT_BUFFER_SIZE;
+	}
+
+	/**
+	 * Get the size (in bytes) to use for output buffers.
+	 * 
+	 * @return output buffer size in bytes
+	 */
+	static public int getOutBufferSize() {
+		return Base.OUTPUT_BUFFER_SIZE;
 	}
 
 	/**

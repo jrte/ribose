@@ -250,7 +250,7 @@
 		<jar basedir="${java.source.dir}" destfile="${jars.dir}/${ribose.version}-source.jar"/>
 	</target>
 	
-	<target name="test-env">
+	<target name="test-env" depends="ribose,package-test-patterns,package-test">
 		<property environment="env"/>
 		<java fork="true" dir="." classname="com.characterforming.ribose.TRun" classpathref="jrte.classpath">
 			<jvmarg line="-version"/>
@@ -263,7 +263,7 @@
 		<mkdir dir="${build.test}"/>
 	</target>
 	
-	<target name="test" depends="ribose,package-test-patterns,package-test,test-env">
+	<target name="test" depends="test-env">
 <!-- Basic ribose tests -->
 		<echo>Basic FileRunner tests:</echo>
 		<exec failonerror="true" executable="bash">
@@ -438,7 +438,12 @@
 	</target>
 
 	<target name="env" if="linux">
-		<echo>lscpu</echo>
+		<echo message="os (/proc/version)"/>
+		<exec failonerror="false" executable="bash">
+			<arg value="-c"/>
+			<arg value="cat /proc/version"/>
+		</exec>
+		<echo message="lscpu"/>
 		<exec failonerror="false" executable="lscpu" output="${build.test}/lscpu.out"/>
 		<exec failonerror="false" executable="grep" input="${build.test}/lscpu.out">
 			<arg line="-v '^\(Vulnerability\|Flags\)'"/>
@@ -465,7 +470,7 @@
 	<defaultexcludes echo="true"/>
 	</target>
 
-	<target name="debug" depends="ribose,package-test,test-env">
+	<target name="debug" depends="test-env">
 		<echo message="Nothing to debug"/>
 	</target>
 

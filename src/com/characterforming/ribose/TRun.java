@@ -139,7 +139,7 @@ public final class TRun extends BaseTarget {
 		OutputStream osw = System.out;
 		if (outputFile != null) {
 			try {
-				int outsize = Integer.parseInt(System.getProperty("ribose.outbuffer.size", "8196"));
+				int outsize = Base.getOutBufferSize();
 				osw = new BufferedOutputStream(new FileOutputStream(outputFile), outsize);
 			} catch (FileNotFoundException e) {
 				Ribose.rtcLogger.log(Level.SEVERE, String.format("Unable to open output file %s", outputPath), e);
