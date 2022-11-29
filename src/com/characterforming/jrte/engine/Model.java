@@ -683,7 +683,7 @@ public final class Model implements AutoCloseable {
 					final int cell = state + row;
 					// Preset to invoke nul() effector on domain error, injects nul signal for next input
 					matrix[cell][0] = state;
-					matrix[cell][1] = Transductor.RTE_EFFECTOR_NUL;
+					matrix[cell][1] = 0;
 				}
 			}
 			for (int row = 0; row < rows; row++) {

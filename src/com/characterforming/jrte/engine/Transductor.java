@@ -64,29 +64,28 @@ import com.characterforming.ribose.base.TargetBindingException;
  * @author Kim Briggs
  */
 public final class Transductor implements ITransductor, IOutput {
-	private final boolean isOutEnabled = System.getProperty("jrte.out.enabled", "true").equals("true");
-	private static final Logger logger = Logger.getLogger(Base.RTE_LOGGER_NAME);
-	
-	public static final int RTE_EFFECTOR_NUL = 0;
-	public static final int RTE_EFFECTOR_NIL = 1;
-	public static final int RTE_EFFECTOR_PASTE = 2;
-	public static final int RTE_EFFECTOR_SELECT = 3;
-	public static final int RTE_EFFECTOR_COPY = 4;
-	public static final int RTE_EFFECTOR_CUT = 5;
-	public static final int RTE_EFFECTOR_CLEAR = 6;
-	public static final int RTE_EFFECTOR_COUNT = 7;
-	public static final int RTE_EFFECTOR_IN = 8;
-	public static final int RTE_EFFECTOR_OUT = 9;
-	public static final int RTE_EFFECTOR_MARK = 10;
-	public static final int RTE_EFFECTOR_RESET = 11;
-	public static final int RTE_EFFECTOR_START = 12;
-	public static final int RTE_EFFECTOR_PAUSE = 13;
-	public static final int RTE_EFFECTOR_STOP = 14;
-	
 	static final int INITIAL_STACK_SIZE = 8;
 	static final int INITIAL_NAMED_VALUE_BYTES = 256;
 	static final int INITIAL_NAMED_VALUE_BUFFERS = 256;
-
+	
+	private static final Logger logger = Logger.getLogger(Base.RTE_LOGGER_NAME);
+	
+	private static final int NUL = 0;
+	private static final int NIL = 1;
+	private static final int PASTE = 2;
+	private static final int SELECT = 3;
+	private static final int COPY = 4;
+	private static final int CUT = 5;
+	private static final int CLEAR = 6;
+	private static final int COUNT = 7;
+	private static final int IN = 8;
+	private static final int OUT = 9;
+	private static final int MARK = 10;
+	private static final int RESET = 11;
+	private static final int START = 12;
+	private static final int PAUSE = 13;
+	private static final int STOP = 14;
+	
 	private Model model;
 	private IEffector<?>[] effectors;
 	private NamedValue selected;
@@ -96,6 +95,7 @@ public final class Transductor implements ITransductor, IOutput {
 	private final InputStack inputStack;
 	private OutputStream output;
 	private int errorCount;
+	private boolean isOutEnabled;
 
 	/**
 	 *  Constructor
@@ -112,6 +112,8 @@ public final class Transductor implements ITransductor, IOutput {
 		this.output = System.out;
 		this.selected = null;
 		this.errorCount = 0;
+		this.isOutEnabled = System.getProperty("jrte.out.enabled", "true").equals("true");
+
 		if (mode == Mode.run) {
 			this.namedValueOrdinalMap = this.model.getNamedValueMap();
 			this.namedValueHandles = new NamedValue[this.namedValueOrdinalMap.size()];
@@ -338,7 +340,7 @@ T:		do {
 						signalInput = -1;
 					}
 					
-					int action = RTE_EFFECTOR_NUL;
+					int action = NUL;
 					int index = 0;
 I:				do {
 						last = state;
@@ -347,14 +349,14 @@ I:				do {
 						state = transition[0];
 						action = transition[1];
 						switch (action) {
-						case RTE_EFFECTOR_NIL:
+						case NIL:
 							break;
-						case RTE_EFFECTOR_PASTE:
+						case PASTE:
 							this.selected.append((byte)token);
-							action = RTE_EFFECTOR_NIL;
+							action = NIL;
 							break;
 						default:
-							if (action < RTE_EFFECTOR_NUL) {
+							if (action < NUL) {
 								index = -action;
 								action = effectorVector[index++];
 							} 
@@ -385,7 +387,7 @@ I:				do {
 								effect = ((IParameterizedEffector<?,?>)this.effectors[(-1)*action]).invoke(effectorVector[index++]);
 							}
 							break;
-						case RTE_EFFECTOR_NUL:
+						case NUL:
 							if (token == nulSignal) {
 								throw new DomainErrorException(this.getErrorInput(last, state, errorInput));
 							} else if (token != eosSignal) {
@@ -394,35 +396,35 @@ I:				do {
 								++errorCount;
 							}
 							break;
-						case RTE_EFFECTOR_NIL:
+						case NIL:
 							break;
-						case RTE_EFFECTOR_PASTE:
+						case PASTE:
 							this.selected.append((byte)token);
 							break;
-						case RTE_EFFECTOR_SELECT:
+						case SELECT:
 							this.selected = this.namedValueHandles[Base.ANONYMOUS_VALUE_ORDINAL];
 							break;
-						case RTE_EFFECTOR_COPY:
+						case COPY:
 							this.selected.append(this.namedValueHandles[Base.ANONYMOUS_VALUE_ORDINAL]);
 							break;
-						case RTE_EFFECTOR_CUT:
+						case CUT:
 							this.selected.append(this.namedValueHandles[Base.ANONYMOUS_VALUE_ORDINAL]);
 							this.namedValueHandles[Base.ANONYMOUS_VALUE_ORDINAL].clear();
 							break;
-						case RTE_EFFECTOR_CLEAR:
+						case CLEAR:
 							this.selected.clear();
 							break;
-						case RTE_EFFECTOR_COUNT:
+						case COUNT:
 							if (--count <= 0) {
 								signalInput = transducer.countdown[1];
 								transducer.countdown[0] = count = 0;
 							}
 							break;
-						case RTE_EFFECTOR_IN:
+						case IN:
 							this.inputStack.value(this.selected.getValue(), this.selected.getLength());
 							effect = IEffector.RTX_PUSH;
 							break;
-						case RTE_EFFECTOR_OUT: {
+						case OUT: {
 							if (this.isOutEnabled && this.selected.getLength() > 0) {
 								try {
 									this.output.write(this.selected.getValue(), 0, this.selected.getLength());
@@ -432,18 +434,18 @@ I:				do {
 							}
 							break;
 						}
-						case RTE_EFFECTOR_MARK:
+						case MARK:
 							this.inputStack.mark();
 							break;
-						case RTE_EFFECTOR_RESET:
+						case RESET:
 							if (this.inputStack.reset()) {
 								effect = IEffector.RTX_PUSH;
 							}
 							break;
-						case RTE_EFFECTOR_PAUSE:
+						case PAUSE:
 							effect = IEffector.RTX_PAUSE;
 							break;
-						case RTE_EFFECTOR_STOP:
+						case STOP:
 							effect = popTransducer();
 							break;
 						}
@@ -451,7 +453,7 @@ I:				do {
 							aftereffects[++aftereffects[0]] = effect;
 						}
 						action = effectorVector[index++];
-					} while (action != RTE_EFFECTOR_NUL);		
+					} while (action != NUL);		
 					
 					// check for transducer or input stack adjustmnent
 					if (aftereffects[0] != 0) {
@@ -720,7 +722,7 @@ I:				do {
 			int s = t.state / t.inputEquivalents;
 			output.append(String.format("\t\t%1$20s state:%2$3d; accepting", t.name, s));
 			for (int j = 0; j < top.inputEquivalents; j++) {
-				if (t.transitionMatrix[t.state + j][1] != Transductor.RTE_EFFECTOR_NUL) {
+				if (t.transitionMatrix[t.state + j][1] != Transductor.NUL) {
 					output.append(String.format(" (%1$d)->[%2$d]", j, 
 						t.transitionMatrix[t.state + j][0] / t.inputEquivalents));
 				}

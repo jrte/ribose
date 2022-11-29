@@ -308,7 +308,7 @@ public class ModelCompiler implements ITarget {
 
 			target.effectorVectorMap = new HashMap<Ints, Integer>(1024);
 			target.effectorVectorList = new ArrayList<Integer>(8196);
-			target.effectorVectorList.add(Transductor.RTE_EFFECTOR_NUL);
+			target.effectorVectorList.add(0);
 			for (final Integer inrInputState : inrInputStates) {
 				for (final Transition t : target.getTransitions(inrInputState)) {
 					if (t.isFinal) {
