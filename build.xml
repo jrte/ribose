@@ -322,17 +322,17 @@
 		<exec failonerror="true" executable="wc">
 			<arg line="--lines --bytes ${test.input.files}/verbosegc.vgc"/>
 		</exec>		
-		<echo message="RegEx: -Xms2m -Xlog:gc*:file=${build.test}/vgc.sintervals.gc; ${test.input.files}/verbosegc.vgc -> ${build.test}/vgc.regex.out"/>
+		<echo message="RegEx: ${test.input.files}/verbosegc.vgc -> ${build.test}/vgc.regex.(out,gc)"/>
 		<exec failonerror="true" executable="bash" output="${build.test}/vgc.regex.out">
 			<arg value="-c"/>
 			<arg value="etc/sh/FileRunner ${jargs} ${jargs.gc.test}/vgc.regex.gc -Djrte.out.enabled=false -Dregex.out.enabled=true --nil verbosegcregex ${test.input.files}/verbosegc.vgc build/Test.model &apos;${regex.verbose.gc}&apos;"/>
 		</exec>
-		<echo message="TRun: Sintervals -Xms2m -Xlog:gc*:file=${build.test}/vgc.sintervals.gc; ${test.input.files}/verbosegc.vgc -> ${build.test}/vgc.sintervals.out"/>
+		<echo message="TRun: Sintervals ${test.input.files}/verbosegc.vgc -> ${build.test}/vgc.sintervals.(out,gc)"/>
 		<exec failonerror="true" executable="bash">
 			<arg value="-c"/>
 			<arg value="etc/sh/ribose ${jargs} ${jargs.gc.test}/vgc.sintervals.gc -Djrte.out.enabled=true -Dregex.out.enabled=false --nil Sintervals ${test.input.files}/verbosegc.vgc build/Test.model ${build.test}/vgc.sintervals.out"/>
 		</exec>
-		<echo message="TRun: Tintervals -Xms2m -Xlog:gc*:file=${build.test}/vgc.tintervals.gc; ${test.input.files}/verbosegc.vgc -> ${build.test}/vgc.tintervals.out"/>
+		<echo message="TRun: Tintervals ${test.input.files}/verbosegc.vgc -> ${build.test}/vgc.tintervals.(out,gc)"/>
 		<exec failonerror="true" executable="bash">
 			<arg value="-c"/>
 			<arg value="etc/sh/ribose ${jargs} ${jargs.gc.test}/vgc.tintervals.gc -Djrte.out.enabled=true -Dregex.out.enabled=false --nil Tintervals ${test.input.files}/verbosegc.vgc build/Test.model ${build.test}/vgc.tintervals.out"/>
@@ -377,22 +377,22 @@
 		<exec failonerror="true" executable="wc">
 			<arg line="--lines --bytes ${test.input.files}/kern-10.log"/>
 		</exec>		
-		<echo message="Regex: -Xms2m -Xlog:gc*:file=${build.test}/linuxkernelregex.gc -> ${build.test}/linuxkernelregex.out"/>
+		<echo message="Regex: ${test.input.files}/kern-10.log -> ${build.test}/linuxkernelregex.(out,gc)"/>
 		<exec failonerror="true" executable="bash" output="${build.test}/linuxkernelregex.out">
 			<arg value="-c"/>
 			<arg value="etc/sh/FileRunner ${jargs} ${jargs.gc.test}/linuxkernelregex.gc -Djrte.out.enabled=false -Dregex.out.enabled=true --nil linuxkernelregex ${test.input.files}/kern-10.log build/Test.model &apos;${regex.linux.kernel}&apos;"/>
 		</exec>
-		<echo message="TRun: LinuxKernel -Xms2m -Xlog:gc*:file=${build.test}/linuxkernel.gc; ${test.input.files}/kern-10.log -> ${build.test}/linuxkernel.out"/>
+		<echo message="TRun: LinuxKernel ${test.input.files}/kern-10.log -> ${build.test}/linuxkernel.(out,gc)"/>
 		<exec failonerror="true" executable="bash">
 			<arg value="-c"/>
 			<arg value="etc/sh/ribose ${jargs} ${jargs.gc.test}/linuxkernel.gc -Djrte.out.enabled=true -Dregex.out.enabled=false --nil LinuxKernel ${test.input.files}/kern-10.log build/Test.model ${build.test}/linuxkernel.out"/>
 		</exec>
-		<echo message="TRun: LinuxKernelLoose -Xms2m -Xlog:gc*:file=${build.test}/linuxkernelloose.gc; ${test.input.files}/kern-10.log -> ${build.test}/linuxkernelloose.out"/>
+		<echo message="TRun: LinuxKernelLoose ${test.input.files}/kern-10.log -> ${build.test}/linuxkernelloose.(out,gc)"/>
 		<exec failonerror="true" executable="bash">
 			<arg value="-c"/>
 			<arg value="etc/sh/ribose ${jargs} ${jargs.gc.test}/linuxkernelloose.gc -Djrte.out.enabled=true -Dregex.out.enabled=false --nil LinuxKernelLoose ${test.input.files}/kern-10.log build/Test.model ${build.test}/linuxkernelloose.out"/>
 		</exec>
-		<echo message="TRun: LinuxKernelStrict -Xms2m -Xlog:gc*:file=${build.test}/linuxkernelstrict.gc; ${test.input.files}/kern-10.log -> ${build.test}/linuxkernelstrict.out"/>
+		<echo message="TRun: LinuxKernelStrict ${test.input.files}/kern-10.log -> ${build.test}/linuxkernelstrict.(out,gc)"/>
 		<exec failonerror="true" executable="bash">
 			<arg value="-c"/>
 			<arg value="etc/sh/ribose ${jargs} ${jargs.gc.test}/linuxkernelstrict.gc -Djrte.out.enabled=true -Dregex.out.enabled=false --nil LinuxKernelStrict ${test.input.files}/kern-10.log build/Test.model ${build.test}/linuxkernelstrict.out"/>

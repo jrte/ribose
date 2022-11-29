@@ -99,9 +99,7 @@ public class TestRunner {
 					&& trex.push(Signal.nil).status().isWaiting()
 					&& (trex.start(transducer).status().isRunnable())) {
 						t0 = System.currentTimeMillis();
-						do {
-							;
-						} while (trex.run().status().isRunnable());
+						do ; while (trex.run().status().isRunnable());
 						t1 = System.currentTimeMillis() - t0;
 						if (i >= 10) {
 							t2 += t1;
