@@ -107,6 +107,14 @@ public interface ITransductor extends ITarget {
 			return this.equals(RUNNABLE) || this.equals(WAITING);
 		}
 		
+		public boolean isPaused() {
+			return this.equals(PAUSED);
+		}
+		
+		public boolean isWaiting() {
+			return this.equals(WAITING);
+		}
+		
 		public boolean isStopped() {
 			return this.equals(STOPPED);
 		}
@@ -151,17 +159,17 @@ public interface ITransductor extends ITarget {
 	 * 
 	 * @param input data to push onto input stack for immediate transduction
 	 * @param limit truncate effective input range at {@code max(limit, data.length)}  
-	 * @return Run status of transduction at point of return 
+	 * @return Run this 
 	 */
-	Status push(byte[] input, int limit);
+	ITransductor push(byte[] input, int limit);
 
 	/**
 	 * Push a signal onto the transductor's input stack to trigger next transition. 
 	 * 
 	 * @param signal the signal to push 
-	 * @return Run status of transduction at point of return 
+	 * @return Run this 
 	 */
-	Status push(Signal signal);
+	ITransductor push(Signal signal);
 
 	/**
 	 * Push a transducer onto the transductor's transducer stack and set it state
@@ -169,10 +177,10 @@ public interface ITransductor extends ITarget {
 	 * when the {@code run()} method is called.
 	 * 
 	 * @param transducer The name of the transducer to push
-	 * @return Run status of transduction at point of return 
+	 * @return Run this 
 	 * @throws ModelException on error
 	 */
-	Status start(Bytes transducer) throws ModelException;
+	ITransductor start(Bytes transducer) throws ModelException;
 
 	/**
 	 * Run the transduction with current input until the input or transduction
@@ -187,22 +195,22 @@ public interface ITransductor extends ITarget {
 	 * have been transduced. Call {@link ITransductor#hasMark()} before reusing 
 	 * data buffers if the transduction involves backtracking with mark/reset. 
 	 * 
-	 * @return status of transduction at point of return 
+	 * @return this 
 	 * @throws RiboseException on error
 	 * @throws DomainErrorException on error
 	 * @see #status()
 	 */
-	Status run() throws RiboseException, DomainErrorException;
+	ITransductor run() throws RiboseException, DomainErrorException;
 
 	/**
 	 * Clear input and transductor stacks and reset all named values to
 	 * an empty state. This resets the transductor to original state 
 	 * ready for reuse.
 	 * 
-	 * @return {@link Status#STOPPED} 
+	 * @return this 
 	 * @see #status()
 	 */
-	Status stop();
+	ITransductor stop();
 	
 	/**
 	 * Check whether the input stack is marked. Byte arrays passed as input

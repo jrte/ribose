@@ -42,7 +42,6 @@ import com.characterforming.ribose.IOutput;
 import com.characterforming.ribose.IRuntime;
 import com.characterforming.ribose.ITarget;
 import com.characterforming.ribose.ITransductor;
-import com.characterforming.ribose.ITransductor.Status;
 import com.characterforming.ribose.Ribose;
 import com.characterforming.ribose.TCompile;
 import com.characterforming.ribose.base.Base;
@@ -407,12 +406,11 @@ public class ModelCompiler implements ITarget {
 		try {
 			this.stateMaps = (HashMap<Integer, Integer>[])new HashMap<?,?>[3];
 			this.stateTransitionMap = new HashMap<Integer, ArrayList<Transition>>(size >> 3);
-			this.transductor.stop();
-			this.transductor.push(bytes, size);
-			this.transductor.push(Signal.nil);
-			Status status = this.transductor.start(Bytes.encode(this.encoder, "Automaton"));
-			while (status == Status.RUNNABLE) {
-				status = this.transductor.run();
+			Bytes automaton = Bytes.encode(this.encoder, "Automaton");
+			if (this.transductor.stop().push(bytes, size).push(Signal.nil).start(automaton).status().isRunnable()) {
+				do {
+					;
+				} while (this.transductor.run().status().isRunnable());
 			}
 			this.transductor.stop();
 			if (this.errors.isEmpty()) {

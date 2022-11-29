@@ -173,9 +173,9 @@ public final class Transductor implements ITransductor, IOutput {
 			boolean hasInput = this.inputStack != null && !this.inputStack.isEmpty();
 			boolean hasTransducer = this.transducerStack != null && !this.transducerStack.isEmpty();
 			if (hasTransducer) {
-				return hasInput ? Status.RUNNABLE : Status.WAITING;
+				return hasInput ? Status.RUNNABLE : Status.PAUSED;
 			} else {
-				return hasInput ? Status.PAUSED : Status.STOPPED;
+				return hasInput ? Status.WAITING : Status.STOPPED;
 			}
 		} else {
 			return Status.NULL;
@@ -198,9 +198,9 @@ public final class Transductor implements ITransductor, IOutput {
 	 * @see com.characterforming.ribose.ITransductor#push(byte[], int)
 	 */
 	@Override
-	public Status push(final byte[] input, int limit) {
+	public ITransductor push(final byte[] input, int limit) {
 		this.inputStack.push(input).limit(limit);
-		return this.status();
+		return this;
 	}
 
 	/*
@@ -208,27 +208,9 @@ public final class Transductor implements ITransductor, IOutput {
 	 * @see com.characterforming.ribose.ITransductor#push(Signal)
 	 */
 	@Override
-	public Status push(Signal signal) {
+	public ITransductor push(Signal signal) {
 		this.inputStack.signal(signal.signal());
-		return this.status();
-	}
-
-	/*
-	 * (non-Javadoc)
-	 * @see com.characterforming.ribose.ITransductor#hasMark()
-	 */
-	@Override
-	public boolean hasMark() {
-		return this.inputStack.hasMark();
-	}
-
-	/*
-	 * (non-Javadoc)
-	 * @see com.characterforming.ribose.ITransductor#recycle()
-	 */
-	@Override
-	public byte[] recycle(byte[] bytes) {
-		return this.inputStack.recycle(bytes);
+		return this;
 	}
 
 	/*
@@ -236,7 +218,7 @@ public final class Transductor implements ITransductor, IOutput {
 	 * @see com.characterforming.ribose.ITransductor#start(Bytes)
 	 */
 	@Override
-	public Status start(final Bytes transducerName) throws ModelException {
+	public ITransductor start(final Bytes transducerName) throws ModelException {
 		if (this.status() != Status.NULL) {
 			int transducerOrdinal = this.model.getTransducerOrdinal(transducerName);
 			Transducer transducer = this.model.loadTransducer(transducerOrdinal);
@@ -251,7 +233,7 @@ public final class Transductor implements ITransductor, IOutput {
 		} else {
 			logger.log(Level.SEVERE, "Transduction not bound to target");
 		}
-		return this.status();
+		return this;
 	}
 
 	/*
@@ -259,7 +241,7 @@ public final class Transductor implements ITransductor, IOutput {
 	 * @see com.characterforming.ribose.ITransductor#stop()
 	 */
 	@Override
-	public Status stop() {
+	public ITransductor stop() {
 		if (this.inputStack != null) {
 			this.inputStack.unmark();
 			while (!this.inputStack.isEmpty()) {
@@ -278,7 +260,7 @@ public final class Transductor implements ITransductor, IOutput {
 			value.clear();
 		}
 		this.selected = this.namedValueHandles[Base.ANONYMOUS_VALUE_ORDINAL];
-		return this.status();
+		return this;
 	}
 
 	/*
@@ -286,7 +268,7 @@ public final class Transductor implements ITransductor, IOutput {
 	 * @see com.characterforming.ribose.ITransductor#run()
 	 */
 	@Override
-	public Status run() throws RiboseException, DomainErrorException {
+	public ITransductor run() throws RiboseException, DomainErrorException {
 		if (this.status() == Status.NULL) {
 			RiboseException rtx = new RiboseException("run: Transduction is MODEL and inoperable");
 			logger.log(Level.SEVERE, rtx.getMessage(), rtx);
@@ -539,10 +521,28 @@ I:				do {
 		
 		// Transduction is paused or stopped; if paused it will resume on next call to run()
 		this.errorCount = errorCount;
-		return this.status();
+		return this;
+	}
+
+		/*
+	 * (non-Javadoc)
+	 * @see com.characterforming.ribose.ITransductor#hasMark()
+	 */
+	@Override
+	public boolean hasMark() {
+		return this.inputStack.hasMark();
 	}
 
 	/*
+	 * (non-Javadoc)
+	 * @see com.characterforming.ribose.ITransductor#recycle()
+	 */
+	@Override
+	public byte[] recycle(byte[] bytes) {
+		return this.inputStack.recycle(bytes);
+	}
+
+/*
 	 * (non-Javadoc)
 	 * @see com.characterforming.ribose.IOutput#getErrorCount()
 	 */

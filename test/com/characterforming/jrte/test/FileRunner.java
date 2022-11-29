@@ -107,22 +107,20 @@ public class FileRunner {
 						System.out.print(String.format("%20s: ", transducerName));
 						loops = 20;
 						for (int i = 0; i < loops; i++) {
-							trex.push(cbuf, clen);
-							if (nil) {
-								trex.push(Signal.nil);
-							}
-							Status status = trex.start(Bytes.encode(encoder, transducerName));
-							t0 = System.currentTimeMillis();
-							while (status == Status.RUNNABLE) {
-								status = trex.run();
-								ejrte += trex.getErrorCount();
-							}
-							assert status != Status.NULL;
-							trex.stop();
-							t1 = System.currentTimeMillis() - t0;
-							System.out.print(String.format("%4d", t1));
-							if (i >= 10) {
-								tjrte += t1;
+							if (trex.push(cbuf, clen).status().isWaiting()
+							&& (!nil || (trex.push(Signal.nil).status().isWaiting()))
+							&& (trex.start(Bytes.encode(encoder, transducerName)).status().isRunnable())) {
+								t0 = System.currentTimeMillis();
+								while (trex.run().status() == Status.RUNNABLE) {
+									ejrte += trex.getErrorCount();
+								}
+								t1 = System.currentTimeMillis() - t0;
+								if (i >= 10) {
+									tjrte += t1;
+								}
+								assert trex.status() != Status.NULL;
+								System.out.print(String.format("%4d", t1));
+								trex.stop();
 							}
 						}
 						double epkb = (double)(ejrte*1024) / (double)clen;

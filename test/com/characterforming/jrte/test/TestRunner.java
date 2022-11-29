@@ -80,7 +80,7 @@ public class TestRunner {
 			System.out.printf("%20s: ", "RegexGroupTest");
 			regexGroup.testRun();
 		}
-		
+
 		String[] tests = new String[] {
 			"SelectPasteTest", "PasteSpeedTest", "NilPauseTest", "PastePauseTest", "PasteCutTest", "StackTest", "PasteCountTest", "CounterTest", "NilSpeedTest"
 		};
@@ -92,22 +92,23 @@ public class TestRunner {
 			for (final String test : tests) {
 				long t0 = 0, t1 = 0, t2 = 0;
 				System.out.format("%20s: ", test);
+				Bytes transducer = Bytes.encode(encoder, test);
 				for (int i = 0; i < 20; i++) {
 					assert trex.status() == Status.STOPPED;
-					trex.push(abytes, abytes.length);
-					trex.push(Signal.nil);
-					Status status = trex.start(Bytes.encode(encoder, test));
-					t0 = System.currentTimeMillis();
-					while (status == Status.RUNNABLE) {
-						status = trex.run();
-					}
-					assert status != Status.NULL;
-					trex.stop();
-					t1 = System.currentTimeMillis() - t0;
-					assert trex.status() == Status.STOPPED;
-					System.out.print(String.format("%4d", t1));
-					if (i >= 10) {
-						t2 += t1;
+					if (trex.push(abytes, abytes.length).status().isWaiting()
+					&& trex.push(Signal.nil).status().isWaiting()
+					&& (trex.start(transducer).status().isRunnable())) {
+						t0 = System.currentTimeMillis();
+						do {
+							;
+						} while (trex.run().status().isRunnable());
+						t1 = System.currentTimeMillis() - t0;
+						if (i >= 10) {
+							t2 += t1;
+						}
+						System.out.print(String.format("%4d", t1));
+						assert !trex.status().hasInput();
+						trex.stop();
 					}
 				}
 				double mbps = (t2 > 0) ? ((double)(10000000) / (double)(t2*1024*1024)) * (10*1000) : -1;

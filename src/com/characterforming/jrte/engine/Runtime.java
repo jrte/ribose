@@ -32,7 +32,6 @@ import com.characterforming.jrte.engine.Model.Mode;
 import com.characterforming.ribose.IRuntime;
 import com.characterforming.ribose.ITarget;
 import com.characterforming.ribose.ITransductor;
-import com.characterforming.ribose.ITransductor.Status;
 import com.characterforming.ribose.base.Base;
 import com.characterforming.ribose.base.Base.Signal;
 import com.characterforming.ribose.base.Bytes;
@@ -99,27 +98,25 @@ public final class Runtime implements IRuntime {
 			int position = read;
 			if (read > 0) {
 				ITransductor trex = newTransductor(target);
-				trex.push(bytes, read);
-				trex.output(out);
-				if (prologue != null) {
-					trex.push(prologue);
+				if (trex.push(bytes, read).status().isWaiting()
+				&& ((prologue == null) || (trex.push(prologue).status().isWaiting()))
+				&& (trex.start(transducer).status().isRunnable())) {
+					trex.output(out);
+					do {
+						if (trex.run().status().isPaused()) {
+							bytes = trex.recycle(bytes);
+							assert bytes != null;
+							read = in.read(bytes);
+							if (read > 0) {
+								trex.push(bytes, read).status();
+								position += read;
+							} else {
+								break;
+							}
+						}
+					} while (trex.status().isRunnable());
+					trex.stop();
 				}
-				Status status = trex.start(transducer);
-				while (status.isRunnable()) {
-					status = trex.run();
-					if (!status.hasInput()) {
-						bytes = trex.recycle(bytes);
-						assert bytes != null;
-						read = in.read(bytes);
-						if (read > 0) {
-							status = trex.push(bytes, read);
-						position += read;
-						} else {
-							break;
-						} 
-					}
-				}
-				trex.stop();
 			}
 	} catch (ModelException e) {
 			log(target, transducer, e);
