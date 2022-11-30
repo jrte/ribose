@@ -1,21 +1,21 @@
 /***
  * JRTE is a recursive transduction engine for Java
- * 
+ *
  * Copyright (C) 2011,2022 Kim Briggs
- * 
+ *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received copies of the GNU General Public License
- * and GNU Lesser Public License along with this program.  See 
- * LICENSE-gpl-3.0. If not, see 
+ * and GNU Lesser Public License along with this program.  See
+ * LICENSE-gpl-3.0. If not, see
  * <http://www.gnu.org/licenses/>.
  */
 
@@ -78,7 +78,7 @@ public class FileRunner {
 			System.out.println(String.format("Usage: java -cp <classpath> [-Djrte.out.enabled=true ^|^ -Dregex.out.enabled=true] %s [--nil] <transducer-name> <input-path> <model-path> [regex]\n(jrteOutputEnabled and regexOutputEnabled can't both be true)", FileRunner.class.getName()));
 			System.exit(1);
 		}
-		
+
 		final Logger rteLogger = Logger.getLogger("FileRunner");
 		final FileHandler rteHandler = new FileHandler("FileRunner.log", true);
 		rteHandler.setFormatter(new SimpleFormatter());
@@ -107,6 +107,7 @@ public class FileRunner {
 						System.out.print(String.format("%20s: ", transducerName));
 						loops = 20;
 						for (int i = 0; i < loops; i++) {
+							assert trex.status().isStopped();
 							if (trex.push(cbuf, clen).status().isWaiting()
 							&& (!nil || (trex.push(Signal.nil).status().isWaiting()))
 							&& (trex.start(Bytes.encode(encoder, transducerName)).status().isRunnable())) {
@@ -114,16 +115,17 @@ public class FileRunner {
 								while (trex.run().status() == Status.RUNNABLE) {
 									ejrte += trex.getErrorCount();
 								}
+								ejrte += trex.getErrorCount();
 								t1 = System.currentTimeMillis() - t0;
 								if (i >= 10) {
 									tjrte += t1;
 								}
-								assert trex.status() != Status.NULL;
+								assert trex.status().isPaused() || trex.status().isStopped();
 								System.out.print(String.format("%4d", t1));
 								trex.stop();
 							}
 						}
-						double epkb = (double)(ejrte*1024) / (double)clen;
+						double epkb = (double)(ejrte*1024) / (double)(clen*loops);
 						double mbps = (tjrte > 0) ? ((double)clen / (double)(tjrte*1024*1024)) * (loops - 10) * 1000 : -1;
 						System.out.println(String.format(" : %7.3f mb/s %7.3f nul/kb", mbps, epkb));
 					} else {

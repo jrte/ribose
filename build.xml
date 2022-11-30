@@ -27,7 +27,9 @@
 -->
 
 <project name="ribose-build" default="ci-test" basedir="." xmlns:if="ant:if" xmlns:unless="ant:unless">
+  <property environment="env"/>
 	<property name="ribose.version" value="ribose-0.0.0"/>
+  <property name="jdk" value="${env.JAVA_HOME}"/>
 	<property name="java.source.dir" value="src"/>
 	<property name="java.test.dir" value="test"/>
 	<property name="jars.dir" value="jars"/>
@@ -125,7 +127,7 @@
 		description="Full build with CI tests for java and patterns"/>
 	
 	<target name="compile-java" depends="init">
-		<javac fork="true" compiler="modern" includeantruntime="false" srcdir="${java.source.dir}" destdir="${build.java.classes}" release="11"
+		<javac fork="true" executable="${jdk}/bin/javac" compiler="modern" includeantruntime="false" srcdir="${java.source.dir}" destdir="${build.java.classes}" release="11"
 			 debug="true" debuglevel="lines,vars,source">
 			<classpath refid="java.classpath"/>
 			<compilerarg value="-Xlint"/>
@@ -181,7 +183,7 @@
 		<exec failonerror="true" executable="bash">
 			<arg line="etc/sh/patterns ${ribose.patterns} patterns/alpha.inr patterns/after.inr ${build.compiler.model}"/>
 		</exec>
-		<java fork="true" dir ="." classname="com.characterforming.ribose.TCompile" classpathref="jrte.classpath" failonerror="true">
+		<java fork="true" jvm="${jdk}/bin/java" dir ="." classname="com.characterforming.ribose.TCompile" classpathref="jrte.classpath" failonerror="true">
 			<jvmarg line="${jargs}"/>
 			<arg line="--target com.characterforming.ribose.TCompile ${build.compiler.model} ${build.compiler.model}/TCompile.model"/>
 		</java>
@@ -224,7 +226,7 @@
 	</target>
 	
 	<target name="compile-test" depends="package-java">
-		<javac fork="true" compiler="modern" includeantruntime="false" srcdir="${java.test.dir}" destdir="${build.java.test}" release="11"
+		<javac fork="true" executable="${jdk}/bin/javac" compiler="modern" includeantruntime="false" srcdir="${java.test.dir}" destdir="${build.java.test}" release="11"
 			debug="true" debuglevel="lines,vars,source">
 			<classpath refid="test.classpath"/>
 		</javac>
@@ -252,7 +254,7 @@
 	
 	<target name="test-env" depends="ribose,package-test-patterns,package-test">
 		<property environment="env"/>
-		<java fork="true" dir="." classname="com.characterforming.ribose.TRun" classpathref="jrte.classpath">
+		<java fork="true" jvm="${jdk}/bin/java" dir="." classname="com.characterforming.ribose.TRun" classpathref="jrte.classpath">
 			<jvmarg line="-version"/>
 		</java>	
 		<echo message="Java @ ${env.JAVA_HOME}"/>
@@ -278,40 +280,36 @@
 		<echo/>
 <!-- TestRunner benchmarks -->
 		<echo>TestRunner benchmarking (simple fsts driving base transduction effectors):</echo>
-		<java fork="true" dir="." classname="com.characterforming.jrte.test.TestRunner" classpathref="test.classpath" failonerror="true">
+		<java fork="true" jvm="${jdk}/bin/java" dir="." classname="com.characterforming.jrte.test.TestRunner" classpathref="test.classpath" failonerror="true">
 			<jvmarg line="${jargs} -Djrte.out.enabled=false -Dregex.out.enabled=false"/>
 			<arg line="build/Test.model 1"/>
 		</java>
 		<echo/>
 <!-- FileRunner benchmarks -->
 		<echo>FileRunner benchmarking (ribose fsts vs similar regex, input from single buffer in RAM, output muted):</echo>
-		<java fork="true" dir="." classname="com.characterforming.jrte.test.FileRunner" classpathref="test.classpath" failonerror="true">
+		<java fork="true" jvm="${jdk}/bin/java" dir="." classname="com.characterforming.jrte.test.FileRunner" classpathref="test.classpath" failonerror="true">
 			<jvmarg line="${jargs} -Djrte.out.enabled=false -Dregex.out.enabled=false"/>
 			<arg line="--nil LinuxKernelNil ${test.input.files}/kern-10.log build/Test.model &quot;${regex.linux.kernel}&quot;"/>
 		</java>
-		<java fork="true" dir="." classname="com.characterforming.jrte.test.FileRunner" classpathref="test.classpath" failonerror="true">
+		<java fork="true" jvm="${jdk}/bin/java" dir="." classname="com.characterforming.jrte.test.FileRunner" classpathref="test.classpath" failonerror="true">
 			<jvmarg line="${jargs} -Djrte.out.enabled=false -Dregex.out.enabled=false"/>
 			<arg line="--nil LinuxKernel ${test.input.files}/kern-10.log build/Test.model &quot;${regex.linux.kernel}&quot;"/>
 		</java>
-		<java fork="true" dir="." classname="com.characterforming.jrte.test.FileRunner" classpathref="test.classpath" failonerror="true">
+		<java fork="true" jvm="${jdk}/bin/java" dir="." classname="com.characterforming.jrte.test.FileRunner" classpathref="test.classpath" failonerror="true">
 			<jvmarg line="${jargs} -Djrte.out.enabled=false -Dregex.out.enabled=false"/>
 			<arg line="--nil LinuxKernelLoose ${test.input.files}/kern-10.log build/Test.model &quot;${regex.linux.kernel}&quot;"/>
 		</java>
-		<java fork="true" dir="." classname="com.characterforming.jrte.test.FileRunner" classpathref="test.classpath" failonerror="true">
+		<java fork="true" jvm="${jdk}/bin/java" dir="." classname="com.characterforming.jrte.test.FileRunner" classpathref="test.classpath" failonerror="true">
 			<jvmarg line="${jargs} -Djrte.out.enabled=false -Dregex.out.enabled=false"/>
 			<arg line="--nil LinuxKernelStrict ${test.input.files}/kern-10.log build/Test.model &quot;${regex.linux.kernel}&quot;"/>
 		</java>
-		<java fork="true" dir="." classname="com.characterforming.jrte.test.FileRunner" classpathref="test.classpath" failonerror="true">
+		<java fork="true" jvm="${jdk}/bin/java" dir="." classname="com.characterforming.jrte.test.FileRunner" classpathref="test.classpath" failonerror="true">
 			<jvmarg line="${jargs} -Djrte.out.enabled=false -Dregex.out.enabled=false"/>
 			<arg line="--nil Tintervals ${test.input.files}/verbosegc.vgc build/Test.model cycle-start.id=.*type=.*contextid=.*timestamp=.*intervalms=.([0-9]+'.'[0-9]+)[^0-9]"/>
 		</java>
-		<java fork="true" dir="." classname="com.characterforming.jrte.test.FileRunner" classpathref="test.classpath" failonerror="true">
+		<java fork="true" jvm="${jdk}/bin/java" dir="." classname="com.characterforming.jrte.test.FileRunner" classpathref="test.classpath" failonerror="true">
 			<jvmarg line="${jargs} -Djrte.out.enabled=false -Dregex.out.enabled=false"/>
 			<arg line="--nil Sintervals ${test.input.files}/verbosegc.vgc build/Test.model cycle-start.id=.*type=.*contextid=.*timestamp=.*intervalms=.([0-9]+'.'[0-9]+)[^0-9]"/>
-		</java>
-		<java fork="true" dir="." classname="com.characterforming.jrte.test.FileRunner" classpathref="test.classpath" failonerror="true">
-			<jvmarg line="${jargs} -Djrte.out.enabled=false -Dregex.out.enabled=false"/>
-			<arg line="--nil Tintervals ${test.input.files}/verbosegc.vgc build/Test.model cycle-start.id=.*type=.*contextid=.*timestamp=.*intervalms=.([0-9]+'.'[0-9]+)[^0-9]"/>
 		</java>
 		<echo/>
 <!-- I/O equivalence tests -->

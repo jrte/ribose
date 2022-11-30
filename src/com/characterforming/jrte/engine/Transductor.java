@@ -70,6 +70,7 @@ public final class Transductor implements ITransductor, IOutput {
 	
 	private static final Logger logger = Logger.getLogger(Base.RTE_LOGGER_NAME);
 	
+	/* enumeration of built-in effectors, all below inlined in run(), except (*) */
 	private static final int NUL = 0;
 	private static final int NIL = 1;
 	private static final int PASTE = 2;
@@ -94,8 +95,8 @@ public final class Transductor implements ITransductor, IOutput {
 	private final TransducerStack transducerStack;
 	private final InputStack inputStack;
 	private OutputStream output;
-	private int errorCount;
 	private boolean isOutEnabled;
+	private int errorCount;
 
 	/**
 	 *  Constructor
@@ -278,13 +279,12 @@ public final class Transductor implements ITransductor, IOutput {
 		}
 		final int nulSignal = Base.Signal.nul.signal();
 		final int eosSignal = Base.Signal.eos.signal();
-		int errorCount = this.errorCount = 0;
 		TransducerState transducer = null;
-		int state = 0, last = -1, token = -1, count = 0;
+		int state = 0, last = -1, token = -1;
 		int errorInput = -1, signalInput = -1;
 		int[] aftereffects = new int[32];
-		Status status = this.status();
 		Input input = Input.empty;
+		this.errorCount = 0;
 		try {
 T:		do {
 				// start a pushed transducer
@@ -292,7 +292,6 @@ T:		do {
 				final int[] inputFilter = transducer.inputFilter;
 				final int[][] transitionMatrix = transducer.transitionMatrix;
 				final int[] effectorVector = transducer.effectorVector;
-				count = transducer.countdown[0];
 				state = transducer.state;
 				do {
 					// get next input token
@@ -375,6 +374,11 @@ I:				do {
 						} 
 					} while (true);
 					
+					// continue at top of input loop after a run (nil* paste*)* nil singleton effects
+					if (action == NIL) {
+						continue;
+					}
+										
 					// invoke a vector of 1 or more effectors and record side effects on transducer and input stacks 
 					aftereffects[0] = 0;
 					do {
@@ -393,7 +397,7 @@ I:				do {
 							} else if (token != eosSignal) {
 								errorInput = token;
 								signalInput = nulSignal;
-								++errorCount;
+								++this.errorCount;
 							}
 							break;
 						case NIL:
@@ -415,9 +419,9 @@ I:				do {
 							this.selected.clear();
 							break;
 						case COUNT:
-							if (--count <= 0) {
+							if (--transducer.countdown[0] <= 0) {
 								signalInput = transducer.countdown[1];
-								transducer.countdown[0] = count = 0;
+								transducer.countdown[0] = 0;
 							}
 							break;
 						case IN:
@@ -452,6 +456,7 @@ I:				do {
 						if (effect != 0) {
 							aftereffects[++aftereffects[0]] = effect;
 						}
+						// invariant: effector vector at index 0 holds NUL, so singletons (index == 0) always break out of loop here
 						action = effectorVector[index++];
 					} while (action != NUL);		
 					
@@ -466,7 +471,6 @@ I:				do {
 								break;
 							case IEffector.RTX_START:
 								assert transducer == this.transducerStack.get(this.transducerStack.tos()-1);
-								transducer.countdown[0] = count;
 								transducer.state = state;
 								if (breakout == 0) {
 									breakout = -1;
@@ -481,11 +485,9 @@ I:				do {
 								assert (transducer == this.transducerStack.get(this.transducerStack.tos()))
 								|| (transducer == this.transducerStack.get(this.transducerStack.tos()-1));
 								if (transducer.countdown[0] < 0) {
-									count = transducer.countdown[0] = (int)this.getNamedValue((-1 * transducer.countdown[0]) - 1).asInteger();
-								} else {
-									count = transducer.countdown[0];
+									transducer.countdown[0] = (int)this.getNamedValue((-1 * transducer.countdown[0]) - 1).asInteger();
 								}
-								if (count <= 0) {
+								if (transducer.countdown[0] <= 0) {
 									signalInput = transducer.countdown[1];
 									transducer.countdown[0] = 0;
 								}
@@ -499,30 +501,25 @@ I:				do {
 								break;
 							}
 						}
-						status = this.status();
 						if (breakout == 1) {
 							break T;
 						} else if (breakout == -1) {
 							break;
 						}
-					} else if (token == eosSignal) {
-						status = this.status();
 					}
-				} while (status == Status.RUNNABLE);
-			} while (status == Status.RUNNABLE);
+				} while (this.status().isRunnable());
+			} while (this.status().isRunnable());
 		} catch (AssertionError e) {
 			throw e;
 		} finally {
 			// Prepare to pause (or stop) transduction
 			if (!this.transducerStack.isEmpty()) {
 				assert (transducer == this.transducerStack.peek()) || (transducer == this.transducerStack.get(-1));
-				transducer.countdown[0] = count;
 				transducer.state = state;
 			}
 		}
 		
 		// Transduction is paused or stopped; if paused it will resume on next call to run()
-		this.errorCount = errorCount;
 		return this;
 	}
 
@@ -958,7 +955,7 @@ I:				do {
 			byte type = Base.getReferentType(parameterList[0]);
 			if (type == Base.TYPE_REFERENCE_VALUE) {
 				Bytes valueName = new Bytes(Base.getReferenceName(parameterList[0]));
-				int valueOrdinal = this.getTarget().getValueOrdinal(valueName);
+				int valueOrdinal = super.target.getValueOrdinal(valueName);
 				if (valueOrdinal >= 0) {
 					count = -1 * (1 + valueOrdinal);
 				} else {
