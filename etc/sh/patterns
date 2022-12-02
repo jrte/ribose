@@ -2,7 +2,7 @@
 if (($# != 4)); then
 	echo "Usage: patterns <ginr-source-directory> <prologue-file> <epilogue-file> <dfa-output-directory>"
 	echo "Effect: 'cat <prologue-file><ginr-source-file>.inr<epilogue-file> | ginr' for each ginr source in <ginr-source-directory>"
-	echo "Tracing info including ginr error messages for X.inr are wrutten to /tmp/X.inr.out"
+	echo "Tracing info including ginr error messages for X.inr are written to /tmp/X.inr.ginrout"
 	echo "Compiled automata (*.dfa) are placed in <dfa-output-directory>"
 	exit 1
 fi
@@ -36,24 +36,27 @@ fi
 failed=0
 echo ":bye;" | $ginr | grep ' '
 for f in "$src"/*.inr; do
-	file=$(basename "$f")
 	if [[ "$f" != "$prologue" && "$f" != "$epilogue" ]]; then
+		file=$(basename "$f")
 		name=${file%.inr}
-		cat "$prologue" "$f" "$epilogue" | $ginr &> "/tmp/$file.out"
-		grep '^[ ]*\* \* \*\|^[ ]*\*\*\*\|^Error detected at state [0-9]*:\|^Reserved character:\|^Warning:' "/tmp/$file.out" &> /tmp/errors
-		if [[ -s "/tmp/errors" ]]; then
+		cat "$prologue" "$f" "$epilogue" | $ginr &> "/tmp/$name.ginrout"
+		grep --basic-regexp --before-context=2 --after-context=2 \
+			'^[ ]*\* \* \*\|^[ ]*\*\*\*\|^Error detected at state [0-9]*:\|^Reserved character:\|^Warning:' \
+			"/tmp/$name.ginrout" &> "/tmp/$name.ginrerr"
+		if [[ -s "/tmp/$name.ginrerr" ]]; then
 			((++failed))
-			echo "Errors reported in /tmp/$file.out"
+			echo "Errors reported for $file in /tmp/$name.ginrout (summary in /tmp/$name.ginrerr)"
 		else
 			for dfa in $(grep '^[A-Z0-9a-z_]*[ ]*:.*save' "$f" | grep -o '^[A-Z0-9a-z_]*' | sort -u); do
-				grep "$dfa .*DFA MIN" "/tmp/$file.out"
+				grep "$dfa .*DFA MIN" "/tmp/$name.ginrout"
 			done
 		fi
 	fi
 done
 
 if ((failed>0)); then
-	echo "$failed errors reported, see /tmp/*.inr.out"
+	echo "$failed errors reported, see /tmp/*.ginrerr"
+	find /tmp -name '*.ginrerr' -type f -not -empty -exec cat "{}" \; 2>/dev/null
 	exit 1
 else
 	exit 0

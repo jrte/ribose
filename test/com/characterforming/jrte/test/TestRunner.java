@@ -17,7 +17,6 @@
  * along with this program (LICENSE-gpl-3.0). If not, see
  * <http://www.gnu.org/licenses/#GPL>.
  */
-https://www.gnu.org/licenses/#GPL
 package com.characterforming.jrte.test;
 
 import java.io.File;

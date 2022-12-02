@@ -97,23 +97,23 @@ public interface ITarget {
 	IEffector<?>[] getEffectors() throws TargetBindingException;
 
 	/**
-	 * Return a new @{code CharsetDecoder} instance for use by the target and
+	 * Return a new {@code CharsetDecoder} instance for use by the target and
 	 * the effectors bound to the target. This is a shared instance, safe for
 	 * use within single-threaded transductions. Effectors should access this
 	 * instance through {@link com.characterforming.ribose.base.BaseEffector#decoder},
 	 * whish 
 	 * 
-	 * @return the @{code CharsetDecoder} to be used with this target instance
+	 * @return the {@code CharsetDecoder} to be used with this target instance
 	 */
 	CharsetDecoder getCharsetDecoder();
 
 	/**
-	 * Return a new @{code CharsetEncoder} instance for use by the target and
+	 * Return a new {@code CharsetEncoder} instance for use by the target and
 	 * the effectors bound to the target. This is a shared instance, safe for
 	 * use within single-threaded transductions. Effectors should access this
 	 * instance through {@link com.characterforming.ribose.base.BaseEffector#encoder}.
 	 * 
-	 * @return the @{code CharsetEncoder} to be used with this target instance
+	 * @return the {@code CharsetEncoder} to be used with this target instance
 	 */
 	CharsetEncoder getCharsetEncoder();
 }

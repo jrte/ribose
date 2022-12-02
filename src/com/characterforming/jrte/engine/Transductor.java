@@ -218,7 +218,9 @@ public final class Transductor implements ITransductor, IOutput {
 	 */
 	@Override
 	public ITransductor push(final byte[] input, int limit) {
-		this.inputStack.push(input).limit(limit);
+		if (this.status() != Status.NULL) {
+			this.inputStack.push(input).limit(limit);
+		}
 		return this;
 	}
 
@@ -228,7 +230,9 @@ public final class Transductor implements ITransductor, IOutput {
 	 */
 	@Override
 	public ITransductor push(Signal signal) {
-		this.inputStack.signal(signal.signal());
+		if (this.status() != Status.NULL) {
+			this.inputStack.signal(signal.signal());
+		}
 		return this;
 	}
 
@@ -242,8 +246,6 @@ public final class Transductor implements ITransductor, IOutput {
 			this.transducerStack.push(this.model.loadTransducer(this.model.getTransducerOrdinal(transducerName)));
 			this.select(Model.ANONYMOUS_VALUE_ORDINAL);
 			this.clear();
-	} else {
-			logger.log(Level.SEVERE, "Transduction not bound to target");
 		}
 		return this;
 	}
@@ -253,7 +255,7 @@ public final class Transductor implements ITransductor, IOutput {
 	 * @see com.characterforming.ribose.ITransductor#stop()
 	 */
 	@Override
-	public ITransductor stop() {
+	public ITransductor stop() throws RiboseException {
 		if (this.inputStack != null) {
 			this.inputStack.unmark();
 			while (!this.inputStack.isEmpty()) {
@@ -268,10 +270,19 @@ public final class Transductor implements ITransductor, IOutput {
 				this.transducerStack.pop();
 			}
 		}
-		for (NamedValue value : this.namedValueHandles) {
-			value.clear();
+		if (this.namedValueHandles != null) {
+			this.selected = this.namedValueHandles[Model.ANONYMOUS_VALUE_ORDINAL];
+			for (NamedValue value : this.namedValueHandles) {
+				if (value != null) {
+					value.clear();
+				}
+			}
 		}
-		this.selected = this.namedValueHandles[Model.ANONYMOUS_VALUE_ORDINAL];
+		if (this.status() == Status.NULL) {
+			RiboseException rtx = new RiboseException("run: Transduction is MODEL and inoperable");
+			logger.log(Level.SEVERE, rtx.getMessage(), rtx);
+			throw rtx;
+		}
 		return this;
 	}
 
@@ -282,9 +293,7 @@ public final class Transductor implements ITransductor, IOutput {
 	@Override
 	public ITransductor run() throws RiboseException, DomainErrorException {
 		if (this.status() == Status.NULL) {
-			RiboseException rtx = new RiboseException("run: Transduction is MODEL and inoperable");
-			logger.log(Level.SEVERE, rtx.getMessage(), rtx);
-			throw rtx;
+			return this.stop();
 		}
 		final int nulSignal = Signal.nul.signal();
 		final int eosSignal = Signal.eos.signal();

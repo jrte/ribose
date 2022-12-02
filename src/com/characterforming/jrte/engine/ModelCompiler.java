@@ -386,7 +386,7 @@ public class ModelCompiler implements ITarget {
 	}
 	
 	@SuppressWarnings("unchecked")
-	protected boolean compile(File inrFile) throws ModelException {
+	protected boolean compile(File inrFile) throws RiboseException {
 		this.reset();
 		String name = inrFile.getName();
 		name = name.substring(0, name.length() - Base.AUTOMATON_FILE_SUFFIX.length());

@@ -46,35 +46,51 @@ import com.characterforming.ribose.base.Signal;
  * A paused transduction can be resumed when input is available ({@code push()}).
  * A waiting transduction can be resumed by starting a transducer ({@code start()}).
  * A stopped transducer can be reused to start a new transduction by pushing new
- * input and transducers. The {@code stop()} method should be called before starting
- * a new transduction, to ensure that previous inputs and values are cleared. The 
- * {@code run()} method is effective only when neither stack is empty.
+ * input and transducers. The {@code run()} method has no effect when the transducer
+ * or input stack is empty. The {@code stop()} method should be called before starting
+ * a new transduction, to ensure that the transducer and input stacks and all values
+ * are cleared. The {@code stop() method will throw a {@code RiboseException} when 
+ * it is called on a proxy transductor (a transductor instantiated for parameter 
+ * compilation in model construction or runtime model loading contexts) or otherwise
+ * nonfunctional transducer. This condition can be checked at any time by testing 
+ * {@code status() == Status.NULL}.
  * <br><br>
  * <pre>
- * if (stop().push(data,limit).push(signal).start(transducer).status().isRunnable()) {
+ * proxyTarget = new Target(); runTarget = new Target();
+ * runtime = Ribose.loadRuntimeModel(modelFile,proxyTarget);
+ * trex = runtime.newTransductor(runTarget);
+ * if (trex.stop().push(data,limit).push(signal).start(transducer).status().isRunnable()) {
  *   do {
- *     if (run().status().isPaused()) {
+ *     if (trex.run().status().isPaused()) {
  *       data = recycle(data);
- *       count = input.read(data, limit);
- *       if (count &gt; 0) {
- *         push(data);
+ *       if (0 &lt; input.read(data,limit)) {
+ *         trex.push(data);
  *       else {
  *         break;
  *       }
  *     }
- *   } while (status().isRunnable());
- *   stop();
+ *   } while (trex.status().isRunnable());
+ *   trex.stop();
  * }
  * </pre>
  * Domain errors (inputs with no transition defined) are handled by emitting a
  * {@code} nul signal, giving the transduction an opportunity to handle it with an
  * explicit transition on {@code nul}. Typically this involves searching without effect
- * for a synchronization pattern and resuming with effect afterr synchronizing. If 
- * {@code nul}  is not handled a {@code DomainException} is thrown. The transductor
- * will send an {@code eos} signal to the transduction the input stack runs dry.
- * Transducers can explicitly handle this by including a transition on {@code eos}.
+ * for a synchronization pattern and resuming with effect after synchronizing. If 
+ * {@code nul} is not handled a {@code DomainException} is thrown. The transductor
+ * will sent an {@code eos} signal to the transduction when the input stack runs dry.
+ * If input is segmented and presented with a series of {@code push(byte[], int)}
+ * method calls, {@code eos} will be raised at the end of each buffer. Transducers
+ * can explicitly handle {@code eos} by including a transition on {@code eos}.
  * If eos is not explicitly handled the {@code run()} method will return with 
- * {@code Status.PAUSED}.
+ * {@code Status.PAUSED} and {@code DomainErrorException} will not be raised.
+ * <br><br>
+ * Signals like {@code nul} and {@code eos} are raised asynchronously and are difficult
+ * to address in the expression of transduction patterns. However, if they are ignored
+ * in the original pattern expression, the expression can be modified after the fact 
+ * by transducing the pattern itself to inject behaviors relating to asynchronpus signals.
+ * See <a href="https://github.com/jrte/ribose#navigating-noisy-inputs-nullification">
+ * Navigating Noisy Inputs (Nullification)</a> for an example showing how this can be done.
  * <br><br>
  * The runtime ITransductor implementation provides a core set of built-in effectors,
  * listed below, that are available to all ribose transducers.
@@ -252,9 +268,10 @@ public interface ITransductor extends ITarget {
 	 * ready for reuse.
 	 * 
 	 * @return this 
+	 * @throws RiboseException if transductor is proxy for parameter compilation
 	 * @see #status()
 	 */
-	ITransductor stop();
+	ITransductor stop() throws RiboseException;
 	
 	/**
 	 * Check whether the input stack is marked. Byte arrays passed as input
