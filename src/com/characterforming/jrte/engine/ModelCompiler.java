@@ -1,5 +1,5 @@
 /***
- * JRTE is a recursive transduction engine for Java
+ * Ribose is a recursive transduction engine for Java
  * 
  * Copyright (C) 2011,2022 Kim Briggs
  * 

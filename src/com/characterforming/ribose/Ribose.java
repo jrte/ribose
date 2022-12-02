@@ -1,5 +1,5 @@
 /***
- * JRTE is a recursive transduction engine for Java
+ * Ribose is a recursive transduction engine for Java
  * 
  * Copyright (C) 2011,2022 Kim Briggs
  * 
@@ -13,10 +13,9 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  * 
- * You should have received copies of the GNU General Public License
- * and GNU Lesser Public License along with this program.  See 
- * LICENSE-gpl-3.0. If not, see 
- * <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU General Public License
+ * along with this program (LICENSE-gpl-3.0). If not, see
+ * <http://www.gnu.org/licenses/#GPL>.
  */
 
 package com.characterforming.ribose;
@@ -52,44 +51,44 @@ public final class Ribose {
  * @return false if compilation fails
  */
 	public static boolean compileRiboseModel(Class<?> targetClass, File ginrAutomataDirectory, File riboseModelFile) {
-    if (ITarget.class.isAssignableFrom(targetClass)) {
-      if (!ginrAutomataDirectory.isDirectory()) {
-        String msg = String.format("Not a directory :'%1$s'",	ginrAutomataDirectory);
-        Ribose.rtcLogger.log(Level.SEVERE, msg);
-        return false;
-      }
-      Model model = null;
-      try {
-        if (riboseModelFile.createNewFile()) {
-          ITarget proxy = (ITarget) targetClass.getDeclaredConstructor().newInstance();
-          model = new Model(Mode.compile, riboseModelFile, proxy);
-          model.initialize();
-          return model.create()
-            && ModelCompiler.compileAutomata(model, ginrAutomataDirectory)
-            && model.save();
-        } else {
-          String msg = String.format("Can't overwrite existing model file : '%1$s'",
-            riboseModelFile.getPath());
-          Ribose.rtcLogger.log(Level.SEVERE, msg);
-          return false;
-        }
-      } catch (Exception e) {
-        String msg = String.format("Exception compiling model '%1$s' from '%2$s'",
-          riboseModelFile.getPath(), ginrAutomataDirectory.getPath());
-        Ribose.rtcLogger.log(Level.SEVERE, msg, e);
-        riboseModelFile.delete();
-        return false;
-      } finally {
-        if (model != null) {
-          model.close();
-        }
-      }
-    } else {
-      String msg = String.format("Can't compile ribose model %1$s, %2$s does not implement ITarget", 
-        riboseModelFile.getPath(), targetClass.getName());
-      Ribose.rtcLogger.log(Level.SEVERE, msg);
-      return false;
-    }
+		if (ITarget.class.isAssignableFrom(targetClass)) {
+			if (!ginrAutomataDirectory.isDirectory()) {
+				String msg = String.format("Not a directory :'%1$s'",	ginrAutomataDirectory);
+				Ribose.rtcLogger.log(Level.SEVERE, msg);
+				return false;
+			}
+			Model model = null;
+			try {
+				if (riboseModelFile.createNewFile()) {
+					ITarget proxy = (ITarget) targetClass.getDeclaredConstructor().newInstance();
+					model = new Model(Mode.compile, riboseModelFile, proxy);
+					model.initialize();
+					return model.create()
+					&& ModelCompiler.compileAutomata(model, ginrAutomataDirectory)
+					&& model.save();
+				} else {
+					String msg = String.format("Can't overwrite existing model file : '%1$s'",
+						riboseModelFile.getPath());
+					Ribose.rtcLogger.log(Level.SEVERE, msg);
+					return false;
+				}
+			} catch (Exception e) {
+				String msg = String.format("Exception compiling model '%1$s' from '%2$s'",
+					riboseModelFile.getPath(), ginrAutomataDirectory.getPath());
+				Ribose.rtcLogger.log(Level.SEVERE, msg, e);
+				riboseModelFile.delete();
+				return false;
+			} finally {
+				if (model != null) {
+					model.close();
+				}
+			}
+		} else {
+			String msg = String.format("Can't compile ribose model %1$s, %2$s does not implement ITarget", 
+				riboseModelFile.getPath(), targetClass.getName());
+			Ribose.rtcLogger.log(Level.SEVERE, msg);
+			return false;
+		}
 	}
 
 	/**

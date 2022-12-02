@@ -1,5 +1,5 @@
 /***
- * JRTE is a recursive transduction engine for Java
+ * Ribose is a recursive transduction engine for Java
  * 
  * Copyright (C) 2011,2022 Kim Briggs
  * 
@@ -13,10 +13,9 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  * 
- * You should have received copies of the GNU General Public License
- * and GNU Lesser Public License along with this program.  See 
- * LICENSE-gpl-3.0. If not, see 
- * <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU General Public License
+ * along with this program (LICENSE-gpl-3.0). If not, see
+ * <http://www.gnu.org/licenses/#GPL>.
  */
 
 package com.characterforming.ribose;
@@ -48,6 +47,25 @@ import com.characterforming.ribose.base.TargetBindingException;
  * ITarget and its IEffectors, is intended to be a single-threaded process. 
  * Explicit synchronization is required to ensure safety if multiple threads
  * are involved.
+ * <br><br>
+ * {@code ITarget} implementations must provide a nullary constructor receiving no 
+ * arguments. Target classes are instantiated in ribose compilation contexts, where
+ * they serve as proxies for effector enumeration and compilation of effector 
+ * parameters, and in runtime contexts. In compilation context, the ribose compiler
+ * calls {@code getEffectors()} to enumerate the target effectors and calls the 
+ * {@code IEffector} methods {@code newParameters(int)} (to set parameter array in 
+ * the effector) and {@code compileParameter(int, bye[][])} for each {@code 
+ * ParameterizedEffector}. No other {@code ITarget} methods are called during
+ * compilation. No other methods are called on the proxy target or effectors
+ * during model compilation. 
+ * <br><br>
+ * In runtime contexts, a proxy target is instantiated when a ribose model is loaded.
+ * The proxy recompiles all parammeterized effector parameters to make them available
+ * to runtime targets and is otherwise not involved in runtime model use. Runtime targets
+ * are instantiated externally and passed to the runtime to create {@code ITransductor}
+ * instances to run transductions. When a runtime target is bound to a transductor each
+ * parameterized effector receives a call to {@code setParameter(int, Object)} to set
+ * the precompiled parameter for the specified parameter index. 
  * @author Kim Briggs
  */
 public interface ITarget {

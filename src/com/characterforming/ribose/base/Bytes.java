@@ -1,5 +1,5 @@
 /***
- * JRTE is a recursive transduction engine for Java
+ * Ribose is a recursive transduction engine for Java
  * 
  * Copyright (C) 2011,2022 Kim Briggs
  * 
@@ -13,10 +13,9 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  * 
- * You should have received copies of the GNU General Public License
- * and GNU Lesser Public License along with this program.  See 
- * LICENSE-gpl-3.0. If not, see 
- * <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU General Public License
+ * along with this program (LICENSE-gpl-3.0). If not, see
+ * <http://www.gnu.org/licenses/#GPL>.
  */
 
 package com.characterforming.ribose.base;
@@ -153,14 +152,14 @@ public final class Bytes {
 	 * @return the hex string
 	 */
 	public String toHexString() {
-    char[] hex = new char[2 * this.bytes.length];
-    for (int j = 0; j < this.bytes.length && this.bytes[j] != 0; j++) {
-      int k = this.bytes[j] & 0xFF;
-      hex[j * 2] = HEX[k >> 4];
-      hex[j * 2 + 1] = HEX[k & 0x0F];
-    }
-    assert hex[hex.length - 1] != 0;
-    return new String(hex);
+		char[] hex = new char[2 * this.bytes.length];
+		for (int j = 0; j < this.bytes.length && this.bytes[j] != 0; j++) {
+			int k = this.bytes[j] & 0xFF;
+			hex[j * 2] = HEX[k >> 4];
+			hex[j * 2 + 1] = HEX[k & 0x0F];
+		}
+		assert hex[hex.length - 1] != 0;
+		return new String(hex);
 	}
 
 	private int hash() {

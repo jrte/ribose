@@ -1,5 +1,5 @@
 /***
- * JRTE is a recursive transduction engine for Java
+ * Ribose is a recursive transduction engine for Java
  * 
  * Copyright (C) 2011,2022 Kim Briggs
  * 
@@ -13,10 +13,9 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  * 
- * You should have received copies of the GNU General Public License
- * and GNU Lesser Public License along with this program.  See 
- * LICENSE-gpl-3.0. If not, see 
- * <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU General Public License
+ * along with this program (LICENSE-gpl-3.0). If not, see
+ * <http://www.gnu.org/licenses/#GPL>.
  */
 
 package com.characterforming.jrte.engine;
@@ -71,7 +70,7 @@ final class IntsArray {
 	@Override
 	public boolean equals(final Object other) {
 		return other == this || other != null && other instanceof IntsArray
-			&& ((IntsArray) other).hashCode() == this.hashCode()
-			&& Arrays.equals(((IntsArray) other).intsArray, this.intsArray);
+		&& ((IntsArray) other).hashCode() == this.hashCode()
+		&& Arrays.equals(((IntsArray) other).intsArray, this.intsArray);
 	}
 }
