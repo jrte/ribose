@@ -162,7 +162,7 @@
     <javadoc access="protected" overview="overview.html" source="11" sourcepath="src" destdir="javadoc" splitindex="false" 
 			use="true" version="true" nodeprecated="false" nodeprecatedlist="false" noindex="false" nonavbar="false" notree="false" 
 			packagenames="com.characterforming.ribose.base,com.characterforming.ribose"
-			doctitle="The General Idea">
+			doctitle="The General Idea" failonerror="true" failonwarning="true">
 			<group title="Ribose" packages="com.characterforming.ribose*"/>
 			<link href="https://docs.oracle.com/en/java/javase/11/docs/api/"/>
 		</javadoc>

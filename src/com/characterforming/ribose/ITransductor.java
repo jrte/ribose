@@ -49,7 +49,7 @@ import com.characterforming.ribose.base.Signal;
  * input and transducers. The {@code run()} method has no effect when the transducer
  * or input stack is empty. The {@code stop()} method should be called before starting
  * a new transduction, to ensure that the transducer and input stacks and all values
- * are cleared. The {@code stop() method will throw a {@code RiboseException} when 
+ * are cleared. The {@code stop()} method will throw a {@code RiboseException} when 
  * it is called on a proxy transductor (a transductor instantiated for parameter 
  * compilation in model construction or runtime model loading contexts) or otherwise
  * nonfunctional transducer. This condition can be checked at any time by testing 
