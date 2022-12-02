@@ -29,7 +29,8 @@ import java.nio.charset.CharsetEncoder;
 import java.util.Arrays;
 
 /**
- * Wraps an array of bytes
+ * Wraps an immutable array of bytes. Ribose transductions operate in the {@code byte}
+ * domain, and transduction input and outputs are represented as byte arrays.
  * 
  * @author Kim Briggs
  */
@@ -131,7 +132,8 @@ public final class Bytes {
 	}
 	
 	/**
-	 * Get the contained bytes.
+	 * Get the contained bytes. This is a direct reference to the wrapped array. Sadly
+	 * there is no way for Java to confer immutability to the returned value.
 	 * 
 	 * @return the contained bytes
 	 */
@@ -140,10 +142,16 @@ public final class Bytes {
 	}
 
 	@Override
+	/** Decode contents to a String. */
 	public String toString() {
-		return Bytes.decode(Base.getRuntimeCharset().newDecoder(), this.getBytes(), this.getLength()).toString();
+		return Bytes.decode(Base.newCharsetDecoder(), this.getBytes(), this.getLength()).toString();
 	}
 	
+	/**
+	 * Like toString(), but theresult is a hexidecimal representation of the contents. 
+	 * 
+	 * @return the hex string
+	 */
 	public String toHexString() {
     char[] hex = new char[2 * this.bytes.length];
     for (int j = 0; j < this.bytes.length && this.bytes[j] != 0; j++) {
@@ -171,6 +179,7 @@ public final class Bytes {
 	}
 
 	@Override
+	/** Lazy hash code evaluation. */
 	public int hashCode() {
 		if (this.hash == 0) {
 			this.hash = this.hash();
@@ -179,6 +188,7 @@ public final class Bytes {
 	}
 
 	@Override
+	/** Test for equality of contents. */
 	public boolean equals(final Object other) {
 		return other instanceof Bytes && Arrays.equals(((Bytes) other).bytes, this.bytes);
 	}

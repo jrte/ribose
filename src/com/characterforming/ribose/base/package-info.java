@@ -20,12 +20,13 @@
  */
 
 /**
- * Ribose integration base classes for extension into other domains. 
- * The ribose compiler binds domain-specific {@link com.characterforming.ribose.ITarget}
- * classes and associated {@link com.characterforming.ribose.IEffector} implementations
- * to collections of transducers in a ribose runtime file. In the ribose runtime applications 
- * instantiate target instances and bind them to runtime transductors to drive data through
- a stacked composition of transducers and assimilate information into the target.
+ * Ribose base classes for integration and extension into other domains.
+ * <br><br>
+ * Ribose operates on byte[] and {@link Signal} inputs. Input may include UTF-8
+ * encoded text and/or binary data. The {@link Byte} wrapper class and {@link Base}
+ * utility class are used extensively throughout the ribose compiler and runtime. 
+ * The base classes {@link BaseEffector} and {@link  BaseParameterizedEffector} 
+ * provide cross-cutting support to built-in and specialized effector subclasses.
  *
  * @author Kim Briggs
  */

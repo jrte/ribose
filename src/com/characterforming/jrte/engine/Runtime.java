@@ -33,11 +33,11 @@ import com.characterforming.ribose.IRuntime;
 import com.characterforming.ribose.ITarget;
 import com.characterforming.ribose.ITransductor;
 import com.characterforming.ribose.base.Base;
-import com.characterforming.ribose.base.Base.Signal;
 import com.characterforming.ribose.base.Bytes;
 import com.characterforming.ribose.base.DomainErrorException;
 import com.characterforming.ribose.base.ModelException;
 import com.characterforming.ribose.base.RiboseException;
+import com.characterforming.ribose.base.Signal;
 
 /**
  * Ribose runtime loads a target model and instantiates runtime transductors. A model 

@@ -25,7 +25,7 @@ import com.characterforming.ribose.base.EffectorException;
 import com.characterforming.ribose.base.TargetBindingException;
 
 /**
- * Interface for parameterised effectors. Parameters are compiled from arrays of
+ * Interface for parameterized effectors. Parameters are compiled from arrays of
  * byte arrays into an array of some parameter type P that is constructible from one
  * or more arrays of bytes. Compiled parameter values are referenced by their
  * index in the resulting array. At runtime, the invoke(int) method is called
@@ -39,17 +39,17 @@ import com.characterforming.ribose.base.TargetBindingException;
 public interface IParameterizedEffector<T extends ITarget, P> extends IEffector<T> {
 	/**
 	 * Create a parameters array (P[]) with capacity for a specified number of P
-	 * instances and retain the resulting array to receive enumerated parameter
-	 * instances in subsequent calls to {@link #compileParameter(int, byte[][])}.
+	 * instances. This array is populated in with enumerated parameter instances
+	 * in subsequent calls to {@link #compileParameter(int, byte[][])} (when 
+	 * compiling or loading ribose models) or {@link #setParameter(int, Object)}
+	 * (when setting up a runtime transductor).
 	 * 
 	 * @param parameterCount The size of the array to create
 	 */
 	void newParameters(int parameterCount);
 
 	/**
-	 * This method is invoked at runtime to determine the number of compiled parameters
-	 * that are bound to the effector. Effectors that accept no parameters should return
-	 * zero.
+	 * Get the number of compiled parameters that are bound to the effector.
 	 * 
 	 * @return The number of compiled parameters
 	 */
@@ -72,7 +72,7 @@ public interface IParameterizedEffector<T extends ITarget, P> extends IEffector<
 	P compileParameter(int parameterIndex, byte[][] parameterList) throws TargetBindingException;
 
 	/**
-	 * Set a precompiled parameter value 
+	 * Set a precompiled parameter value.
 	 * 
 	 * @param parameterIndex The array index in the parameters array P[] to set
 	 *           with the parameter value
@@ -81,7 +81,7 @@ public interface IParameterizedEffector<T extends ITarget, P> extends IEffector<
 	void setParameter(int parameterIndex, Object parameter);
 
 	/**
-	 * Get a compiled parameter value
+	 * Get a compiled parameter value.
 	 * 
 	 * @param parameterIndex The parameter index
 	 * @return The parameter value at the index
@@ -89,9 +89,8 @@ public interface IParameterizedEffector<T extends ITarget, P> extends IEffector<
 	P getParameter(int parameterIndex);
 
 	/**
-	 * This method is invoked at runtime when triggered by an input transition.
-	 * The parameter index indicates which parameter object to apply for the 
-	 * invocation.
+	 * Parameterized effector invocation receivews the index of the {@code P} 
+	 * instance to apply for the invocation.
 	 * 
 	 * @param parameterIndex The index of the parameter object to be applied
 	 * @return User-defined effectors should return 0

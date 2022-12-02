@@ -23,6 +23,8 @@ package com.characterforming.jrte.engine;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.charset.CharsetDecoder;
+import java.nio.charset.CharsetEncoder;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -38,7 +40,6 @@ import com.characterforming.ribose.IRuntime;
 import com.characterforming.ribose.ITarget;
 import com.characterforming.ribose.ITransductor;
 import com.characterforming.ribose.base.Base;
-import com.characterforming.ribose.base.Base.Signal;
 import com.characterforming.ribose.base.BaseEffector;
 import com.characterforming.ribose.base.BaseParameterizedEffector;
 import com.characterforming.ribose.base.Bytes;
@@ -46,6 +47,7 @@ import com.characterforming.ribose.base.DomainErrorException;
 import com.characterforming.ribose.base.EffectorException;
 import com.characterforming.ribose.base.ModelException;
 import com.characterforming.ribose.base.RiboseException;
+import com.characterforming.ribose.base.Signal;
 import com.characterforming.ribose.base.TargetBindingException;
 
 /**
@@ -83,19 +85,22 @@ public final class Transductor implements ITransductor, IOutput {
 	private static final int OUT = 9;
 	private static final int MARK = 10;
 	private static final int RESET = 11;
+	@SuppressWarnings("unused")
 	private static final int START = 12;
 	private static final int PAUSE = 13;
 	private static final int STOP = 14;
 	
-	private Model model;
+	private final Model model;
 	private IEffector<?>[] effectors;
 	private NamedValue selected;
 	private NamedValue[] namedValueHandles;
 	private Map<Bytes, Integer> namedValueOrdinalMap;
 	private final TransducerStack transducerStack;
 	private final InputStack inputStack;
+	private final CharsetDecoder decoder;
+	private final CharsetEncoder encoder;
 	private OutputStream output;
-	private boolean isOutEnabled;
+	private final boolean isOutEnabled;
 	private int errorCount;
 
 	/**
@@ -114,6 +119,8 @@ public final class Transductor implements ITransductor, IOutput {
 		this.selected = null;
 		this.errorCount = 0;
 		this.isOutEnabled = System.getProperty("jrte.out.enabled", "true").equals("true");
+		this.decoder = Base.newCharsetDecoder();
+		this.encoder = Base.newCharsetEncoder();
 
 		if (mode == Mode.run) {
 			this.namedValueOrdinalMap = this.model.getNamedValueMap();
@@ -123,7 +130,7 @@ public final class Transductor implements ITransductor, IOutput {
 				byte[] valueBuffer = new byte[INITIAL_NAMED_VALUE_BYTES];
 				this.namedValueHandles[valueIndex] = new NamedValue(entry.getKey(), valueIndex, valueBuffer, 0);
 			}
-			this.selected = this.namedValueHandles[Base.ANONYMOUS_VALUE_ORDINAL];
+			this.selected = this.namedValueHandles[Model.ANONYMOUS_VALUE_ORDINAL];
 			this.inputStack = new InputStack(INITIAL_STACK_SIZE, this.model.getSignalCount(), this.namedValueHandles.length);
 			this.transducerStack = new TransducerStack(INITIAL_STACK_SIZE);
 		} else {
@@ -155,6 +162,16 @@ public final class Transductor implements ITransductor, IOutput {
 	/*13*/	new PauseEffector(this),
 	/*14*/	new StopEffector(this)
 		};
+	}
+
+	@Override
+	public CharsetDecoder getCharsetDecoder() {
+		return this.decoder;
+	}
+
+	@Override
+	public CharsetEncoder getCharsetEncoder() {
+		return this.encoder;
 	}
 
 	/*
@@ -223,17 +240,10 @@ public final class Transductor implements ITransductor, IOutput {
 	@Override
 	public ITransductor start(final Bytes transducerName) throws ModelException {
 		if (this.status() != Status.NULL) {
-			int transducerOrdinal = this.model.getTransducerOrdinal(transducerName);
-			Transducer transducer = this.model.loadTransducer(transducerOrdinal);
-			if (transducer != null) {
-				this.transducerStack.push(transducer);
-				this.select(Base.ANONYMOUS_VALUE_ORDINAL);
-				this.clear();
-			} else {
-				logger.log(Level.SEVERE, String.format("No transducer named %1$s", 
-					transducerName.toString()));
-			}
-		} else {
+			this.transducerStack.push(this.model.loadTransducer(this.model.getTransducerOrdinal(transducerName)));
+			this.select(Model.ANONYMOUS_VALUE_ORDINAL);
+			this.clear();
+	} else {
 			logger.log(Level.SEVERE, "Transduction not bound to target");
 		}
 		return this;
@@ -262,7 +272,7 @@ public final class Transductor implements ITransductor, IOutput {
 		for (NamedValue value : this.namedValueHandles) {
 			value.clear();
 		}
-		this.selected = this.namedValueHandles[Base.ANONYMOUS_VALUE_ORDINAL];
+		this.selected = this.namedValueHandles[Model.ANONYMOUS_VALUE_ORDINAL];
 		return this;
 	}
 
@@ -277,8 +287,8 @@ public final class Transductor implements ITransductor, IOutput {
 			logger.log(Level.SEVERE, rtx.getMessage(), rtx);
 			throw rtx;
 		}
-		final int nulSignal = Base.Signal.nul.signal();
-		final int eosSignal = Base.Signal.eos.signal();
+		final int nulSignal = Signal.nul.signal();
+		final int eosSignal = Signal.eos.signal();
 		TransducerState transducer = null;
 		int state = 0, last = -1, token = -1;
 		int errorInput = -1, signalInput = -1;
@@ -382,7 +392,7 @@ I:				do {
 					// invoke a vector of 1 or more effectors and record side effects on transducer and input stacks 
 					aftereffects[0] = 0;
 					do {
-						int effect = 0;
+						int effect = IEffector.RTX_NONE;
 						switch (action) {
 						default:
 							if (action > 0) {
@@ -406,14 +416,14 @@ I:				do {
 							this.selected.append((byte)token);
 							break;
 						case SELECT:
-							this.selected = this.namedValueHandles[Base.ANONYMOUS_VALUE_ORDINAL];
+							this.selected = this.namedValueHandles[Model.ANONYMOUS_VALUE_ORDINAL];
 							break;
 						case COPY:
-							this.selected.append(this.namedValueHandles[Base.ANONYMOUS_VALUE_ORDINAL]);
+							this.selected.append(this.namedValueHandles[Model.ANONYMOUS_VALUE_ORDINAL]);
 							break;
 						case CUT:
-							this.selected.append(this.namedValueHandles[Base.ANONYMOUS_VALUE_ORDINAL]);
-							this.namedValueHandles[Base.ANONYMOUS_VALUE_ORDINAL].clear();
+							this.selected.append(this.namedValueHandles[Model.ANONYMOUS_VALUE_ORDINAL]);
+							this.namedValueHandles[Model.ANONYMOUS_VALUE_ORDINAL].clear();
 							break;
 						case CLEAR:
 							this.selected.clear();
@@ -428,7 +438,7 @@ I:				do {
 							this.inputStack.value(this.selected.getValue(), this.selected.getLength());
 							effect = IEffector.RTX_PUSH;
 							break;
-						case OUT: {
+						case OUT: 
 							if (this.isOutEnabled && this.selected.getLength() > 0) {
 								try {
 									this.output.write(this.selected.getValue(), 0, this.selected.getLength());
@@ -437,7 +447,6 @@ I:				do {
 								}
 							}
 							break;
-						}
 						case MARK:
 							this.inputStack.mark();
 							break;
@@ -611,7 +620,7 @@ I:				do {
 		if (value != null && value.getValue() != null) {
 			return Arrays.copyOf(value.getValue(), this.namedValueHandles[nameIndex].getLength());
 		} else {
-			return Base.EMPTY;
+			return Model.EMPTY;
 		}
 	}
 
@@ -632,7 +641,7 @@ I:				do {
 				byte[] valueBuffer = new byte[INITIAL_NAMED_VALUE_BYTES];
 				this.namedValueHandles[valueIndex] = new NamedValue(entry.getKey(), valueIndex, valueBuffer, 0);
 			}
-			this.selected = this.namedValueHandles[Base.ANONYMOUS_VALUE_ORDINAL];
+			this.selected = this.namedValueHandles[Model.ANONYMOUS_VALUE_ORDINAL];
 		}
 	}
 
@@ -660,7 +669,7 @@ I:				do {
 	private int clear(final int nameIndex) {
 		assert (nameIndex >= 0) || (nameIndex == -1);
 		int index = (nameIndex >= 0) ? nameIndex : this.selected.getOrdinal();
-		if (index != Base.CLEAR_ANONYMOUS_VALUE) {
+		if (index != Model.CLEAR_ANONYMOUS_VALUE) {
 			this.namedValueHandles[index].clear();
 		} else {
 			clear();
@@ -974,7 +983,7 @@ I:				do {
 				return super.getParameter(parameterIndex);
 			} else {
 				throw new TargetBindingException(String.format("%1$s.%2$s: invalid signal '%3$%s' for count effector",
-					super.getTarget().getName(), super.getName(), Bytes.decode(super.runtimeDecoder, parameterList[1], parameterList[1].length)));
+					super.getTarget().getName(), super.getName(), Bytes.decode(super.decoder, parameterList[1], parameterList[1].length)));
 			}		
 		}
 

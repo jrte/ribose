@@ -26,9 +26,14 @@ import com.characterforming.ribose.base.EffectorException;
 import com.characterforming.ribose.base.TargetBindingException;
 
 /**
- * Interface for simple effectors. Effectors are invoked at runtime in response to state transitions in a running
- * transduction. They are typically anonymous inner classes defined in ITarget.bind().
- * 
+ * Interface for simple effectors. Effectors are invoked at runtime in response to state 
+ * transitions in a running transduction. They are typically implemented as anonymous
+ * inner classes withinin a specialized {@link ITarget} implementation class.
+ * <br><br>
+ * Simple effectors present an {@link invoke()} method that is called from running 
+ * transductions. Paramterized effectors implementing {@link IParameterizedEffector} may
+ * also be included in ribose targets. The ribose {@link ITransductor} implmentation
+ * also presents a core suite of built-in effectors that are accessible to all targets.
  * @param <T> The effector target type
  * @author Kim Briggs
  */
@@ -38,8 +43,7 @@ public interface IEffector<T extends ITarget> {
 	 * RTX bits are additive and accumulate as the effect vector is 
 	 * executed for a transition. Most RTX bits reflect the action 
 	 * of built-in effectors. Domain specific effectors should return
-	 * only {@code RTX_NONE} (to continue transduction normally) or 
-	 * {@code RTX_PAUSE} (to force resumable exit from run()).
+	 * only {@code RTX_NONE} (to continue transduction normally).
 	 * 
 	 * Return RTX_NONE from effector.invoke() methods that do not
 	 * affect the {@link ITransductor} transducer stack or input 
@@ -47,40 +51,53 @@ public interface IEffector<T extends ITarget> {
 	 */
 	static final int RTX_NONE = 0;
 	/**
-	 * Return RTX_START only if invoke() action is to push the
-	 * ITransductor transducer stack.
+	 * Transducer pushed onto the transducer stack.
 	 */
 	static final int RTX_START = 1;
 	/**
-	 * Return RTX_STOP only if invoke() action is to pop the
-	 * ITransductor transducer stack.
+	 * Transducer stack popped.
 	 */
 	static final int RTX_STOP = 2;
 	/**
-	 * Return RTX_PUSH only if invoke() action is to push the
-	 * ITransductor input stack.
+	 * Input (or signal) pushed onto the input stack.
 	 */
 	static final int RTX_PUSH = 4;
 	/**
-	 * Return RTX_POP only if invoke() action is to pop the
-	 * ITransductor input stack.
+	 * ITransductor input stack popped.
 	 */
 	static final int RTX_POP = 8;
 	/**
-	 * Return RTX_COUNT if invoke() action decremented the 
-	 * counter for the current transducer to 0.
+	 * Counter for the current transducer decremented to 0.
 	 */
 	static final int RTX_COUNT = 16;
 	/**
-	 * Return RTX_PAUSE from invoke() to force immediate and 
-	 * resumable exit from run().
+	 * Force immediate and resumable exit from ITransductor.run().
 	 */
 	static final int RTX_PAUSE = 32;
 	/**
-	 * Return RTX_STOPPED from invoke() to force immediate and 
-	 * final exit from run().
+	 * Force immediate and final exit from ITransductor.run().
 	 */
 	static final int RTX_STOPPED = 64;
+
+	/**
+	 * This method is invoked at runtime when triggered by an input transition.
+	 * 
+	 * @return User-defined effectors should return {@code IEffector.RTX_NONE}
+	 * @throws EffectorException on error
+	 */
+	int invoke() throws EffectorException;
+
+	/**
+	 * Receive an IOutput view of transduction named values. Named values are
+	 * arrays of bytes extracted from transduction input. The transduction 
+	 * will typically call an effector method to indicate when the values are
+	 * available and the effector will use IOutput methods to extract the 
+	 * value and assimilate the value into the target.
+	 * 
+	 * @param output A object that provides a view or transduction runtime values
+	 * @throws TargetBindingException on error
+	 */
+	void setOutput(IOutput output) throws TargetBindingException;
 
 	/**
 	 * Returns the target that expresses the effector
@@ -91,30 +108,9 @@ public interface IEffector<T extends ITarget> {
 
 	/**
 	 * Returns the effector name. The name of the effector is the token 
-	 * used to reference it in transducer definitions.
+	 * used to reference it in transducer patterns.
 	 * 
 	 * @return The effector name.
 	 */
 	Bytes getName();
-
-	/**
-	 * Receive an IOutput view of transduction named values. Named values are
-	 * arrays of bytes extracted from transduction input. The transduction 
-	 * will typically call an effector method to indicate when the value is
-	 * available and the effector will use IOutput methods to extract the 
-	 * value and assimilate the value into the target.
-	 * 
-	 * @param output A object that provides a view or transduction runtime values
-	 * @throws TargetBindingException on error
-	 */
-	void setOutput(IOutput output) throws TargetBindingException;
-
-
-	/**
-	 * This method is invoked at runtime when triggered by an input transition.
-	 * 
-	 * @return User-defined effectors should return 0
-	 * @throws EffectorException on error
-	 */
-	int invoke() throws EffectorException;
 }

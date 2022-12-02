@@ -7,83 +7,48 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.charset.CharsetDecoder;
 import java.nio.charset.CharsetEncoder;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import com.characterforming.jrte.engine.Transductor;
 import com.characterforming.ribose.base.Base;
-import com.characterforming.ribose.base.Base.Signal;
-import com.characterforming.ribose.base.BaseTarget;
 import com.characterforming.ribose.base.Bytes;
+import com.characterforming.ribose.base.Signal;
 import com.characterforming.ribose.base.TargetBindingException;
 
 /**
- * Basic target class for building and running UTF-8 text transduction models involving 
- * transducers that use only the built-in ribose {@link Transductor} effectors, below. 
- * These are implicit in all {@link ITarget} implementations and available to 
- * transducers in all ribose models.
+ * Provides a {@link TRun#main(String[])} method to run a transduction using a ribose
+ * model. 
  * <br><br>
- * <table>
- * <caption style="text-align:left"><b>Built-in ribose effectors</b></caption>
- * <tr><td><i>nul</i></td><td>Signal <b>nul</b> to indicate no transition defined for current input</td></tr>
- * <tr><td><i>nil</i></td><td>Does nothing</td></tr>
- * <tr><td><i>paste</i></td><td>Append current input to selected named value</td></tr>
- * <tr><td><i>paste[...]</i></td><td>Paste literal data and/or named values into selected named value</td></tr>
- * <tr><td><i>select</i></td><td>Select the anonymous named value</td></tr>
- * <tr><td><i>select[`~name`]</i></td><td>Select a named value</td></tr>
- * <tr><td><i>copy</i></td><td>Copy the anonymous named value into selected named value</td></tr>
- * <tr><td><i>copy[`~name`]</i></td><td>Copy a named value into selected named value</td></tr>
- * <tr><td><i>cut</i></td><td>Cut the anonymous named value into selected named value</td></tr>
- * <tr><td><i>cut[`~name`]</i></td><td>Cut a named value into selected named value</td></tr>
- * <tr><td><i>clear</i></td><td>Clear the anonymous named value</td></tr>
- * <tr><td><i>clear[`~name`]</i></td><td>Clear a named value </td></tr>
- * <tr><td><i>count</i></td><td>Decrement the active counter and signal when counter drops to 0</td></tr>
- * <tr><td><i>count[`~name` `!signal`]</i></td><td>Set up a counter and signal from numeric named value</td></tr>
- * <tr><td><i>in</i></td><td>Push the anonymous value onto the input stack</td></tr>
- * <tr><td><i>in[...]</i></td><td>Push literal data and/or named values onto the input stack</td></tr>
- * <tr><td><i>out</i></td><td>Write the anonymous value onto System.out</td></tr>
- * <tr><td><i>out[...]</i></td><td>Write literal data and/or named values onto System.out</td></tr>
- * <tr><td><i>mark</i></td><td>Mark a position in the input stream</td></tr>
- * <tr><td><i>reset</i></td><td>Reset position to most recent mark (if any)</td></tr>
- * <tr><td><i>start[`@transducer`]</i></td><td>Push a transducer onto the transducer stack</td></tr>
- * <tr><td><i>pause</i></td><td>Force immediate return from {@code ITransductor.run()}</td></tr>
- * <tr><td><i>stop</i></td><td>Pop the transducer stack</td></tr>
+ * <table style="font-size:12px">
+ * <caption style="text-align:left"><b>TRun usage</b></caption>
+ * <tr><td style="text-align:right">java</td><td>-cp ribose.0.0.0.jar com.characterforming.ribose.TRun &lt;target&gt; &lt;input&gt; &lt;model&gt;</td></tr>
+ * <tr><td style="text-align:right">target</td><td>Fully qualified name of the model target class.</td></tr>
+ * <tr><td style="text-align:right">transducer</td><td>The path to the directory containing automata (*.dfa) to include in the model.</td></tr>
+ * <tr><td style="text-align:right">input</td><td>The path to the input file.</td></tr>
+ * <tr><td style="text-align:right">model</td><td>The path to the model file containing the transducer.</tr>
+ * <tr><td style="text-align:right">output</td><td>The path to the output file.</tr>
  * </table>
  * <br><br>
- * To build a text transduction model, compile with ginr a set of ribose-conformant
- * ginr patterns, saving automata (*.dfa) to be compiled into the model into a directory.
- * Run {@link TCompile#main(String[])} specifying {@link TRun} as target class,  
- * the path to the automata directory and the path and name of the file to 
- * contain the compiled model.
- * <br><br>
- * <b>TCompile Usage</b> (with TRun as model target): <pre class="code">java -cp ribose.0.0.0.jar com.characterforming.ribose.Tcompile com.characterforming.ribose.TRun &lt;automata&gt; &lt;model&gt;</pre>
- * Use {@link TRun#main(String[])} to load a text transduction model and instantiate
- * transductors to run transductions on UTF-8 byte streams.
- * <br><br>
- * <b>TRun Usage:</b> <pre class="code">java -cp ribose.0.0.0.jar com.characterforming.ribose.TRun [--nil] &lt;transducer-name&gt; &lt;input&gt; &lt;model&gt;</pre>
- * Output from the {@code out[..]} effector will be written as UTF-8 byte stream to 
- * {@code System.out} unless {@code -Djrte.out.enabled=false} is indicated as a 
- * JVM argument to the java command. Text transduction models that construct 
- * domain objects and do not otherwise use {@code out[..]} elect to use it to
- * trace problematic transducers. This option is provided to allow benchmarking
- * to proceed without incurring delays and heap overhead relating to writing to
- * {@code System.out}.
- * <br><br>
- * <table>
- * <caption style="text-align:left"><b>TRun command-line arguments</b></caption>
- * <tr><td><i>--nil</i></td><td>(Optional) Send an initial {@code nil} signal to transduction.</tr>
- * <tr><td><i>transducer</i></td><td>The name of the transducer to run.</tr>
- * <tr><td><i>input</i></td><td>The path to the input file.</tr>
- * <tr><td><i>model</i></td><td>The path to the model file.</tr>
- * </table>
+ * {@code TRun} also serves as a target class for building basic UTF-8 text or 
+ * other byte stream transduction models that use only built-in ribose effectors. 
+ * To build a basic transduction model, compile with ginr a set of ribose-conformant
+ * ginr patterns, saving automata (*.dfa) to be compiled into the model into a
+ * directory. Then run {@link TCompile} to package the automata in the directory
+ * into a ribose model.
  */
-public final class TRun extends BaseTarget {
+public final class TRun implements ITarget{
+	private final CharsetDecoder decoder;
+	private final CharsetEncoder encoder;
+
 	/**
 	 * Constructor
 	 */
 	public TRun() {
 		super();
+		this.decoder = Base.newCharsetDecoder();
+		this.encoder = Base.newCharsetEncoder();
 	}
 	
 	/*
@@ -93,7 +58,7 @@ public final class TRun extends BaseTarget {
 	@Override
 	public IEffector<?>[] getEffectors() throws TargetBindingException {
 		// This is just a proxy for Transductor.getEffectors()
-		return super.getEffectors();
+		return new IEffector<?>[] { };
 	}
 
 	/*
@@ -105,6 +70,16 @@ public final class TRun extends BaseTarget {
 		return this.getClass().getSimpleName();
 	}
 
+	@Override
+	public CharsetDecoder getCharsetDecoder() {
+		return this.decoder;
+	}
+
+	@Override
+	public CharsetEncoder getCharsetEncoder() {
+		return this.encoder;
+	}
+
 	/**
 	 * Opens a text transduction model built with {@link TRun} as model target class
 	 * and runs a transduction on an input file, optionally pushing a {@code nil}
@@ -114,7 +89,7 @@ public final class TRun extends BaseTarget {
 	 * @param args [--nil] &lt;target-class&gt; &lt;transducer-name&gt; &lt;input-file-path&gt; &lt;trun-model-path&gt;
 	 */
 	public static void main(final String[] args) {
-		final CharsetEncoder encoder = Base.getRuntimeCharset().newEncoder();
+		final CharsetEncoder encoder = Base.newCharsetEncoder();
 		final Logger rteLogger = Logger.getLogger(Base.RTE_LOGGER_NAME);
 		rteLogger.setLevel(Level.WARNING);
 		int argc = args.length;

@@ -25,21 +25,18 @@ import com.characterforming.ribose.IParameterizedEffector;
 import com.characterforming.ribose.ITarget;
 
 /**
- * Base {@link IParameterizedEffector} implementation class. The
- * {@link #newParameters(int)} {@link #compileParameter(int, byte[][])},
- * {@link #invoke()}, and {@link #invoke(int)} methods must be implemented by
- * subclasses. Subclasses can use {@link Bytes#decode(CharsetDecoder, byte[], int)} to decode UTF-8
- * byte[] to char[] or String from parameter byte arrays using the default Charset.
+ * Base {@link IParameterizedEffector} implementation class. The {@link #newParameters(int)},
+ * {@link #compileParameter(int, byte[][])}, {@link #invoke()}, and {@link #invoke(int)} 
+ * methods must be implemented by subclasses. 
  * 
  * @param <T> The effector target type
- * @param <P> The effector parameter type, constructible from byte[][] (eg new
- *           P(byte[][]))
+ * @param <P> The effector parameter type, constructible from byte[][] (eg new P(byte[][]))
  * @author Kim Briggs
+ * @see com.characterforming.ribose.IParameterizedEffector
  */
 public abstract class BaseParameterizedEffector<T extends ITarget, P> extends BaseEffector<T> implements IParameterizedEffector<T, P> {
-	/**
-	 * Effector parameters are indexed and selected by parameter ordinal.
-	 */
+
+	/** Effector parameters are indexed and selected by parameter ordinal.  */
 	protected P[] parameters = null;
 
 	/**

@@ -49,14 +49,20 @@ import com.characterforming.ribose.base.Bytes;
 import com.characterforming.ribose.base.CompilationException;
 import com.characterforming.ribose.base.ModelException;
 import com.characterforming.ribose.base.RiboseException;
+import com.characterforming.ribose.base.Signal;
 import com.characterforming.ribose.base.TargetBindingException;
 
 /**
  * @author Kim Briggs
  */
 public final class Model implements AutoCloseable {
-	final static Logger rteLogger = Logger.getLogger(Base.RTE_LOGGER_NAME);
-	final static Logger rtcLogger = Logger.getLogger(Base.RTC_LOGGER_NAME);
+	static final Logger rteLogger = Logger.getLogger(Base.RTE_LOGGER_NAME);
+	static final Logger rtcLogger = Logger.getLogger(Base.RTC_LOGGER_NAME);
+  static final int ANONYMOUS_VALUE_ORDINAL = 0;
+	static final int CLEAR_ANONYMOUS_VALUE = 1;
+  static final byte[] EMPTY = { };
+	static final byte[] ANONYMOUS_VALUE_NAME = Model.EMPTY;
+	static final byte[] ALL_VALUE_NAME = { '*' };
 	
 	public enum Mode { none, compile, run; }
 	
@@ -64,8 +70,8 @@ public final class Model implements AutoCloseable {
 	private final String ioMode;
 	private final File modelPath;
 	private final ITarget proxyTarget;
-	private final CharsetEncoder encoder = Base.getRuntimeCharset().newEncoder();
-	private final CharsetDecoder decoder = Base.getRuntimeCharset().newDecoder();
+	private final CharsetEncoder encoder = Base.newCharsetEncoder();
+	private final CharsetDecoder decoder = Base.newCharsetDecoder();
 	private final HashMap<Bytes, Integer> signalOrdinalMap;
 	private final HashMap<Bytes, Integer> namedValueOrdinalMap;
 	private final HashMap<Bytes, Integer> transducerOrdinalMap;
@@ -242,13 +248,13 @@ public final class Model implements AutoCloseable {
 				Bytes name = new Bytes(new byte[] { 0, (byte)ordinal });
 				this.signalOrdinalMap.put(name, ordinal);
 			}
-			for (Base.Signal signal : Base.Signal.values()) {
+			for (Signal signal : Signal.values()) {
 				assert this.getSignalLimit() == signal.signal();
 				this.signalOrdinalMap.put(signal.key(), signal.signal());
 			}
-			assert this.signalOrdinalMap.size() == (Base.RTE_SIGNAL_BASE + Base.Signal.values().length);
-			this.namedValueOrdinalMap.put(new Bytes(Base.ANONYMOUS_VALUE_NAME), Base.ANONYMOUS_VALUE_ORDINAL);
-			this.namedValueOrdinalMap.put(new Bytes(Base.ALL_VALUE_NAME), Base.CLEAR_ANONYMOUS_VALUE);
+			assert this.signalOrdinalMap.size() == (Base.RTE_SIGNAL_BASE + Signal.values().length);
+			this.namedValueOrdinalMap.put(new Bytes(Model.ANONYMOUS_VALUE_NAME), Model.ANONYMOUS_VALUE_ORDINAL);
+			this.namedValueOrdinalMap.put(new Bytes(Model.ALL_VALUE_NAME), Model.CLEAR_ANONYMOUS_VALUE);
 			this.transducerObjectIndex = new Transducer[256];
 			this.transducerOffsetIndex = new long[256];
 			this.transducerNameIndex = new Bytes[256];
@@ -574,10 +580,10 @@ public final class Model implements AutoCloseable {
 
 	Transducer loadTransducer(final Integer transducerOrdinal) throws ModelException {
 		if ((0 <= transducerOrdinal) && (transducerOrdinal < this.transducerOrdinalMap.size())) {
-			synchronized (this.transducerObjectIndex) {
+			try {
 				if (this.transducerObjectIndex[transducerOrdinal] == null) {
-					if (this.transducerObjectIndex[transducerOrdinal] == null) {
-						try {
+					synchronized (this.transducerObjectIndex) {
+						if (this.transducerObjectIndex[transducerOrdinal] == null) {
 							this.io.seek(transducerOffsetIndex[transducerOrdinal]);
 							final String name = this.getString();
 							final String targetName = this.getString();
@@ -586,18 +592,19 @@ public final class Model implements AutoCloseable {
 							final int[] effectorVector = this.getIntArray();
 							this.transducerObjectIndex[transducerOrdinal] = new Transducer(
 								name, targetName,	inputFilter, transitionMatrix, effectorVector);
-						} catch (final IOException e) {
-							Model.rteLogger.log(Level.SEVERE,
-								String.format("RuntimeModel.loadTransducer(%d) caught an IOException after seek to %d",
-									transducerOrdinal, transducerOffsetIndex[transducerOrdinal]), e);
 						}
 					}
 				}
+				return this.transducerObjectIndex[transducerOrdinal];
+			} catch (final IOException e) {
+				throw new ModelException(String.format("RuntimeModel.loadTransducer(ordinal:%d) caught an IOException after seek to %d",
+					transducerOrdinal, transducerOffsetIndex[transducerOrdinal]), e);
 			}
-			return this.transducerObjectIndex[transducerOrdinal];
+		} else {
+			throw new ModelException(String.format("RuntimeModel.loadTransducer(ordinal:%d) ordinal out of range [0,%d)",
+				transducerOrdinal, this.transducerOrdinalMap.size()));
 		}
-		return null;
-}
+	}
 
 	int getInt() throws ModelException {
 		long position = 0;

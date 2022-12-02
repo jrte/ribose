@@ -35,9 +35,9 @@ import com.characterforming.ribose.ITransductor.Status;
 import com.characterforming.ribose.Ribose;
 import com.characterforming.ribose.TRun;
 import com.characterforming.ribose.base.Base;
-import com.characterforming.ribose.base.Base.Signal;
 import com.characterforming.ribose.base.Bytes;
 import com.characterforming.ribose.base.RiboseException;
+import com.characterforming.ribose.base.Signal;
 
 public class TestRunner {
 
@@ -85,7 +85,7 @@ public class TestRunner {
 			"SelectPasteTest", "PasteSpeedTest", "NilPauseTest", "PastePauseTest", "PasteCutTest", "StackTest", "PasteCountTest", "CounterTest", "NilSpeedTest"
 		};
 		final TRun proxyTarget = new TRun();
-		final CharsetEncoder encoder = Base.getRuntimeCharset().newEncoder();
+		final CharsetEncoder encoder = Base.newCharsetEncoder();
 		try (final IRuntime ribose = Ribose.loadRiboseModel(new File(modelPath), proxyTarget)) {
 			final TRun runTarget = new TRun();
 			final ITransductor trex = ribose.newTransductor(runTarget);

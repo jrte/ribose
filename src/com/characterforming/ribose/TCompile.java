@@ -10,37 +10,37 @@ import com.characterforming.ribose.base.Base;
 import com.characterforming.ribose.base.TargetBindingException;
 
 /**
- * The ribose model compiler is a transducer of ginr DFAs as represented in {@code dfamin:save}
- * format in {@code *.dfa} files. As such it is contained in a compiler model, for which this
- * class is the model target class.
+ * Provides a {@link TCompile#main(String[])} method to transduce ginr DFAs to ribose transducers
+ * and package them in a ribose runtime model along with a target class and associated effectors.
+ * {@code TCompile} also serves as target class for the ribose compiler model {@code TCompile.model}
+ * containing transducers used by the compiler.
  * <br><br>
  * The default constructor {@link TCompile()} is used only when building a new compiler model. In 
- * that context is serves as model target only to present its effectors and compile effector
+ * that context is serves as a proxy target only to present its effectors and compile effector
  * parameters. The {@link TCompile(Model)} constructor instantiates a runtime instance of the
  * model compiler to compile a ribose model for domain-specific target and related transducers.
  * <br><br>
- * Main method runs the ribose runtime compiler to build a runtime model for a target 
+ * The main method runs the ribose runtime compiler to build a runtime model for a target 
  * class from a collection of ginr automata generated from ribose patterns.
  * <br><br>
- * <b>TCompile Usage:</b> <pre class="code">java -cp ribose.0.0.0.jar com.characterforming.ribose.Tcompile &lt;target&gt; &lt;automata&gt; &lt;model&gt;</pre>
- * <br>
- * <table>
- * <caption style="text-align:left"><b>TCompile command-line arguments</b></caption>
- * <tr><td><i>target</i></td><td>Fully qualified name of the model target class.</tr>
- * <tr><td><i>automata</i></td><td>The path to the directory containing automata to include in the model.</tr>
- * <tr><td><i>model</i></td><td>The path to the file to contain the model.</tr>
+ * <table style="font-size:12px">
+ * <caption style="text-align:left"><b>TCompile usage</b></caption>
+ * <tr><td style="text-align:right">java</td><td>-cp ribose.0.0.0.jar com.characterforming.ribose.TCompile &lt;target&gt; &lt;automata&gt; &lt;model&gt;</td></tr>
+ * <tr><td style="text-align:right">target</td><td>Fully qualified name of the model target class.</td></tr>
+ * <tr><td style="text-align:right">automata</td><td>The path to the directory containing automata (*.dfa) to include in the model.</td></tr>
+ * <tr><td style="text-align:right">model</td><td>The path to the file to contain the compiled model.</tr>
  * </table>
- */
+*/
 public final class TCompile extends ModelCompiler {
 	/**
-	 * Constructor (as model target for compilation of TCompile.model)
+	 * Constructor (as proxy target for compilation of TCompile.model)
 	 */
 	public TCompile() {
 		super();
 	}
 	
 	/**
-	 * Constructor (as runtime target to build from Automaton.dfa and persist to TCompile.model)
+	 * Constructor (as runtime target for compilation of other ribose models)
 	 * 
 	 * @param targetModel the TCompile model instance to be constructed and persisted
 	 */

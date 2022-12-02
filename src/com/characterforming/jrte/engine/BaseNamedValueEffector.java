@@ -27,7 +27,7 @@ import com.characterforming.ribose.base.EffectorException;
 import com.characterforming.ribose.base.TargetBindingException;
 
 /**
- * Base class for parameterised named value effectors, which are invoked with
+ * Base class for parameterized named value effectors, which are invoked with
  * value name parameters. The setParamater(int, charset, byte[][]), invoke(), and
  * invoke(int) methods must be implemented by subclasses.
  * 

@@ -22,9 +22,8 @@
 package com.characterforming.ribose.base;
 
 import java.nio.charset.Charset;
+import java.nio.charset.CharsetDecoder;
 import java.nio.charset.CharsetEncoder;
-
-import com.characterforming.ribose.ITransductor;
 
 /**
  * This {@code Base} class provides commonly used defintions that are
@@ -33,108 +32,64 @@ import com.characterforming.ribose.ITransductor;
  * @author Kim Briggs
  */
 public class Base {
+	/** 'ribose-0.0.0', current version */
 	public static final String RTE_VERSION = "ribose-HEAD";
-	
+	/** 'ribose-runtime', base name for ribose runtime logs */
 	public static final String RTE_LOGGER_NAME = "ribose-runtime";
+	/** 'ribose-compile', base name for ribose compiler logs */
 	public static final String RTC_LOGGER_NAME = "ribose-compile";
 	
+	/** '.dfa', filename suffix for saved ginr automata */
 	public static final String AUTOMATON_FILE_SUFFIX = ".dfa";
+	/** (65536), least upper bound for transducer/effectors/value/signal enumerators */
 	public static final int MAX_ORDINAL = Short.MAX_VALUE;
-	public static final byte TYPE_ORDINAL_INDICATOR = (byte)0xff;
-	public static final byte TYPE_REFERENCE_NONE = (byte)0x0;
-	public static final byte TYPE_REFERENCE_TRANSDUCER = '@';
-	public static final byte TYPE_REFERENCE_SIGNAL = '!';
-	public static final byte TYPE_REFERENCE_VALUE = '~';
+	/** (256 = {@code !nul}), least signal ordinal value */
+	public static final int RTE_SIGNAL_BASE = 256;
 	
-	private static int INPUT_BUFFER_SIZE = Integer.parseInt(System.getProperty("ribose.inbuffer.size", "64436"));
-	private static int OUTPUT_BUFFER_SIZE = Integer.parseInt(System.getProperty("ribose.outbuffer.size", "8196"));
+	/** type decoration prefix (type decorations declared here are for internal use) */
+	public static final byte TYPE_ORDINAL_INDICATOR = (byte)0xff;
+	/** type decoration for ginr tokens representing transducers in ribose patterns */
+	public static final byte TYPE_REFERENCE_TRANSDUCER = '@';
+	/** type decoration for ginr tokens representing signals in ribose patterns */
+	public static final byte TYPE_REFERENCE_SIGNAL = '!';
+	/** type decoration for ginr tokens representing values in ribose patterns */
+	public static final byte TYPE_REFERENCE_VALUE = '~';
+	/** null value for type decoration */
+	public static final byte TYPE_REFERENCE_NONE = (byte)0x0;
+	
+	private static final int INPUT_BUFFER_SIZE = Integer.parseInt(System.getProperty("ribose.inbuffer.size", "64436"));
+	private static final int OUTPUT_BUFFER_SIZE = Integer.parseInt(System.getProperty("ribose.outbuffer.size", "8196"));
 	private static final Charset runtimeCharset = Charset.forName(System.getProperty("ribose.runtime.charset", "UTF-8"));
 	private static final CharsetEncoder encoder = runtimeCharset.newEncoder();
-	public static final Bytes[] RTE_SIGNAL_NAMES = {
+	static final Bytes[] RTE_SIGNAL_NAMES = {
 		Bytes.encode(Base.encoder, "nul"),
 		Bytes.encode(Base.encoder, "nil"),
 		Bytes.encode(Base.encoder, "eol"),
 		Bytes.encode(Base.encoder, "eos")
 	};
-	public static final int RTE_SIGNAL_BASE = 256;
-	
-	/**
-	 * General signals available in all ribose models.
-	 * <br><br>
-	 * Transductors send {@code nul} to transductions when no transition is defined for
-	 * the current symbol from the input stream. This gives the transduction a first chance
-   * synchronize with the input. If no transition is defined for the received {@code nul}
-   * the {@link ITransductor#run()} method will throw {@code DomainErrorException}. 
-	 * <br><br>
-	 * Transductors send {@code eos} to transductions when the input stack runs dry. 
-	 * If the receiving transduction has no transition defined for received {@code eos}
-	 * it is ignored. In any case {@code run()} will return normally with {@code Status.PAUSED}
-	 * after sending {@code eos}.
-	 * 
-	 * @author kb
-	 *
-	 */
-	public enum Signal {
-		/**
-		 * Signals first chance to handle missing transition on current input symbol
-		 */
-		nul, 
-		/**
-		 * Signals anything, used as a generic out-of-band prompt to trigger actions 
-		 */
-		nil, 
-		/**
-		 * Signals end of feature, used as a generic feature delimiter
-		 */
-		eol,
-		/**
-		 * Signals end of transduction input
-		 */
-		eos;
-		
-		/**
-		 * Signal name.
-		 * 
-		 * @return The signal name as lookup key
-		 */
-		public Bytes key() { return Base.RTE_SIGNAL_NAMES[this.ordinal()]; }
-		
-		/**
-		 * Signal ordinal values are mapped to the end of the base {@code (0x0..0xff)} 
-		 * input range. This range can be further extended with additional signal 
-		 * ordinal values defined for domain-specific transduction models.
-		 *  
-		 * @return the signal ordinal value
-		 */
-		public int signal() {
-			return RTE_SIGNAL_BASE + ordinal();
-		}
-	};
-	
-	public static final byte[] EMPTY = { };
-	public static final int CLEAR_ALL_VALUES = 2;
-	public static final int CLEAR_ANONYMOUS_VALUE = 1;
-	public static final int ANONYMOUS_VALUE_ORDINAL = 0;
-	public static final byte[] ANONYMOUS_VALUE_NAME = EMPTY;
-	public static final byte[] ANONYMOUS_VALUE_REFERENCE = { TYPE_REFERENCE_VALUE };
-	public static final byte[][] ANONYMOUS_VALUE_PARAMETER = { ANONYMOUS_VALUE_REFERENCE };
-	public static final byte[] ALL = { '~', '*' };
-	public static final byte[] ALL_VALUE_NAME = { '*' };
-	public static final byte[] ALL_VALUE_PARAMETER = ALL;
 
 	public Base() {
 		super();
 	}
 	
 	/**
-	 * Get a runtime charset instance. This is used to encode and decode ribose 
-	 * runtime resources (effector names, transducer names, all textual data in
-	 * ribose models are represented in encoded form, eg UTF-8 byte arrays).
+	 * Instantiate a new {@code CharsetDecoder}. All textual data in ribose models
+	 * are represented in encoded form (eg, UTF-8 byte arrays).
 	 * 
-	 * @return a reference to the runtime charset insstance
+	 * @return a new CharsetDecoder insstance
 	 */
-	static public Charset getRuntimeCharset() {
-		return Base.runtimeCharset;
+	static public CharsetDecoder newCharsetDecoder() {
+		return Base.runtimeCharset.newDecoder();
+	}
+
+	/**
+	 * Instantiate a new {@code CharsetEncoder}. All textual data in ribose models
+	 * are represented in encoded form (eg, UTF-8 byte arrays).
+	 * 
+	 * @return a new CharsetEncoder insstance
+	 */
+	static public CharsetEncoder newCharsetEncoder() {
+		return Base.runtimeCharset.newEncoder();
 	}
 
 	/**
@@ -154,22 +109,12 @@ public class Base {
 	static public int getOutBufferSize() {
 		return Base.OUTPUT_BUFFER_SIZE;
 	}
-
-	/**
-	 * Check for value reference (a 4-byte encoding of a value ordinal).
-	 * 
-	 * @param bytes Bytes to check
-	 * @return true if {@code bytes} contains a value reference
-	 */
-	static public boolean isAnonymousValueReference(final byte bytes[]) {
-		return (bytes.length == 1) && (bytes[0] == TYPE_REFERENCE_VALUE);
-	}
 	
 	/**
 	 * Check for reference ordinal (a 4-byte encoding of a value, signal
 	 * or transducer ordinal).
 	 * 
-	 * @param bytes Bytes to check
+	 * @param bytes Encoded reference ordinal
 	 * @return true if {@code bytes} encodes a reference ordinal
 	 */
 	static public boolean isReferenceOrdinal(final byte bytes[]) {
@@ -177,9 +122,10 @@ public class Base {
 	}
 	
 	/**
-	 * Get reference type from and encoded refernce ordinal.
+	 * Get reference type from an encoded reference ordinal with type indicator prefix
+	 * (eg {@code [\ff ! 256]} encodes {@code `!nul`} as an effector parameter).
 	 * 
-	 * @param bytes Bytes to check
+	 * @param bytes Encoded reference ordinal 
 	 * @return a {@code byte} representing the reference type
 	 * @see TYPE_REFERENCE_SIGNAL
 	 * @see TYPE_REFERENCE_TRANSDUCER
@@ -200,9 +146,10 @@ public class Base {
 	}
 	
 	/**
-	 * Get reference type from and encoded refernce ordinal.
+	 * Get reference type from an encoded referent ordinal without type indicator prefix
+	 * (eg, [! 256] encodes {@code nul} as an input signal).
 	 * 
-	 * @param bytes Bytes to check
+	 * @param bytes Encoded reference ordinal
 	 * @return a {@code byte} representing the reference type
 	 * @see TYPE_REFERENCE_SIGNAL
 	 * @see TYPE_REFERENCE_TRANSDUCER
@@ -223,7 +170,7 @@ public class Base {
 	}
 	
 	/**
-	 * Check for reference name (a byte array with a type prefix byte).
+	 * Check for reference name (a ginr token with a type prefix byte, eg {@code `!nil`}).
 	 * 
 	 * @param reference Bytes to check
 	 * @return the reference name if {@code bytes} encodes a reference, or null
@@ -269,7 +216,7 @@ public class Base {
 	 * 
 	 * @param type The reference type 
 	 * @param ordinal The reference ordinal
-	 * @return the reference ordinal or a negative integer if none
+	 * @return the enc oded reference ordinal
 	 */
 	static public byte[] encodeReferenceOrdinal(byte type, int ordinal) {
 		assert ordinal <= Base.MAX_ORDINAL;

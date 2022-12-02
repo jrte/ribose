@@ -280,7 +280,7 @@ LinuxKernelStrict = (
       (dropped, next start[`@LinuxKernelDropped`])
     | (limited, next start[`@LinuxKernelLimited`])
     | (aborted, next start[`@LinuxKernelAborted`])
-    | null (nl, in[`!nil`])
+    | (null nl, in[`!nil`])
     )
   )*
 ):dfamin;

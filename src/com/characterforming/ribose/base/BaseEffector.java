@@ -29,30 +29,25 @@ import com.characterforming.ribose.IOutput;
 import com.characterforming.ribose.ITarget;
 
 /**
- * Base {@link IEffector} implementation class. The invoke() method must be
- * implemented by subclasses.
+ * Base {@link IEffector} implementation class provides subclasses with access
+ * to the transduction target and an output view to enable named value extraction. 
+ * The {@link invoke()} method must be implemented by subclasses.
  * 
  * @param <T> The effector target type
  * @author Kim Briggs
  */
 public abstract class BaseEffector<T extends ITarget> implements IEffector<T> {
-	private final Bytes name;
-	
-	/**
-	 * Effector view of Transductor named values.
-	 */
-	protected IOutput output;
-	
-	/**
-	 * Effector access to the target that it is bound to
-	 */
-	protected T target;
 
-	/*
-	 * Charset encoder/decoder
-	 */
-	protected final CharsetDecoder runtimeDecoder;
-	protected final CharsetEncoder runtimeEncoder;
+	/** Effector access to the target that it is bound to */
+	protected T target;
+	/** Effector view of Transductor named values. */
+	protected IOutput output;
+	/** Charset decoder */
+	protected final CharsetDecoder decoder;
+	/** Charset encoder */
+	protected final CharsetEncoder encoder;
+
+	private final Bytes name;
 	
 	/**
 	 * Constructor receivs target and a name.
@@ -61,9 +56,9 @@ public abstract class BaseEffector<T extends ITarget> implements IEffector<T> {
 	 * @param name The effector name
 	 */
 	public BaseEffector(final T target, final String name) {
-		this.runtimeDecoder = target.getEffectiveCharset().newDecoder();
-		this.runtimeEncoder = target.getEffectiveCharset().newEncoder();
-		this.name = Bytes.encode(this.runtimeEncoder, name);
+		this.decoder = target.getCharsetDecoder();
+		this.encoder = target.getCharsetEncoder();
+		this.name = Bytes.encode(this.encoder, name);
 		this.target = target;
 		this.output = null;
 	}

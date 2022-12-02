@@ -26,7 +26,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.nio.charset.Charset;
 import java.nio.charset.CharsetDecoder;
 import java.nio.charset.CharsetEncoder;
 import java.util.ArrayList;
@@ -45,7 +44,6 @@ import com.characterforming.ribose.ITransductor;
 import com.characterforming.ribose.Ribose;
 import com.characterforming.ribose.TCompile;
 import com.characterforming.ribose.base.Base;
-import com.characterforming.ribose.base.Base.Signal;
 import com.characterforming.ribose.base.BaseEffector;
 import com.characterforming.ribose.base.Bytes;
 import com.characterforming.ribose.base.CompilationException;
@@ -53,6 +51,7 @@ import com.characterforming.ribose.base.DomainErrorException;
 import com.characterforming.ribose.base.EffectorException;
 import com.characterforming.ribose.base.ModelException;
 import com.characterforming.ribose.base.RiboseException;
+import com.characterforming.ribose.base.Signal;
 import com.characterforming.ribose.base.TargetBindingException;
 
 public class ModelCompiler implements ITarget {
@@ -63,9 +62,8 @@ public class ModelCompiler implements ITarget {
 	protected final Model model;
 	
 	private static final long VERSION = 210;
-	private final Charset charset = Base.getRuntimeCharset();
-	private final CharsetEncoder encoder = charset.newEncoder();
-	private final CharsetDecoder decoder = charset.newDecoder();
+	private final CharsetEncoder encoder = Base.newCharsetEncoder();
+	private final CharsetDecoder decoder = Base.newCharsetDecoder();
 	private final ArrayList<String> errors;
 	private Bytes transducerName;
 	private ITransductor transductor;
@@ -104,11 +102,21 @@ public class ModelCompiler implements ITarget {
 		};
 	}
 
+	@Override
+	public CharsetDecoder getCharsetDecoder() {
+		return this.decoder;
+	}
+
+	@Override
+	public CharsetEncoder getCharsetEncoder() {
+		return this.encoder;
+	}
+
 	public static boolean compileAutomata(Model targetModel, File inrAutomataDirectory) throws ModelException {
 		File workingDirectory = new File(System.getProperty("user.dir", "."));
 		File compilerModelFile = new File(workingDirectory, "TCompile.model");
 		try (IRuntime compilerRuntime = Ribose.loadRiboseModel(compilerModelFile, new TCompile())) {
-			final CharsetEncoder encoder = Base.getRuntimeCharset().newEncoder();
+			final CharsetEncoder encoder = Base.newCharsetEncoder();
 			TCompile compiler = new TCompile(targetModel);
 			compiler.setTransductor(compilerRuntime.newTransductor(compiler));
 			for (final String filename : inrAutomataDirectory.list()) {
@@ -167,11 +175,11 @@ public class ModelCompiler implements ITarget {
 		public void setOutput(IOutput output) throws TargetBindingException {
 			super.setOutput(output);
 			fields = new INamedValue[] {
-				super.output.getNamedValue(Bytes.encode(super.runtimeEncoder, "version")),
-				super.output.getNamedValue(Bytes.encode(super.runtimeEncoder, "tapes")),
-				super.output.getNamedValue(Bytes.encode(super.runtimeEncoder, "transitions")),
-				super.output.getNamedValue(Bytes.encode(super.runtimeEncoder, "states")),
-				super.output.getNamedValue(Bytes.encode(super.runtimeEncoder, "symbols"))
+				super.output.getNamedValue(Bytes.encode(super.encoder, "version")),
+				super.output.getNamedValue(Bytes.encode(super.encoder, "tapes")),
+				super.output.getNamedValue(Bytes.encode(super.encoder, "transitions")),
+				super.output.getNamedValue(Bytes.encode(super.encoder, "states")),
+				super.output.getNamedValue(Bytes.encode(super.encoder, "symbols"))
 			};
 		}
 		
@@ -226,10 +234,10 @@ public class ModelCompiler implements ITarget {
 		public void setOutput(IOutput output) throws TargetBindingException {
 			super.setOutput(output);
 			fields = new INamedValue[] {
-				super.output.getNamedValue(Bytes.encode(super.runtimeEncoder, "from")),
-				super.output.getNamedValue(Bytes.encode(super.runtimeEncoder, "to")),
-				super.output.getNamedValue(Bytes.encode(super.runtimeEncoder, "tape")),
-				super.output.getNamedValue(Bytes.encode(super.runtimeEncoder, "symbol"))
+				super.output.getNamedValue(Bytes.encode(super.encoder, "from")),
+				super.output.getNamedValue(Bytes.encode(super.encoder, "to")),
+				super.output.getNamedValue(Bytes.encode(super.encoder, "tape")),
+				super.output.getNamedValue(Bytes.encode(super.encoder, "symbol"))
 			};
 		}
 		

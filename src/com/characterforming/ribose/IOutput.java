@@ -25,11 +25,11 @@ import com.characterforming.ribose.base.Bytes;
 import com.characterforming.ribose.base.TargetBindingException;
 
 /**
- * Implementation provides a view of named values (data extracted by the transduction) to 
- * IEffector instances bound to the transaction.
+ * Provides a view of named values (data extracted by the transduction) to {@link IEffector}
+ * instances bound to the transaction. Effectors receive their {@code IOutput} instance via
+ * {@link IEffector#setOutput(IOutput)} when they are first bound to a transductor.
  * 
  * @author Kim Briggs
- *
  */
 public interface IOutput {
 	/**

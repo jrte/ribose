@@ -24,13 +24,13 @@ package com.characterforming.ribose;
 import java.io.InputStream;
 import java.io.OutputStream;
 
-import com.characterforming.ribose.base.Base.Signal;
 import com.characterforming.ribose.base.Bytes;
 import com.characterforming.ribose.base.ModelException;
 import com.characterforming.ribose.base.RiboseException;
+import com.characterforming.ribose.base.Signal;
 
 /**
- * The ribose runtime provides a capability to instantiate runtime transductors from
+ * Provides a capability to instantiate runtime transductors from
  * a runtime model and bind them to instances of the model target class. A transductor
  * provides a capability to run serial transductions. A transduction is a pattern-driven
  * process that selects and invokes target effectors serially to extract and assimilate

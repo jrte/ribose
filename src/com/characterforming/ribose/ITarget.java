@@ -21,27 +21,33 @@
 
 package com.characterforming.ribose;
 
-import java.nio.charset.Charset;
+import java.nio.charset.CharsetDecoder;
+import java.nio.charset.CharsetEncoder;
 
-import com.characterforming.ribose.base.Base;
 import com.characterforming.ribose.base.TargetBindingException;
 
 /**
  * Interface for transduction target classes, which express IEffector instances
- * that are invoked from runtime transductions. Target implementations supplement
- * BaseTarget with specialized effectors.
+ * that are invoked from runtime transductions. The runtime Transductor class,
+ * which encapsulate ribose transductions, presents a core set of built-in
+ * effectors that are accessible to all transductions. Specialized ITarget
+ * implementations supplement these with specialized effectors.
  * <br><br>
  * Target classes must present a public default constructor with no arguments. A
  * proxy instance of the target implementation class is instantiated during
  * model compilation to determine the names and types of the target effectors
- * and to compile and validate effector parameters. At that time the
- * {@link IParameterizedEffector#newParameters(int)} will be called first and then
- * {@link IParameterizedEffector#compileParameter(int, byte[][])} methods will be
+ * and to compile and validate effector parameters. At that time, for each effector,
+ * the {@link IParameterizedEffector#newParameters(int)} will be called first and
+ * then {@link IParameterizedEffector#compileParameter(int, byte[][])} will be
  * called for each IParameterizedEffector.
  * <br><br>
- * At runtime, targets are bound only once to a transductor and the binding
+ * At runtime, each target is bound only once to a transductor and the binding
  * persists for the lifetime of the transductor. Note that transductors are 
- * restartable and reuseable and may serially run more than one transduction.   
+ * restartable and reuseable and may serially run more than one transduction
+ * using the same target. Each transduction, including an ITransductor, an 
+ * ITarget and its IEffectors, is intended to be a single-threaded process. 
+ * Explicit synchronization is required to ensure safety if multiple threads
+ * are involved.
  * @author Kim Briggs
  */
 public interface ITarget {
@@ -73,12 +79,23 @@ public interface ITarget {
 	IEffector<?>[] getEffectors() throws TargetBindingException;
 
 	/**
-	 * Return the @{code Charset} to be used by transductors bound to the
-	 * target instance. 
+	 * Return a new @{code CharsetDecoder} instance for use by the target and
+	 * the effectors bound to the target. This is a shared instance, safe for
+	 * use within single-threaded transductions. Effectors should access this
+	 * instance through {@link com.characterforming.ribose.base.BaseEffector#decoder},
+	 * whish 
 	 * 
-	 * @return the @{code Charset} to be used with this target instance
+	 * @return the @{code CharsetDecoder} to be used with this target instance
 	 */
-	default Charset getEffectiveCharset() {
-		return Base.getRuntimeCharset();
-	}
+	CharsetDecoder getCharsetDecoder();
+
+	/**
+	 * Return a new @{code CharsetEncoder} instance for use by the target and
+	 * the effectors bound to the target. This is a shared instance, safe for
+	 * use within single-threaded transductions. Effectors should access this
+	 * instance through {@link com.characterforming.ribose.base.BaseEffector#encoder}.
+	 * 
+	 * @return the @{code CharsetEncoder} to be used with this target instance
+	 */
+	CharsetEncoder getCharsetEncoder();
 }

@@ -56,7 +56,7 @@ class NamedValue implements INamedValue {
 			value = new byte[Math.min(INITIAL_NAMED_VALUE_BYTES, length)];
 		}
 		assert value.length >= length;
-		this.decoder = Base.getRuntimeCharset().newDecoder();
+		this.decoder = Base.newCharsetDecoder();
 		this.name = name;
 		this.ordinal = ordinal;
 		this.value = value;
@@ -68,7 +68,7 @@ class NamedValue implements INamedValue {
 		this.ordinal = namedValue.ordinal;
 		this.length = namedValue.length;
 		this.value = new byte[this.length];
-		this.decoder = Base.getRuntimeCharset().newDecoder();
+		this.decoder = Base.newCharsetDecoder();
 		System.arraycopy(namedValue.value, 0, this.value, 0, namedValue.length);
 	}
 

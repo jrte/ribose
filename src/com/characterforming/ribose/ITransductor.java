@@ -21,50 +21,95 @@
 
 package com.characterforming.ribose;
 
-import com.characterforming.ribose.base.Base.Signal;
-
 import java.io.OutputStream;
 
 import com.characterforming.ribose.base.Bytes;
 import com.characterforming.ribose.base.DomainErrorException;
 import com.characterforming.ribose.base.ModelException;
 import com.characterforming.ribose.base.RiboseException;
+import com.characterforming.ribose.base.Signal;
 
 /**
  * Interface for runtime transductors. A transductor binds an IInput stack,
- * transducer stack, and an ITarget instance. When the run() method is called
- * the transduction will read input and invoke the effectors triggered by each
- * input transition until one of the following conditions is satisfied:
+ * transducer stack, and an ITarget instance. When the {@link run()} method
+ * is called the transductor will read input and invoke the effectors triggered
+ * by each input transition until {@link status()} indicates that the transduction
+ * is not runnable. Then one of the following conditions is satisfied:
  * <br><br>
- * <ol>
- * <li>the input stack is empty
- * <li>the transducer stack is empty
- * <li>an effector returns {@code IEffector.RTX_PAUSE}
+ * <ul>
+ * <li>the input stack is empty ({@link Status#PAUSED})
+ * <li>the transducer stack is empty ({@link Status#WAITING})
+ * <li>input and transducer stack are both empty ({@link Status#STOPPED})
+ * <li>a transducer invokes the {@code pause} effector {@link Status#PAUSED}
  * <li>an exception is thrown
- * </ol>
+ * </ul>
+ * <br>
+ * A paused transduction can be resumed when input is available ({@code push()}).
+ * A waiting transduction can be resumed by starting a transducer ({@code start()}).
+ * A stopped transducer can be reused to start a new transduction by pushing new
+ * input and transducers. The {@code stop()} method should be called before starting
+ * a new transduction, to ensure that previous inputs and values are cleared. The 
+ * {@code run()} method is effective only when neither stack is empty.
  * <br><br>
- * As long as the input and transducer stacks are not empty it may be possible
- * to call the run() method again after it returns if, for example, the pause
- * effector causes the previous call to return or a DomainErrorException was
- * thrown and you want to persevere after driving the input to a recognizable
- * location (eg, end of nearest containing loop).
- * <br><br>
+ * <pre>
+ * if (stop().push(data,limit).push(signal).start(transducer).status().isRunnable()) {
+ *   do {
+ *     if (run().status().isPaused()) {
+ *       data = recycle(data);
+ *       count = input.read(data, limit);
+ *       if (count &gt; 0) {
+ *         push(data);
+ *       else {
+ *         break;
+ *       }
+ *     }
+ *   } while (status().isRunnable());
+ *   stop();
+ * }
+ * </pre>
  * Domain errors (inputs with no transition defined) are handled by emitting a
- * nul signal, giving the transduction an opportunity to handle it with an
- * explicit transition on nul. For most text transducers, domain errors can be 
- * handled by transducing the transducer. For example, with line-oriented text, 
- * all possible interleavings of domain errors in the input can be modeled by replacing
- * each non-nl input (x) with (x|nul) in the original transducer definition. The 
- * resulting transducer can then be pruned to produce a hardened transducer that accepts
- * ((any - nl)* nl)* and silently resynchronizes with the input after a domain error. If 
- * a domain error occurs on a nul signal, a {@link DomainErrorException} is thrown. 
+ * {@code} nul signal, giving the transduction an opportunity to handle it with an
+ * explicit transition on {@code nul}. Typically this involves searching without effect
+ * for a synchronization pattern and resuming with effect afterr synchronizing. If 
+ * {@code nul}  is not handled a {@code DomainException} is thrown. The transductor
+ * will send an {@code eos} signal to the transduction the input stack runs dry.
+ * Transducers can explicitly handle this by including a transition on {@code eos}.
+ * If eos is not explicitly handled the {@code run()} method will return with 
+ * {@code Status.PAUSED}.
  * <br><br>
- * The transductor will send an {@code eos} signal to the transduction the input stack runs
- * dry. Transducers can explicitly handle  this by including a transition on {@code eos}.
- * If eos is not explicitly handled the transduction will simply stop and {@link status()}
- * will return {@link Status#STOPPED}.
- * 
+ * The runtime ITransductor implementation provides a core set of built-in effectors,
+ * listed below, that are available to all ribose transducers.
+ * <br><br>
+ * <table style="font-size:12px">
+ * <caption style="text-align:left"><b>Built-in ribose effectors</b></caption>
+ * <tr><th style="text-align:right">syntax</th><th style="text-align:left">semantics</th></tr>
+ * <tr><td style="text-align:right"><i>nul</i></td><td>Signal <b>nul</b> to indicate no transition defined for current input</td></tr>
+ * <tr><td style="text-align:right"><i>nil</i></td><td>Does nothing</td></tr>
+ * <tr><td style="text-align:right"><i>paste</i></td><td>Append current input to selected named value</td></tr>
+ * <tr><td style="text-align:right"><i>paste[(`~name`|`...`)+]</i></td><td>Paste literal data and/or named values into selected named value</td></tr>
+ * <tr><td style="text-align:right"><i>select</i></td><td>Select the anonymous named value</td></tr>
+ * <tr><td style="text-align:right"><i>select[`~name`]</i></td><td>Select a named value</td></tr>
+ * <tr><td style="text-align:right"><i>copy</i></td><td>Copy the anonymous named value into selected named value</td></tr>
+ * <tr><td style="text-align:right"><i>copy[`~name`]</i></td><td>Copy a named value into selected named value</td></tr>
+ * <tr><td style="text-align:right"><i>cut</i></td><td>Cut the anonymous named value into selected named value</td></tr>
+ * <tr><td style="text-align:right"><i>cut[`~name`]</i></td><td>Cut a named value into selected named value</td></tr>
+ * <tr><td style="text-align:right"><i>clear</i></td><td>Clear the selected named value</td></tr>
+ * <tr><td style="text-align:right"><i>clear[`~name`]</i></td><td>Clear a named value </td></tr>
+ * <tr><td style="text-align:right"><i>count</i></td><td>Decrement the active counter and signal when counter drops to 0</td></tr>
+ * <tr><td style="text-align:right"><i>count[`~name` `!signal`]</i></td><td>Set up a counter and signal from numeric named value</td></tr>
+ * <tr><td style="text-align:right"><i>in</i></td><td>Push the selected value onto the input stack</td></tr>
+ * <tr><td style="text-align:right"><i>in[`!signal`|(`~name`|`...`)+]</i></td><td>Push a signal or a concatenation of literal data and/or named values onto the input stack</td></tr>
+ * <tr><td style="text-align:right"><i>out</i></td><td>Write the selected value onto the output stream</td></tr>
+ * <tr><td style="text-align:right"><i>out[(`~name`|`...`)+]</i></td><td>Write literal data and/or named values onto the output stream</td></tr>
+ * <tr><td style="text-align:right"><i>mark</i></td><td>Mark a position in the input stream</td></tr>
+ * <tr><td style="text-align:right"><i>reset</i></td><td>Reset position to most recent mark (if any)</td></tr>
+ * <tr><td style="text-align:right"><i>start[`@transducer`]</i></td><td>Push a transducer onto the transducer stack</td></tr>
+ * <tr><td style="text-align:right"><i>pause</i></td><td>Force immediate return from {@code ITransductor.run()}</td></tr>
+ * <tr><td style="text-align:right"><i>stop</i></td><td>Pop the transducer stack</td></tr>
+ * </table>
+* 
  * @author Kim Briggs
+ * @see Status
  */
 public interface ITransductor extends ITarget {
 	
@@ -228,12 +273,11 @@ public interface ITransductor extends ITarget {
 	boolean hasMark();
 	
 	/**
-	 * If the {@code bytes} buffer is in the mark set try to recycle the buffer
-	 * from a previously reset input, or return null to force caller to acquire
-	 * a new buffer. Otherwise return the unmarked {@code bytes} buffer.
+	 * Allocate and return a new byte[] buffer if the previous buffer ({@code bytes})
+	 * is marked in the input stack. Otherwise return the unmarked {@code bytes} buffer.
 	 * 
-	 * @param bytes the most recently used buffer
-	 * @return an empty data buffer or null
+	 * @param bytes a recently used input buffer
+	 * @return the input buffer ({@code bytes}), or a new biffer of equal size if {@code bytes} is marked
 	 */
 	byte[] recycle(byte[] bytes);
 	

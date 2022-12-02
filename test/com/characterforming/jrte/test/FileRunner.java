@@ -42,9 +42,9 @@ import com.characterforming.ribose.ITransductor.Status;
 import com.characterforming.ribose.Ribose;
 import com.characterforming.ribose.TRun;
 import com.characterforming.ribose.base.Base;
-import com.characterforming.ribose.base.Base.Signal;
 import com.characterforming.ribose.base.Bytes;
 import com.characterforming.ribose.base.RiboseException;
+import com.characterforming.ribose.base.Signal;
 
 public class FileRunner {
 
@@ -86,8 +86,8 @@ public class FileRunner {
 		rteLogger.setLevel(Level.WARNING);
 
 		final File f = new File(inputPath);
-		final CharsetDecoder decoder = Base.getRuntimeCharset().newDecoder();
-		final CharsetEncoder encoder = Base.getRuntimeCharset().newEncoder();
+		final CharsetDecoder decoder = Base.newCharsetDecoder();
+		final CharsetEncoder encoder = Base.newCharsetEncoder();
 		try (final FileInputStream isr = new FileInputStream(f)) {
 			long ejrte = 0, tjrte = 0, t0 = 0, t1 = 0;
 			int clen = (int)f.length();

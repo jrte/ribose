@@ -153,6 +153,7 @@
 		<uptodate targetfile="${jars.dir}/${ribose.version}-api.jar" property="javadoc.uptodate">
 			<srcfiles dir="${java.source.dir}" includes="**/*.java"/>
 			<srcfiles dir="etc/markdown" includes="**/*"/>
+			<srcfiles dir="." includes="overview.html"/>
 		</uptodate>
 	</target>
 
