@@ -42,7 +42,7 @@
 	<property name="build.test" value="build/test"/>
 	<property name="ribose.patterns" value="patterns/ribose"/>
 	<property name="test.patterns" value="patterns/test"/>
-	<property name="test.input.files" value="${test.patterns}/inputs"/>
+	<property name="test.input.dir" value="${test.patterns}/inputs"/>
 	<property name="regex.verbose.gc" value="cycle-start id=.[0-9]+. type=.scavenge. contextid=.[0-9]+. timestamp=.(?:[0-9]+[-.:T])+[0-9]+. intervalms=.([0-9]+.[0-9]+)[^0-9]"/>
 	<property name="regex.linux.kernel" value="([JFMASOND][a-z]+ [0-9]+ (?:[0-9]+:)+[0-9]+) ([-.:A-Za-z_0-9]*) kernel: \[[ ]*[0-9]+\.[0-9]+\] (DROPPED|ABORTED|LIMITED) IN=([-.:A-Za-z_0-9]*) OUT=([-.:A-Za-z_0-9]*)(?: MAC=([-.:A-Za-z_0-9]*))? SRC=([-.:A-Za-z_0-9]*) DST=([-.:A-Za-z_0-9]*).* PROTO=([-.:A-Za-z_0-9]*)(?:.* SPT=([-.:A-Za-z_0-9]*) DPT=([-.:A-Za-z_0-9]*))?"/>
 	<property name="ribose.inbuffer.size" value="65536"/>
@@ -89,6 +89,9 @@
 		<delete dir="${build.automata}" quiet="true"/>
 		<delete file="build/Test.model" quiet="true"/>
 		<delete file="build/Test.map" quiet="true"/>
+		<delete failonerror="false">
+		  <fileset dir="/tmp" includes="*.ginrout,*.ginrerr"/>
+		</delete>
 	</target>
 
 	<target name="clean-test">
@@ -261,22 +264,32 @@
 		<echo message="Java @ ${env.JAVA_HOME}"/>
 		<echo message="${ant.version}"/>
 		<echo message="Ant @ ${env.ANT_HOME}"/>
+		<delete quiet="true" dir="/tmp" includes="*.time,*.ginrour,*.ginrerr"/>
 		<delete quiet="true" dir="${build.test}"/>
-		<delete quiet="true" dir="/tmp" includes="*.time"/>
 		<mkdir dir="${build.test}"/>
+		<delete quiet="true" dir="${test.input.dir}"/>
+		<mkdir dir="${test.input.dir}"/>
 	</target>
 	
 	<target name="test" depends="test-env">
+		<unzip src="${test.patterns}/inputs.zip" dest="${test.input.dir}">
+			<patternset>
+				<include name="dates.txt"/>
+				<include name="fib.txt"/>
+				<include name="kern-10.log"/>
+				<include name="verbosegc.vgc"/>
+			</patternset>
+		</unzip>
 <!-- Basic ribose tests -->
 		<echo>Basic FileRunner tests:</echo>
 		<exec failonerror="true" executable="bash">
 			<arg value="-c"/>
-			<arg value="etc/sh/ribose --nil Fibonacci ${test.input.files}/fib.txt build/Test.model"/>
+			<arg value="etc/sh/ribose --nil Fibonacci ${test.input.dir}/fib.txt build/Test.model"/>
 		</exec>
 		<echo>DateExtractor:</echo>
 		<exec failonerror="true" executable="bash">
 			<arg value="-c"/>
-			<arg value="etc/sh/ribose --nil DateExtractor ${test.input.files}/dates.txt build/Test.model"/>
+			<arg value="etc/sh/ribose --nil DateExtractor ${test.input.dir}/dates.txt build/Test.model"/>
 		</exec>
 		<echo/>
 <!-- TestRunner benchmarks -->
@@ -290,51 +303,51 @@
 		<echo>FileRunner benchmarking (ribose fsts vs similar regex, input from single buffer in RAM, output muted):</echo>
 		<java fork="true" jvm="${jdk}/bin/java" dir="." classname="com.characterforming.jrte.test.FileRunner" classpathref="test.classpath" failonerror="true">
 			<jvmarg line="${jargs} -Djrte.out.enabled=false -Dregex.out.enabled=false"/>
-			<arg line="--nil LinuxKernelNil ${test.input.files}/kern-10.log build/Test.model &quot;${regex.linux.kernel}&quot;"/>
+			<arg line="--nil LinuxKernelNil ${test.input.dir}/kern-10.log build/Test.model &quot;${regex.linux.kernel}&quot;"/>
 		</java>
 		<java fork="true" jvm="${jdk}/bin/java" dir="." classname="com.characterforming.jrte.test.FileRunner" classpathref="test.classpath" failonerror="true">
 			<jvmarg line="${jargs} -Djrte.out.enabled=false -Dregex.out.enabled=false"/>
-			<arg line="--nil LinuxKernel ${test.input.files}/kern-10.log build/Test.model &quot;${regex.linux.kernel}&quot;"/>
+			<arg line="--nil LinuxKernel ${test.input.dir}/kern-10.log build/Test.model &quot;${regex.linux.kernel}&quot;"/>
 		</java>
 		<java fork="true" jvm="${jdk}/bin/java" dir="." classname="com.characterforming.jrte.test.FileRunner" classpathref="test.classpath" failonerror="true">
 			<jvmarg line="${jargs} -Djrte.out.enabled=false -Dregex.out.enabled=false"/>
-			<arg line="--nil LinuxKernelLoose ${test.input.files}/kern-10.log build/Test.model &quot;${regex.linux.kernel}&quot;"/>
+			<arg line="--nil LinuxKernelLoose ${test.input.dir}/kern-10.log build/Test.model &quot;${regex.linux.kernel}&quot;"/>
 		</java>
 		<java fork="true" jvm="${jdk}/bin/java" dir="." classname="com.characterforming.jrte.test.FileRunner" classpathref="test.classpath" failonerror="true">
 			<jvmarg line="${jargs} -Djrte.out.enabled=false -Dregex.out.enabled=false"/>
-			<arg line="--nil LinuxKernelStrict ${test.input.files}/kern-10.log build/Test.model &quot;${regex.linux.kernel}&quot;"/>
+			<arg line="--nil LinuxKernelStrict ${test.input.dir}/kern-10.log build/Test.model &quot;${regex.linux.kernel}&quot;"/>
 		</java>
 		<java fork="true" jvm="${jdk}/bin/java" dir="." classname="com.characterforming.jrte.test.FileRunner" classpathref="test.classpath" failonerror="true">
 			<jvmarg line="${jargs} -Djrte.out.enabled=false -Dregex.out.enabled=false"/>
-			<arg line="--nil Tintervals ${test.input.files}/verbosegc.vgc build/Test.model cycle-start.id=.*type=.*contextid=.*timestamp=.*intervalms=.([0-9]+'.'[0-9]+)[^0-9]"/>
+			<arg line="--nil Tintervals ${test.input.dir}/verbosegc.vgc build/Test.model cycle-start.id=.*type=.*contextid=.*timestamp=.*intervalms=.([0-9]+'.'[0-9]+)[^0-9]"/>
 		</java>
 		<java fork="true" jvm="${jdk}/bin/java" dir="." classname="com.characterforming.jrte.test.FileRunner" classpathref="test.classpath" failonerror="true">
 			<jvmarg line="${jargs} -Djrte.out.enabled=false -Dregex.out.enabled=false"/>
-			<arg line="--nil Sintervals ${test.input.files}/verbosegc.vgc build/Test.model cycle-start.id=.*type=.*contextid=.*timestamp=.*intervalms=.([0-9]+'.'[0-9]+)[^0-9]"/>
+			<arg line="--nil Sintervals ${test.input.dir}/verbosegc.vgc build/Test.model cycle-start.id=.*type=.*contextid=.*timestamp=.*intervalms=.([0-9]+'.'[0-9]+)[^0-9]"/>
 		</java>
 		<echo/>
 <!-- I/O equivalence tests -->
 		<echo>Ribose output equivalence tests with ${ribose.inbuffer.size}b input buffer (showing line and byte counts for input/output files):</echo>
 		<echo/>
 <!-- verbose gc run -->
-		<echo message="Reducing ${test.input.files}/verbosegc.vgc -> ${build.test}/vgc.*.out"/>
+		<echo message="Reducing ${test.input.dir}/verbosegc.vgc -> ${build.test}/vgc.*.out"/>
 		<exec failonerror="true" executable="wc">
-			<arg line="--lines --bytes ${test.input.files}/verbosegc.vgc"/>
+			<arg line="--lines --bytes ${test.input.dir}/verbosegc.vgc"/>
 		</exec>		
-		<echo message="RegEx: ${test.input.files}/verbosegc.vgc -> ${build.test}/vgc.regex.(out,gc)"/>
+		<echo message="RegEx: ${test.input.dir}/verbosegc.vgc -> ${build.test}/vgc.regex.(out,gc)"/>
 		<exec failonerror="true" executable="bash" output="${build.test}/vgc.regex.out">
 			<arg value="-c"/>
-			<arg value="etc/sh/FileRunner ${jargs} ${jargs.gc.test}/vgc.regex.gc -Djrte.out.enabled=false -Dregex.out.enabled=true --nil verbosegcregex ${test.input.files}/verbosegc.vgc build/Test.model &apos;${regex.verbose.gc}&apos;"/>
+			<arg value="etc/sh/FileRunner ${jargs} ${jargs.gc.test}/vgc.regex.gc -Djrte.out.enabled=false -Dregex.out.enabled=true --nil verbosegcregex ${test.input.dir}/verbosegc.vgc build/Test.model &apos;${regex.verbose.gc}&apos;"/>
 		</exec>
-		<echo message="TRun: Sintervals ${test.input.files}/verbosegc.vgc -> ${build.test}/vgc.sintervals.(out,gc)"/>
+		<echo message="TRun: Sintervals ${test.input.dir}/verbosegc.vgc -> ${build.test}/vgc.sintervals.(out,gc)"/>
 		<exec failonerror="true" executable="bash">
 			<arg value="-c"/>
-			<arg value="etc/sh/ribose ${jargs} ${jargs.gc.test}/vgc.sintervals.gc -Djrte.out.enabled=true -Dregex.out.enabled=false --nil Sintervals ${test.input.files}/verbosegc.vgc build/Test.model ${build.test}/vgc.sintervals.out"/>
+			<arg value="etc/sh/ribose ${jargs} ${jargs.gc.test}/vgc.sintervals.gc -Djrte.out.enabled=true -Dregex.out.enabled=false --nil Sintervals ${test.input.dir}/verbosegc.vgc build/Test.model ${build.test}/vgc.sintervals.out"/>
 		</exec>
-		<echo message="TRun: Tintervals ${test.input.files}/verbosegc.vgc -> ${build.test}/vgc.tintervals.(out,gc)"/>
+		<echo message="TRun: Tintervals ${test.input.dir}/verbosegc.vgc -> ${build.test}/vgc.tintervals.(out,gc)"/>
 		<exec failonerror="true" executable="bash">
 			<arg value="-c"/>
-			<arg value="etc/sh/ribose ${jargs} ${jargs.gc.test}/vgc.tintervals.gc -Djrte.out.enabled=true -Dregex.out.enabled=false --nil Tintervals ${test.input.files}/verbosegc.vgc build/Test.model ${build.test}/vgc.tintervals.out"/>
+			<arg value="etc/sh/ribose ${jargs} ${jargs.gc.test}/vgc.tintervals.gc -Djrte.out.enabled=true -Dregex.out.enabled=false --nil Tintervals ${test.input.dir}/verbosegc.vgc build/Test.model ${build.test}/vgc.tintervals.out"/>
 		</exec>
 <!-- verbose gc verify -->
 		<fixcrlf srcDir="${build.test}" includes="vgc.*.out"/>
@@ -372,29 +385,29 @@
 		</exec>		
 		<echo/>
 <!-- linux kernel run -->
-		<echo message="Reducing ${test.input.files}/kern-10.log -> ${build.test}/linuxkernel*.out"/>
+		<echo message="Reducing ${test.input.dir}/kern-10.log -> ${build.test}/linuxkernel*.out"/>
 		<exec failonerror="true" executable="wc">
-			<arg line="--lines --bytes ${test.input.files}/kern-10.log"/>
+			<arg line="--lines --bytes ${test.input.dir}/kern-10.log"/>
 		</exec>		
-		<echo message="Regex: ${test.input.files}/kern-10.log -> ${build.test}/linuxkernelregex.(out,gc)"/>
+		<echo message="Regex: ${test.input.dir}/kern-10.log -> ${build.test}/linuxkernelregex.(out,gc)"/>
 		<exec failonerror="true" executable="bash" output="${build.test}/linuxkernelregex.out">
 			<arg value="-c"/>
-			<arg value="etc/sh/FileRunner ${jargs} ${jargs.gc.test}/linuxkernelregex.gc -Djrte.out.enabled=false -Dregex.out.enabled=true --nil linuxkernelregex ${test.input.files}/kern-10.log build/Test.model &apos;${regex.linux.kernel}&apos;"/>
+			<arg value="etc/sh/FileRunner ${jargs} ${jargs.gc.test}/linuxkernelregex.gc -Djrte.out.enabled=false -Dregex.out.enabled=true --nil linuxkernelregex ${test.input.dir}/kern-10.log build/Test.model &apos;${regex.linux.kernel}&apos;"/>
 		</exec>
-		<echo message="TRun: LinuxKernel ${test.input.files}/kern-10.log -> ${build.test}/linuxkernel.(out,gc)"/>
+		<echo message="TRun: LinuxKernel ${test.input.dir}/kern-10.log -> ${build.test}/linuxkernel.(out,gc)"/>
 		<exec failonerror="true" executable="bash">
 			<arg value="-c"/>
-			<arg value="etc/sh/ribose ${jargs} ${jargs.gc.test}/linuxkernel.gc -Djrte.out.enabled=true -Dregex.out.enabled=false --nil LinuxKernel ${test.input.files}/kern-10.log build/Test.model ${build.test}/linuxkernel.out"/>
+			<arg value="etc/sh/ribose ${jargs} ${jargs.gc.test}/linuxkernel.gc -Djrte.out.enabled=true -Dregex.out.enabled=false --nil LinuxKernel ${test.input.dir}/kern-10.log build/Test.model ${build.test}/linuxkernel.out"/>
 		</exec>
-		<echo message="TRun: LinuxKernelLoose ${test.input.files}/kern-10.log -> ${build.test}/linuxkernelloose.(out,gc)"/>
+		<echo message="TRun: LinuxKernelLoose ${test.input.dir}/kern-10.log -> ${build.test}/linuxkernelloose.(out,gc)"/>
 		<exec failonerror="true" executable="bash">
 			<arg value="-c"/>
-			<arg value="etc/sh/ribose ${jargs} ${jargs.gc.test}/linuxkernelloose.gc -Djrte.out.enabled=true -Dregex.out.enabled=false --nil LinuxKernelLoose ${test.input.files}/kern-10.log build/Test.model ${build.test}/linuxkernelloose.out"/>
+			<arg value="etc/sh/ribose ${jargs} ${jargs.gc.test}/linuxkernelloose.gc -Djrte.out.enabled=true -Dregex.out.enabled=false --nil LinuxKernelLoose ${test.input.dir}/kern-10.log build/Test.model ${build.test}/linuxkernelloose.out"/>
 		</exec>
-		<echo message="TRun: LinuxKernelStrict ${test.input.files}/kern-10.log -> ${build.test}/linuxkernelstrict.(out,gc)"/>
+		<echo message="TRun: LinuxKernelStrict ${test.input.dir}/kern-10.log -> ${build.test}/linuxkernelstrict.(out,gc)"/>
 		<exec failonerror="true" executable="bash">
 			<arg value="-c"/>
-			<arg value="etc/sh/ribose ${jargs} ${jargs.gc.test}/linuxkernelstrict.gc -Djrte.out.enabled=true -Dregex.out.enabled=false --nil LinuxKernelStrict ${test.input.files}/kern-10.log build/Test.model ${build.test}/linuxkernelstrict.out"/>
+			<arg value="etc/sh/ribose ${jargs} ${jargs.gc.test}/linuxkernelstrict.gc -Djrte.out.enabled=true -Dregex.out.enabled=false --nil LinuxKernelStrict ${test.input.dir}/kern-10.log build/Test.model ${build.test}/linuxkernelstrict.out"/>
 		</exec>
 <!-- linux kernel verify -->
 		<fixcrlf srcDir="${build.test}" includes="linuxkernel*.out"/>
@@ -470,6 +483,7 @@
 	</target>
 
 	<target name="debug" depends="test-env">
+		<zip basedir="${test.input.dir}" destfile="${test.patterns}/inputs.zip" filesonly="true"/>
 		<echo message="Nothing to debug"/>
 	</target>
 
