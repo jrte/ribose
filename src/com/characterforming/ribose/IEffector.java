@@ -112,4 +112,19 @@ public interface IEffector<T extends ITarget> {
 	 * @return The effector name.
 	 */
 	Bytes getName();
+
+	/**
+	 * Test two effector instances for functional equivalence. Effector
+	 * instances are equivalent if they have identical classes and effector
+	 * names. This is strict equivalence -- will not hold if there is an
+	 * inheritance relationship between this and other classes -- but does
+	 * not guarantee or presume {@code this.equals(other)}.
+	 * 
+	 * @param other the other effector instance
+	 * @return true if {@code this} is equivalent to {@code other}
+	 */
+	default boolean equals(final IEffector<?> other) {
+		return this.getClass().equals(other.getClass())
+		&& this.getName().equals(other.getName());
+	}
 }

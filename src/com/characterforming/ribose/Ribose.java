@@ -52,43 +52,42 @@ public final class Ribose {
  */
 	public static boolean compileRiboseModel(Class<?> targetClass, File ginrAutomataDirectory, File riboseModelFile) {
 		if (ITarget.class.isAssignableFrom(targetClass)) {
-			if (!ginrAutomataDirectory.isDirectory()) {
+			if (ginrAutomataDirectory.isDirectory()) {
+				Model model = null;
+				try {
+					if (riboseModelFile.createNewFile()) {
+						ITarget proxy = (ITarget) targetClass.getDeclaredConstructor().newInstance();
+						model = new Model(Mode.compile, riboseModelFile, proxy);
+						return model.create()
+						&& ModelCompiler.compileAutomata(model, ginrAutomataDirectory)
+						&& model.save();
+					} else {
+						String msg = String.format("Can't overwrite existing model file : '%1$s'",
+							riboseModelFile.getPath());
+						Ribose.rtcLogger.log(Level.SEVERE, msg);
+						return false;
+					}
+				} catch (Exception e) {
+					String msg = String.format("Exception compiling model '%1$s' from '%2$s'",
+						riboseModelFile.getPath(), ginrAutomataDirectory.getPath());
+					Ribose.rtcLogger.log(Level.SEVERE, msg, e);
+					riboseModelFile.delete();
+					return false;
+				} finally {
+					if (model != null) {
+						model.close();
+					}
+				}
+			} else {
 				String msg = String.format("Not a directory :'%1$s'",	ginrAutomataDirectory);
 				Ribose.rtcLogger.log(Level.SEVERE, msg);
-				return false;
-			}
-			Model model = null;
-			try {
-				if (riboseModelFile.createNewFile()) {
-					ITarget proxy = (ITarget) targetClass.getDeclaredConstructor().newInstance();
-					model = new Model(Mode.compile, riboseModelFile, proxy);
-					model.initialize();
-					return model.create()
-					&& ModelCompiler.compileAutomata(model, ginrAutomataDirectory)
-					&& model.save();
-				} else {
-					String msg = String.format("Can't overwrite existing model file : '%1$s'",
-						riboseModelFile.getPath());
-					Ribose.rtcLogger.log(Level.SEVERE, msg);
-					return false;
-				}
-			} catch (Exception e) {
-				String msg = String.format("Exception compiling model '%1$s' from '%2$s'",
-					riboseModelFile.getPath(), ginrAutomataDirectory.getPath());
-				Ribose.rtcLogger.log(Level.SEVERE, msg, e);
-				riboseModelFile.delete();
-				return false;
-			} finally {
-				if (model != null) {
-					model.close();
-				}
 			}
 		} else {
 			String msg = String.format("Can't compile ribose model %1$s, %2$s does not implement ITarget", 
 				riboseModelFile.getPath(), targetClass.getName());
 			Ribose.rtcLogger.log(Level.SEVERE, msg);
-			return false;
 		}
+		return false;
 	}
 
 	/**
@@ -102,6 +101,6 @@ public final class Ribose {
 	 * @throws ModelException on error
 	 */
 	public static IRuntime loadRiboseModel(File riboseModelFile, ITarget target) throws ModelException {
-		return new Runtime(riboseModelFile, target);
+		return new Runtime(new Model(Mode.run, riboseModelFile, target));
 	}	
 }

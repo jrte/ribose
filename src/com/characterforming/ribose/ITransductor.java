@@ -78,7 +78,7 @@ import com.characterforming.ribose.base.Signal;
  * explicit transition on {@code nul}. Typically this involves searching without effect
  * for a synchronization pattern and resuming with effect after synchronizing. If 
  * {@code nul} is not handled a {@code DomainException} is thrown. The transductor
- * will sent an {@code eos} signal to the transduction when the input stack runs dry.
+ * will send an {@code eos} signal to the transduction when the input stack runs dry.
  * If input is segmented and presented with a series of {@code push(byte[], int)}
  * method calls, {@code eos} will be raised at the end of each buffer. Transducers
  * can explicitly handle {@code eos} by including a transition on {@code eos}.
@@ -101,7 +101,7 @@ import com.characterforming.ribose.base.Signal;
  * <tr><td style="text-align:right"><i>nul</i></td><td>Signal <b>nul</b> to indicate no transition defined for current input</td></tr>
  * <tr><td style="text-align:right"><i>nil</i></td><td>Does nothing</td></tr>
  * <tr><td style="text-align:right"><i>paste</i></td><td>Append current input to selected named value</td></tr>
- * <tr><td style="text-align:right"><i>paste[(`~name`|`...`)+]</i></td><td>Paste literal data and/or named values into selected named value</td></tr>
+ * <tr><td style="text-align:right"><i>paste[(`~name`|`...`)+]</i></td><td>Append literal data and/or named values to selected named value</td></tr>
  * <tr><td style="text-align:right"><i>select</i></td><td>Select the anonymous named value</td></tr>
  * <tr><td style="text-align:right"><i>select[`~name`]</i></td><td>Select a named value</td></tr>
  * <tr><td style="text-align:right"><i>copy</i></td><td>Copy the anonymous named value into selected named value</td></tr>
@@ -122,7 +122,7 @@ import com.characterforming.ribose.base.Signal;
  * <tr><td style="text-align:right"><i>pause</i></td><td>Force immediate return from {@code ITransductor.run()}</td></tr>
  * <tr><td style="text-align:right"><i>stop</i></td><td>Pop the transducer stack</td></tr>
  * </table>
-* 
+ * 
  * @author Kim Briggs
  * @see Status
  */

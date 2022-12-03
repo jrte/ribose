@@ -20,14 +20,12 @@
 
 package com.characterforming.jrte.engine;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import com.characterforming.jrte.engine.Model.Mode;
 import com.characterforming.ribose.IRuntime;
 import com.characterforming.ribose.ITarget;
 import com.characterforming.ribose.ITransductor;
@@ -65,13 +63,12 @@ public final class Runtime implements IRuntime {
 	 * to provide live effectors with precompiled parameters when transductors are 
 	 * instantiated for new target instances. 
 	 * 
-	 * @param modelPath The path to a runtime model for the target class
+	 * @param model the ribose model to load
 	 * @param target The targetinstance to bind to transductors
-	 * @throws ModelException on error
+	 * @throws ModelException
 	 */
-	public Runtime(final File modelPath, final ITarget target) throws ModelException {
-		this.model = new Model(Mode.run, modelPath, target);
-		this.model.initialize();
+	public Runtime(Model model) throws ModelException {
+		this.model = model;
 		this.model.load();
 	}
 
