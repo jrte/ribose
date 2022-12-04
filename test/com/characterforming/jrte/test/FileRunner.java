@@ -58,12 +58,12 @@ public class FileRunner {
 		final boolean nil = args[0].compareTo("--nil") == 0;
 		int arg = nil ? 1 : 0;
 		if ((args.length - arg) < 3) {
-			System.out.println(String.format("Usage: java -cp <classpath> [-Djrte.out.enabled=true ^|^ -Dregex.out.enabled=true] %s [--nil] <transducer-name> <input-path> <model-path>", FileRunner.class.getName()));
+			System.out.println(String.format("Usage: java -cp <classpath> [-Djrte.out.enabled=true ^|^ -Dregex.out.enabled=true] %s [--nil] <model-path> <transducer-name> <input-path>", FileRunner.class.getName()));
 			System.exit(1);
 		}
+		final String modelPath = args[arg++];
 		final String transducerName = args[arg++];
 		final String inputPath = args[arg++];
-		final String modelPath = args[arg++];
 		final StringBuffer regbuf = new StringBuffer();
 		while (arg < args.length) {
 			regbuf.append(args[arg++]);
@@ -100,7 +100,7 @@ public class FileRunner {
 			assert clen > 0;
 			int loops = 1;
 			if (jrteOutEnabled || !regexOutEnabled) {
-				try (IRuntime ribose = Ribose.loadRiboseModel(new File(modelPath), new TRun())) {
+				try (IRuntime ribose = Ribose.loadRiboseModel(new File(modelPath))) {
 					TRun runTarget = new TRun();
 					ITransductor trex = ribose.newTransductor(runTarget);
 					if (!jrteOutEnabled) {

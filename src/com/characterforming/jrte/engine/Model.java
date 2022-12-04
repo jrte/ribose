@@ -87,18 +87,65 @@ public final class Model implements AutoCloseable {
 	private RandomAccessFile io;
 	private boolean deleteOnClose;
 
-	public Model(Mode mode, final File modelPath, final ITarget proxyTarget) throws ModelException {
-		if (mode == Mode.none) {
-			throw new ModelException("Model.Mode.none is not a viable option for model instantiation");
-		}
-		this.mode = mode;
-		this.ioMode = Mode.compile.equals(this.mode) ? "rw" : "r";
+	public Model(final File modelPath, String targetClassname) throws ModelException {
+		this.ioMode ="rw";
+		this.mode = Mode.compile;
+		this.deleteOnClose = true;
 		this.modelPath = modelPath;
-		this.proxyTarget = proxyTarget;
+		try {
+			Class<?> targetClass = Class.forName(targetClassname);
+			this.proxyTarget = (ITarget) targetClass.getDeclaredConstructor().newInstance();
+			this.io = new RandomAccessFile(this.modelPath, this.ioMode);
+			assert this.modelPath.length() == 0;
+			this.putLong(0);
+			this.putString(Base.RTE_VERSION);
+			this.putString(targetClassname);
+		} catch (FileNotFoundException e) {
+			throw new ModelException(String.format("Unable to %s model file '%s'.", 
+				this.mode == Mode.compile ? "create" : "open", 
+				this.modelPath.toPath().toString()), e);
+		} catch (ClassNotFoundException e) {
+			throw new ModelException(String.format("Unable to instantiate target class '%s'.",
+				targetClassname), e);
+		} catch (Exception e) {
+			throw new ModelException(String.format("Class '%s' does not implement the ITarget interface.",
+				targetClassname), e);
+		}
 		this.signalOrdinalMap = new HashMap<Bytes, Integer>(256);
 		this.transducerOrdinalMap = new HashMap<Bytes, Integer>(256);
 		this.namedValueOrdinalMap = new HashMap<Bytes, Integer>(256);
+		this.initialize();
+	}
+	
+	public Model(final File modelPath) throws ModelException {
+		this.ioMode ="r";
+		this.mode = Mode.run;
 		this.deleteOnClose = false;
+		this.modelPath = modelPath;
+		String targetClassname = "?";
+		try {
+			this.io = new RandomAccessFile(this.modelPath, this.ioMode);
+			this.io.seek(0);
+			this.getLong();
+			this.getString();
+			targetClassname = this.getString();
+			Class<?> targetClass = Class.forName(targetClassname);
+			this.proxyTarget = (ITarget) targetClass.getDeclaredConstructor().newInstance();
+		} catch (ClassNotFoundException e) {
+			throw new ModelException(String.format("Unable to instantiate target class '%s' from model file %s.",
+			targetClassname,
+			this.modelPath.toPath().toString()), e);
+		} catch (IOException e) {
+			throw new ModelException(String.format("Failed to read preamble from model file %s.",
+			this.modelPath.toPath().toString()), e);
+		} catch (Exception e) {
+			throw new ModelException(String.format("Class '%s' from model file %s does not implement the ITarget interface.",
+				targetClassname,
+				this.modelPath.toPath().toString()), e);
+		}
+		this.signalOrdinalMap = new HashMap<Bytes, Integer>(256);
+		this.transducerOrdinalMap = new HashMap<Bytes, Integer>(256);
+		this.namedValueOrdinalMap = new HashMap<Bytes, Integer>(256);
 		this.initialize();
 	}
 	
@@ -147,24 +194,6 @@ public final class Model implements AutoCloseable {
 	public boolean create() throws ModelException {
 		assert this.mode == Mode.compile;
 		assert this.modelPath.exists();
-		assert this.modelPath.length() == 0;
-		try {
-			this.setDeleteOnClose(true);
-			this.io = new RandomAccessFile(this.modelPath, this.ioMode);
-			this.putLong(0);
-			this.putString(Base.RTE_VERSION);
-			this.putString(this.proxyTarget.getClass().getName());
-		} catch (IOException e) {
-			String msg = String.format("IOException caught creating model file '%1$s'",
-			this.modelPath.getPath());
-			rtcLogger.log(Level.SEVERE, msg, e);
-			return false;
-		} catch (RiboseException e) {
-			String msg = String.format("RiboseException caught compiling model file '%1$s'",
-			this.modelPath.getPath());
-			rtcLogger.log(Level.SEVERE, msg, e);
-			return false;
-		}
 		for (int ordinal = 0; ordinal < Base.RTE_SIGNAL_BASE; ordinal++) {
 			Bytes name = new Bytes(new byte[] { 0, (byte)ordinal });
 			this.signalOrdinalMap.put(name, ordinal);
@@ -258,7 +287,7 @@ public final class Model implements AutoCloseable {
 	public boolean load() throws ModelException {
 		boolean loaded = false;
 		try {
-			this.io = new RandomAccessFile(this.modelPath, this.ioMode);
+			this.seek(0);
 			long indexPosition = this.getLong();
 			final String fileVersion = this.getString();
 			if (!fileVersion.equals(Base.RTE_VERSION)) {
@@ -270,7 +299,7 @@ public final class Model implements AutoCloseable {
 				throw new ModelException(String.format("Can't load model for target class '%1$s'; '%2$s' is target class for model file '%3$s'",
 					this.proxyTarget.getName(), targetClassname, this.modelPath.getPath()));
 			}
-			this.io.seek(indexPosition);
+			this.seek(indexPosition);
 			this.getOrdinalMap(this.signalOrdinalMap);
 			this.getOrdinalMap(this.namedValueOrdinalMap);
 			this.getOrdinalMap(this.effectorOrdinalMap);
@@ -302,12 +331,6 @@ public final class Model implements AutoCloseable {
 				}
 			}
 			loaded = true;
-		} catch (FileNotFoundException e) {
-			throw new ModelException(String.format("FileNotFoundException caught accessing model file '%1$s'",
-				this.modelPath.getPath()), e);
-		} catch (final IOException e) {
-			throw new ModelException(String.format("IOException caught accessing model file '%1$s'",
-				this.modelPath.getPath()), e);
 		} finally {
 			if (!loaded) {
 				this.close();
@@ -340,10 +363,7 @@ public final class Model implements AutoCloseable {
 		IEffector<?>[] boundFx = new IEffector<?>[trexFx.length + targetFx.length];
 		System.arraycopy(trexFx, 0, boundFx, 0, trexFx.length);
 		System.arraycopy(targetFx, 0, boundFx, trexFx.length, targetFx.length);
-		assert boundFx.length == this.proxyEffectors.length;
-		for (int i = 0; i < boundFx.length; i++) {
-			assert boundFx[i].equals(this.proxyEffectors[i]);
-		}
+		checkTargetEffectors(trex, boundFx);
 		trex.setEffectors(this.bindParameters(trex, boundFx));
 		return trex;
 	}
@@ -404,6 +424,25 @@ public final class Model implements AutoCloseable {
 			if (mapWriter != null) {
 				mapWriter.close();
 			}
+		}
+	}
+
+	private void checkTargetEffectors(ITarget target, IEffector<?>[] boundFx) throws ModelException {
+		boolean checked = boundFx.length == this.proxyEffectors.length;
+		for (int i = 0; checked && i < boundFx.length; i++) {
+			checked &= boundFx[i].equivalent(this.proxyEffectors[i]);
+		}
+		if (!checked) {
+			StringBuffer msg = new StringBuffer(256);
+			msg.append("Target ").append(target.getName()).append(" effectors do not match proxy effectors.\n\tTarget:");
+			for (IEffector<?> fx : boundFx) {
+				msg.append(' ').append(fx.getName());
+			}
+			msg.append("\n\tProxy:");
+			for (IEffector<?> fx : this.proxyEffectors) {
+				msg.append(' ').append(fx.getName());
+			}
+			throw new ModelException(msg.toString());
 		}
 	}
 

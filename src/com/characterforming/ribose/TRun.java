@@ -19,24 +19,24 @@ import com.characterforming.ribose.base.TargetBindingException;
 
 /**
  * Provides a {@link TRun#main(String[])} method to run a transduction using a ribose
- * model. 
- * <br><br>
- * <table style="font-size:12px">
- * <caption style="text-align:left"><b>TRun usage</b></caption>
- * <tr><td style="text-align:right">java</td><td>-cp ribose.0.0.0.jar com.characterforming.ribose.TRun &lt;target&gt; &lt;input&gt; &lt;model&gt;</td></tr>
- * <tr><td style="text-align:right">target</td><td>Fully qualified name of the model target class.</td></tr>
- * <tr><td style="text-align:right">transducer</td><td>The path to the directory containing automata (*.dfa) to include in the model.</td></tr>
- * <tr><td style="text-align:right">input</td><td>The path to the input file.</td></tr>
- * <tr><td style="text-align:right">model</td><td>The path to the model file containing the transducer.</tr>
- * <tr><td style="text-align:right">output</td><td>The path to the output file.</tr>
- * </table>
- * <br><br>
- * {@code TRun} also serves as a target class for building basic UTF-8 text or 
+ * model. {@code TRun} also serves as a target class for building basic UTF-8 text or 
  * other byte stream transduction models that use only built-in ribose effectors. 
  * To build a basic transduction model, compile with ginr a set of ribose-conformant
  * ginr patterns, saving automata (*.dfa) to be compiled into the model into a
  * directory. Then run {@link TCompile} to package the automata in the directory
  * into a ribose model.
+ * <br><br>
+ * <table style="font-size:12px">
+ * <caption style="text-align:left"><b>TRun usage</b></caption>
+ * <tr><td style="text-align:right">java</td><td>-cp ribose.0.0.0.jar com.characterforming.ribose.TRun &lt;model&gt; &lt;transducer&gt; &lt;input&gt; [&lt;output&gt;]</td></tr>
+ * <tr><td style="text-align:right">model</td><td>The path to the model file containing the transducer.</tr>
+ * <tr><td style="text-align:right">transducer</td><td>The path to the directory containing automata (*.dfa) to include in the model.</td></tr>
+ * <tr><td style="text-align:right">input</td><td>The path to the input file.</td></tr>
+ * <tr><td style="text-align:right">output</td><td>The path to the output file.</tr>
+ * </table>
+ * <br>
+ * Default output is System.out.
+ * 
  */
 public class TRun extends BaseTarget {
 	/**
@@ -72,15 +72,14 @@ public class TRun extends BaseTarget {
 		int argc = args.length;
 		final boolean nil = (argc > 0) ? (args[0].compareTo("--nil") == 0) : false;
 		int arg = nil ? 1 : 0;
-		if ((argc - arg) != 4 && (argc - arg) != 5) {
-			System.out.println(String.format("Usage: java -cp <classpath> [-Djrte.out.enabled=false] [--nil] <target-class> <transducer-name> <input-path> <model-path> [<output-path>]"));
+		if ((argc - arg) != 3 && (argc - arg) != 4) {
+			System.out.println(String.format("Usage: java -cp <classpath> [-Djrte.out.enabled=false] [--nil] <model-path> <transducer-name> <input-path> [<output-path>]"));
 			System.out.println("Default output is System.out, unless <output-path> specified");
 			System.exit(1);
 		}
-		final String targetClassname = args[arg++];
+		final String modelPath = args[arg++];
 		final String transducerName = args[arg++];
 		final String inputPath = args[arg++];
-		final String modelPath = args[arg++];
 		final String outputPath = arg < argc ? args[arg++] : null;
 		final File outputFile = outputPath != null ? new File(outputPath) : null;
 		if (outputFile != null) {
@@ -111,16 +110,8 @@ public class TRun extends BaseTarget {
 		}
 
 		int exitCode = 1;
-		ITarget modelTarget = null;
-		try {
-			Class<?> targetClass = Class.forName(targetClassname);
-			modelTarget = (ITarget) targetClass.getDeclaredConstructor().newInstance();
-		} catch (Exception e) {
-			Ribose.rtcLogger.log(Level.SEVERE, String.format("target-class '%1$s' could not be instantiated as model target", targetClassname), e);
-			System.exit(exitCode);
-		}
 		try (
-			IRuntime ribose = Ribose.loadRiboseModel(model, modelTarget);
+			IRuntime ribose = Ribose.loadRiboseModel(model);
 			FileInputStream isr = new FileInputStream(input);
 		) {
 			if (ribose != null) {

@@ -123,7 +123,7 @@ public interface IEffector<T extends ITarget> {
 	 * @param other the other effector instance
 	 * @return true if {@code this} is equivalent to {@code other}
 	 */
-	default boolean equals(final IEffector<?> other) {
+	default boolean equivalent(final IEffector<?> other) {
 		return this.getClass().equals(other.getClass())
 		&& this.getName().equals(other.getName());
 	}

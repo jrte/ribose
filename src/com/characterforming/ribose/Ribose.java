@@ -25,7 +25,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import com.characterforming.jrte.engine.Model;
-import com.characterforming.jrte.engine.Model.Mode;
 import com.characterforming.jrte.engine.ModelCompiler;
 import com.characterforming.jrte.engine.Runtime;
 import com.characterforming.ribose.base.Base;
@@ -56,8 +55,7 @@ public final class Ribose {
 				Model model = null;
 				try {
 					if (riboseModelFile.createNewFile()) {
-						ITarget proxy = (ITarget) targetClass.getDeclaredConstructor().newInstance();
-						model = new Model(Mode.compile, riboseModelFile, proxy);
+						model = new Model(riboseModelFile, targetClass.getName());
 						return model.create()
 						&& ModelCompiler.compileAutomata(model, ginrAutomataDirectory)
 						&& model.save();
@@ -96,11 +94,10 @@ public final class Ribose {
 	 * transductors.
 	 * 
 	 * @param riboseModelFile path to the runtime model to load
-	 * @param target the target instance to bind to the runtime model
 	 * @return a live ribose runtime model instance
 	 * @throws ModelException on error
 	 */
-	public static IRuntime loadRiboseModel(File riboseModelFile, ITarget target) throws ModelException {
-		return new Runtime(new Model(Mode.run, riboseModelFile, target));
+	public static IRuntime loadRiboseModel(File riboseModelFile) throws ModelException {
+		return new Runtime(new Model(riboseModelFile));
 	}	
 }

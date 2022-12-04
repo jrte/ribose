@@ -9,7 +9,7 @@
  * {@link TRun#main(String[])} method to load compiled ribose models and run 
  * transductions from the command line.  
  * <br><br>
- * To use ribose in an application or service, call {@link Ribose#loadRiboseModel(File, ITarget)}
+ * To use ribose in an application or service, call {@link Ribose#loadRiboseModel(File)}
  * to load an {@link IRuntime} instance from a compiled ribose model. Use {@link IRuntime#newTransductor(ITarget)}
  * to bind targets to ribose transductors and apply {@link ITransductor} methods to set up
  * inputs and transducers and run transductions. 
@@ -34,13 +34,14 @@
  * <br><br>
  * <table style="font-size:12px">
  * <caption style="text-align:left"><b>TRun usage</b></caption>
- * <tr><td style="text-align:right"><b>java</b></td><td>-cp ribose.0.0.0.jar com.characterforming.ribose.TRun &lt;target&gt; &lt;input&gt; &lt;model&gt;</td></tr>
- * <tr><td style="text-align:right"><i>target</i></td><td>Fully qualified name of the model target class.</td></tr>
+ * <tr><td style="text-align:right"><b>java</b></td><td>-cp ribose.0.0.0.jar com.characterforming.ribose.TRun &lt;model&gt; &lt;transducer&gt; &lt;input&gt; [output]</td></tr>
+ * <tr><td style="text-align:right"><i>model</i></td><td>The path to the model file containing the transducer.</td></tr>
  * <tr><td style="text-align:right"><i>transducer</i></td><td>The name of the transducer to start the transduction</td></tr>
  * <tr><td style="text-align:right"><i>input</i></td><td>The path to the input file.</td></tr>
- * <tr><td style="text-align:right"><i>model</i></td><td>The path to the model file containing the transducer.</td></tr>
  * <tr><td style="text-align:right"><i>output</i></td><td>The path to the output file.</td></tr>
  * </table>
+ * <br>
+ * Default output is System.out.
  * 
  * @author Kim Briggs
  */

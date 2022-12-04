@@ -115,7 +115,7 @@ public class ModelCompiler implements ITarget {
 	public static boolean compileAutomata(Model targetModel, File inrAutomataDirectory) throws ModelException {
 		File workingDirectory = new File(System.getProperty("user.dir", "."));
 		File compilerModelFile = new File(workingDirectory, "TCompile.model");
-		try (IRuntime compilerRuntime = Ribose.loadRiboseModel(compilerModelFile, new TCompile())) {
+		try (IRuntime compilerRuntime = Ribose.loadRiboseModel(compilerModelFile)) {
 			final CharsetEncoder encoder = Base.newCharsetEncoder();
 			TCompile compiler = new TCompile(targetModel);
 			compiler.setTransductor(compilerRuntime.newTransductor(compiler));

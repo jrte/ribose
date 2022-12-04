@@ -82,9 +82,8 @@ public class TestRunner {
 		String[] tests = new String[] {
 			"SelectPasteTest", "PasteSpeedTest", "NilPauseTest", "PastePauseTest", "PasteCutTest", "StackTest", "PasteCountTest", "CounterTest", "NilSpeedTest"
 		};
-		final TRun proxyTarget = new TRun();
 		final CharsetEncoder encoder = Base.newCharsetEncoder();
-		try (final IRuntime ribose = Ribose.loadRiboseModel(new File(modelPath), proxyTarget)) {
+		try (final IRuntime ribose = Ribose.loadRiboseModel(new File(modelPath))) {
 			final TRun runTarget = new TRun();
 			final ITransductor trex = ribose.newTransductor(runTarget);
 			for (final String test : tests) {

@@ -10,14 +10,10 @@ if [[ "$1" == "--nil" ]]; then
   nil="$1"
   shift
 fi
-target="com.characterforming.ribose.TRun"
-if [[ "$1" == "--target" ]]; then
-  target="$2"
-  shift 2
-fi
 if (($#!=3 && $# != 4)); then
-	echo 'Usage: ribose [<vm-arg> ...] [--nil] [--target <target-class-name>] <transducer> <input-file> <model-file> [<output-file>]'
-  echo 'Default target is com.characterforming.ribose.TRun; default output stream is System.out'
+	echo 'Usage: ribose [<vm-arg> ...] [--nil] <model-file> <transducer> <input-file> [<output-file>]'
+ 	echo "Use (vm-args) '-Djrte.out.enabled=false' and/or '-Dregex.out.enabled=false' to mute output."
+  echo 'Default output stream is System.out'
 else
   jars="$(dirname $(readlink -f $0))/../../jars"
   trun="java -cp $jars/ribose-0.0.0.jar $vmargs com.characterforming.ribose.TRun"
@@ -25,7 +21,10 @@ else
   if (($#==4)); then
     args="$args $4"
   fi
-	{ time $trun $nil $target $args ; } 2>/tmp/$1.tmp
-	echo -e "$(cat /tmp/$1.tmp | tr '\r\n\t' ' ' | tr -s ' ')\t$1" >/tmp/$1.time
+	jars="$(dirname $(readlink -f $0))/../../jars"
+	java="java -cp $jars/ribose-0.0.0.jar:$jars/ribose-0.0.0-test.jar"
+	{ time $trun $nil $args ; } 2>/tmp/$2.tmp
+	echo -e "$(cat /tmp/$2.tmp | tr '\r\n\t' ' ' | tr -s ' ')\t$2" >/tmp/$2.time
+  rm /tmp/$2.tmp
 fi
 #set +x

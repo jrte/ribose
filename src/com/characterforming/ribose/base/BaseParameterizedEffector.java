@@ -24,9 +24,9 @@ import com.characterforming.ribose.IParameterizedEffector;
 import com.characterforming.ribose.ITarget;
 
 /**
- * Base {@link IParameterizedEffector} implementation class. The {@link #newParameters(int)},
- * {@link #compileParameter(int, byte[][])}, {@link #invoke()}, and {@link #invoke(int)} 
- * methods must be implemented by subclasses. 
+ * Base {@link IParameterizedEffector} implementation class extends {@link BaseEffector} to 
+ * support specialized effectors. The {@link #newParameters(int)}, {@link #compileParameter(int, byte[][])},
+ * {@link #invoke()}, and {@link #invoke(int)} methods must be implemented by subclasses. 
  * 
  * @param <T> The effector target type
  * @param <P> The effector parameter type, constructible from byte[][] (eg new P(byte[][]))
