@@ -43,43 +43,23 @@ abstract class BaseNamedValueEffector extends BaseParameterizedEffector<Transduc
 		super(transductor, name);
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see com.characterforming.ribose.IParameterizedEffector#invoke(int)
-	 */
-	@Override
+	@Override // IParameterizedEffector#invoke(int)
 	public abstract int invoke(int parameterIndex) throws EffectorException;
 
-	/*
-	 * (non-Javadoc)
-	 * @see com.characterforming.ribose.IParameterizedEffector#invoke()
-	 */
-	@Override
+	@Override // IParameterizedEffector#invoke()
 	public abstract int invoke() throws EffectorException;
 
-	/*
-	 * (non-Javadoc)
-	 * @see com.characterforming.ribose.IParameterizedEffector#newParameters(int)
-	 */
-	@Override
+	@Override // IParameterizedEffector#newParameters(int)
 	public void newParameters(int parameterCount) {
 		super.parameters = new Integer[parameterCount];
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see com.characterforming.ribose.IParameterizedEffector#newParameters(int)
-	 */
-	@Override
+	@Override // IParameterizedEffector#getParameter(int)
 	public Integer getParameter(int parameterOrdinal) {
 		return this.parameters[parameterOrdinal];
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see com.characterforming.ribose.IParameterizedEffector#setParameter(int, byte[][])
-	 */
-	@Override
+	@Override // IParameterizedEffector#setParameter(int, byte[][])
 	public Integer compileParameter(final int parameterIndex, final byte[][] parameterList) throws TargetBindingException {
 		if (parameterList.length != 1) {
 			throw new TargetBindingException(String.format("%1$s.%2$s: effector accepts exactly one parameter", 

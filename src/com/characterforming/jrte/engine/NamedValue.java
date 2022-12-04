@@ -71,47 +71,27 @@ class NamedValue implements INamedValue {
 		System.arraycopy(namedValue.value, 0, this.value, 0, namedValue.length);
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see com.characterforming.ribose.INamedValue#getName()
-	 */
-	@Override
+	@Override // @see com.characterforming.ribose.INamedValue#getName()
 	public Bytes getName() {
 		return this.name;
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see com.characterforming.ribose.INamedValue#getOrdinal()
-	 */
-	@Override
+	@Override // @see com.characterforming.ribose.INamedValue#getOrdinal()
 	public int getOrdinal() {
 		return this.ordinal;
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see com.characterforming.ribose.INamedValue#getLength()
-	 */
-	@Override
+	@Override // @see com.characterforming.ribose.INamedValue#getLength()
 	public int getLength() {
 		return this.length;
 	}
 	
-	/*
-	 * (non-Javadoc)
-	 * @see com.characterforming.ribose.INamedValue#copyValue()
-	 */
-	@Override
+	@Override // @see com.characterforming.ribose.INamedValue#copyValue()
 	public byte[] copyValue() {
 		return Arrays.copyOf(this.value, this.length);
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see com.characterforming.ribose.INamedValue#decodeValue()
-	 */
-	@Override
+	@Override // @see com.characterforming.ribose.INamedValue#decodeValue()
 	public char[] decodeValue() {
 		char chars[] = null;
 		ByteBuffer in = ByteBuffer.wrap(this.value, 0, this.getLength());
@@ -125,20 +105,12 @@ class NamedValue implements INamedValue {
 		return chars;
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see com.characterforming.ribose.INamedValue#asString()
-	 */
-	@Override
+	@Override // @see com.characterforming.ribose.INamedValue#asString()
 	public String asString() {
 		return new String(this.decodeValue());
 	}
 	
-	/*
-	 * (non-Javadoc)
-	 * @see com.characterforming.ribose.INamedValue#asInteger()
-	 */
-	@Override
+	@Override // @see com.characterforming.ribose.INamedValue#asInteger()
 	public long asInteger() {
 		long integer = 0;
 		long sign = (this.value[0] == '-') ? -1 : 1;
@@ -154,11 +126,7 @@ class NamedValue implements INamedValue {
 		return sign * integer;
 	}
 	
-	/*
-	 * (non-Javadoc)
-	 * @see com.characterforming.ribose.INamedValue#asReal()
-	 */
-	@Override
+	@Override // @see com.characterforming.ribose.INamedValue#asReal()
 	public double asReal() {
 		int mark = 0;
 		long sign = (this.value[0] == '-') ? -1 : 1;
@@ -222,11 +190,7 @@ class NamedValue implements INamedValue {
 		}
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see java.lang.Object#toString()
-	 */
-	@Override
+	@Override // @see java.lang.Object#toString()
 	public String toString() {
 		return String.format("%s:%s", this.name.toString(), this.asString());
 	}

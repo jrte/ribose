@@ -62,46 +62,26 @@ public abstract class BaseEffector<T extends ITarget> implements IEffector<T> {
 		this.output = null;
 	}
 	
-	/*
-	 * (non-Javadoc)
-	 * @see com.characterforming.ribose.base.IEffector#setOutput(IOutput)
-	 */
-	@Override
+	@Override // @see com.characterforming.ribose.base.IEffector#setOutput(IOutput)
 	public void setOutput(IOutput output) throws TargetBindingException {
 		this.output = output;
 	}
 
 
-	/*
-	 * (non-Javadoc)
-	 * @see com.characterforming.ribose.base.IEffector#getName()
-	 */
-	@Override
+	@Override // @see com.characterforming.ribose.base.IEffector#getName()
 	public final Bytes getName() {
 		return this.name;
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see com.characterforming.ribose.base.IEffector#getTarget()
-	 */
-	@Override
+	@Override // @see com.characterforming.ribose.base.IEffector#getTarget()
 	public final T getTarget() {
 		return this.target;
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see com.characterforming.ribose.base.IEffector#invoke()
-	 */
-	@Override
+	@Override // @see com.characterforming.ribose.base.IEffector#invoke()
 	public abstract int invoke() throws EffectorException;
 
-	/*
-	 * (non-Javadoc)
-	 * @see java.lang.Object#toString()
-	 */
-	@Override
+	@Override // @see java.lang.Object#toString()
 	public String toString() {
 		return this.name.toString();
 	}

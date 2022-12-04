@@ -72,20 +72,12 @@ public final class Runtime implements IRuntime {
 		this.model.load();
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see com.characterforming.ribose.IRuntime#newTransductor(ITarget)
-	 */
-	@Override
+	@Override // @see com.characterforming.ribose.IRuntime#newTransductor(ITarget)
 	public ITransductor newTransductor(ITarget target) throws ModelException {
 		return this.model.bindTransductor(target);
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see com.characterforming.ribose.IRuntime#transduce(Bytes, Signal, InputStream)
-	 */
-	@Override
+	@Override // @see com.characterforming.ribose.IRuntime#transduce(Bytes, Signal, InputStream)
 	public boolean transduce(ITarget target, Bytes transducer, Signal prologue, InputStream in, OutputStream out) throws RiboseException {
 		try {
 			byte[] bytes = new byte[InputStack.BLOCK_SIZE];
@@ -130,20 +122,12 @@ public final class Runtime implements IRuntime {
 		return true;
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see com.characterforming.ribose.IRuntime#transduce(Bytes, InputStream)
-	 */
-	@Override
+	@Override // @see com.characterforming.ribose.IRuntime#transduce(Bytes, InputStream)
 	public boolean transduce(ITarget target, Bytes transducer, InputStream in, OutputStream out) throws RiboseException {
 		return this.transduce(target, transducer, null, in, out);
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see com.characterforming.ribose.IRuntime#close()
-	 */
-	@Override
+	@Override // @see com.characterforming.ribose.IRuntime#close()
 	public void close() {
 		this.model.close();
 	}

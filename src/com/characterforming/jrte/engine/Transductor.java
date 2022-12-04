@@ -138,11 +138,7 @@ public final class Transductor implements ITransductor, IOutput {
 		}
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see com.characterforming.ribose.ITarget#getEffectors()
-	 */
-	@Override
+	@Override // @see com.characterforming.ribose.ITarget#getEffectors()
 	public IEffector<?>[] getEffectors() throws TargetBindingException {
 		return new IEffector<?>[] {
 	/* 0*/	new InlineEffector(this, "0"),
@@ -163,30 +159,22 @@ public final class Transductor implements ITransductor, IOutput {
 		};
 	}
 
-	@Override
+	@Override // @see com.characterforming.ribose.ITarget#getCharsetDecoder()
 	public CharsetDecoder getCharsetDecoder() {
 		return this.decoder;
 	}
 
-	@Override
+	@Override // @see com.characterforming.ribose.ITarget#getCharsetEncoder()
 	public CharsetEncoder getCharsetEncoder() {
 		return this.encoder;
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see com.characterforming.ribose.ITarget#getName()
-	 */
-	@Override
+	@Override // @see com.characterforming.ribose.ITarget#getName()
 	public String getName() {
 		return this.getClass().getSimpleName();
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see com.characterforming.ribose.ITransductor#status()
-	 */
-	@Override
+	@Override // @see com.characterforming.ribose.ITransductor#status()
 	public Status status() {
 		if (this.effectors != null) {
 			boolean hasInput = this.inputStack != null && !this.inputStack.isEmpty();
@@ -201,22 +189,14 @@ public final class Transductor implements ITransductor, IOutput {
 		}
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see com.characterforming.ribose.ITransductor#output(OutputStream)
-	 */
-	@Override
+	@Override // @see com.characterforming.ribose.ITransductor#output(OutputStream)
 	public OutputStream output(OutputStream output) {
 		OutputStream out = this.output;
 		this.output = output;
 		return out;
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see com.characterforming.ribose.ITransductor#push(byte[], int)
-	 */
-	@Override
+	@Override // @see com.characterforming.ribose.ITransductor#push(byte[], int)
 	public ITransductor push(final byte[] input, int limit) {
 		if (this.status() != Status.NULL) {
 			this.inputStack.push(input).limit(limit);
@@ -224,11 +204,7 @@ public final class Transductor implements ITransductor, IOutput {
 		return this;
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see com.characterforming.ribose.ITransductor#push(Signal)
-	 */
-	@Override
+	@Override // @see com.characterforming.ribose.ITransductor#push(Signal)
 	public ITransductor push(Signal signal) {
 		if (this.status() != Status.NULL) {
 			this.inputStack.signal(signal.signal());
@@ -236,11 +212,7 @@ public final class Transductor implements ITransductor, IOutput {
 		return this;
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see com.characterforming.ribose.ITransductor#start(Bytes)
-	 */
-	@Override
+	@Override // @see com.characterforming.ribose.ITransductor#start(Bytes)
 	public ITransductor start(final Bytes transducerName) throws ModelException {
 		if (this.status() != Status.NULL) {
 			this.transducerStack.push(this.model.loadTransducer(this.model.getTransducerOrdinal(transducerName)));
@@ -250,11 +222,7 @@ public final class Transductor implements ITransductor, IOutput {
 		return this;
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see com.characterforming.ribose.ITransductor#stop()
-	 */
-	@Override
+	@Override // @see com.characterforming.ribose.ITransductor#stop()
 	public ITransductor stop() throws RiboseException {
 		if (this.inputStack != null) {
 			this.inputStack.unmark();
@@ -286,11 +254,7 @@ public final class Transductor implements ITransductor, IOutput {
 		return this;
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see com.characterforming.ribose.ITransductor#run()
-	 */
-	@Override
+	@Override	// @see com.characterforming.ribose.ITransductor#run()
 	public ITransductor run() throws RiboseException, DomainErrorException {
 		if (this.status() == Status.NULL) {
 			return this.stop();
@@ -540,38 +504,22 @@ I:				do {
 		return this;
 	}
 
-		/*
-	 * (non-Javadoc)
-	 * @see com.characterforming.ribose.ITransductor#hasMark()
-	 */
-	@Override
+	@Override // @see com.characterforming.ribose.ITransductor#hasMark()
 	public boolean hasMark() {
 		return this.inputStack.hasMark();
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see com.characterforming.ribose.ITransductor#recycle()
-	 */
-	@Override
+	@Override // @see com.characterforming.ribose.ITransductor#recycle()
 	public byte[] recycle(byte[] bytes) {
 		return this.inputStack.recycle(bytes);
 	}
 
-/*
-	 * (non-Javadoc)
-	 * @see com.characterforming.ribose.IOutput#getErrorCount()
-	 */
-	@Override
+	@Override // @see com.characterforming.ribose.IOutput#getErrorCount()
 	public int getErrorCount() {
 		return this.errorCount;
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see com.characterforming.ribose.IOutput#getValueOrdinal(Bytes)
-	 */
-	@Override
+	@Override // @see com.characterforming.ribose.IOutput#getValueOrdinal(Bytes)
 	public int getValueOrdinal(final Bytes valueName) {
 		if (this.namedValueOrdinalMap.containsKey(valueName)) {
 			return this.namedValueOrdinalMap.get(valueName);
@@ -579,21 +527,13 @@ I:				do {
 		return -1;
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see com.characterforming.ribose.IOutput#getSelectedOrdinal()
-	 */
-	@Override
+	@Override // @see com.characterforming.ribose.IOutput#getSelectedOrdinal()
 	public int getSelectedOrdinal() {
 		assert this.selected != null;
 		return (this.selected != null) ? this.selected.getOrdinal() : -1;
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see com.characterforming.ribose.IOutput#getNamedValue(int)
-	 */
-	@Override
+	@Override // @see com.characterforming.ribose.IOutput#getNamedValue(int)
 	public INamedValue getNamedValue(final int nameOrdinal) {
 		assert this.namedValueHandles != null;
 		if (this.namedValueHandles != null && nameOrdinal < this.namedValueHandles.length) {
@@ -603,20 +543,12 @@ I:				do {
 		}
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see com.characterforming.ribose.IOutput#getNamedValue(String)
-	 */
-	@Override
+	@Override // @see com.characterforming.ribose.IOutput#getNamedValue(String)
 	public INamedValue getNamedValue(final Bytes valueName) {
 		return this.getNamedValue(this.getValueOrdinal(valueName));
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see com.characterforming.ribose.IOutput#getSelectedValue()
-	 */
-	@Override
+	@Override // @see com.characterforming.ribose.IOutput#getSelectedValue()
 	public INamedValue getSelectedValue() {
 		assert this.selected != null;
 		return this.selected;

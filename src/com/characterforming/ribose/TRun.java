@@ -7,12 +7,12 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.nio.charset.CharsetDecoder;
 import java.nio.charset.CharsetEncoder;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import com.characterforming.ribose.base.Base;
+import com.characterforming.ribose.base.BaseTarget;
 import com.characterforming.ribose.base.Bytes;
 import com.characterforming.ribose.base.Signal;
 import com.characterforming.ribose.base.TargetBindingException;
@@ -38,46 +38,23 @@ import com.characterforming.ribose.base.TargetBindingException;
  * directory. Then run {@link TCompile} to package the automata in the directory
  * into a ribose model.
  */
-public final class TRun implements ITarget{
-	private final CharsetDecoder decoder;
-	private final CharsetEncoder encoder;
-
+public class TRun extends BaseTarget {
 	/**
 	 * Constructor
 	 */
 	public TRun() {
 		super();
-		this.decoder = Base.newCharsetDecoder();
-		this.encoder = Base.newCharsetEncoder();
 	}
 	
-	/*
-	 * (non-Javadoc)
-	 * @see com.characterforming.ribose.ITarget#getEffectors()
-	 */
-	@Override
+	@Override // ITarget#getEffectors()
 	public IEffector<?>[] getEffectors() throws TargetBindingException {
 		// This is just a proxy for Transductor.getEffectors()
 		return new IEffector<?>[] { };
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see com.characterforming.ribose.ITarget#getName()
-	 */
-	@Override
+	@Override // ITarget#getName()
 	public String getName() {
 		return this.getClass().getSimpleName();
-	}
-
-	@Override
-	public CharsetDecoder getCharsetDecoder() {
-		return this.decoder;
-	}
-
-	@Override
-	public CharsetEncoder getCharsetEncoder() {
-		return this.encoder;
 	}
 
 	/**

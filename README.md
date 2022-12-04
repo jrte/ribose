@@ -59,9 +59,7 @@ A ribose model is comprised of FSTs compiled from a collection of transducer pat
 - write extracted data to an output stream *(`out`)*,
 - or inject input for immediate transduction *(`in`)*.
 
-All ribose models implicitly inherit these core ribose effectors, along with an enumeration of signals (`nil`, `nul`, `eol`, `eos`) and an anonymous named value that is preselected for every transduction and reselected when `select` is invoked with no parameter. The `BaseTarget` class, without extension, is sufficient for ribose models that include only text transforms that terminate at the `out[...]` effector -- additional signals and named values referenced in the collected patterns are implicitly included in all models.
-
-More complex targets presenting domain-specific effectors can be implemented in a target class that extends `BaseTarget` and overrides the `ITarget` interface methods `String getName()` and `IEffector[] getEffectors()`. All effectors are provided with a reference to the containing target instance and an `IOutput` view for extracting named values as `byte[]`, integer, floating point, or Unicode `char[]` values, typically for inclusion in immutable value objects that are incorporated into the target model.
+All ribose models implicitly inherit these core ribose effectors, along with an enumeration of signals (`nil`, `nul`, `eol`, `eos`) and an anonymous named value that is preselected for every transduction and reselected when `select` is invoked with no parameter. The `BaseTarget` class, without extension, is sufficient for ribose models that include only text transforms that terminate at the `out[...]` effector. New signals and named values referenced in transducer patterns are implicitly included in all models, and specialized target classes may extend `BaseTarget` to express additional effectors. All effectors are provided with a reference to the containing target instance and an `IOutput` view for extracting named values as `byte[]`, integer, floating point, or Unicode `char[]` values, typically for inclusion in immutable value objects that are incorporated into the target model.
 ## Some Examples
 Here are some more examples to get things started. These are abridged from the ginr source for the patterns in the ribose test suite (`patterns/test/*.inr`). 
 
@@ -342,9 +340,9 @@ Good luck with all that.
 # Disclaimer
 Ribose is presented for demonstration only and is not regularly maintained. You may use it to compile and run the included examples, or create your own transducers to play with. Or clone and refine it and make it available to the rest of the world. Transcode it to **C** and wrap it in a Python thing. Do what you will, it's open source.
 
-Clone the ribose repo and run `ant ribose` to build the ribose library in the `jars/` folder. The `test` ant target runs the CI test suite, `ci-test` runs a clean build with tests. This should work on any unix-ish platform, including `git bash` or `Msys2\mingw` for Windows, with `ant`, `java`, `bash`, `wc`, `grep` in the executable search path. Binary executable copies of `ginr` (for linux) and `ginr.exe` (for Windows) are included in etc/ginr. 
+Clone the ribose repo and run `ant ribose` to build the ribose library in the `jars/` folder. The `test` ant target runs the CI test suite, `ci-test` runs a clean build with tests. This should work on any unix-ish platform, including `git bash` or `Msys2\mingw` for Windows, with `ant`, `java`, `bash`, `cat`, `wc`, `grep` in the executable search path. Binary executable copies of `ginr` (for linux) and `ginr.exe` (for Windows) are included in `etc/ginr` (with the author's permission) for personal use. You are encouraged to clone or download and build ginr directly from the [ginr repo](https://github.com/ntozubod/ginr).
 
-The base `ITarget` presents a set of built-in effectors that are sufficient for basic ribose runtime models with transductions that only write to `stdout`. Domain-specific ribose models can extend these with custom effectors in `ITarget` implementations that interact with other domain objects. In any case, to build a ribose model for a collection of transduction patterns, emulate the procedure for building `Test.model` (see the `compile-test-patterns` and `package-test-patterns` targets in `build.xml`).
+The `BaseTarget` class expresses the built-in ribose effectors, which are sufficient for basic ribose runtime models with transductions that only write transduction output though the `out[...]` effector into the transduction output stream. These can be supplemented with additional effectors presented by specialized `ITarget` implementations that capture transduction output in simple value objects for assimilation into the target, which mey also interact with other domain objects. In any case, to build a ribose model for a collection of transduction patterns, emulate the procedure for building `Test.model` (see the `compile-test-patterns` and `package-test-patterns` targets in `build.xml`).
 
 Shell scripts are available in `etc/sh` to support compiling patterns, packaging transducers into models, and running transductions with ribose models:
 
@@ -352,7 +350,7 @@ Shell scripts are available in `etc/sh` to support compiling patterns, packaging
 - _compile_: package DFAs into a ribose model
 - _ribose_: run a transducer from a ribose model on an input file
 
-To learn how to use ribose models in the JVM runtime build ribose and see the javadoc pages in `doc/`. 
+To learn how to use ribose models in the JVM runtime build ribose and see the javadoc pages in `jars/ribose-0.0.0-api.jar`. 
 
 For some background reading and a historical perspective visit the [ribose wiki](https://github.com/jrte/ribose/wiki).
 

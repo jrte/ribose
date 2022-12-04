@@ -48,22 +48,12 @@ public final class TCompile extends ModelCompiler {
 		super(targetModel);
 	}
 	
-	/*
-	 * (non-Javadoc)
-	 * @see
-	 * com.characterforming.ribose.ITarget#bindeEffectors()
-	 */
-	@Override
+	@Override // @see com.characterforming.ribose.ITarget#bindeEffectors()
 	public IEffector<?>[] getEffectors() throws TargetBindingException {
 		return super.getEffectors();
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see
-	 * com.characterforming.ribose.ITarget#getName()
-	 */
-	@Override
+	@Override // com.characterforming.ribose.ITarget#getName()
 	public String getName() {
 		return this.getClass().getSimpleName();
 	}

@@ -48,54 +48,29 @@ public abstract class BaseParameterizedEffector<T extends ITarget, P> extends Ba
 		super(target, name);
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see com.characterforming.ribose.IParameterizedEffector#newParameters(int)
-	 */
-	@Override
+	@Override // @see com.characterforming.ribose.IParameterizedEffector#newParameters(int)
 	public abstract void newParameters(int parameterCount);
 
-	/*
-	 * (non-Javadoc)
-	 * @see com.characterforming.ribose.IParameterizedEffector#getParameterCount()
-	 */
-	@Override
+	@Override // @see com.characterforming.ribose.IParameterizedEffector#getParameterCount()
 	public int getParameterCount() {
 		assert this.parameters != null;
 		return (this.parameters != null) ? this.parameters.length : 0;
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see com.characterforming.ribose.IParameterizedEffector#compileParameter(int, byte[][])
-	 */
-	@Override
+	@Override // @see com.characterforming.ribose.IParameterizedEffector#compileParameter(int, byte[][])
 	public abstract P compileParameter(int parameterIndex, byte[][] parameterList) throws TargetBindingException;
 
-	/*
-	 * (non-Javadoc)
-	 * @see com.characterforming.ribose.IParameterizedEffector#setParameter(int, Object)
-	 */
-	@Override
+	@Override // @see com.characterforming.ribose.IParameterizedEffector#setParameter(int, Object)
 	@SuppressWarnings("unchecked")
 	public void setParameter(int parameterIndex, Object parameter) {
 		this.parameters[parameterIndex] = (P)parameter;
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see
-	 * com.characterforming.ribose.IParameterizedEffector#getParameter(int)
-	 */
-	@Override
+	@Override // com.characterforming.ribose.IParameterizedEffector#getParameter(int)
 	public P getParameter(final int parameterIndex) {
 		return this.parameters[parameterIndex];
 	}
 	
-	/*
-	 * (non-Javadoc)
-	 * @see com.characterforming.ribose.IParameterizedEffector#invoke(int)
-	 */
-	@Override
+	@Override // @see com.characterforming.ribose.IParameterizedEffector#invoke(int)
 	public abstract int invoke(int parameterIndex) throws EffectorException;
 }
