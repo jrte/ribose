@@ -29,6 +29,17 @@ import com.characterforming.ribose.base.TargetBindingException;
  * or more arrays of bytes. Compiled parameter values are referenced by their
  * index in the resulting array. At runtime, the invoke(int) method is called
  * with the parameter index to indicate which P[] to apply to the invocation.
+ * <br><br>
+ * Parameterized effectors are required to construct an array of their parameter
+ * type when a ribose model is compiled and again when a ribose model is loaded
+ * into a ribose runtime. The runtime will call {@link #newParameters(int)} to 
+ * set the size of the parameter array and then call {@link #compileParameter(int, byte[][])}
+ * for each parameter. The effector is required to construct an {@code P} instance
+ * from the specified {@code byte[][]} arrays. 
+ * <br><br>
+ * In runtime contexts the effector is invoked in the proxy target to precompile
+ * its parameters as above. The precompiled paramters are passed on to the 
+ * effector instance in the runtime target via {@link #setParameter(int, Object)}.
  * 
  * @author Kim Briggs
  * @param <T> The effector target type

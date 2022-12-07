@@ -23,6 +23,10 @@ import com.characterforming.ribose.ITransductor;
 
 /**
  * General signals available in all ribose models.
+ * Signal ordinal values are mapped to the end of the base {@code (0x0..0xff)} 
+ * input range. {@code Signal} represents the predefined signals control signals
+ * {@code nul nil eol eos}. Additional signal tokens (`!&lt;token&gt;`) declared
+ * in model transduction patterns will be mapped to {@code [0x104, ..)}.
  * <br><br>
  * All transducers should recognize a {@code nil} signal as a prologue. This can be
  * ignored ({@code nil?}) if not required to trigger an initial action before 
@@ -66,19 +70,25 @@ public enum Signal {
 	 */
 	eos;
 	
+	private final Bytes key;
+
+	private Signal() {
+		this.key = Base.RTE_SIGNAL_NAMES[this.ordinal()];
+	}
+	
 	/**
 	 * Signal name.
 	 * 
 	 * @return The signal name as lookup key
 	 */
-	public Bytes key() { return Base.RTE_SIGNAL_NAMES[this.ordinal()]; }
-	
+	public Bytes key() {
+		return this.key;
+	}
+		
 	/**
-	 * Signal ordinal values are mapped to the end of the base {@code (0x0..0xff)} 
-	 * input range. This range can be further extended with additional signal 
-	 * ordinal values defined for domain-specific transduction models.
-	 *  
-	 * @return the signal ordinal value
+	 * Get the input ordinal value represented by this {@code Signal}
+	 * 
+	 * @return the ordinal value represented by {@code signal}
 	 */
 	public int signal() {
 		return Base.RTE_SIGNAL_BASE + ordinal();

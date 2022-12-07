@@ -20,9 +20,6 @@
 
 package com.characterforming.ribose.base;
 
-import java.nio.charset.CharsetDecoder;
-import java.nio.charset.CharsetEncoder;
-
 import com.characterforming.ribose.IEffector;
 import com.characterforming.ribose.IOutput;
 import com.characterforming.ribose.ITarget;
@@ -38,13 +35,9 @@ import com.characterforming.ribose.ITarget;
 public abstract class BaseEffector<T extends ITarget> implements IEffector<T> {
 
 	/** Effector access to the target that it is bound to */
-	protected T target;
-	/** Effector view of Transductor named values. */
+	protected final T target;
+	/** Effector view of Transductor loggers, codecs and named values. */
 	protected IOutput output;
-	/** Charset decoder */
-	protected final CharsetDecoder decoder;
-	/** Charset encoder */
-	protected final CharsetEncoder encoder;
 
 	private final Bytes name;
 	
@@ -55,9 +48,7 @@ public abstract class BaseEffector<T extends ITarget> implements IEffector<T> {
 	 * @param name The effector name
 	 */
 	public BaseEffector(final T target, final String name) {
-		this.decoder = target.getCharsetDecoder();
-		this.encoder = target.getCharsetEncoder();
-		this.name = Bytes.encode(this.encoder, name);
+		this.name = Bytes.encode(Base.newCharsetEncoder(), name);
 		this.target = target;
 		this.output = null;
 	}
@@ -66,7 +57,6 @@ public abstract class BaseEffector<T extends ITarget> implements IEffector<T> {
 	public void setOutput(IOutput output) throws TargetBindingException {
 		this.output = output;
 	}
-
 
 	@Override // @see com.characterforming.ribose.base.IEffector#getName()
 	public final Bytes getName() {

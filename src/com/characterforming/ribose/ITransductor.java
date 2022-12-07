@@ -32,37 +32,43 @@ import com.characterforming.ribose.base.Signal;
  * Interface for runtime transductors. A transductor binds an IInput stack,
  * transducer stack, and an ITarget instance. When the {@link run()} method
  * is called the transductor will read input and invoke the effectors triggered
- * by each input transition until {@link status()} indicates that the transduction
- * is not runnable. Then one of the following conditions is satisfied:
+ * by each input transition until {@link status()} {@code !=} {@link Status#RUNNABLE}.
+ * Then one of the following conditions is satisfied:
  * <br><br>
  * <ul>
- * <li>the input stack is empty ({@link Status#PAUSED})
+ * <li>the input stack is empty or the {@code pause} effector is invoked ({@link Status#PAUSED})
  * <li>the transducer stack is empty ({@link Status#WAITING})
  * <li>input and transducer stack are both empty ({@link Status#STOPPED})
- * <li>a transducer invokes the {@code pause} effector {@link Status#PAUSED}
  * <li>an exception is thrown
  * </ul>
  * <br>
+ * The {@code stop()} method should be called before starting a new transduction,
+ * to ensure that the transducer and input stacks and all values are cleared. The
+ * {@code stop()} method will throw a {@code RiboseException} when it is called on
+ * a proxy (instantiated for parameter compilation only) or otherwise
+ * nonfunctional transductor. This condition can be checked at any time by testing 
+ * {@code status() == Status.NULL}.
+ * <br><br>
+ * The {@code run()} method has no effect when the transducer or input stack is empty.
  * A paused transduction can be resumed when input is available ({@code push()}).
  * A waiting transduction can be resumed by starting a transducer ({@code start()}).
  * A stopped transducer can be reused to start a new transduction by pushing new
- * input and transducers. The {@code run()} method has no effect when the transducer
- * or input stack is empty. The {@code stop()} method should be called before starting
- * a new transduction, to ensure that the transducer and input stacks and all values
- * are cleared. The {@code stop()} method will throw a {@code RiboseException} when 
- * it is called on a proxy transductor (a transductor instantiated for parameter 
- * compilation in model construction or runtime model loading contexts) or otherwise
- * nonfunctional transducer. This condition can be checked at any time by testing 
- * {@code status() == Status.NULL}.
+ * input and transducers. 
+ * <br><br>
+ * After the transduction has exhausted all input, the transductor should {@code push(Signal.eos)}
+ * and {@code run()} once to ensure the transduction is complete. If there is no 
+ * final transition defined for {@code eos} it will be ignored. Finally, {@code stop()}
+ * must be called again to clear the transducer and input stacks before the 
+ * transductor instance can be reused.
  * <br><br>
  * <pre>
  * proxyTarget = new Target(); runTarget = new Target();
  * runtime = Ribose.loadRuntimeModel(modelFile,proxyTarget);
  * trex = runtime.newTransductor(runTarget);
- * if (trex.stop().push(data,limit).push(signal).start(transducer).status().isRunnable()) {
+ * if (trex.stop().push(data,limit).push(Signal.nil).start(transducer).status().isRunnable()) {
  *   do {
  *     if (trex.run().status().isPaused()) {
- *       data = recycle(data);
+ *       data = trex.recycle(data);
  *       if (0 &lt; input.read(data,limit)) {
  *         trex.push(data);
  *       else {
@@ -70,6 +76,9 @@ import com.characterforming.ribose.base.Signal;
  *       }
  *     }
  *   } while (trex.status().isRunnable());
+ *   if (trex.status().isPaused()) {
+ *     tex.push(Signal.eos).run();
+ *   }
  *   trex.stop();
  * }
  * </pre>
@@ -78,14 +87,14 @@ import com.characterforming.ribose.base.Signal;
  * explicit transition on {@code nul}. Typically this involves searching without effect
  * for a synchronization pattern and resuming with effect after synchronizing. If 
  * {@code nul} is not handled a {@code DomainException} is thrown. The transductor
- * will send an {@code eos} signal to the transduction when the input stack runs dry.
- * If input is segmented and presented with a series of {@code push(byte[], int)}
- * method calls, {@code eos} will be raised at the end of each buffer. Transducers
- * can explicitly handle {@code eos} by including a transition on {@code eos}.
- * If eos is not explicitly handled the {@code run()} method will return with 
- * {@code Status.PAUSED} and {@code DomainErrorException} will not be raised.
+ * will push an {@code eos} signal when the input stack runs dry. If input is 
+ * segmented and presented with a series of {@code push(byte[], int)} method calls,
+ * {@code eos} will be raised at the end of each buffer. Transducers can safely
+ * ignore {@code eos} or use it explicitly when required. If {@code eos} is ignored
+ * the {@code run()} method will return with {@code Status.PAUSED} and 
+ * {@code DomainErrorException} will not be raised.
  * <br><br>
- * Signals like {@code nul} and {@code eos} are raised asynchronously and are difficult
+ * Signals like {@code nul} that are raised asynchronously and are difficult
  * to address in the expression of transduction patterns. However, if they are ignored
  * in the original pattern expression, the expression can be modified after the fact 
  * by transducing the pattern itself to inject behaviors relating to asynchronpus signals.
@@ -157,14 +166,6 @@ public interface ITransductor extends ITarget {
 		
 		public boolean isRunnable() {
 			return this.equals(RUNNABLE);
-		}
-		
-		public boolean hasInput() {
-			return this.equals(RUNNABLE) || this.equals(PAUSED);
-		}
-		
-		public boolean hasTransducer() {
-			return this.equals(RUNNABLE) || this.equals(WAITING);
 		}
 		
 		public boolean isPaused() {

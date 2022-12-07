@@ -1,6 +1,7 @@
 package com.characterforming.ribose;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -13,7 +14,8 @@ import com.characterforming.ribose.base.TargetBindingException;
  * Provides a {@link TCompile#main(String[])} method to transduce ginr DFAs to ribose transducers
  * and package them in a ribose runtime model along with a target class and associated effectors.
  * {@code TCompile} also serves as target class for the ribose compiler model {@code TCompile.model}
- * containing transducers used by the compiler.
+ * containing transducers used by the compiler. It inherits three specialized effectors from its
+ * base {@code com.characterforming.jrte.engine.ModelCompiler} class.
  * <br><br>
  * The default constructor {@link TCompile()} is used only when building a new compiler model. In 
  * that context is serves as a proxy target only to present its effectors and compile effector
@@ -25,10 +27,10 @@ import com.characterforming.ribose.base.TargetBindingException;
  * <br><br>
  * <table style="font-size:12px">
  * <caption style="text-align:left"><b>TCompile usage</b></caption>
- * <tr><td style="text-align:right">java</td><td>-cp ribose.0.0.0.jar com.characterforming.ribose.TCompile &lt;target&gt; &lt;automata&gt; &lt;model&gt;</td></tr>
- * <tr><td style="text-align:right">target</td><td>Fully qualified name of the model target class.</td></tr>
- * <tr><td style="text-align:right">automata</td><td>The path to the directory containing automata (*.dfa) to include in the model.</td></tr>
- * <tr><td style="text-align:right">model</td><td>The path to the file to contain the compiled model.</tr>
+ * <tr><td style="text-align:right"><b>java</b></td><td>-cp ribose.0.0.0.jar com.characterforming.ribose.TCompile <i>target automata model</i></td></tr>
+ * <tr><td style="text-align:right"><i>target</i></td><td>Fully qualified name of the model target class.</td></tr>
+ * <tr><td style="text-align:right"><i>automata</i></td><td>The path to the directory containing automata (*.dfa) to include in the model.</td></tr>
+ * <tr><td style="text-align:right"><i>model</i></td><td>The path to the file to contain the compiled model.</td></tr>
  * </table>
 */
 public final class TCompile extends ModelCompiler {
@@ -61,16 +63,19 @@ public final class TCompile extends ModelCompiler {
 	/**
 	 * Runs the ribose runtime compiler to build a runtime model for a target 
 	 * class from a collection of ginr automata generated from ribose patterns.
+	 * 
 	 * @param args &lt;target-classname&gt; &lt;automata-directory-path&gt; &lt;runtime-model-path&gt;
+	 * @throws IOException If logging subsystem can't initialize
+	 * @throws SecurityException If logging subsystem can't initialize
 	 */
-	public static void main(final String[] args) {
-		final Logger rtcLogger = Logger.getLogger(Base.RTC_LOGGER_NAME);
-		rtcLogger.setLevel(Level.INFO);
+	public static void main(final String[] args) throws SecurityException, IOException {
 		File ginrAutomataDirectory = null;
 		File riboseModelFile = null;
 		String targetClassname = null;
 		Class<?> targetClass = null;
-	
+		
+		Base.startLogging();
+		final Logger rtcLogger = Base.getCompileLogger();
 		boolean argsOk = (args.length == 4) && args[0].equals("--target");
 		if (argsOk) {
 			targetClassname = args[1];
@@ -79,15 +84,15 @@ public final class TCompile extends ModelCompiler {
 			try {
 				targetClass = Class.forName(targetClassname);
 			} catch (Exception e) {
-				Ribose.rtcLogger.log(Level.SEVERE, String.format("target-class '%1$s' could not be instantiated as model target", targetClassname), e);
+				rtcLogger.log(Level.SEVERE, String.format("target-class '%1$s' could not be instantiated as model target", targetClassname), e);
 				argsOk = false;
 			}
 			if (!ginrAutomataDirectory.isDirectory()) {
-				Ribose.rtcLogger.log(Level.SEVERE, String.format("ginr-automata-dir '%1$s' is not a directory", ginrAutomataDirectory.getPath()));
+				rtcLogger.log(Level.SEVERE, String.format("ginr-automata-dir '%1$s' is not a directory", ginrAutomataDirectory.getPath()));
 				argsOk = false;
 			}
 			if (riboseModelFile.isDirectory()) {
-				Ribose.rtcLogger.log(Level.SEVERE, String.format("model-path '%1$s' is a directory", riboseModelFile.getPath()));
+				rtcLogger.log(Level.SEVERE, String.format("model-path '%1$s' is a directory", riboseModelFile.getPath()));
 				argsOk = false;
 			}
 		}
@@ -100,11 +105,12 @@ public final class TCompile extends ModelCompiler {
 			System.out.println("   model-path       -- path for output model file");
 			System.out.println("The <target-class> container must be included in the classpath.");
 			System.out.println();
+			Base.endLogging();
 			System.exit(1);
 		}
 		System.out.println(String.format("Ribose runtime compiler version %1$s%2$sCopyright (C) 2011,2022 Kim Briggs%2$sDistributed under GPLv3 (http://www.gnu.org/licenses/gpl-3.0.txt)", 
-			Base.RTE_VERSION, System.getProperty("line.separator", "\n")));
-		System.out.println(String.format("Compiling %1$s to runtime file %2$s", 
+			Base.RTE_VERSION, Base.lineEnd));
+		System.out.println(String.format("Compiling %1$s to runtime model %2$s", 
 			ginrAutomataDirectory.getPath(), riboseModelFile.getPath()));
 		
 		int exitCode = 0;
@@ -123,8 +129,8 @@ public final class TCompile extends ModelCompiler {
 		} finally {
 			if (exitCode != 0) {
 				System.out.println("Runtime compilation failed, see log for details.");
-				riboseModelFile.delete();
 			}
+			Base.endLogging();
 		}
 		System.exit(exitCode);
 	}

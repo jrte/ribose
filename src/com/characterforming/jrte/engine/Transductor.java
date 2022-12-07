@@ -50,10 +50,10 @@ import com.characterforming.ribose.base.Signal;
 import com.characterforming.ribose.base.TargetBindingException;
 
 /**
- * Runtime transductor instances are instantiated using {@link IRuntime#newTransductor(ITarget)}.
- * Client applications drive transduction using the Transductor.run() method, 
- * which processes the bound IInput stack until one of the following conditions is 
- * satisfied:
+ * Runtime transductor instances are instantiated using {@link IRuntime#newTransductor(ITarget)}
+ * presenting a collection of {@link IEffector} and {@link IParameterizedEffector}
+ * instances. Client applications drive transduction using the Transductor.run() method, 
+ * which processes the input stack until one of the following conditions is satisfied:
  * <br><br>
  * <ol>
  * <li>the input stack is empty
@@ -68,9 +68,7 @@ public final class Transductor implements ITransductor, IOutput {
 	static final int INITIAL_STACK_SIZE = 8;
 	static final int INITIAL_NAMED_VALUE_BYTES = 256;
 	static final int INITIAL_NAMED_VALUE_BUFFERS = 256;
-	
-	private static final Logger logger = Logger.getLogger(Base.RTE_LOGGER_NAME);
-	
+		
 	/* enumeration of built-in effectors, all below inlined in run(), except (*) */
 	private static final int NUL = 0;
 	private static final int NIL = 1;
@@ -100,6 +98,8 @@ public final class Transductor implements ITransductor, IOutput {
 	private final CharsetEncoder encoder;
 	private OutputStream output;
 	private final boolean isOutEnabled;
+	private final Logger rtcLogger;
+	private final Logger rteLogger;
 	private int errorCount;
 
 	/**
@@ -120,6 +120,8 @@ public final class Transductor implements ITransductor, IOutput {
 		this.isOutEnabled = System.getProperty("jrte.out.enabled", "true").equals("true");
 		this.decoder = Base.newCharsetDecoder();
 		this.encoder = Base.newCharsetEncoder();
+		this.rtcLogger = Base.getCompileLogger();
+		this.rteLogger = Base.getRuntimeLogger();
 
 		if (mode == Mode.run) {
 			this.namedValueOrdinalMap = this.model.getNamedValueMap();
@@ -167,6 +169,16 @@ public final class Transductor implements ITransductor, IOutput {
 	@Override // @see com.characterforming.ribose.ITarget#getCharsetEncoder()
 	public CharsetEncoder getCharsetEncoder() {
 		return this.encoder;
+	}
+
+	@Override // @see com.characterforming.ribose.IOutput#rtcLogger()
+	public Logger getRtcLogger() {
+		return this.rtcLogger;
+	}
+
+	@Override // @see com.characterforming.ribose.IOutput#getRteLogger()
+	public Logger getRteLogger() {
+		return this.rteLogger;
 	}
 
 	@Override // @see com.characterforming.ribose.ITarget#getName()
@@ -248,7 +260,7 @@ public final class Transductor implements ITransductor, IOutput {
 		}
 		if (this.status() == Status.NULL) {
 			RiboseException rtx = new RiboseException("run: Transduction is MODEL and inoperable");
-			logger.log(Level.SEVERE, rtx.getMessage(), rtx);
+			this.rteLogger.log(Level.SEVERE, rtx.getMessage(), rtx);
 			throw rtx;
 		}
 		return this;
@@ -295,8 +307,9 @@ T:		do {
 								input.position = input.length;
 								break;
 							case Base.TYPE_REFERENCE_VALUE:
-								this.inputStack.pop();
 								NamedValue value = this.namedValueHandles[Base.decodeReferenceOrdinal(Base.TYPE_REFERENCE_VALUE, input.array)];
+								input.position = input.length;
+								this.inputStack.pop();
 								input = this.inputStack.push(value.getValue()).limit(value.getLength());
 								token = Byte.toUnsignedInt(input.array[input.position++]);
 								break;
@@ -309,11 +322,7 @@ T:		do {
 								break;
 							}
 						} else {
-							if (token != eosSignal && token != nulSignal) {
-								token = eosSignal;
-							} else {
-								break T;
-							} 
+							break T;
 						} 
 					}
 					// flag input stack condition if at end of frame
@@ -376,7 +385,11 @@ I:				do {
 						case NUL:
 							if (token == nulSignal) {
 								throw new DomainErrorException(this.getErrorInput(last, state, errorInput));
-							} else if (token != eosSignal) {
+							} else if (token == eosSignal) {
+								this.inputStack.pop();
+								assert this.inputStack.isEmpty();
+								effect |= IEffector.RTX_STOPPED;
+							} else {
 								errorInput = token;
 								signalInput = nulSignal;
 								++this.errorCount;
@@ -491,7 +504,7 @@ I:				do {
 				} while (this.status().isRunnable());
 			} while (this.status().isRunnable());
 		} catch (AssertionError e) {
-			throw e;
+			throw new RiboseException("Assertion failed:", e);
 		} finally {
 			// Prepare to pause (or stop) transduction
 			if (!this.transducerStack.isEmpty()) {
@@ -661,8 +674,8 @@ I:				do {
 		last /= top.inputEquivalents;
 		state /= top.inputEquivalents;
 		StringBuilder output = new StringBuilder(256);
-		output.append(String.format("Domain error on (%1$d~%2$d) in %3$s [%4$d]->[%5$d]\n\tTransducer stack:\n", 
-			errorInput, top.inputFilter[errorInput], top.name, last, state));
+		output.append(String.format("Domain error on (%1$d~%2$d) in %3$s [%4$d]->[%5$d]%6$s,\tTransducer stack:%7$s", 
+			errorInput, top.inputFilter[errorInput], top.name, last, state, Base.lineEnd, Base.lineEnd));
 		for (int i = this.transducerStack.tos(); i >= 0; i--) {
 			TransducerState t = this.transducerStack.get(i);
 			int s = t.state / t.inputEquivalents;
@@ -673,18 +686,18 @@ I:				do {
 						t.transitionMatrix[t.state + j][0] / t.inputEquivalents));
 				}
 			}
-			output.append('\n');
+			output.append(Base.lineEnd);
 		}
-		output.append("\n\tInput stack:\n");
+		output.append(Base.lineEnd).append("\tInput stack:").append(Base.lineEnd);
 		for (int i = this.inputStack.tos(); i >= 0; i--) {
 			final Input input = this.inputStack.get(i);
 			if (input.array == null) {
-				output.append("\t\t(null)\n");
+				output.append("\t\t(null)").append(Base.lineEnd);
 			} else if (!input.hasRemaining()) {
-				output.append("[ ]");
+				output.append("[ ]").append(Base.lineEnd);
 			} else if (Base.isReferenceOrdinal(input.array)) {
-				output.append(String.format("\t\t[ !%1$d ]\n", 
-					Base.decodeReferenceOrdinal(Base.getReferenceType(input.array), input.array)));
+				output.append("\t\t [ !").append(Integer.toString(Base.decodeReferenceOrdinal(Base.getReferenceType(input.array), input.array)))
+					.append(" ]").append(Base.lineEnd);
 			} else if (input.position < input.length) {
 				assert input.position < input.length && input.length <= input.array.length ;
 				int position = Math.max(0, input.position - 1);
@@ -710,9 +723,9 @@ I:				do {
 					}
 					start += 1;
 				}
-				output.append("> ]\n");
+				output.append("> ]").append(Base.lineEnd);
 			} else {
-				output.append("\t\t[ < end-of-input > ]\n");
+				output.append("\t\t[ < end-of-input > ]").append(Base.lineEnd);
 			} 
 		}
 		return output.toString();
@@ -923,7 +936,8 @@ I:				do {
 				return super.getParameter(parameterIndex);
 			} else {
 				throw new TargetBindingException(String.format("%1$s.%2$s: invalid signal '%3$%s' for count effector",
-					super.getTarget().getName(), super.getName(), Bytes.decode(super.decoder, parameterList[1], parameterList[1].length)));
+					super.getTarget().getName(), super.getName(), Bytes.decode(super.output.getCharsetDecoder(),
+					parameterList[1], parameterList[1].length)));
 			}		
 		}
 
@@ -964,7 +978,7 @@ I:				do {
 				}
 				return ordinal;
 			} else {
-				throw new TargetBindingException(String.format("Invalid transducer reference `$s` for start effector, requires type indicator ('$c') before the transducer name", 
+				throw new TargetBindingException(String.format("Invalid transducer reference `%s` for start effector, requires type indicator ('%c') before the transducer name", 
 					new Bytes(parameterList[0]).toString(), Base.TYPE_REFERENCE_TRANSDUCER));
 			}
 		}

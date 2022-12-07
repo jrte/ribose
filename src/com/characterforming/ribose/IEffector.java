@@ -30,7 +30,7 @@ import com.characterforming.ribose.base.TargetBindingException;
  * inner classes withinin a specialized {@link ITarget} implementation class.
  * <br><br>
  * Simple effectors present an {@link invoke()} method that is called from running 
- * transductions. Paramterized effectors implementing {@link IParameterizedEffector} may
+ * transductions. Parameterized effectors implementing {@link IParameterizedEffector} may
  * also be included in ribose targets. The ribose {@link ITransductor} implmentation
  * also presents a core suite of built-in effectors that are accessible to all targets.
  * @param <T> The effector target type
@@ -87,17 +87,17 @@ public interface IEffector<T extends ITarget> {
 	int invoke() throws EffectorException;
 
 	/**
-	 * Receive an IOutput view of transduction named values. Named values are
-	 * arrays of bytes extracted from transduction input. The transduction 
-	 * will typically call an effector method to indicate when the values are
-	 * available and the effector will use IOutput methods to extract the 
-	 * value and assimilate the value into the target.
+	 * Receive an IOutput view of transduction loggers and named values. Named 
+	 * values are arrays of bytes extracted from transduction input. Effectors will 
+	 * typically select and hold a {@link java.util.logging.Logger} and a subset of {@link INamedValue}
+	 * fields of interest here and extract value data in {@link #invoke()} for
+	 * assimilation into the target. 
 	 * 
 	 * @param output A object that provides a view or transduction runtime values
-	 * @throws TargetBindingException on error
+	 * @throws TargetBindingException if value names can't be resolved 
 	 */
 	void setOutput(IOutput output) throws TargetBindingException;
-
+	
 	/**
 	 * Returns the target that expresses the effector
 	 * 

@@ -37,9 +37,7 @@ import com.characterforming.ribose.base.ModelException;
  * @author Kim Briggs
  *
  */
-public final class Ribose {
-	final static Logger rtcLogger = Logger.getLogger(Base.RTC_LOGGER_NAME);
-	
+public final class Ribose {	
 /**
  * Compile a collection of DFAs from an automata directory into a ribose model file
  * and bind them to a Target class. 
@@ -50,6 +48,7 @@ public final class Ribose {
  * @return false if compilation fails
  */
 	public static boolean compileRiboseModel(Class<?> targetClass, File ginrAutomataDirectory, File riboseModelFile) {
+		final Logger rtcLogger = Base.getCompileLogger();
 		if (ITarget.class.isAssignableFrom(targetClass)) {
 			if (ginrAutomataDirectory.isDirectory()) {
 				Model model = null;
@@ -62,13 +61,13 @@ public final class Ribose {
 					} else {
 						String msg = String.format("Can't overwrite existing model file : '%1$s'",
 							riboseModelFile.getPath());
-						Ribose.rtcLogger.log(Level.SEVERE, msg);
+						rtcLogger.log(Level.SEVERE, msg);
 						return false;
 					}
 				} catch (Exception e) {
 					String msg = String.format("Exception compiling model '%1$s' from '%2$s'",
 						riboseModelFile.getPath(), ginrAutomataDirectory.getPath());
-					Ribose.rtcLogger.log(Level.SEVERE, msg, e);
+					rtcLogger.log(Level.SEVERE, msg, e);
 					riboseModelFile.delete();
 					return false;
 				} finally {
@@ -78,12 +77,12 @@ public final class Ribose {
 				}
 			} else {
 				String msg = String.format("Not a directory :'%1$s'",	ginrAutomataDirectory);
-				Ribose.rtcLogger.log(Level.SEVERE, msg);
+				rtcLogger.log(Level.SEVERE, msg);
 			}
 		} else {
 			String msg = String.format("Can't compile ribose model %1$s, %2$s does not implement ITarget", 
 				riboseModelFile.getPath(), targetClass.getName());
-			Ribose.rtcLogger.log(Level.SEVERE, msg);
+			rtcLogger.log(Level.SEVERE, msg);
 		}
 		return false;
 	}

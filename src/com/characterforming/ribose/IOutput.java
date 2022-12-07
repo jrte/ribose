@@ -20,17 +20,56 @@
 
 package com.characterforming.ribose;
 
+import java.nio.charset.CharsetDecoder;
+import java.nio.charset.CharsetEncoder;
+import java.util.logging.Logger;
+
 import com.characterforming.ribose.base.Bytes;
 import com.characterforming.ribose.base.TargetBindingException;
 
 /**
- * Provides a view of named values (data extracted by the transduction) to {@link IEffector}
- * instances bound to the transaction. Effectors receive their {@code IOutput} instance via
+ * Provides loggers, codecs and a view of named values (data extracted by the transduction)
+ * to {@link IEffector}. Effectors receive their {@code IOutput} instance via 
  * {@link IEffector#setOutput(IOutput)} when they are first bound to a transductor.
+ * <br><br>
+ * The compiler logger is exposed here for use by effectors bound to the ribose compiler
+ * model and should not be used otherwise. The runtime logger should be used in all other
+ * runtime models.
+ * <br><br>
+ * All effectors receive identical instances of loggers and codecs, which are shared by
+ * the transductor and its effectors.
  * 
  * @author Kim Briggs
  */
 public interface IOutput {
+	/**
+	 * Get the ribose compiler Logger instance (shared by tranductor and all bound effectors)
+	 * 
+	 * @return compiler Logger instance
+	 */
+	Logger getRtcLogger();
+
+	/**
+	 * Get the ribose runtime Logger instance (shared by tranductor and all bound effectors)
+	 * 
+	 * @return runtime Logger instance
+	 */
+	Logger getRteLogger();
+
+	/**
+	 * Get the transductor {@code Charset} decoder instance (shared by tranductor and all bound effectors)
+	 * 
+	 * @return the transductor decoder instance
+	 */
+	CharsetDecoder getCharsetDecoder();
+
+	/**
+	 * Get the transductor {@code Charset} ebcoder instance (shared by tranductor and all bound effectors)
+	 * 
+	 * @return the transductor encoder instance
+	 */
+	CharsetEncoder getCharsetEncoder();
+
 	/**
 	 * Get a named value by name
 	 * 

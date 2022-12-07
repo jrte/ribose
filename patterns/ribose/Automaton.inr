@@ -4,9 +4,10 @@ Symbol = [count[`~length` `!eol`]] (byte, paste count)* eol;
 Field = clear[X] select[X];
 Next = Field@(X,`~from`)*;
 Eol = cr? nl;
+Inr = 'INR';
 
 Automaton = (nil?
-	('INR', Field@(X,`~version`)*) Number
+	(Inr, Field@(X,`~version`)*) Number
 	(tab, Field@(X,`~tapes`)*) Number
 	(tab, Field@(X,`~transitions`)*) Number
 	(tab, Field@(X,`~states`)*) Number

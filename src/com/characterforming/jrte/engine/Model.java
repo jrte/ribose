@@ -35,10 +35,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.logging.FileHandler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.logging.SimpleFormatter;
 
 import com.characterforming.ribose.IEffector;
 import com.characterforming.ribose.IOutput;
@@ -56,8 +54,6 @@ import com.characterforming.ribose.base.TargetBindingException;
  * @author Kim Briggs
  */
 public final class Model implements AutoCloseable {
-	static final Logger rteLogger = Logger.getLogger(Base.RTE_LOGGER_NAME);
-	static final Logger rtcLogger = Logger.getLogger(Base.RTC_LOGGER_NAME);
   static final int ANONYMOUS_VALUE_ORDINAL = 0;
 	static final int CLEAR_ANONYMOUS_VALUE = 1;
   static final byte[] EMPTY = { };
@@ -70,6 +66,7 @@ public final class Model implements AutoCloseable {
 	private final String ioMode;
 	private final File modelPath;
 	private final ITarget proxyTarget;
+	private final Logger rtcLogger;
 	private final CharsetEncoder encoder = Base.newCharsetEncoder();
 	private final CharsetDecoder decoder = Base.newCharsetDecoder();
 	private final HashMap<Bytes, Integer> signalOrdinalMap;
@@ -90,8 +87,9 @@ public final class Model implements AutoCloseable {
 	public Model(final File modelPath, String targetClassname) throws ModelException {
 		this.ioMode ="rw";
 		this.mode = Mode.compile;
-		this.deleteOnClose = true;
+		this.deleteOnClose = false;
 		this.modelPath = modelPath;
+		this.rtcLogger = Base.getCompileLogger();
 		try {
 			Class<?> targetClass = Class.forName(targetClassname);
 			this.proxyTarget = (ITarget) targetClass.getDeclaredConstructor().newInstance();
@@ -122,6 +120,8 @@ public final class Model implements AutoCloseable {
 		this.mode = Mode.run;
 		this.deleteOnClose = false;
 		this.modelPath = modelPath;
+		this.rtcLogger = Base.getCompileLogger();
+		Base.getRuntimeLogger();
 		String targetClassname = "?";
 		try {
 			this.io = new RandomAccessFile(this.modelPath, this.ioMode);
@@ -150,18 +150,6 @@ public final class Model implements AutoCloseable {
 	}
 	
 	public void initialize() throws ModelException {
-		try {
-			final FileHandler rteHandler = new FileHandler(Base.RTE_LOGGER_NAME + ".log", true);
-			rteHandler.setFormatter(new SimpleFormatter());
-			Model.rteLogger.addHandler(rteHandler);
-			final FileHandler rtcHandler = new FileHandler(Base.RTC_LOGGER_NAME + ".log", true);
-			rtcHandler.setFormatter(new SimpleFormatter());
-			Model.rtcLogger.addHandler(rtcHandler);
-		} catch (SecurityException e) {
-			throw new ModelException("SecurityException caught while initializing logs", e);
-		} catch (IOException e) {
-			throw new ModelException("IOException caught while initializing logs", e);
-		}
 		this.proxyTransductor = new Transductor(this, Mode.compile);
 		this.proxyTransductor.setNamedValueOrdinalMap(this.namedValueOrdinalMap);
 		IEffector<?>[] trexFx = this.proxyTransductor.getEffectors();
@@ -230,6 +218,7 @@ public final class Model implements AutoCloseable {
 	 * @throws ModelException on error
 	 */
 	public boolean save() throws ModelException {
+		File mapFile = new File(this.modelPath.getPath().replaceAll(".model", ".map"));
 		try {
 			long filePosition = this.seek(-1);
 			int targetOrdinal = this.addTransducer(new Bytes(this.proxyTarget.getName().getBytes()));
@@ -249,15 +238,12 @@ public final class Model implements AutoCloseable {
 			this.compileModelParameters();
 			this.seek(0);
 			this.putLong(indexPosition);
-			saveMapFile(new File(this.modelPath.getPath().replaceAll(".model", ".map")));
-			String msg = String.format("Ribose model %1$s: target class %2$s", 
-				this.modelPath.getPath(),	this.proxyTarget.getClass().getName());
-			Model.rtcLogger.log(Level.INFO, msg);
-			msg = String.format("Ribose model %1$s: %2$d transducers; %5$d effectors; %3$d named values; %4$d signal ordinals",
-				this.modelPath.getPath(), this.transducerOrdinalMap.size() - 1, this.namedValueOrdinalMap.size(),
-				this.getSignalCount(), this.effectorOrdinalMap.size());
-			Model.rtcLogger.log(Level.INFO, msg);
-			setDeleteOnClose(false);
+			saveMapFile(mapFile);
+			String msg = String.format("%1$s: target class %2$s%3$s%4$d transducers; %5$d effectors; %6$d named values; %7$d signal ordinals%8$s", 
+				this.modelPath.getPath(),	this.proxyTarget.getClass().getName(), Base.lineEnd,
+				this.transducerOrdinalMap.size() - 1, this.effectorOrdinalMap.size(),
+				this.namedValueOrdinalMap.size(), this.getSignalCount(), Base.lineEnd);
+			this.rtcLogger.log(Level.INFO, msg);
 		} catch (IOException e) {
 			this.setDeleteOnClose(true);
 			throw new ModelException(String.format("IOException caught compiling model file '%1$s'",  this.modelPath.getPath()), e);
@@ -266,12 +252,13 @@ public final class Model implements AutoCloseable {
 			throw new ModelException(String.format("RteException caught compiling model file '%1$s'",  this.modelPath.getPath()), e);
 		} finally {
 			if (this.transducerOrdinalMap.size() <= 1) {
-				Model.rtcLogger.log(Level.WARNING, String.format("No transducers compiled to %1$s",
+				this.rtcLogger.log(Level.WARNING, String.format("No transducers compiled to %1$s",
 					this.modelPath.getPath()));
 				setDeleteOnClose(true);
 			}
 			if (this.deleteOnClose) {
-				Model.rtcLogger.log(Level.SEVERE, "Compilation failed for model " + this.modelPath.getPath());
+				this.rtcLogger.log(Level.SEVERE, "Compilation failed for model " + this.modelPath.getPath());
+				mapFile.delete();
 			}
 			this.close();
 		}
@@ -375,11 +362,13 @@ public final class Model implements AutoCloseable {
 				this.io.close();
 			}
 		} catch (IOException e) {
-			Model.rtcLogger.log(Level.SEVERE, "Unable to close model file %1$s " + this.modelPath.getPath(), e);
+			this.rtcLogger.log(Level.SEVERE, "Unable to close model file %1$s " + this.modelPath.getPath(), e);
 		} finally {
 			this.io = null;
-			if (this.deleteOnClose && this.modelPath.exists() && !this.modelPath.delete()) {
-				Model.rtcLogger.warning("Unable to delete invalid model file %1$s " + this.modelPath.getPath());
+			if (this.deleteOnClose) {
+				if ( this.modelPath.exists() && !this.modelPath.delete()) {
+					this.rtcLogger.warning("Unable to delete invalid model file %1$s " + this.modelPath.getPath());
+				}
 			}
 		}
 	}
@@ -419,7 +408,7 @@ public final class Model implements AutoCloseable {
 			}
 			mapWriter.flush();
 		} catch (final IOException e) {
-			Model.rtcLogger.log(Level.SEVERE, "Model unable to create map file " + mapFile.getPath(), e);
+			this.rtcLogger.log(Level.SEVERE, "Model unable to create map file " + mapFile.getPath(), e);
 		} finally {
 			if (mapWriter != null) {
 				mapWriter.close();
@@ -434,11 +423,12 @@ public final class Model implements AutoCloseable {
 		}
 		if (!checked) {
 			StringBuffer msg = new StringBuffer(256);
-			msg.append("Target ").append(target.getName()).append(" effectors do not match proxy effectors.\n\tTarget:");
+			msg.append("Target ").append(target.getName()).append(" effectors do not match proxy effectors.")
+				.append(Base.lineEnd).append("\tTarget:");
 			for (IEffector<?> fx : boundFx) {
 				msg.append(' ').append(fx.getName());
 			}
-			msg.append("\n\tProxy:");
+			msg.append(Base.lineEnd).append("\tProxy:");
 			for (IEffector<?> fx : this.proxyEffectors) {
 				msg.append(' ').append(fx.getName());
 			}
@@ -464,13 +454,13 @@ public final class Model implements AutoCloseable {
 							parameterizedEffector.compileParameter(v, p);
 							effectorParameters[v] = p;
 						} catch (TargetBindingException x) {
-							Model.rtcLogger.log(Level.SEVERE, x.getMessage());
+							this.rtcLogger.log(Level.SEVERE, x.getMessage());
 							fail = true;
 						}
 					}
 					this.putBytesArrays(effectorParameters);
 				} else if (parameters.size() > 0) {
-					Model.rtcLogger.severe(String.format("%1$s.%2$s: effector does not accept parameters\n",
+					this.rtcLogger.severe(String.format("%1$s.%2$s: effector does not accept parameters",
 						this.proxyTarget.getName(), effector.getName()));
 					fail = true;
 				} else {
@@ -482,7 +472,7 @@ public final class Model implements AutoCloseable {
 		}
 		for (final Map.Entry<Bytes, Integer> entry : effectorOrdinalMap.entrySet()) {
 			if (this.proxyEffectors[entry.getValue()] == null) {
-				Model.rtcLogger.log(Level.SEVERE, String.format("%1$s.%2$s: effector ordinal not found\n",
+				this.rtcLogger.log(Level.SEVERE, String.format("%1$s.%2$s: effector ordinal not found",
 					this.proxyTarget.getName(), entry.getKey().toString()));
 				fail = true;
 			}

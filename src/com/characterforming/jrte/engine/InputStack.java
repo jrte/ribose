@@ -31,7 +31,6 @@ import com.characterforming.ribose.base.Base;
  * @author Kim Briggs
  */
 final class InputStack {
-	public final static int BLOCK_SIZE = Integer.parseInt(System.getProperty("ribose.inbuffer.size", "65536"));
 	private static final Logger logger = Logger.getLogger(Base.RTE_LOGGER_NAME);
 	enum MarkState { clear, marked, reset };
 	private final byte[][] signals;
@@ -257,6 +256,7 @@ final class InputStack {
 	 * @return {@code bytes} or a data buffer recently released from the mark set or null
 	 */
 	byte[] recycle(byte[] bytes) {
+		int size = bytes.length;
 		if (bytes == this.stack[0].array && this.markState != MarkState.clear) {
 			bytes = null;
 		}
@@ -292,7 +292,7 @@ final class InputStack {
 				}
 			}
 		assert bytes == null;
-		return new byte[InputStack.BLOCK_SIZE];
+		return new byte[size];
 	}
 	
 	/** 
@@ -383,8 +383,7 @@ final class InputStack {
 		assert this.bom != this.tom;
 		return this.marked[this.tom];
 	}
-	public final static int MARK_LIMIT = Integer.parseInt(System.getProperty("ribose.mark.limit", "65536"));
-
+	
 	private Input getMarked() {
 		if (this.bom != this.tom) {
 			this.bom = this.nextMarked(this.bom);

@@ -28,11 +28,11 @@ import com.characterforming.ribose.base.TargetBindingException;
  * <br><br>
  * <table style="font-size:12px">
  * <caption style="text-align:left"><b>TRun usage</b></caption>
- * <tr><td style="text-align:right">java</td><td>-cp ribose.0.0.0.jar com.characterforming.ribose.TRun &lt;model&gt; &lt;transducer&gt; &lt;input&gt; [&lt;output&gt;]</td></tr>
- * <tr><td style="text-align:right">model</td><td>The path to the model file containing the transducer.</tr>
- * <tr><td style="text-align:right">transducer</td><td>The path to the directory containing automata (*.dfa) to include in the model.</td></tr>
- * <tr><td style="text-align:right">input</td><td>The path to the input file.</td></tr>
- * <tr><td style="text-align:right">output</td><td>The path to the output file.</tr>
+ * <tr><td style="text-align:right"><b>java</b></td><td>-cp ribose.0.0.0.jar com.characterforming.ribose.TRun <i>model transducer input [output]</i></td></tr>
+ * <tr><td style="text-align:right"><i>model</i></td><td>The path to the model file containing the transducer.</td></tr>
+ * <tr><td style="text-align:right"><i>transducer</i></td><td>The name of the transducer to start the transduction.</td></tr>
+ * <tr><td style="text-align:right"><i>input</i></td><td>The path to the input file.</td></tr>
+ * <tr><td style="text-align:right"><i>output</i></td><td>The path to the output file.</td></tr>
  * </table>
  * <br>
  * Default output is System.out.
@@ -64,11 +64,11 @@ public class TRun extends BaseTarget {
 	 * must be contained in the specified model file.
 	 *    
 	 * @param args [--nil] &lt;target-class&gt; &lt;transducer-name&gt; &lt;input-file-path&gt; &lt;trun-model-path&gt;
+	 * @throws IOException if unable to start the logging susystem
+	 * @throws SecurityException if unable to start the logging susystem
 	 */
-	public static void main(final String[] args) {
+	public static void main(final String[] args) throws SecurityException, IOException {
 		final CharsetEncoder encoder = Base.newCharsetEncoder();
-		final Logger rteLogger = Logger.getLogger(Base.RTE_LOGGER_NAME);
-		rteLogger.setLevel(Level.WARNING);
 		int argc = args.length;
 		final boolean nil = (argc > 0) ? (args[0].compareTo("--nil") == 0) : false;
 		int arg = nil ? 1 : 0;
@@ -87,13 +87,16 @@ public class TRun extends BaseTarget {
 				outputFile.delete();
 			}
 		}
+		Base.startLogging();
+		final Logger rteLogger = Base.getRuntimeLogger();
 		OutputStream osw = System.out;
 		if (outputFile != null) {
 			try {
 				int outsize = Base.getOutBufferSize();
 				osw = new BufferedOutputStream(new FileOutputStream(outputFile), outsize);
 			} catch (FileNotFoundException e) {
-				Ribose.rtcLogger.log(Level.SEVERE, String.format("Unable to open output file %s", outputPath), e);
+				rteLogger.log(Level.SEVERE, String.format("Unable to open output file %s", outputPath), e);
+				Base.endLogging();
 				System.exit(1);
 			}
 		}
@@ -101,11 +104,13 @@ public class TRun extends BaseTarget {
 		final File input = inputPath.charAt(0) == '-' ? null : new File(inputPath);
 		if (input != null && !input.exists()) {
 			System.out.println("No input file found at " + inputPath);
+			Base.endLogging();
 			System.exit(1);
 		}
 		final File model = new File(modelPath);
 		if (!model.exists()) {
 			System.out.println("No ribose model file found at " + modelPath);
+			Base.endLogging();
 			System.exit(1);
 		}
 
@@ -124,11 +129,9 @@ public class TRun extends BaseTarget {
 		} catch (final Exception e) {
 			rteLogger.log(Level.SEVERE, "Runtime failed", e);
 			System.out.println("Runtime failed, see log for details.");
-			exitCode = 1;
 		} catch (final AssertionError e) {
 			rteLogger.log(Level.SEVERE, "Runtime assertion failed", e);
 			System.out.println("Runtime assertion failed, see log for details.");
-			exitCode = 1;
 		} finally {
 			if (outputFile != null) {
 				try {
@@ -136,10 +139,10 @@ public class TRun extends BaseTarget {
 				} catch (IOException e) {
 					String message = String.format("Unable to close output file %s", outputPath);
 					rteLogger.log(Level.SEVERE, message, e);
-					System.out.println(message);
 					exitCode = 1;
 				}
 			}
+			Base.endLogging();
 			System.exit(exitCode);
 		}
 	}

@@ -6,15 +6,15 @@
 	control for high-volume text analysis and information extraction and transformation. For a more 
 	detailed presentation see the README at <a href="https://github.com/jrte/ribose" target="_blank">https://github.com/jrte/ribose</a>.
 	<br><br>
-	The ribose compiler builds transducers from ginr automata and packages them in persistent
-	models for use in the ribose runtime. The ribose runtime is a container	for any number of
-	transduction processes,	each driving an input source through an {@link com.characterforming.ribose.ITransductor}
-	to an {@link com.characterforming.ribose.ITarget} expressing tightly-focused 
-	{@link com.characterforming.ribose.IEffector} and {@link com.characterforming.ribose.IParameterizedEffector}
-	effectors. Each transduction instance is itself an {@code ITarget} implementation presenting
-	a set of built-in effectors	that are implicitly	available to all transducers. These core
-	effectors are listed in the {@link com.characterforming.ribose.ITransductor} interface
-	documentation.
+	The ribose compiler builds transducers from <b><a href="https://github.com/ntozubod/ginr" target="_blank">ginr</a></b>
+	automata and packages them in persistent models for use in the ribose runtime. The ribose runtime
+	is a container for any number of transduction processes, each driving an input source through an
+	{@link com.characterforming.ribose.ITransductor} to an {@link com.characterforming.ribose.ITarget}
+	expressing tightly-focused {@link com.characterforming.ribose.IEffector} and 
+	{@link com.characterforming.ribose.IParameterizedEffector} effectors. Each transduction instance
+	is itself an {@code ITarget} implementation presenting a set of built-in effectors that are 
+	implicitly	available to all transducers. These core effectors are listed in the
+	{@link com.characterforming.ribose.ITransductor} interface documentation.
 	<br><br>
 	The ribose {@link com.characterforming.ribose.IRuntime} engine loads transducers from model
 	files and binds them to targets to start ribose	transductions. Each transduction is 
@@ -29,8 +29,8 @@
 	package	includes ribose base classes for extension and use in other domains. Specialized
 	targets that compose domain objects from transduction outputs can be realized by 
 	implementing the ITarget interface in a class with additional domain-specific effectors. See
-	<a href="https://github.com/jrte/ribose/wiki#ginr-as-a-service-provider" target="_blank">	
-	Ginr as a Service Provider</a> and {@link com.characterforming.ribose.TCompile} for an example
+	<i><a href="https://github.com/jrte/ribose/wiki#ginr-as-a-service-provider" target="_blank">	
+	Ginr as a Service Provider</a></i> and {@link com.characterforming.ribose.TCompile} for an example
 	of a specialized ITarget implementation.
 <br><br>
 	See also the shell scripts at <a href="https://github.com/jrte/ribose/tree/master/etc/sh" target="_blank">etc/sh</a>

@@ -20,9 +20,6 @@
 
 package com.characterforming.ribose;
 
-import java.nio.charset.CharsetDecoder;
-import java.nio.charset.CharsetEncoder;
-
 import com.characterforming.ribose.base.TargetBindingException;
 
 /**
@@ -60,7 +57,7 @@ import com.characterforming.ribose.base.TargetBindingException;
  * during model compilation. 
  * <br><br>
  * In runtime contexts, a proxy target is instantiated when a ribose model is loaded.
- * The proxy recompiles all parammeterized effector parameters to make them available
+ * The proxy recompiles all parameterized effector parameters to make them available
  * to runtime targets and is otherwise not involved in runtime model use. Runtime targets
  * are instantiated externally and passed to the runtime to create {@code ITransductor}
  * instances to run transductions. When a runtime target is bound to a transductor each
@@ -95,25 +92,4 @@ public interface ITarget {
 	 * @throws TargetBindingException on error
 	 */
 	IEffector<?>[] getEffectors() throws TargetBindingException;
-
-	/**
-	 * Return a new {@code CharsetDecoder} instance for use by the target and
-	 * the effectors bound to the target. This is a shared instance, safe for
-	 * use within single-threaded transductions. Effectors should access this
-	 * instance through {@link com.characterforming.ribose.base.BaseEffector#decoder},
-	 * whish 
-	 * 
-	 * @return the {@code CharsetDecoder} to be used with this target instance
-	 */
-	CharsetDecoder getCharsetDecoder();
-
-	/**
-	 * Return a new {@code CharsetEncoder} instance for use by the target and
-	 * the effectors bound to the target. This is a shared instance, safe for
-	 * use within single-threaded transductions. Effectors should access this
-	 * instance through {@link com.characterforming.ribose.base.BaseEffector#encoder}.
-	 * 
-	 * @return the {@code CharsetEncoder} to be used with this target instance
-	 */
-	CharsetEncoder getCharsetEncoder();
 }

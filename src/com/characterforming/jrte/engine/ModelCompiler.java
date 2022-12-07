@@ -34,6 +34,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import com.characterforming.ribose.IEffector;
 import com.characterforming.ribose.INamedValue;
@@ -62,8 +63,8 @@ public class ModelCompiler implements ITarget {
 	protected final Model model;
 	
 	private static final long VERSION = 210;
-	private final CharsetEncoder encoder = Base.newCharsetEncoder();
-	private final CharsetDecoder decoder = Base.newCharsetDecoder();
+	private final CharsetEncoder encoder;
+	private final CharsetDecoder decoder;
 	private final ArrayList<String> errors;
 	private Bytes transducerName;
 	private ITransductor transductor;
@@ -85,6 +86,8 @@ public class ModelCompiler implements ITarget {
 		this.model = model;
 		this.transductor = null;
 		this.errors = new ArrayList<String>();
+		this.encoder = Base.newCharsetEncoder();
+		this.decoder = Base.newCharsetDecoder();
 		this.reset();
 	}
 	
@@ -102,19 +105,10 @@ public class ModelCompiler implements ITarget {
 		};
 	}
 
-	@Override
-	public CharsetDecoder getCharsetDecoder() {
-		return this.decoder;
-	}
-
-	@Override
-	public CharsetEncoder getCharsetEncoder() {
-		return this.encoder;
-	}
-
 	public static boolean compileAutomata(Model targetModel, File inrAutomataDirectory) throws ModelException {
 		File workingDirectory = new File(System.getProperty("user.dir", "."));
 		File compilerModelFile = new File(workingDirectory, "TCompile.model");
+		Logger rtcLogger = Base.getCompileLogger();
 		try (IRuntime compilerRuntime = Ribose.loadRiboseModel(compilerModelFile)) {
 			final CharsetEncoder encoder = Base.newCharsetEncoder();
 			TCompile compiler = new TCompile(targetModel);
@@ -131,19 +125,19 @@ public class ModelCompiler implements ITarget {
 						targetModel.setTransducerOffset(transducerOrdinal, filePosition);
 					} else {
 						for (String error : compiler.getErrors()) {
-							Model.rtcLogger.severe(error);
+							rtcLogger.severe(error);
 						}
 					}
 				} catch (Exception e) {
 					String msg = String.format("Exception caught compiling transducer '%1$s'", filename);
-					Model.rtcLogger.log(Level.SEVERE, msg, e);
+					rtcLogger.log(Level.SEVERE, msg, e);
 					return false;
 				}
 			}
 			return compiler.getErrors().isEmpty();
 		} catch (ModelException e) {
 			String msg = String.format("Exception caught compiling automata directrory '%1$s'", inrAutomataDirectory.getPath());
-			Model.rtcLogger.log(Level.SEVERE, msg, e);
+			rtcLogger.log(Level.SEVERE, msg, e);
 			return false;
 		}
 	}
@@ -173,18 +167,20 @@ public class ModelCompiler implements ITarget {
 		
 		@Override
 		public void setOutput(IOutput output) throws TargetBindingException {
+			assert target.model != null;
 			super.setOutput(output);
 			fields = new INamedValue[] {
-				super.output.getNamedValue(Bytes.encode(super.encoder, "version")),
-				super.output.getNamedValue(Bytes.encode(super.encoder, "tapes")),
-				super.output.getNamedValue(Bytes.encode(super.encoder, "transitions")),
-				super.output.getNamedValue(Bytes.encode(super.encoder, "states")),
-				super.output.getNamedValue(Bytes.encode(super.encoder, "symbols"))
+				super.output.getNamedValue(Bytes.encode(super.output.getCharsetEncoder(), "version")),
+				super.output.getNamedValue(Bytes.encode(super.output.getCharsetEncoder(), "tapes")),
+				super.output.getNamedValue(Bytes.encode(super.output.getCharsetEncoder(), "transitions")),
+				super.output.getNamedValue(Bytes.encode(super.output.getCharsetEncoder(), "states")),
+				super.output.getNamedValue(Bytes.encode(super.output.getCharsetEncoder(), "symbols"))
 			};
 		}
 		
 		@Override
 		public int invoke() throws EffectorException {
+			assert target.model != null;
 			Header h = new Header(
 				(int)fields[0].asInteger(),
 				(int)fields[1].asInteger(),
@@ -232,17 +228,19 @@ public class ModelCompiler implements ITarget {
 		
 		@Override
 		public void setOutput(IOutput output) throws TargetBindingException {
+			assert target.model != null;
 			super.setOutput(output);
 			fields = new INamedValue[] {
-				super.output.getNamedValue(Bytes.encode(super.encoder, "from")),
-				super.output.getNamedValue(Bytes.encode(super.encoder, "to")),
-				super.output.getNamedValue(Bytes.encode(super.encoder, "tape")),
-				super.output.getNamedValue(Bytes.encode(super.encoder, "symbol"))
+				super.output.getNamedValue(Bytes.encode(super.output.getCharsetEncoder(), "from")),
+				super.output.getNamedValue(Bytes.encode(super.output.getCharsetEncoder(), "to")),
+				super.output.getNamedValue(Bytes.encode(super.output.getCharsetEncoder(), "tape")),
+				super.output.getNamedValue(Bytes.encode(super.output.getCharsetEncoder(), "symbol"))
 			};
 		}
 		
 		@Override
 		public int invoke() throws EffectorException {
+			assert target.model != null;
 			Transition t = new Transition(
 				(int)fields[0].asInteger(),
 				(int)fields[1].asInteger(),
@@ -296,10 +294,11 @@ public class ModelCompiler implements ITarget {
 
 		@Override
 		public int invoke() throws EffectorException {
+			assert target.model != null;
 			final Integer[] inrInputStates = target.getInrStates(0);
 			if (inrInputStates == null) {
 				String msg = "Empty automaton " + target.getTransducerName();
-				Model.rtcLogger.log(Level.SEVERE, msg);
+				super.output.getRtcLogger().log(Level.SEVERE, msg);
 				throw new EffectorException(msg);
 			}
 			
@@ -416,9 +415,13 @@ public class ModelCompiler implements ITarget {
 			this.stateTransitionMap = new HashMap<Integer, ArrayList<Transition>>(size >> 3);
 			Bytes automaton = Bytes.encode(this.encoder, "Automaton");
 			if (this.transductor.stop().push(bytes, size).push(Signal.nil).start(automaton).status().isRunnable()) {
-				do ; while (this.transductor.run().status().isRunnable());
+				if (this.transductor.run().status().isPaused()) {
+					this.transductor.push(Signal.eos).run();
+				}
 			}
+			assert !this.transductor.status().isRunnable();
 			this.transductor.stop();
+			assert this.transductor.status().isStopped();
 			if (this.errors.isEmpty()) {
 				this.save();
 				return true;
@@ -440,9 +443,10 @@ public class ModelCompiler implements ITarget {
 				name, inrFile.getPath(), e.getMessage()));
 			return false;
 		} catch (AssertionError e) {
-			throw e;
+			throw new RiboseException("Assertion failed:", e);
 		} finally {
 			this.transductor.stop();
+			assert this.transductor.status().isStopped();
 		}
 	}
 
@@ -588,9 +592,10 @@ public class ModelCompiler implements ITarget {
 				}
 			}
 		}
-		double density = (double)(transitions)/(double)(this.kernelMatrix.length * this.kernelMatrix[0].length);
-		System.out.println(String.format("%1$s: %2$d input equivalence classes, %3$d states, %4$d transitions (%5$5.3f)",
-			this.getTransducerName(), this.kernelMatrix.length, this.kernelMatrix[0].length, transitions, density));
+		double sparsity = (double)100 - (double)(100 * transitions)/(double)(this.kernelMatrix.length * this.kernelMatrix[0].length);
+		System.out.println(String.format("%1$20s: %2$5d input classes %3$5d states %4$5d transitions (%5$.0f%% nul)",
+			this.getTransducerName(), this.kernelMatrix.length, this.kernelMatrix[0].length, transitions, sparsity));
+		System.out.flush();
 	}
 
 	private String getTransducerName() {

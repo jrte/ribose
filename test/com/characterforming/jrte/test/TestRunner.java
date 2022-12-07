@@ -22,10 +22,8 @@ package com.characterforming.jrte.test;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.CharsetEncoder;
-import java.util.logging.FileHandler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.logging.SimpleFormatter;
 
 import com.characterforming.ribose.IRuntime;
 import com.characterforming.ribose.ITransductor;
@@ -52,12 +50,8 @@ public class TestRunner {
 			System.exit(1);
 		}
 		
-		final Logger rteLogger = Logger.getLogger("TestRunner");
-		final FileHandler rteHandler = new FileHandler("TestRunner.log", true);
-		rteHandler.setFormatter(new SimpleFormatter());
-		rteLogger.addHandler(rteHandler);
-		rteLogger.setLevel(Level.WARNING);
-	
+		Base.startLogging();
+		final Logger rteLogger = Base.getRuntimeLogger();
 		final String modelPath = args[0];
 		final long arg = args.length > 1 ? Long.parseLong(args[1]) : 0;
 		final char[] achars = new char[10000000];
@@ -79,6 +73,7 @@ public class TestRunner {
 			regexGroup.testRun();
 		}
 
+		int exitCode = 1;
 		String[] tests = new String[] {
 			"SelectPasteTest", "PasteSpeedTest", "NilPauseTest", "PastePauseTest", "PasteCutTest", "StackTest", "PasteCountTest", "CounterTest", "NilSpeedTest"
 		};
@@ -96,28 +91,35 @@ public class TestRunner {
 					&& trex.push(Signal.nil).status().isWaiting()
 					&& (trex.start(transducer).status().isRunnable())) {
 						t0 = System.currentTimeMillis();
-						do ; while (trex.run().status().isRunnable());
+						do {
+							trex.run();
+						} while (trex.status().isRunnable());
+						if (trex.status().isPaused()) {
+							trex.push(Signal.eos).run();
+						}
 						t1 = System.currentTimeMillis() - t0;
 						if (i >= 10) {
 							t2 += t1;
 						}
 						System.out.print(String.format("%4d", t1));
-						assert !trex.status().hasInput();
+						assert !trex.status().isRunnable();
 						trex.stop();
+						assert trex.status().isStopped();
 					}
 				}
 				double mbps = (t2 > 0) ? ((double)(10000000) / (double)(t2*1024*1024)) * (10*1000) : -1;
 				System.out.println(String.format(" : %7.3f mb/s (bytes)", mbps));
 			}
+			exitCode = 0;
 		} catch (Exception e) {
 			System.out.println("Runtime exception thrown.");
 			rteLogger.log(Level.SEVERE, "Runtime failed, exception thrown.", e);
-			System.exit(1);
 		} catch (AssertionError e) {
 			System.out.println("Runtime assertion failed.");
 			rteLogger.log(Level.SEVERE, "Runtime assertion failed", e);
-			System.exit(1);
+		} finally {
+			Base.endLogging();
+			System.exit(exitCode);
 		}
 	}
-
 }

@@ -46,7 +46,7 @@ import com.characterforming.ribose.base.Signal;
  * @author Kim Briggs
  */
 public final class Runtime implements IRuntime {
-	public final static Logger rteLogger = Logger.getLogger(Base.RTE_LOGGER_NAME);
+	public final static Logger rteLogger = Base.getRuntimeLogger();
 	private final Model model;
 	
 	/**
@@ -80,7 +80,7 @@ public final class Runtime implements IRuntime {
 	@Override // @see com.characterforming.ribose.IRuntime#transduce(Bytes, Signal, InputStream)
 	public boolean transduce(ITarget target, Bytes transducer, Signal prologue, InputStream in, OutputStream out) throws RiboseException {
 		try {
-			byte[] bytes = new byte[InputStack.BLOCK_SIZE];
+			byte[] bytes = new byte[Base.getInBufferSize()];
 			int read = in.read(bytes);
 			@SuppressWarnings("unused")
 			int position = read;
@@ -96,17 +96,22 @@ public final class Runtime implements IRuntime {
 							assert bytes != null;
 							read = in.read(bytes);
 							if (read > 0) {
-								trex.push(bytes, read).status();
+								trex.push(bytes, read);
 								position += read;
 							} else {
 								break;
 							}
 						}
 					} while (trex.status().isRunnable());
+					if (trex.status().isPaused()) {
+						trex.push(Signal.eos).run();
+					}
+					assert !trex.status().isRunnable();
 					trex.stop();
+					assert trex.status().isStopped();
 				}
 			}
-	} catch (ModelException e) {
+		} catch (ModelException e) {
 			log(target, transducer, e);
 			return false;
 		} catch (DomainErrorException e) {

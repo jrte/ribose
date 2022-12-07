@@ -20,9 +20,14 @@
 
 package com.characterforming.ribose.base;
 
+import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.charset.CharsetDecoder;
 import java.nio.charset.CharsetEncoder;
+import java.util.logging.FileHandler;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import java.util.logging.SimpleFormatter;
 
 /**
  * This {@code Base} class provides commonly used defintions that are
@@ -55,6 +60,9 @@ public class Base {
 	public static final byte TYPE_REFERENCE_VALUE = '~';
 	/** null value for type decoration */
 	public static final byte TYPE_REFERENCE_NONE = (byte)0x0;
+
+	/** End of line sequence */
+	public static final String lineEnd = System.getProperty("line.separator", "\n");
 	
 	private static final int INPUT_BUFFER_SIZE = Integer.parseInt(System.getProperty("ribose.inbuffer.size", "64436"));
 	private static final int OUTPUT_BUFFER_SIZE = Integer.parseInt(System.getProperty("ribose.outbuffer.size", "8196"));
@@ -66,11 +74,69 @@ public class Base {
 		Bytes.encode(Base.encoder, "eol"),
 		Bytes.encode(Base.encoder, "eos")
 	};
+	private static FileHandler rtcHandler;
+	private static FileHandler rteHandler;
 
 	public Base() {
 		super();
 	}
+
+	/**
+	 * Get a reference to the compiler logger. This should be used only
+	 * in compilation contexts.
+	 * 
+	 * @return the compiler logger
+	 */
+	static public Logger getCompileLogger() {
+		Logger rtcLogger = Logger.getLogger(Base.RTC_LOGGER_NAME);
+		rtcLogger.setLevel(Level.INFO);
+		return rtcLogger;
+	}
 	
+	/**
+	 * Get a reference to the runtime logger.
+	 * 
+	 * @return the runtime logger
+	 */
+	static public Logger getRuntimeLogger() {
+		Logger rteLogger = Logger.getLogger(Base.RTE_LOGGER_NAME);
+		rteLogger.setLevel(Level.WARNING);
+		return rteLogger;
+	}
+	
+	/** 
+	 * Initialize the logging system.
+	 * 
+	 * @throws SecurityException if unable to initalize logging
+	 * @throws IOException if unable to initalize logging
+	 */
+	public static synchronized void startLogging() throws SecurityException, IOException {
+		if (Base.rteHandler == null) {
+			Base.rteHandler = new FileHandler(Base.RTE_LOGGER_NAME + ".log", true);
+			rteHandler.setFormatter(new SimpleFormatter());
+			Logger rteLogger = Base.getRuntimeLogger();
+			rteLogger.addHandler(rteHandler);
+		}
+		if (Base.rtcHandler == null) {
+			final FileHandler rtcHandler = new FileHandler(Base.RTC_LOGGER_NAME + ".log", true);
+			rtcHandler.setFormatter(new SimpleFormatter());
+			Logger rtcLogger = Base.getCompileLogger();
+			rtcLogger.addHandler(rtcHandler);
+		}
+	}
+
+	/** 
+	 * Finalize the logging system.
+	 */
+	public static synchronized void endLogging() {
+		if (Base.rteHandler != null) {
+			Base.rteHandler.close();
+		}
+		if (Base.rtcHandler != null) {
+			rtcHandler.close();
+		}
+	}
+
 	/**
 	 * Instantiate a new {@code CharsetDecoder}. All textual data in ribose models
 	 * are represented in encoded form (eg, UTF-8 byte arrays).
@@ -85,7 +151,7 @@ public class Base {
 	 * Instantiate a new {@code CharsetEncoder}. All textual data in ribose models
 	 * are represented in encoded form (eg, UTF-8 byte arrays).
 	 * 
-	 * @return a new CharsetEncoder insstance
+	 * @return a new CharsetEncoder instance
 	 */
 	static public CharsetEncoder newCharsetEncoder() {
 		return Base.runtimeCharset.newEncoder();

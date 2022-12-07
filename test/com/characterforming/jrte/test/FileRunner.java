@@ -29,16 +29,13 @@ import java.nio.CharBuffer;
 import java.nio.charset.CharsetDecoder;
 import java.nio.charset.CharsetEncoder;
 import java.nio.charset.CoderResult;
-import java.util.logging.FileHandler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.logging.SimpleFormatter;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import com.characterforming.ribose.IRuntime;
 import com.characterforming.ribose.ITransductor;
-import com.characterforming.ribose.ITransductor.Status;
 import com.characterforming.ribose.Ribose;
 import com.characterforming.ribose.TRun;
 import com.characterforming.ribose.base.Base;
@@ -75,29 +72,29 @@ public class FileRunner {
 		final boolean jrteOutEnabled = System.getProperty("jrte.out.enabled", "false").equals("true");
 		final boolean regexOutEnabled = !regex.isEmpty() && System.getProperty("regex.out.enabled", "false").equals("true");
 		if (jrteOutEnabled && regexOutEnabled) {
-			System.out.println(String.format("Usage: java -cp <classpath> [-Djrte.out.enabled=true ^|^ -Dregex.out.enabled=true] %s [--nil] <transducer-name> <input-path> <model-path> [regex]\n(jrteOutputEnabled and regexOutputEnabled can't both be true)", FileRunner.class.getName()));
+			System.out.println(String.format("Usage: java -cp <classpath> [-Djrte.out.enabled=true ^|^ -Dregex.out.enabled=true] %s [--nil] <transducer-name> <input-path> <model-path> [regex]%s(jrteOutputEnabled and regexOutputEnabled can't both be true)", 
+				FileRunner.class.getName(), Base.lineEnd));
 			System.exit(1);
 		}
 
-		final Logger rteLogger = Logger.getLogger("FileRunner");
-		final FileHandler rteHandler = new FileHandler("FileRunner.log", true);
-		rteHandler.setFormatter(new SimpleFormatter());
-		rteLogger.addHandler(rteHandler);
-		rteLogger.setLevel(Level.WARNING);
-
 		final File f = new File(inputPath);
+		int clen = (int)f.length();
+		if (clen <= 0) {
+			System.out.println(String.format("Input file is empty: %s", inputPath));
+			System.exit(1);
+		}
+		int exitCode = 1;
+		Base.startLogging();
+		final Logger rteLogger = Base.getRuntimeLogger();
 		final CharsetDecoder decoder = Base.newCharsetDecoder();
 		final CharsetEncoder encoder = Base.newCharsetEncoder();
 		try (final FileInputStream isr = new FileInputStream(f)) {
 			long ejrte = 0, tjrte = 0, t0 = 0, t1 = 0;
-			int clen = (int)f.length();
-			if (clen <= 0) {
-				System.out.println(String.format("Input file is empty: %s", inputPath));
-				System.exit(1);
-			}
 			byte[] cbuf = new byte[clen];
-			clen = isr.read(cbuf, 0, clen);
-			assert clen > 0;
+			if (!jrteOutEnabled) {
+				clen = isr.read(cbuf, 0, clen);
+				assert clen == cbuf.length;
+			}
 			int loops = 1;
 			if (jrteOutEnabled || !regexOutEnabled) {
 				try (IRuntime ribose = Ribose.loadRiboseModel(new File(modelPath))) {
@@ -112,17 +109,22 @@ public class FileRunner {
 							&& (!nil || (trex.push(Signal.nil).status().isWaiting()))
 							&& (trex.start(Bytes.encode(encoder, transducerName)).status().isRunnable())) {
 								t0 = System.currentTimeMillis();
-								while (trex.run().status() == Status.RUNNABLE) {
+								do {
+									trex.run();
+									ejrte += trex.getErrorCount();
+								} while (trex.status().isRunnable());
+								if (trex.status().isPaused()) {
+									trex.push(Signal.eos).run();
 									ejrte += trex.getErrorCount();
 								}
-								ejrte += trex.getErrorCount();
 								t1 = System.currentTimeMillis() - t0;
 								if (i >= 10) {
 									tjrte += t1;
 								}
-								assert trex.status().isPaused() || trex.status().isStopped();
 								System.out.print(String.format("%4d", t1));
+								assert !trex.status().isRunnable();
 								trex.stop();
+								assert trex.status().isStopped();
 							}
 						}
 						double epkb = (double)(ejrte*1024) / (double)(clen*loops);
@@ -140,13 +142,13 @@ public class FileRunner {
 						rteLogger.log(Level.INFO, String.format("%20s : %7.3f mb/s; %s (%,d bytes)", transducerName, mbps, inputPath, clen));
 					}
 				} catch (Exception e) {
-					System.out.println("Runtime exception thrown.");
 					rteLogger.log(Level.SEVERE, "Runtime failed, exception thrown.", e);
-					System.exit(1);
+					Base.endLogging();
+					System.exit(exitCode);
 				} catch (AssertionError e) {
-					System.out.println("Runtime assertion failed.");
 					rteLogger.log(Level.SEVERE, "Runtime assertion failed", e);
-					System.exit(1);
+					Base.endLogging();
+					System.exit(exitCode);
 				}
 			}
 			if (regexOutEnabled || !jrteOutEnabled) {
@@ -187,58 +189,52 @@ public class FileRunner {
 					int count = 0;
 					Matcher matcher = pattern.matcher(charInput);
 					t0 = System.currentTimeMillis();
-					try {
-						byte[] bytes = new byte[Base.getOutBufferSize()];
-						ByteBuffer bbuf = ByteBuffer.wrap(bytes);
-						CharBuffer sbuf = CharBuffer.allocate(bytes.length);
-						while (matcher.find()) {
-							int k = matcher.groupCount();
-							for (int j = 1; j <= k; j++) {
-								String match = matcher.group(j);
-								if (match == null) {
-									match = "";
-								}
-								if (sbuf.remaining() < (match.length() + 1)) {
-									CoderResult code = encoder.encode(sbuf.flip(), bbuf, false);
-									assert code.isUnderflow();
-									System.out.write(bbuf.array(), 0, bbuf.position());
-									bbuf.clear(); sbuf.clear();
-								}
-								sbuf.append(match).append(j < k ? '|' : '\n');
+					byte[] bytes = new byte[Base.getOutBufferSize()];
+					ByteBuffer bbuf = ByteBuffer.wrap(bytes);
+					CharBuffer sbuf = CharBuffer.allocate(bytes.length);
+					while (matcher.find()) {
+						int k = matcher.groupCount();
+						for (int j = 1; j <= k; j++) {
+							String match = matcher.group(j);
+							if (match == null) {
+								match = "";
 							}
-							if (k > 0) {
-								count++;
+							if (sbuf.remaining() < (match.length() + 1)) {
+								CoderResult code = encoder.encode(sbuf.flip(), bbuf, false);
+								assert code.isUnderflow();
+								System.out.write(bbuf.array(), 0, bbuf.position());
+								bbuf.clear(); sbuf.clear();
 							}
+							sbuf.append(match).append(j < k ? '|' : '\n');
 						}
-						if (sbuf.position() > 0) {
-							CoderResult code = encoder.encode(sbuf.flip(), bbuf, true);
-							assert code.isUnderflow();
-							System.out.write(bytes, 0, bbuf.position());
+						if (k > 0) {
+							count++;
 						}
-						System.out.flush();
-					} catch (Exception e) {
-						System.out.println("Runtime exception thrown.");
-						rteLogger.log(Level.SEVERE, "Runtime failed, exception thrown.", e);
-						System.exit(1);
 					}
+					if (sbuf.position() > 0) {
+						CoderResult code = encoder.encode(sbuf.flip(), bbuf, true);
+						assert code.isUnderflow();
+						System.out.write(bytes, 0, bbuf.position());
+					}
+					System.out.flush();
 					assert count > 0;
 					tregex = System.currentTimeMillis() - t0;
 					double mbps = (tregex > 0) ? ((double)clen / (double)(tregex*1024*1024)) * 1000 : -1;
 					rteLogger.log(Level.INFO, String.format("%20s : %7.3f mb/s; %s (%,d bytes)", "RegEx", mbps, inputPath, clen));
 				}
 			}
+			exitCode = 0;
 		} catch (Exception e) {
 			System.out.println("Runtime exception thrown.");
 			rteLogger.log(Level.SEVERE, "Runtime failed, exception thrown.", e);
-			System.exit(1);
 		} catch (AssertionError e) {
 			System.out.println("Runtime assertion failed.");
 			rteLogger.log(Level.SEVERE, "Runtime assertion failed", e);
-			System.exit(1);
 		} finally {
 			System.out.flush();
+			Base.endLogging();
+			System.exit(exitCode);
 		}
-		System.exit(0);
 	}
 
 }
