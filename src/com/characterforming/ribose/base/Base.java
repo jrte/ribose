@@ -64,7 +64,7 @@ public class Base {
 	/** End of line sequence */
 	public static final String lineEnd = System.getProperty("line.separator", "\n");
 	
-	private static final int INPUT_BUFFER_SIZE = Integer.parseInt(System.getProperty("ribose.inbuffer.size", "64436"));
+	private static final int INPUT_BUFFER_SIZE = Integer.parseInt(System.getProperty("ribose.inbuffer.size", "65536"));
 	private static final int OUTPUT_BUFFER_SIZE = Integer.parseInt(System.getProperty("ribose.outbuffer.size", "8196"));
 	private static final Charset runtimeCharset = Charset.forName(System.getProperty("ribose.runtime.charset", "UTF-8"));
 	private static final CharsetEncoder encoder = runtimeCharset.newEncoder();

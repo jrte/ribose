@@ -35,7 +35,6 @@
 	<property name="jars.dir" value="jars"/>
 	<property name="jars.test.dir" value="${jars.dir}/test"/>
 	<property name="build.java" value="build/java"/>
-	<property name="build.test" value="build/test"/>
 	<property name="build.testenv" value="build/testenv"/>
 	<property name="build.java.classes" value="${build.java}/classes"/>
 	<property name="build.compiler.model" value="build/compiler"/>
@@ -62,7 +61,7 @@
 	</path>
 
 	<path id="test.classpath">
-		<pathelement location="${build.test}"/>
+		<pathelement location="${build.java}"/>
 		<pathelement location="${jars.dir}/${ribose.version}.jar"/>
 	</path>
 
@@ -120,7 +119,6 @@
 		<mkdir dir="${build.java.classes}"/>
 		<mkdir dir="${build.compiler.model}"/>
 		<mkdir dir="${build.automata}"/>
-		<mkdir dir="${build.test}"/>
 	</target>
 	
 	<target name="properties" depends="init">
@@ -134,8 +132,9 @@
 		description="Full build with CI tests for java and patterns"/>
 	
 	<target name="compile-java" depends="init">
-		<javac fork="true" executable="${jdk}/bin/javac" compiler="modern" includeantruntime="false" srcdir="${java.source.dir}" destdir="${build.java.classes}" release="11"
-			 debug="true" debuglevel="lines,vars,source">
+		<javac fork="true" executable="${jdk}/bin/javac" compiler="modern" includeantruntime="false"
+		srcdir="${java.source.dir}" destdir="${build.java.classes}" excludes="**/${java.test.dir}/**"
+		debug="true" debuglevel="lines,vars,source">
 			<classpath refid="java.classpath"/>
 			<compilerarg value="-Xlint"/>
 		</javac>
@@ -153,7 +152,7 @@
 		<echo message="Version: ${ribose.version}" file="${build.java.classes}/VERSION" append="false"/>
 		<echo message="Git branch:${git.branch}" file="${build.java.classes}/VERSION" append="true"/>
 		<echo message="Git commit:${git.commit}" file="${build.java.classes}/VERSION" append="true"/>
-		<jar basedir="${build.java.classes}" destfile="${jars.dir}/${ribose.version}.jar"/>
+		<jar basedir="${build.java.classes}" excludes="**/test/**" destfile="${jars.dir}/${ribose.version}.jar"/>
 	</target>
 
 	<target name="check-javadoc">
@@ -234,20 +233,21 @@
 	</target>
 	
 	<target name="compile-test" depends="package-java">
-		<javac fork="true" executable="${jdk}/bin/javac" compiler="modern" includeantruntime="false" srcdir="${java.test.dir}" destdir="${build.test}" release="11"
-			debug="true" debuglevel="lines,vars,source">
+		<javac fork="true" executable="${jdk}/bin/javac" compiler="modern" release="11" includeantruntime="false"
+		srcdir="${java.source.dir}" destdir="${build.java.classes}" includes="**/${java.test.dir}/**"
+		debug="true" debuglevel="lines,vars,source">
 			<classpath refid="test.classpath"/>
 		</javac>
 	</target>
 
 	<target name="check-package-test">
 		<uptodate targetfile="${jars.dir}/${ribose.version}-test.jar" property="test.packaged.test">
-			 <srcfiles dir="${build.test}" includes="**/*.class"/>
+			 <srcfiles dir="${build.java.classes}" includes="**/test/*.class"/>
 	 	</uptodate>
 	</target>
 
 	<target name="package-test" depends="package-java,compile-test,check-package-test" unless="test.packaged">
-		<jar basedir="${build.test}" destfile="${jars.dir}/${ribose.version}-test.jar"/>
+		<jar basedir="${build.java.classes}" includes="**/test/**" destfile="${jars.dir}/${ribose.version}-test.jar"/>
 	</target>
 
 	<target name="check-package-source">
@@ -484,11 +484,11 @@
 	</target>
 
 	<target name="debug" depends="test-env">
-		<echo>TestRunner benchmarking (simple fsts driving base transduction effectors):</echo>
-		<java fork="true" jvm="${jdk}/bin/java" dir="." classname="com.characterforming.jrte.test.TestRunner" classpathref="testing.classpath" failonerror="true">
-			<jvmarg line="${jargs} -Djrte.out.enabled=false -Dregex.out.enabled=false"/>
-			<arg line="build/Test.model 1"/>
-		</java>
+		<echo message="TRun: LinuxKernelStrict ${test.input.dir}/kern-10.log -> ${build.testenv}/linuxkernelstrict.(out,gc)"/>
+		<exec failonerror="true" executable="bash">
+			<arg value="-c"/>
+			<arg value="etc/sh/ribose ${jargs} ${jargs.gc.test}/linuxkernelstrict.gc -Djrte.out.enabled=true -Dregex.out.enabled=false --nil build/Test.model LinuxKernelStrict ${test.input.dir}/kern-10.log ${build.testenv}/linuxkernelstrict.out"/>
+		</exec>
 		<echo message="Nothing to debug"/>
 	</target>
 

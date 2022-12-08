@@ -214,9 +214,6 @@ final class InputStack {
 		if (this.tos >= 0) {
 			this.stack[0].mark = this.stack[0].position;
 			this.markState = MarkState.marked;
-			for (Input marked : this.marked) {
-				marked.clear();
-			}
 			this.bom = this.tom;
 		}
 	}
@@ -227,9 +224,6 @@ final class InputStack {
 	void unmark() {
 		this.stack[0].mark = -1;
 		this.markState = MarkState.clear;
-		for (Input marked : this.marked) {
-			marked.clear();
-		}
 		this.bom = this.tom;
 	}
 	
@@ -288,7 +282,7 @@ final class InputStack {
 		}
 		if (bytes != null) {
 			return bytes;
-			}
+		}
 		final int start = noneMarked ? 0 : tom;
 		final int end = noneMarked ? this.marked.length : bom;
 			for (int i = start; i != end; i = noneMarked ? (i + 1) : this.nextMarked(i)) {

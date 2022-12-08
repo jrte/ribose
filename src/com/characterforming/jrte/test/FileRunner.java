@@ -90,8 +90,9 @@ public class FileRunner {
 		final CharsetEncoder encoder = Base.newCharsetEncoder();
 		try (final FileInputStream isr = new FileInputStream(f)) {
 			long ejrte = 0, tjrte = 0, t0 = 0, t1 = 0;
-			byte[] cbuf = new byte[clen];
-			if (!jrteOutEnabled) {
+			byte[] cbuf = null;
+			if (regexOutEnabled || !jrteOutEnabled) {
+				cbuf = new byte[clen];
 				clen = isr.read(cbuf, 0, clen);
 				assert clen == cbuf.length;
 			}
@@ -187,11 +188,11 @@ public class FileRunner {
 					System.out.println(String.format(" : %7.3f mb/s %7.3f ribose:regex", mbps, tr));
 				} else {
 					int count = 0;
-					Matcher matcher = pattern.matcher(charInput);
-					t0 = System.currentTimeMillis();
 					byte[] bytes = new byte[Base.getOutBufferSize()];
 					ByteBuffer bbuf = ByteBuffer.wrap(bytes);
 					CharBuffer sbuf = CharBuffer.allocate(bytes.length);
+					Matcher matcher = pattern.matcher(charInput);
+					t0 = System.currentTimeMillis();
 					while (matcher.find()) {
 						int k = matcher.groupCount();
 						for (int j = 1; j <= k; j++) {

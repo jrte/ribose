@@ -72,12 +72,11 @@ public class TRun extends BaseTarget {
 	 * @throws SecurityException if unable to start the logging susystem
 	 */
 	public static void main(final String[] args) throws SecurityException, IOException {
-		final CharsetEncoder encoder = Base.newCharsetEncoder();
 		int argc = args.length;
 		final boolean nil = (argc > 0) ? (args[0].compareTo("--nil") == 0) : false;
 		int arg = nil ? 1 : 0;
 		final String targetName = (argc > (arg + 1) && args[arg].compareTo("--target") == 0)
-			? args[++arg] : TRun.class.getName();
+		? args[++arg] : TRun.class.getName();
 		arg += (arg > (nil ? 1 : 0)) ? 1 : 0;
 		if ((argc - arg) != 3 && (argc - arg) != 4) {
 			System.out.println(String.format("Usage: java -cp <classpath> [-Djrte.out.enabled=false] [--nil] [--target <target-classname>] <model-path> <transducer-name> <input-path> [<output-path>]"));
@@ -88,24 +87,10 @@ public class TRun extends BaseTarget {
 		final String transducerName = args[arg++];
 		final String inputPath = args[arg++];
 		final String outputPath = arg < argc ? args[arg++] : null;
-		final File outputFile = outputPath != null ? new File(outputPath) : null;
-		if (outputFile != null && outputFile.exists()) {
-			outputFile.delete();
-		}
+		
 		Base.startLogging();
+		final CharsetEncoder encoder = Base.newCharsetEncoder();
 		final Logger rteLogger = Base.getRuntimeLogger();
-		OutputStream osw = System.out;
-		if (outputFile != null) {
-			try {
-				int outsize = Base.getOutBufferSize();
-				osw = new BufferedOutputStream(new FileOutputStream(outputFile), outsize);
-			} catch (FileNotFoundException e) {
-				rteLogger.log(Level.SEVERE, String.format("Unable to open output file %s", outputPath), e);
-				Base.endLogging();
-				System.exit(1);
-			}
-		}
-	
 		final File input = inputPath.charAt(0) == '-' ? null : new File(inputPath);
 		if (input != null && !input.exists()) {
 			System.out.println("No input file found at " + inputPath);
@@ -118,35 +103,50 @@ public class TRun extends BaseTarget {
 			Base.endLogging();
 			System.exit(1);
 		}
+		final File outputFile = outputPath != null ? new File(outputPath) : null;
+		OutputStream os = System.out;
+		if (outputFile != null) {
+			if (outputFile.exists()) {
+				outputFile.delete();
+			}
+			try {
+				os = new FileOutputStream(outputFile);
+			} catch (FileNotFoundException e) {
+				System.out.println("No path to output file at " + outputPath);
+				Base.endLogging();
+				System.exit(1);
+				}
+		}
 
 		int exitCode = 1;
-		try (
-			IRuntime ribose = Ribose.loadRiboseModel(model);
-			FileInputStream isr = new FileInputStream(input);
-		) {
-			if (ribose != null) {
-				Bytes transducer = Bytes.encode(encoder, transducerName);
-				ITarget runTarget = (ITarget) Class.forName(targetName).getDeclaredConstructor().newInstance();
-				if (ribose.transduce(runTarget, transducer, nil ? Signal.nil : null, isr, osw)) {
-					exitCode = 0;
+		try (BufferedOutputStream osw = new BufferedOutputStream(os, Base.getOutBufferSize())) {
+			try (
+				IRuntime ribose = Ribose.loadRiboseModel(model);
+				FileInputStream isr = new FileInputStream(input);
+			) {
+				if (ribose != null) {
+					Bytes transducer = Bytes.encode(encoder, transducerName);
+					ITarget runTarget = (ITarget) Class.forName(targetName).getDeclaredConstructor().newInstance();
+					if (ribose.transduce(runTarget, transducer, nil ? Signal.nil : null, isr, osw)) {
+						exitCode = 0;
+					}
 				}
-			}
-		} catch (final Exception e) {
-			rteLogger.log(Level.SEVERE, "Runtime failed", e);
-			System.out.println("Runtime failed, see log for details.");
-		} catch (final AssertionError e) {
-			rteLogger.log(Level.SEVERE, "Runtime assertion failed", e);
-			System.out.println("Runtime assertion failed, see log for details.");
-		} finally {
-			if (outputFile != null) {
+			} catch (final Exception e) {
+				rteLogger.log(Level.SEVERE, "Runtime failed", e);
+				System.out.println("Runtime failed, see log for details.");
+			} catch (final AssertionError e) {
+				rteLogger.log(Level.SEVERE, "Runtime assertion failed", e);
+				System.out.println("Runtime assertion failed, see log for details.");
+			} finally {
 				try {
-					osw.close();
+					osw.flush();
 				} catch (IOException e) {
-					String message = String.format("Unable to close output file %s", outputPath);
+					String message = String.format("Unable to flush final output to %s", outputPath);
 					rteLogger.log(Level.SEVERE, message, e);
 					exitCode = 1;
 				}
 			}
+		} finally {
 			Base.endLogging();
 			System.exit(exitCode);
 		}
