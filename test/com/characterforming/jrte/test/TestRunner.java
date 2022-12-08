@@ -21,9 +21,12 @@ package com.characterforming.jrte.test;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.CharBuffer;
 import java.nio.charset.CharsetEncoder;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import com.characterforming.ribose.IRuntime;
 import com.characterforming.ribose.ITransductor;
@@ -56,7 +59,7 @@ public class TestRunner {
 		final long arg = args.length > 1 ? Long.parseLong(args[1]) : 0;
 		final char[] achars = new char[10000000];
 		for (int i = 0; i < achars.length; i++) {
-			achars[i] = (i % 10 != 9) ? 'a' : 'b';
+			achars[i] = ((i % 10 != 9) ? 'a' : (((i+1) % 100 != 0) ? 'b' : 'c'));
 		}
 		byte[] abytes = new byte[10000000];
 		for (int i = 0; i < abytes.length; i++) {
@@ -65,12 +68,12 @@ public class TestRunner {
 
 		Thread.sleep(arg);
 		if (arg == 1) {
-			final RegexTest regex = new RegexTest(achars);
-			System.out.printf("%20s: ", "RegexTest");
-			regex.testRun();
-			final RegexGroupTest regexGroup = new RegexGroupTest(achars);
-			System.out.printf("%20s: ", "RegexGroupTest");
-			regexGroup.testRun();
+			System.out.printf("%20s: ", "Regex10PctDense");
+			regexRun(achars, "(a{9}c)");
+			System.out.printf("%20s: ", "Regex90PctDense");
+			regexRun(achars, "(a{9}b)");
+			System.out.printf("%20s: ", "Regex100PctLong");
+			regexRun(achars, "(a{9}b)*(a{9}c)");
 		}
 
 		int exitCode = 1;
@@ -121,5 +124,28 @@ public class TestRunner {
 			Base.endLogging();
 			System.exit(exitCode);
 		}
+	}
+
+	static void regexRun(char[] input, String pattern) {
+		int captured = 0;
+		long t0 = 0, t1 = 0, t2 = 0;
+		Pattern regex = Pattern.compile(pattern, Pattern.MULTILINE);
+		for (int i = 0; i < 20; i++) {
+			Matcher matcher = regex.matcher(CharBuffer.wrap(input));
+			t0 = System.currentTimeMillis();
+			while (matcher.find()) {
+				if (matcher.group(0) != null) {
+					captured += matcher.group(0).length();
+				}
+			}
+			t1 = System.currentTimeMillis() - t0;
+			System.out.print(String.format("%4d", t1));
+			if (i >= 10) {
+				t2 += t1;
+			}
+		}
+		double density = (double)100 * ((double)captured / (double)(20*input.length));
+		double mbps = (t2 == 0) ? -1 : ((double)(10*input.length) / (double)(1024*1024)) / ((double)t2 / (double)1000);
+		System.out.println(String.format(" : %7.3f mb/s (chars, %.1f%% captured)", mbps, density));
 	}
 }

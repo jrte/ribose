@@ -153,7 +153,7 @@ public class FileRunner {
 			}
 			if (regexOutEnabled || !jrteOutEnabled) {
 				CharBuffer charInput = decoder.decode(ByteBuffer.wrap(cbuf, 0, cbuf.length));
-				Pattern pattern = Pattern.compile(regex);
+				Pattern pattern = Pattern.compile(regex, Pattern.MULTILINE);
 				long tregex = 0;
 				if (!regexOutEnabled) {
 					System.out.print(String.format("%20s: ", "RegEx"));

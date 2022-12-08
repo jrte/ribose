@@ -36,7 +36,7 @@ public abstract class BaseEffector<T extends ITarget> implements IEffector<T> {
 
 	/** Effector access to the target that it is bound to */
 	protected final T target;
-	/** Effector view of Transductor loggers, codecs and named values. */
+	/** Effector view of Transductor loggers, UTF-8 codecs and named values. */
 	protected IOutput output;
 
 	private final Bytes name;

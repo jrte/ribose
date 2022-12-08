@@ -28,7 +28,7 @@ import com.characterforming.ribose.base.Bytes;
 import com.characterforming.ribose.base.TargetBindingException;
 
 /**
- * Provides loggers, codecs and a view of named values (data extracted by the transduction)
+ * Provides loggers, UTF-8 codecs and a view of named values (data extracted by the transduction)
  * to {@link IEffector}. Effectors receive their {@code IOutput} instance via 
  * {@link IEffector#setOutput(IOutput)} when they are first bound to a transductor.
  * <br><br>

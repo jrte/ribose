@@ -43,6 +43,7 @@
 	<property name="ribose.patterns" value="patterns/ribose"/>
 	<property name="test.patterns" value="patterns/test"/>
 	<property name="test.input.dir" value="${build.testenv}/inputs"/>
+<!--                                       cycle-start.id=.*type=.*contextid=.*timestamp=.*intervalms=.([0-9]+'.'[0-9]+)[^0-9]-->
 	<property name="regex.verbose.gc" value="cycle-start id=.[0-9]+. type=.scavenge. contextid=.[0-9]+. timestamp=.(?:[0-9]+[-.:T])+[0-9]+. intervalms=.([0-9]+.[0-9]+)[^0-9]"/>
 	<property name="regex.linux.kernel" value="([JFMASOND][a-z]+ [0-9]+ (?:[0-9]+:)+[0-9]+) ([-.:A-Za-z_0-9]*) kernel: \[[ ]*[0-9]+\.[0-9]+\] (DROPPED|ABORTED|LIMITED) IN=([-.:A-Za-z_0-9]*) OUT=([-.:A-Za-z_0-9]*)(?: MAC=([-.:A-Za-z_0-9]*))? SRC=([-.:A-Za-z_0-9]*) DST=([-.:A-Za-z_0-9]*).* PROTO=([-.:A-Za-z_0-9]*)(?:.* SPT=([-.:A-Za-z_0-9]*) DPT=([-.:A-Za-z_0-9]*))?"/>
 	<property name="ribose.inbuffer.size" value="65536"/>
@@ -319,11 +320,11 @@
 		</java>
 		<java fork="true" jvm="${jdk}/bin/java" dir="." classname="com.characterforming.jrte.test.FileRunner" classpathref="testing.classpath" failonerror="true">
 			<jvmarg line="${jargs} -Djrte.out.enabled=false -Dregex.out.enabled=false"/>
-			<arg line="--nil build/Test.model Tintervals ${test.input.dir}/verbosegc.vgc cycle-start.id=.*type=.*contextid=.*timestamp=.*intervalms=.([0-9]+'.'[0-9]+)[^0-9]"/>
+			<arg line="--nil build/Test.model Tintervals ${test.input.dir}/verbosegc.vgc &quot;${regex.verbose.gc}&quot;"/>
 		</java>
 		<java fork="true" jvm="${jdk}/bin/java" dir="." classname="com.characterforming.jrte.test.FileRunner" classpathref="testing.classpath" failonerror="true">
 			<jvmarg line="${jargs} -Djrte.out.enabled=false -Dregex.out.enabled=false"/>
-			<arg line="--nil build/Test.model Sintervals ${test.input.dir}/verbosegc.vgc cycle-start.id=.*type=.*contextid=.*timestamp=.*intervalms=.([0-9]+'.'[0-9]+)[^0-9]"/>
+			<arg line="--nil build/Test.model Sintervals ${test.input.dir}/verbosegc.vgc &quot;${regex.verbose.gc}&quot;"/>
 		</java>
 		<echo/>
 <!-- I/O equivalence tests -->
@@ -483,6 +484,11 @@
 	</target>
 
 	<target name="debug" depends="test-env">
+		<echo>TestRunner benchmarking (simple fsts driving base transduction effectors):</echo>
+		<java fork="true" jvm="${jdk}/bin/java" dir="." classname="com.characterforming.jrte.test.TestRunner" classpathref="testing.classpath" failonerror="true">
+			<jvmarg line="${jargs} -Djrte.out.enabled=false -Dregex.out.enabled=false"/>
+			<arg line="build/Test.model 1"/>
+		</java>
 		<echo message="Nothing to debug"/>
 	</target>
 
