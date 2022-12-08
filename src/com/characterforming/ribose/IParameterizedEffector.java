@@ -24,10 +24,11 @@ import com.characterforming.ribose.base.EffectorException;
 import com.characterforming.ribose.base.TargetBindingException;
 
 /**
- * Interface for parameterized effectors. Parameters are compiled from arrays of
- * byte arrays into an array of some parameter type P that is constructible from one
- * or more arrays of bytes. Compiled parameter values are referenced by their
- * index in the resulting array. At runtime, the invoke(int) method is called
+ * Interface for parameterized effectors extends {@link IEffector} with a unary
+ * {@link #invoke(int)} method. Parameters are compiled from arrays of byte arrays
+ * into an array of some parameter type P that is constructible from one or more
+ * arrays of bytes. Compiled parameter values are referenced by their index in
+ * the resulting array. At runtime, the {@link #invoke(int)} method is called
  * with the parameter index to indicate which P[] to apply to the invocation.
  * <br><br>
  * Parameterized effectors are required to construct an array of their parameter

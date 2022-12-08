@@ -25,9 +25,11 @@ import com.characterforming.ribose.base.EffectorException;
 import com.characterforming.ribose.base.TargetBindingException;
 
 /**
- * Interface for simple effectors. Effectors are invoked at runtime in response to state 
- * transitions in a running transduction. They are typically implemented as anonymous
- * inner classes withinin a specialized {@link ITarget} implementation class.
+ * Interface for simple effectors that present only a nullary {@link #invoke()}
+ * method to the transductor. Effectors are invoked at runtime in response to
+ * state transitions in a running transduction. They are typically implemented
+ * as anonymous inner classes withinin a specialized {@link ITarget} implementation
+ * class.
  * <br><br>
  * Simple effectors present an {@link invoke()} method that is called from running 
  * transductions. Parameterized effectors implementing {@link IParameterizedEffector} may

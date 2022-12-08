@@ -26,7 +26,14 @@
  * utility class are used extensively throughout the ribose compiler and runtime. 
  * The base classes {@link BaseEffector} and {@link  BaseParameterizedEffector} 
  * provide cross-cutting support to built-in and specialized effector subclasses.
- *
+ * <br><br>
+ * {@link Signal} enumerates the core signals used to control transduction processes. 
+ * These resolve to out-of-band (&gt;256) inputs that can be pushed onto tranductor
+ * input stacks. Additional signals can be declared in transducer patterns simply by including
+ * them as <i>`!name`</i> parameters with unique names for the {@code in[`!name`]} 
+ * effector in transducer patterns. Then <i>name</i> (without <i>`!...`</i> signal 
+ * type indicator and backquotes) can be used on the transducer input tape to trigger
+ * a transition when the signal pops to the top of the input stack.
  * @author Kim Briggs
  */
 package com.characterforming.ribose.base;

@@ -23,13 +23,14 @@ package com.characterforming.ribose;
 import com.characterforming.ribose.base.Bytes;
 
 /**
- * Snapshot wrapper for volatile named values. These correspond to {@code `~value`}
- * references in transducer patterns. Effector instances receive an
- * {@link IOutput} instance to provide access to runtime named values held by
- * a transductor. These contain direct references to the transduction value 
- * buffers and their length and content will change according to transducer
- * actions. Named value semantics are guaranteed to be stable only as long
- * as the transducer stack is not pushed or popped.
+ * Snapshot wrapper for volatile named values accessible in {@link IOutput}
+ * views. These correspond to {@code `~value`} references in transducer patterns.
+ * Effector instances receive an {@link IOutput} instance to provide access
+ * to runtime named values held by the transductor. These contain direct 
+ * references to the transduction value buffers and their length and content
+ * will change according to transductor actions. Named value semantics
+ * are guaranteed to be stable only as long as the transducer stack is
+ * not pushed or popped.
  * 
  * @author Kim Briggs
  */

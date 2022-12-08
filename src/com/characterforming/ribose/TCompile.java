@@ -17,18 +17,20 @@ import com.characterforming.ribose.base.TargetBindingException;
  * containing transducers used by the compiler. It inherits three specialized effectors from its
  * base {@code com.characterforming.jrte.engine.ModelCompiler} class.
  * <br><br>
- * The default constructor {@link TCompile()} is used only when building a new compiler model. In 
- * that context is serves as a proxy target only to present its effectors and compile effector
- * parameters. The {@link TCompile(Model)} constructor instantiates a runtime instance of the
- * model compiler to compile a ribose model for domain-specific target and related transducers.
+ * The default constructor {@link TCompile()} is used only when building a new compiler model
+ * and when loading the compiler model for runtime use by the compilers. In those contexts it
+ * serves only as a proxy target to present its effectors and compile effector parameters. The
+ * {@link TCompile(Model)} constructor instantiates a runtime instance of the model compiler
+ * to serve as a live target during compilation of other ribose models, pulling precompiled 
+ * effector parameters from the praxy target in the model.
  * <br><br>
  * The main method runs the ribose runtime compiler to build a runtime model for a target 
  * class from a collection of ginr automata generated from ribose patterns.
  * <br><br>
  * <table style="font-size:12px">
  * <caption style="text-align:left"><b>TCompile usage</b></caption>
- * <tr><td style="text-align:right"><b>java</b></td><td>-cp ribose.0.0.0.jar com.characterforming.ribose.TCompile <i>target automata model</i></td></tr>
- * <tr><td style="text-align:right"><i>target</i></td><td>Fully qualified name of the model target class.</td></tr>
+ * <tr><td style="text-align:right"><b>java</b></td><td>-cp ribose.0.0.0.jar com.characterforming.ribose.TCompile --target <i>classname automata model</i></td></tr>
+ * <tr><td style="text-align:right">--target <i>classname</i></td><td>Fully qualified name of the model target class.</td></tr>
  * <tr><td style="text-align:right"><i>automata</i></td><td>The path to the directory containing automata (*.dfa) to include in the model.</td></tr>
  * <tr><td style="text-align:right"><i>model</i></td><td>The path to the file to contain the compiled model.</td></tr>
  * </table>
@@ -64,7 +66,7 @@ public final class TCompile extends ModelCompiler {
 	 * Runs the ribose runtime compiler to build a runtime model for a target 
 	 * class from a collection of ginr automata generated from ribose patterns.
 	 * 
-	 * @param args &lt;target-classname&gt; &lt;automata-directory-path&gt; &lt;runtime-model-path&gt;
+	 * @param args <i>target-classname automata-directory-path runtime-model-path</i>
 	 * @throws IOException If logging subsystem can't initialize
 	 * @throws SecurityException If logging subsystem can't initialize
 	 */
@@ -99,7 +101,7 @@ public final class TCompile extends ModelCompiler {
 	
 		if (!argsOk) {
 			System.out.println();
-			System.out.println("Usage: java [jvm-options] Ribose --target <target-class> <ginr-output-dir> <model-path>");
+			System.out.println("Usage: java [jvm-options] com.characterforming.ribose.TCompile --target <target-class> <ginr-output-dir> <model-path>");
 			System.out.println("   target-class     -- fully qualified name of class implementing ITarget");
 			System.out.println("   ginr-output-dir  -- path to directory containing transducer automata compiled by ginr");
 			System.out.println("   model-path       -- path for output model file");

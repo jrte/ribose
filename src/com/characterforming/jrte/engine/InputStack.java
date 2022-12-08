@@ -214,8 +214,23 @@ final class InputStack {
 		if (this.tos >= 0) {
 			this.stack[0].mark = this.stack[0].position;
 			this.markState = MarkState.marked;
+			for (Input marked : this.marked) {
+				marked.clear();
+			}
 			this.bom = this.tom;
 		}
+	}
+	
+	/** 
+	 * Clear the mark state and null out all data references in the mark stack. 
+	 */
+	void unmark() {
+		this.stack[0].mark = -1;
+		this.markState = MarkState.clear;
+		for (Input marked : this.marked) {
+			marked.clear();
+		}
+		this.bom = this.tom;
 	}
 	
 	/** 
@@ -293,18 +308,6 @@ final class InputStack {
 			}
 		assert bytes == null;
 		return new byte[size];
-	}
-	
-	/** 
-	 * Clear the mark state and null out all data references in the mark stack. 
-	 */
-	void unmark() {
-		this.stack[0].mark = -1;
-		this.markState = MarkState.clear;
-		for (Input marked : this.marked) {
-			marked.clear();
-		}
-		this.bom = this.tom;
 	}
 	
 	/**

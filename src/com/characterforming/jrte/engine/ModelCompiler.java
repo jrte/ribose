@@ -166,7 +166,8 @@ public class ModelCompiler implements ITarget {
 	 }
 		
 		@Override
-		public void setOutput(IOutput output) throws TargetBindingException {
+		public
+		void setOutput(IOutput output) throws TargetBindingException {
 			assert target.model != null;
 			super.setOutput(output);
 			fields = new INamedValue[] {
@@ -179,7 +180,8 @@ public class ModelCompiler implements ITarget {
 		}
 		
 		@Override
-		public int invoke() throws EffectorException {
+		public
+		int invoke() throws EffectorException {
 			assert target.model != null;
 			Header h = new Header(
 				(int)fields[0].asInteger(),
@@ -219,7 +221,7 @@ public class ModelCompiler implements ITarget {
 		}
 	}
 		
-	public class TransitionEffector extends BaseEffector<ModelCompiler> {
+	class TransitionEffector extends BaseEffector<ModelCompiler> {
 		INamedValue fields[];
 		
 		TransitionEffector(ModelCompiler automaton) {
@@ -227,7 +229,8 @@ public class ModelCompiler implements ITarget {
 		}
 		
 		@Override
-		public void setOutput(IOutput output) throws TargetBindingException {
+		public
+		void setOutput(IOutput output) throws TargetBindingException {
 			assert target.model != null;
 			super.setOutput(output);
 			fields = new INamedValue[] {
@@ -239,7 +242,8 @@ public class ModelCompiler implements ITarget {
 		}
 		
 		@Override
-		public int invoke() throws EffectorException {
+		public
+		int invoke() throws EffectorException {
 			assert target.model != null;
 			Transition t = new Transition(
 				(int)fields[0].asInteger(),
@@ -287,13 +291,14 @@ public class ModelCompiler implements ITarget {
 		}
 	}
 
-	public class AutomatonEffector extends BaseEffector<ModelCompiler> {		
-		public AutomatonEffector(ModelCompiler target) {
+	class AutomatonEffector extends BaseEffector<ModelCompiler> {		
+		AutomatonEffector(ModelCompiler target) {
 			super(target, "automaton");
 		}
 
 		@Override
-		public int invoke() throws EffectorException {
+		public
+		int invoke() throws EffectorException {
 			assert target.model != null;
 			final Integer[] inrInputStates = target.getInrStates(0);
 			if (inrInputStates == null) {

@@ -23,19 +23,21 @@ import com.characterforming.ribose.base.TargetBindingException;
  * other byte stream transduction models that use only built-in ribose effectors. 
  * To build a basic transduction model, compile with ginr a set of ribose-conformant
  * ginr patterns, saving automata (*.dfa) to be compiled into the model into a
- * directory. Then run {@link TCompile} to package the automata in the directory
- * into a ribose model.
+ * directory. Then run {@link TCompile} with {@link TRun} as target class to package
+ * the automata in the directory into a ribose model.
  * <br><br>
  * <table style="font-size:12px">
  * <caption style="text-align:left"><b>TRun usage</b></caption>
- * <tr><td style="text-align:right"><b>java</b></td><td>-cp ribose.0.0.0.jar com.characterforming.ribose.TRun <i>model transducer input [output]</i></td></tr>
+ * <tr><td style="text-align:right"><b>java</b></td><td>-cp ribose.0.0.0.jar com.characterforming.ribose.TRun [--nil] [--target <i>classname</i>] <i>model transducer input [output]</i></td></tr>
+ * <tr><td style="text-align:right">--nil</td><td>Push {@link com.characterforming.ribose.base.Signal#nil} to start the transduction (recommended).</td></tr>
+ * <tr><td style="text-align:right">--target <i>classname</i></td><td>Fully qualified name of the target class (must have nullary constructor), else use {@code TRun}.</td></tr>
  * <tr><td style="text-align:right"><i>model</i></td><td>The path to the model file containing the transducer.</td></tr>
  * <tr><td style="text-align:right"><i>transducer</i></td><td>The name of the transducer to start the transduction.</td></tr>
  * <tr><td style="text-align:right"><i>input</i></td><td>The path to the input file.</td></tr>
  * <tr><td style="text-align:right"><i>output</i></td><td>The path to the output file.</td></tr>
  * </table>
  * <br>
- * Default output is System.out.
+ * Default target is {@link TRun} but any target class with a nullary constructor can use used. Default output is System.out.
  * 
  */
 public class TRun extends BaseTarget {
@@ -62,8 +64,10 @@ public class TRun extends BaseTarget {
 	 * and runs a transduction on an input file, optionally pushing a {@code nil}
 	 * signal as prologue. The named transducer, to be pushed to begin the transduction, 
 	 * must be contained in the specified model file.
+	 * <br><br>
+	 * If no output file is soecified the {@code out[]} effector will write to System.out.
 	 *    
-	 * @param args [--nil] &lt;target-class&gt; &lt;transducer-name&gt; &lt;input-file-path&gt; &lt;trun-model-path&gt;
+	 * @param args [--nil] <i>trun-model-path transducer-name input-file-path [output-file-path]</i>
 	 * @throws IOException if unable to start the logging susystem
 	 * @throws SecurityException if unable to start the logging susystem
 	 */
@@ -72,9 +76,12 @@ public class TRun extends BaseTarget {
 		int argc = args.length;
 		final boolean nil = (argc > 0) ? (args[0].compareTo("--nil") == 0) : false;
 		int arg = nil ? 1 : 0;
+		final String targetName = (argc > (arg + 1) && args[arg].compareTo("--target") == 0)
+			? args[++arg] : TRun.class.getName();
+		arg += (arg > (nil ? 1 : 0)) ? 1 : 0;
 		if ((argc - arg) != 3 && (argc - arg) != 4) {
-			System.out.println(String.format("Usage: java -cp <classpath> [-Djrte.out.enabled=false] [--nil] <model-path> <transducer-name> <input-path> [<output-path>]"));
-			System.out.println("Default output is System.out, unless <output-path> specified");
+			System.out.println(String.format("Usage: java -cp <classpath> [-Djrte.out.enabled=false] [--nil] [--target <target-classname>] <model-path> <transducer-name> <input-path> [<output-path>]"));
+			System.out.println("Default target is com.characterforming.ribose.TRun, default output System.out is used unless <output-path> specified.");
 			System.exit(1);
 		}
 		final String modelPath = args[arg++];
@@ -82,10 +89,8 @@ public class TRun extends BaseTarget {
 		final String inputPath = args[arg++];
 		final String outputPath = arg < argc ? args[arg++] : null;
 		final File outputFile = outputPath != null ? new File(outputPath) : null;
-		if (outputFile != null) {
-			if (outputFile.exists()) {
-				outputFile.delete();
-			}
+		if (outputFile != null && outputFile.exists()) {
+			outputFile.delete();
 		}
 		Base.startLogging();
 		final Logger rteLogger = Base.getRuntimeLogger();
@@ -120,8 +125,8 @@ public class TRun extends BaseTarget {
 			FileInputStream isr = new FileInputStream(input);
 		) {
 			if (ribose != null) {
-				ITarget runTarget = new TRun();
 				Bytes transducer = Bytes.encode(encoder, transducerName);
+				ITarget runTarget = (ITarget) Class.forName(targetName).getDeclaredConstructor().newInstance();
 				if (ribose.transduce(runTarget, transducer, nil ? Signal.nil : null, isr, osw)) {
 					exitCode = 0;
 				}

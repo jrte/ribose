@@ -220,7 +220,7 @@ public interface ITransductor extends ITarget {
 	 * 
 	 * @param input data to push onto input stack for immediate transduction
 	 * @param limit truncate effective input range at {@code max(limit, data.length)}  
-	 * @return Run this 
+	 * @return this ITransductor 
 	 */
 	ITransductor push(byte[] input, int limit);
 
@@ -228,7 +228,7 @@ public interface ITransductor extends ITarget {
 	 * Push a signal onto the transductor's input stack to trigger next transition. 
 	 * 
 	 * @param signal the signal to push 
-	 * @return Run this 
+	 * @return this ITransductor 
 	 */
 	ITransductor push(Signal signal);
 
@@ -238,7 +238,7 @@ public interface ITransductor extends ITarget {
 	 * when the {@code run()} method is called.
 	 * 
 	 * @param transducer The name of the transducer to push
-	 * @return Run this 
+	 * @return this ITransductor 
 	 * @throws ModelException on error
 	 */
 	ITransductor start(Bytes transducer) throws ModelException;
@@ -256,7 +256,7 @@ public interface ITransductor extends ITarget {
 	 * have been transduced. Call {@link ITransductor#hasMark()} before reusing 
 	 * data buffers if the transduction involves backtracking with mark/reset. 
 	 * 
-	 * @return this 
+	 * @return this ITransductor
 	 * @throws RiboseException on error
 	 * @throws DomainErrorException on error
 	 * @see #status()
@@ -268,7 +268,7 @@ public interface ITransductor extends ITarget {
 	 * an empty state. This resets the transductor to original state 
 	 * ready for reuse.
 	 * 
-	 * @return this 
+	 * @return this ITransductor
 	 * @throws RiboseException if transductor is proxy for parameter compilation
 	 * @see #status()
 	 */
