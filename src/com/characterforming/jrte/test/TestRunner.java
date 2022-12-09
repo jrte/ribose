@@ -53,7 +53,6 @@ public class TestRunner {
 			System.exit(1);
 		}
 		
-		Base.startLogging();
 		final Logger rteLogger = Base.getRuntimeLogger();
 		final String modelPath = args[0];
 		final long arg = args.length > 1 ? Long.parseLong(args[1]) : 0;
@@ -121,7 +120,6 @@ public class TestRunner {
 			System.out.println("Runtime assertion failed.");
 			rteLogger.log(Level.SEVERE, "Runtime assertion failed", e);
 		} finally {
-			Base.endLogging();
 			System.exit(exitCode);
 		}
 	}

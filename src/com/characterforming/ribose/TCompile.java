@@ -76,7 +76,6 @@ public final class TCompile extends ModelCompiler {
 		String targetClassname = null;
 		Class<?> targetClass = null;
 		
-		Base.startLogging();
 		final Logger rtcLogger = Base.getCompileLogger();
 		boolean argsOk = (args.length == 4) && args[0].equals("--target");
 		if (argsOk) {
@@ -107,7 +106,6 @@ public final class TCompile extends ModelCompiler {
 			System.out.println("   model-path       -- path for output model file");
 			System.out.println("The <target-class> container must be included in the classpath.");
 			System.out.println();
-			Base.endLogging();
 			System.exit(1);
 		}
 		System.out.println(String.format("Ribose runtime compiler version %1$s%2$sCopyright (C) 2011,2022 Kim Briggs%2$sDistributed under GPLv3 (http://www.gnu.org/licenses/gpl-3.0.txt)", 
@@ -132,7 +130,6 @@ public final class TCompile extends ModelCompiler {
 			if (exitCode != 0) {
 				System.out.println("Runtime compilation failed, see log for details.");
 			}
-			Base.endLogging();
 		}
 		System.exit(exitCode);
 	}

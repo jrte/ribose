@@ -20,11 +20,11 @@
 
 package com.characterforming.ribose.base;
 
-import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.charset.CharsetDecoder;
 import java.nio.charset.CharsetEncoder;
 import java.util.logging.FileHandler;
+import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
@@ -38,10 +38,6 @@ import java.util.logging.SimpleFormatter;
 public class Base {
 	/** 'ribose-0.0.0', current version */
 	public static final String RTE_VERSION = "ribose-HEAD";
-	/** 'ribose-runtime', base name for ribose runtime logs */
-	public static final String RTE_LOGGER_NAME = "ribose-runtime";
-	/** 'ribose-compile', base name for ribose compiler logs */
-	public static final String RTC_LOGGER_NAME = "ribose-compile";
 	
 	/** '.dfa', filename suffix for saved ginr automata */
 	public static final String AUTOMATON_FILE_SUFFIX = ".dfa";
@@ -64,6 +60,10 @@ public class Base {
 	/** End of line sequence */
 	public static final String lineEnd = System.getProperty("line.separator", "\n");
 	
+	private static final int FILE_LOGGER_COUNT = 2;
+	private static final int FILE_LOGGER_LIMIT = 1024*1024;
+	private static final String RTE_LOGGER_NAME = "ribose-runtime";
+	private static final String RTC_LOGGER_NAME = "ribose-compile";
 	private static final int INPUT_BUFFER_SIZE = Integer.parseInt(System.getProperty("ribose.inbuffer.size", "65536"));
 	private static final int OUTPUT_BUFFER_SIZE = Integer.parseInt(System.getProperty("ribose.outbuffer.size", "8196"));
 	private static final Charset runtimeCharset = Charset.forName(System.getProperty("ribose.runtime.charset", "UTF-8"));
@@ -74,12 +74,9 @@ public class Base {
 		Bytes.encode(Base.encoder, "eol"),
 		Bytes.encode(Base.encoder, "eos")
 	};
-	private static FileHandler rtcHandler;
-	private static FileHandler rteHandler;
 
-	public Base() {
-		super();
-	}
+	private static Logger rtcLogger = null;
+	private static Logger rteLogger = null;
 
 	/**
 	 * Get a reference to the compiler logger. This should be used only
@@ -87,10 +84,28 @@ public class Base {
 	 * 
 	 * @return the compiler logger
 	 */
-	static public Logger getCompileLogger() {
-		Logger rtcLogger = Logger.getLogger(Base.RTC_LOGGER_NAME);
-		rtcLogger.setLevel(Level.INFO);
-		return rtcLogger;
+	public static Logger getCompileLogger() {
+		if (Base.rtcLogger == null) {
+			synchronized (Base.RTE_VERSION) {
+				if (Base.rtcLogger == null) {
+					Base.rtcLogger = Logger.getLogger(Base.RTC_LOGGER_NAME);
+					try {
+						for (Handler h : Base.rtcLogger.getHandlers()) {
+							h.setLevel(Level.INFO);
+						}
+						FileHandler rtcHandler = new FileHandler(Base.rtcLogger.getName() + "%g.log", 
+							Base.FILE_LOGGER_LIMIT, Base.FILE_LOGGER_COUNT, true);
+						rtcHandler.setFormatter(new SimpleFormatter());
+						rtcHandler.setLevel(Level.FINE);
+						rtcLogger.addHandler(rtcHandler);
+					} catch (Exception e) {
+						rtcLogger.log(Level.SEVERE, "Unable to attach file log handler for " + Base.rtcLogger.getName());
+					}
+					rtcLogger.setLevel(Level.FINE);
+				}
+			}
+		}
+		return Base.rtcLogger;
 	}
 	
 	/**
@@ -98,45 +113,30 @@ public class Base {
 	 * 
 	 * @return the runtime logger
 	 */
-	static public Logger getRuntimeLogger() {
-		Logger rteLogger = Logger.getLogger(Base.RTE_LOGGER_NAME);
-		rteLogger.setLevel(Level.WARNING);
-		return rteLogger;
+	public static Logger getRuntimeLogger() {
+		if (Base.rteLogger == null) {
+			synchronized (Base.RTE_VERSION) {
+				if (Base.rteLogger == null) {
+					Base.rteLogger = Logger.getLogger(Base.RTE_LOGGER_NAME);
+					try {
+						for (Handler h : Base.rteLogger.getHandlers()) {
+							h.setLevel(Level.INFO);
+						}
+						FileHandler rteHandler = new FileHandler(Base.rteLogger.getName() + "%g.log", 
+							Base.FILE_LOGGER_LIMIT, Base.FILE_LOGGER_COUNT, true);
+						rteHandler.setFormatter(new SimpleFormatter());
+						rteHandler.setLevel(Level.FINE);
+						rteLogger.addHandler(rteHandler);
+					} catch (Exception e) {
+						rteLogger.log(Level.SEVERE, "Unable to attach file log handler for " + Base.rteLogger.getName());
+					}
+					rteLogger.setLevel(Level.FINE);
+				}
+			}
+		}
+		return Base.rteLogger;
 	}
 	
-	/** 
-	 * Initialize the logging system.
-	 * 
-	 * @throws SecurityException if unable to initalize logging
-	 * @throws IOException if unable to initalize logging
-	 */
-	public static synchronized void startLogging() throws SecurityException, IOException {
-		if (Base.rteHandler == null) {
-			Base.rteHandler = new FileHandler(Base.RTE_LOGGER_NAME + ".log", true);
-			rteHandler.setFormatter(new SimpleFormatter());
-			Logger rteLogger = Base.getRuntimeLogger();
-			rteLogger.addHandler(rteHandler);
-		}
-		if (Base.rtcHandler == null) {
-			final FileHandler rtcHandler = new FileHandler(Base.RTC_LOGGER_NAME + ".log", true);
-			rtcHandler.setFormatter(new SimpleFormatter());
-			Logger rtcLogger = Base.getCompileLogger();
-			rtcLogger.addHandler(rtcHandler);
-		}
-	}
-
-	/** 
-	 * Finalize the logging system.
-	 */
-	public static synchronized void endLogging() {
-		if (Base.rteHandler != null) {
-			Base.rteHandler.close();
-		}
-		if (Base.rtcHandler != null) {
-			rtcHandler.close();
-		}
-	}
-
 	/**
 	 * Instantiate a new {@code CharsetDecoder}. All textual data in ribose models
 	 * are represented in encoded form (eg, UTF-8 byte arrays).

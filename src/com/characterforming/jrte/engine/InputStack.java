@@ -31,8 +31,8 @@ import com.characterforming.ribose.base.Base;
  * @author Kim Briggs
  */
 final class InputStack {
-	private static final Logger logger = Logger.getLogger(Base.RTE_LOGGER_NAME);
 	enum MarkState { clear, marked, reset };
+	private final Logger logger;
 	private final byte[][] signals;
 	private final byte[][] values;
 	private Input[] stack;
@@ -50,6 +50,7 @@ final class InputStack {
 	}
 	
 	InputStack(final int initialSize, final int signalCount, final int valueCount) {
+		this.logger = Base.getCompileLogger();
 		this.signals = new byte[signalCount][]; 
 		for (int i = 0; i < signalCount; i++) {
 			this.signals[i] = Base.encodeReferenceOrdinal(Base.TYPE_REFERENCE_SIGNAL, Base.RTE_SIGNAL_BASE + i);

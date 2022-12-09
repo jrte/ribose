@@ -88,19 +88,16 @@ public class TRun extends BaseTarget {
 		final String inputPath = args[arg++];
 		final String outputPath = arg < argc ? args[arg++] : null;
 		
-		Base.startLogging();
 		final CharsetEncoder encoder = Base.newCharsetEncoder();
 		final Logger rteLogger = Base.getRuntimeLogger();
 		final File input = inputPath.charAt(0) == '-' ? null : new File(inputPath);
 		if (input != null && !input.exists()) {
 			System.out.println("No input file found at " + inputPath);
-			Base.endLogging();
 			System.exit(1);
 		}
 		final File model = new File(modelPath);
 		if (!model.exists()) {
 			System.out.println("No ribose model file found at " + modelPath);
-			Base.endLogging();
 			System.exit(1);
 		}
 		final File outputFile = outputPath != null ? new File(outputPath) : null;
@@ -113,7 +110,6 @@ public class TRun extends BaseTarget {
 				os = new FileOutputStream(outputFile);
 			} catch (FileNotFoundException e) {
 				System.out.println("No path to output file at " + outputPath);
-				Base.endLogging();
 				System.exit(1);
 				}
 		}
@@ -127,7 +123,12 @@ public class TRun extends BaseTarget {
 				if (ribose != null) {
 					Bytes transducer = Bytes.encode(encoder, transducerName);
 					ITarget runTarget = (ITarget) Class.forName(targetName).getDeclaredConstructor().newInstance();
+					long t0 = System.currentTimeMillis();
+					long clen = input.length();
 					if (ribose.transduce(runTarget, transducer, nil ? Signal.nil : null, isr, osw)) {
+						long t1 = System.currentTimeMillis() - t0;
+						double mbps = (t1 > 0) ? ((double)clen / (double)(t1*1024*1024)) * 1000 : -1;
+						rteLogger.log(Level.FINE, String.format("%20s : %7.3f mb/s; %s (%,d bytes)", transducerName, mbps, inputPath, clen));
 						exitCode = 0;
 					}
 				}
@@ -147,7 +148,6 @@ public class TRun extends BaseTarget {
 				}
 			}
 		} finally {
-			Base.endLogging();
 			System.exit(exitCode);
 		}
 	}

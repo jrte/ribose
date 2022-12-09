@@ -84,7 +84,6 @@ public class FileRunner {
 			System.exit(1);
 		}
 		int exitCode = 1;
-		Base.startLogging();
 		final Logger rteLogger = Base.getRuntimeLogger();
 		final CharsetDecoder decoder = Base.newCharsetDecoder();
 		final CharsetEncoder encoder = Base.newCharsetEncoder();
@@ -140,15 +139,13 @@ public class FileRunner {
 						}
 						tjrte = System.currentTimeMillis() - t0;
 						double mbps = (tjrte > 0) ? ((double)clen / (double)(tjrte*1024*1024)) * 1000 : -1;
-						rteLogger.log(Level.INFO, String.format("%20s : %7.3f mb/s; %s (%,d bytes)", transducerName, mbps, inputPath, clen));
+						rteLogger.log(Level.FINE, String.format("%20s : %7.3f mb/s; %s (%,d bytes)", transducerName, mbps, inputPath, clen));
 					}
 				} catch (Exception e) {
 					rteLogger.log(Level.SEVERE, "Runtime failed, exception thrown.", e);
-					Base.endLogging();
 					System.exit(exitCode);
 				} catch (AssertionError e) {
 					rteLogger.log(Level.SEVERE, "Runtime assertion failed", e);
-					Base.endLogging();
 					System.exit(exitCode);
 				}
 			}
@@ -221,7 +218,7 @@ public class FileRunner {
 					assert count > 0;
 					tregex = System.currentTimeMillis() - t0;
 					double mbps = (tregex > 0) ? ((double)clen / (double)(tregex*1024*1024)) * 1000 : -1;
-					rteLogger.log(Level.INFO, String.format("%20s : %7.3f mb/s; %s (%,d bytes)", "RegEx", mbps, inputPath, clen));
+					rteLogger.log(Level.FINE, String.format("%20s : %7.3f mb/s; %s (%,d bytes)", "RegEx", mbps, inputPath, clen));
 				}
 			}
 			exitCode = 0;
@@ -233,7 +230,6 @@ public class FileRunner {
 			rteLogger.log(Level.SEVERE, "Runtime assertion failed", e);
 		} finally {
 			System.out.flush();
-			Base.endLogging();
 			System.exit(exitCode);
 		}
 	}

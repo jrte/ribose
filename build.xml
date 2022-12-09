@@ -75,9 +75,6 @@
 	</path>
 
 	<target name="clean" depends="clean-java,clean-patterns,clean-test">
-		<delete quiet="true">
-			<fileset dir="${basedir}" includes="*.log,*.log.[0-9]"/>
-		</delete>
   	<delete dir="build" quiet="true"/>
 	</target>
 
@@ -142,7 +139,7 @@
 
 	<target name="check-package-java">
 		<uptodate targetfile="${jars.dir}/${ribose.version}.jar" property="java.uptodate">
-			<srcfiles dir="${build.java.classes}" includes="**/*.class"/>
+			<srcfiles dir="${build.java.classes}" excludes="**/test/*.class"/>
 			<srcfiles dir="." includes="LICENSE*"/>
 		</uptodate>
 	</target>

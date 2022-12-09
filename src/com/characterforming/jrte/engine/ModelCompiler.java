@@ -66,6 +66,7 @@ public class ModelCompiler implements ITarget {
 	private final CharsetEncoder encoder;
 	private final CharsetDecoder decoder;
 	private final ArrayList<String> errors;
+	private final Logger rtcLogger;
 	private Bytes transducerName;
 	private ITransductor transductor;
 	private HashMap<Integer, Integer>[] stateMaps;
@@ -88,6 +89,7 @@ public class ModelCompiler implements ITarget {
 		this.errors = new ArrayList<String>();
 		this.encoder = Base.newCharsetEncoder();
 		this.decoder = Base.newCharsetDecoder();
+		this.rtcLogger = Base.getCompileLogger();
 		this.reset();
 	}
 	
@@ -598,7 +600,7 @@ public class ModelCompiler implements ITarget {
 			}
 		}
 		double sparsity = (double)100 - (double)(100 * transitions)/(double)(this.kernelMatrix.length * this.kernelMatrix[0].length);
-		System.out.println(String.format("%1$20s: %2$5d input classes %3$5d states %4$5d transitions (%5$.0f%% nul)",
+		this.rtcLogger.log(Level.FINE, String.format("%1$20s: %2$5d input classes %3$5d states %4$5d transitions (%5$.0f%% nul)",
 			this.getTransducerName(), this.kernelMatrix.length, this.kernelMatrix[0].length, transitions, sparsity));
 		System.out.flush();
 	}
