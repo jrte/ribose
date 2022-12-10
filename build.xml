@@ -98,7 +98,7 @@
 
 	<target name="clean-test">
 		<delete quiet="true" dir="${build.testenv}"/>
-		<delete quiet="true" dir="/tmp" includes="*.time,*.ginrout,*.ginrerr"/>
+		<delete quiet="true" dir="/tmp" includes="*.time,*.ginrout,*.ginrerr,*.gc"/>
 	</target>
 
 	<target name="init">
@@ -204,6 +204,7 @@
 		<uptodate targetfile="build/Test.model" property="test.patterns.uptodate">
 			<srcfiles dir="patterns" includes="alpha.inr,after.inr,${test.patterns}/*.inr"/>
 			<srcfiles dir="${test.patterns}" includes="*.inr"/>
+			<srcfiles dir="etc/ginr" includes="ginr*"/>
 		</uptodate>
 	</target>
 
@@ -216,7 +217,7 @@
 	<target name="check-package-test-patterns" depends="compile-test-patterns">
 		<uptodate targetfile="build/Test.model" property="patterns.packaged">
 			<srcfiles dir="${build.automata}" includes="**/*.dfa"/>
-			<srcfiles file="build/Test.model"/>
+			<srcfiles file="jars/ribose.0.0.0.jar"/>
 		</uptodate>
 	</target>
 
@@ -366,14 +367,20 @@
 		</condition>
 		<fail unless="intervals.match" message="Not identical: ${build.testenv}/vgc.*.out"/>
 		<echo message="Identical: ${build.testenv}/vgc.*.out"/>
+<!-- verbose gc log throughput metrics (megabytes) -->
+		<echo message="Transduction throughput metrics (mb/s) from ${build.testenv}/linuxkernel*.gc"/>
 		<exec failonerror="false" executable="bash">
 			<arg value="-c"/><arg value="cat /tmp/verbosegcregex.time /tmp/Sintervals.time /tmp/Tintervals.time"/>
 		</exec>
-<!-- verbose gc log transduction G1 pause counts -->
-		<echo message="G1 evacuation pauses (count) from ${build.testenv}/vgc.*.gc:"/>
 		<exec failonerror="true" executable="bash">
 			<arg value="-c"/>
-			<arg value="grep -c 'G1 Evacuation Pause.*->' ${build.testenv}/vgc*.gc"/>
+			<arg value="grep 'mb/s;' ribose-runtime0.log|tail -n 3|grep -Eo '[ ]+[A-Za-z]+ : .*mb/s'|tr 'A-Z' 'a-z'"/>
+		</exec>		
+<!-- verbose gc log transduction G1 pause metrics (megabytes) -->
+		<echo message="G1 evacuation pause metrics (megabytes) from ${build.testenv}/vgc.*.gc"/>
+		<exec failonerror="true" executable="bash">
+			<arg value="-c"/>
+			<arg value="etc/sh/regress --clean ${build.testenv}/vgc.*.gc"/>
 		</exec>		
 <!-- verbose gc log transduction final heap stats -->
 		<echo message="Final heap stats:"/>
@@ -430,14 +437,20 @@
 		</condition>
 		<fail unless="kernel.match" message="Not identical: ${build.testenv}/linuxkernel*.out"/>
 		<echo message="Identical: ${build.testenv}/linuxkernel*.out"/>
+<!-- linux kernel log throughput metrics (megabytes) -->
 		<exec failonerror="false" executable="bash">
 			<arg value="-c"/><arg value="cat /tmp/linuxkernelregex.time /tmp/LinuxKernel.time /tmp/LinuxKernelLoose.time /tmp/LinuxKernelStrict.time"/>
 		</exec>
-<!-- linux kernel log transduction G1 pause counts -->
-		<echo message="G1 evacuation pauses (count) from ${build.testenv}/linuxkernel*.gc"/>
+		<echo message="Transduction throughput metrics (mb/s) from ${build.testenv}/linuxkernel*.gc"/>
 		<exec failonerror="true" executable="bash">
 			<arg value="-c"/>
-			<arg value="grep -c 'G1 Evacuation Pause.*->' ${build.testenv}/linuxkernel*.gc"/>
+			<arg value="grep 'mb/s;' ribose-runtime0.log|tail -n 4|grep -Eo '[ ]+[A-Za-z]+ : .*mb/s'|tr 'A-Z' 'a-z'"/>
+		</exec>		
+<!-- linux kernel log transduction G1 pause metrics (megabytes) -->
+		<echo message="G1 evacuation pause metrics (megabytes) from ${build.testenv}/linuxkernel*.gc"/>
+		<exec failonerror="true" executable="bash">
+			<arg value="-c"/>
+			<arg value="etc/sh/regress --clean ${build.testenv}/linuxkernel*.gc"/>
 		</exec>		
 <!-- linux kernel log transduction final heap stats -->
 		<echo message="Final heap size:"/>

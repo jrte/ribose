@@ -600,7 +600,7 @@ public class ModelCompiler implements ITarget {
 			}
 		}
 		double sparsity = (double)100 - (double)(100 * transitions)/(double)(this.kernelMatrix.length * this.kernelMatrix[0].length);
-		this.rtcLogger.log(Level.FINE, String.format("%1$20s: %2$5d input classes %3$5d states %4$5d transitions (%5$.0f%% nul)",
+		this.rtcLogger.log(Level.INFO, String.format("%1$20s: %2$5d input classes %3$5d states %4$5d transitions (%5$.0f%% nul)",
 			this.getTransducerName(), this.kernelMatrix.length, this.kernelMatrix[0].length, transitions, sparsity));
 		System.out.flush();
 	}

@@ -1,0 +1,210 @@
+994abae	994abae	2022-12-09 21:48:09.170            vgc.regex.gc: reclaim	1	0	0
+994abae	994abae	2022-12-09 21:48:09.170            vgc.regex.gc:  retain	0	2	6
+994abae	994abae	2022-12-09 21:48:09.170            vgc.regex.gc:   total	2	5	9
+994abae	994abae	2022-12-09 21:48:10.029       vgc.sintervals.gc: reclaim	1	1	0
+994abae	994abae	2022-12-09 21:48:10.029       vgc.sintervals.gc:  retain	0	0	1
+994abae	994abae	2022-12-09 21:48:10.029       vgc.sintervals.gc:   total	2	4	4
+994abae	994abae	2022-12-09 21:48:10.889       vgc.tintervals.gc: reclaim	1	0	1
+994abae	994abae	2022-12-09 21:48:10.889       vgc.tintervals.gc:  retain	0	1	1
+994abae	994abae	2022-12-09 21:48:10.889       vgc.tintervals.gc:   total	2	4	4
+994abae	994abae	2022-12-09 21:48:17.571     linuxkernelregex.gc: reclaim	1	1	2	24	14
+994abae	994abae	2022-12-09 21:48:17.571     linuxkernelregex.gc:  retain	0	59	59	39	39
+994abae	994abae	2022-12-09 21:48:17.571     linuxkernelregex.gc:   total	2	63	78	78	78
+994abae	994abae	2022-12-09 21:48:18.661          linuxkernel.gc: reclaim	1	1	0
+994abae	994abae	2022-12-09 21:48:18.661          linuxkernel.gc:  retain	0	0	1
+994abae	994abae	2022-12-09 21:48:18.661          linuxkernel.gc:   total	2	4	4
+994abae	994abae	2022-12-09 21:48:19.787     linuxkernelloose.gc: reclaim	1	1	0	1
+994abae	994abae	2022-12-09 21:48:19.787     linuxkernelloose.gc:  retain	0	0	1	1
+994abae	994abae	2022-12-09 21:48:19.787     linuxkernelloose.gc:   total	2	4	4	4
+994abae	994abae	2022-12-09 21:48:21.072    linuxkernelstrict.gc: reclaim	1	1	0	1
+994abae	994abae	2022-12-09 21:48:21.072    linuxkernelstrict.gc:  retain	0	0	1	1
+994abae	994abae	2022-12-09 21:48:21.072    linuxkernelstrict.gc:   total	2	4	4	4
+994abae	994abae	2022-12-09 21:49:25.439            vgc.regex.gc: reclaim	1	0	0
+994abae	994abae	2022-12-09 21:49:25.439            vgc.regex.gc:  retain	0	2	6
+994abae	994abae	2022-12-09 21:49:25.439            vgc.regex.gc:   total	2	5	9
+994abae	994abae	2022-12-09 21:49:26.274       vgc.sintervals.gc: reclaim	1	1	0
+994abae	994abae	2022-12-09 21:49:26.274       vgc.sintervals.gc:  retain	0	0	1
+994abae	994abae	2022-12-09 21:49:26.274       vgc.sintervals.gc:   total	2	4	4
+994abae	994abae	2022-12-09 21:49:27.144       vgc.tintervals.gc: reclaim	1	1	0
+994abae	994abae	2022-12-09 21:49:27.144       vgc.tintervals.gc:  retain	0	0	1
+994abae	994abae	2022-12-09 21:49:27.144       vgc.tintervals.gc:   total	2	4	4
+994abae	994abae	2022-12-09 21:49:33.827     linuxkernelregex.gc: reclaim	1	1	2	24	13
+994abae	994abae	2022-12-09 21:49:33.827     linuxkernelregex.gc:  retain	0	59	59	39	39
+994abae	994abae	2022-12-09 21:49:33.827     linuxkernelregex.gc:   total	2	63	77	77	77
+994abae	994abae	2022-12-09 21:49:34.891          linuxkernel.gc: reclaim	1	1	0
+994abae	994abae	2022-12-09 21:49:34.891          linuxkernel.gc:  retain	0	0	1
+994abae	994abae	2022-12-09 21:49:34.891          linuxkernel.gc:   total	2	4	4
+994abae	994abae	2022-12-09 21:49:36.041     linuxkernelloose.gc: reclaim	1	0	1	1
+994abae	994abae	2022-12-09 21:49:36.041     linuxkernelloose.gc:  retain	0	1	1	1
+994abae	994abae	2022-12-09 21:49:36.041     linuxkernelloose.gc:   total	2	4	4	4
+994abae	994abae	2022-12-09 21:49:37.318    linuxkernelstrict.gc: reclaim	1	1	0	1
+994abae	994abae	2022-12-09 21:49:37.318    linuxkernelstrict.gc:  retain	0	0	1	1
+994abae	994abae	2022-12-09 21:49:37.318    linuxkernelstrict.gc:   total	2	4	4	4
+994abae	994abae	2022-12-09 21:50:42.133            vgc.regex.gc: reclaim	1	0	0
+994abae	994abae	2022-12-09 21:50:42.133            vgc.regex.gc:  retain	0	2	6
+994abae	994abae	2022-12-09 21:50:42.133            vgc.regex.gc:   total	2	5	9
+994abae	994abae	2022-12-09 21:50:42.967       vgc.sintervals.gc: reclaim	1	1	0
+994abae	994abae	2022-12-09 21:50:42.967       vgc.sintervals.gc:  retain	0	0	1
+994abae	994abae	2022-12-09 21:50:42.967       vgc.sintervals.gc:   total	2	4	4
+994abae	994abae	2022-12-09 21:50:43.837       vgc.tintervals.gc: reclaim	1	1	0
+994abae	994abae	2022-12-09 21:50:43.837       vgc.tintervals.gc:  retain	0	0	1
+994abae	994abae	2022-12-09 21:50:43.837       vgc.tintervals.gc:   total	2	4	4
+994abae	994abae	2022-12-09 21:50:50.464     linuxkernelregex.gc: reclaim	1	1	1	24	14
+994abae	994abae	2022-12-09 21:50:50.464     linuxkernelregex.gc:  retain	0	0	59	39	39
+994abae	994abae	2022-12-09 21:50:50.464     linuxkernelregex.gc:   total	2	4	77	77	77
+994abae	994abae	2022-12-09 21:50:51.530          linuxkernel.gc: reclaim	1	1	0
+994abae	994abae	2022-12-09 21:50:51.530          linuxkernel.gc:  retain	0	0	1
+994abae	994abae	2022-12-09 21:50:51.530          linuxkernel.gc:   total	2	4	4
+994abae	994abae	2022-12-09 21:50:52.660     linuxkernelloose.gc: reclaim	1	1	0	1
+994abae	994abae	2022-12-09 21:50:52.660     linuxkernelloose.gc:  retain	0	0	1	1
+994abae	994abae	2022-12-09 21:50:52.660     linuxkernelloose.gc:   total	2	4	4	4
+994abae	994abae	2022-12-09 21:50:53.961    linuxkernelstrict.gc: reclaim	1	1	0	1
+994abae	994abae	2022-12-09 21:50:53.961    linuxkernelstrict.gc:  retain	0	0	1	1
+994abae	994abae	2022-12-09 21:50:53.961    linuxkernelstrict.gc:   total	2	4	4	4
+994abae	994abae	2022-12-09 22:05:26.805            vgc.regex.gc: reclaim	1	0	0
+994abae	994abae	2022-12-09 22:05:26.805            vgc.regex.gc:  retain	0	2	6
+994abae	994abae	2022-12-09 22:05:26.805            vgc.regex.gc:   total	2	5	9
+994abae	994abae	2022-12-09 22:05:27.644       vgc.sintervals.gc: reclaim	1	1	0
+994abae	994abae	2022-12-09 22:05:27.644       vgc.sintervals.gc:  retain	0	0	1
+994abae	994abae	2022-12-09 22:05:27.644       vgc.sintervals.gc:   total	2	4	4
+994abae	994abae	2022-12-09 22:05:28.516       vgc.tintervals.gc: reclaim	1	1	0
+994abae	994abae	2022-12-09 22:05:28.516       vgc.tintervals.gc:  retain	0	0	1
+994abae	994abae	2022-12-09 22:05:28.516       vgc.tintervals.gc:   total	2	4	4
+994abae	994abae	2022-12-09 22:05:35.213     linuxkernelregex.gc: reclaim	1	1	2	24	13
+994abae	994abae	2022-12-09 22:05:35.213     linuxkernelregex.gc:  retain	0	59	59	39	39
+994abae	994abae	2022-12-09 22:05:35.213     linuxkernelregex.gc:   total	2	63	77	77	77
+994abae	994abae	2022-12-09 22:05:36.259          linuxkernel.gc: reclaim	1	0	1
+994abae	994abae	2022-12-09 22:05:36.259          linuxkernel.gc:  retain	0	1	1
+994abae	994abae	2022-12-09 22:05:36.259          linuxkernel.gc:   total	2	4	4
+994abae	994abae	2022-12-09 22:05:37.376     linuxkernelloose.gc: reclaim	1	1	0	1
+994abae	994abae	2022-12-09 22:05:37.376     linuxkernelloose.gc:  retain	0	0	1	1
+994abae	994abae	2022-12-09 22:05:37.376     linuxkernelloose.gc:   total	2	4	4	4
+994abae	994abae	2022-12-09 22:05:38.647    linuxkernelstrict.gc: reclaim	1	1	0	1
+994abae	994abae	2022-12-09 22:05:38.647    linuxkernelstrict.gc:  retain	0	0	1	1
+994abae	994abae	2022-12-09 22:05:38.647    linuxkernelstrict.gc:   total	2	4	4	4
+994abae	994abae	2022-12-09 22:06:43.427            vgc.regex.gc: reclaim	1	0	0
+994abae	994abae	2022-12-09 22:06:43.427            vgc.regex.gc:  retain	0	2	6
+994abae	994abae	2022-12-09 22:06:43.427            vgc.regex.gc:   total	2	5	9
+994abae	994abae	2022-12-09 22:06:44.277       vgc.sintervals.gc: reclaim	1	1	0
+994abae	994abae	2022-12-09 22:06:44.277       vgc.sintervals.gc:  retain	0	0	1
+994abae	994abae	2022-12-09 22:06:44.277       vgc.sintervals.gc:   total	2	4	4
+994abae	994abae	2022-12-09 22:06:45.244       vgc.tintervals.gc: reclaim	1	1	0
+994abae	994abae	2022-12-09 22:06:45.244       vgc.tintervals.gc:  retain	0	0	1
+994abae	994abae	2022-12-09 22:06:45.244       vgc.tintervals.gc:   total	2	4	4
+994abae	994abae	2022-12-09 22:06:52.240     linuxkernelregex.gc: reclaim	1	1	2	24	14
+994abae	994abae	2022-12-09 22:06:52.240     linuxkernelregex.gc:  retain	0	59	59	39	39
+994abae	994abae	2022-12-09 22:06:52.240     linuxkernelregex.gc:   total	2	63	78	78	78
+994abae	994abae	2022-12-09 22:06:53.326          linuxkernel.gc: reclaim	1	1	0
+994abae	994abae	2022-12-09 22:06:53.326          linuxkernel.gc:  retain	0	0	1
+994abae	994abae	2022-12-09 22:06:53.326          linuxkernel.gc:   total	2	4	4
+994abae	994abae	2022-12-09 22:06:54.525     linuxkernelloose.gc: reclaim	1	1	0	1
+994abae	994abae	2022-12-09 22:06:54.525     linuxkernelloose.gc:  retain	0	0	1	1
+994abae	994abae	2022-12-09 22:06:54.525     linuxkernelloose.gc:   total	2	4	4	4
+994abae	994abae	2022-12-09 22:06:55.810    linuxkernelstrict.gc: reclaim	1	1	0	1
+994abae	994abae	2022-12-09 22:06:55.810    linuxkernelstrict.gc:  retain	0	0	1	1
+994abae	994abae	2022-12-09 22:06:55.810    linuxkernelstrict.gc:   total	2	4	4	4
+994abae	994abae	2022-12-09 22:08:00.667            vgc.regex.gc: reclaim	1	0	0
+994abae	994abae	2022-12-09 22:08:00.667            vgc.regex.gc:  retain	0	2	6
+994abae	994abae	2022-12-09 22:08:00.667            vgc.regex.gc:   total	2	5	9
+994abae	994abae	2022-12-09 22:08:01.557       vgc.sintervals.gc: reclaim	1	1	0
+994abae	994abae	2022-12-09 22:08:01.557       vgc.sintervals.gc:  retain	0	0	1
+994abae	994abae	2022-12-09 22:08:01.557       vgc.sintervals.gc:   total	2	4	4
+994abae	994abae	2022-12-09 22:08:02.420       vgc.tintervals.gc: reclaim	1	1	0
+994abae	994abae	2022-12-09 22:08:02.420       vgc.tintervals.gc:  retain	0	0	1
+994abae	994abae	2022-12-09 22:08:02.420       vgc.tintervals.gc:   total	2	4	4
+994abae	994abae	2022-12-09 22:08:09.310     linuxkernelregex.gc: reclaim	1	1	2	24	13
+994abae	994abae	2022-12-09 22:08:09.310     linuxkernelregex.gc:  retain	0	59	59	39	39
+994abae	994abae	2022-12-09 22:08:09.310     linuxkernelregex.gc:   total	2	63	77	77	77
+994abae	994abae	2022-12-09 22:08:10.376          linuxkernel.gc: reclaim	1	1	0
+994abae	994abae	2022-12-09 22:08:10.376          linuxkernel.gc:  retain	0	0	1
+994abae	994abae	2022-12-09 22:08:10.376          linuxkernel.gc:   total	2	4	4
+994abae	994abae	2022-12-09 22:08:11.506     linuxkernelloose.gc: reclaim	1	1	0	1
+994abae	994abae	2022-12-09 22:08:11.506     linuxkernelloose.gc:  retain	0	0	1	1
+994abae	994abae	2022-12-09 22:08:11.506     linuxkernelloose.gc:   total	2	4	4	4
+994abae	994abae	2022-12-09 22:08:12.765    linuxkernelstrict.gc: reclaim	1	1	0	1
+994abae	994abae	2022-12-09 22:08:12.765    linuxkernelstrict.gc:  retain	0	0	1	1
+994abae	994abae	2022-12-09 22:08:12.765    linuxkernelstrict.gc:   total	2	4	4	4
+994abae	994abae	2022-12-09 22:09:17.317            vgc.regex.gc: reclaim	1	0	0
+994abae	994abae	2022-12-09 22:09:17.317            vgc.regex.gc:  retain	0	2	6
+994abae	994abae	2022-12-09 22:09:17.317            vgc.regex.gc:   total	2	5	9
+994abae	994abae	2022-12-09 22:09:18.150       vgc.sintervals.gc: reclaim	1	1	0
+994abae	994abae	2022-12-09 22:09:18.150       vgc.sintervals.gc:  retain	0	0	1
+994abae	994abae	2022-12-09 22:09:18.150       vgc.sintervals.gc:   total	2	4	4
+994abae	994abae	2022-12-09 22:09:19.024       vgc.tintervals.gc: reclaim	1	1	0
+994abae	994abae	2022-12-09 22:09:19.024       vgc.tintervals.gc:  retain	0	0	1
+994abae	994abae	2022-12-09 22:09:19.024       vgc.tintervals.gc:   total	2	4	4
+994abae	994abae	2022-12-09 22:09:25.695     linuxkernelregex.gc: reclaim	1	1	2	24	13
+994abae	994abae	2022-12-09 22:09:25.695     linuxkernelregex.gc:  retain	0	59	59	39	39
+994abae	994abae	2022-12-09 22:09:25.695     linuxkernelregex.gc:   total	2	63	77	77	77
+994abae	994abae	2022-12-09 22:09:26.765          linuxkernel.gc: reclaim	1	1	0
+994abae	994abae	2022-12-09 22:09:26.765          linuxkernel.gc:  retain	0	0	1
+994abae	994abae	2022-12-09 22:09:26.765          linuxkernel.gc:   total	2	4	4
+994abae	994abae	2022-12-09 22:09:27.934     linuxkernelloose.gc: reclaim	1	1	0	1
+994abae	994abae	2022-12-09 22:09:27.934     linuxkernelloose.gc:  retain	0	0	1	1
+994abae	994abae	2022-12-09 22:09:27.934     linuxkernelloose.gc:   total	2	4	4	4
+994abae	994abae	2022-12-09 22:09:29.204    linuxkernelstrict.gc: reclaim	1	1	0	1
+994abae	994abae	2022-12-09 22:09:29.204    linuxkernelstrict.gc:  retain	0	0	1	1
+994abae	994abae	2022-12-09 22:09:29.204    linuxkernelstrict.gc:   total	2	4	4	4
+994abae	994abae	2022-12-09 22:10:33.877            vgc.regex.gc: reclaim	1	0	0
+994abae	994abae	2022-12-09 22:10:33.877            vgc.regex.gc:  retain	0	2	6
+994abae	994abae	2022-12-09 22:10:33.877            vgc.regex.gc:   total	2	5	9
+994abae	994abae	2022-12-09 22:10:34.712       vgc.sintervals.gc: reclaim	1	1	0
+994abae	994abae	2022-12-09 22:10:34.712       vgc.sintervals.gc:  retain	0	0	1
+994abae	994abae	2022-12-09 22:10:34.712       vgc.sintervals.gc:   total	2	4	4
+994abae	994abae	2022-12-09 22:10:35.593       vgc.tintervals.gc: reclaim	1	1	0
+994abae	994abae	2022-12-09 22:10:35.593       vgc.tintervals.gc:  retain	0	0	1
+994abae	994abae	2022-12-09 22:10:35.593       vgc.tintervals.gc:   total	2	4	4
+994abae	994abae	2022-12-09 22:10:42.430     linuxkernelregex.gc: reclaim	1	1	2	24	12
+994abae	994abae	2022-12-09 22:10:42.430     linuxkernelregex.gc:  retain	0	59	59	39	40
+994abae	994abae	2022-12-09 22:10:42.430     linuxkernelregex.gc:   total	2	63	77	77	77
+994abae	994abae	2022-12-09 22:10:43.489          linuxkernel.gc: reclaim	1	1	0
+994abae	994abae	2022-12-09 22:10:43.489          linuxkernel.gc:  retain	0	0	1
+994abae	994abae	2022-12-09 22:10:43.489          linuxkernel.gc:   total	2	4	4
+994abae	994abae	2022-12-09 22:10:44.650     linuxkernelloose.gc: reclaim	1	1	0	1
+994abae	994abae	2022-12-09 22:10:44.650     linuxkernelloose.gc:  retain	0	0	1	1
+994abae	994abae	2022-12-09 22:10:44.650     linuxkernelloose.gc:   total	2	4	4	4
+994abae	994abae	2022-12-09 22:10:45.998    linuxkernelstrict.gc: reclaim	1	1	0	1
+994abae	994abae	2022-12-09 22:10:45.998    linuxkernelstrict.gc:  retain	0	0	1	1
+994abae	994abae	2022-12-09 22:10:45.998    linuxkernelstrict.gc:   total	2	4	4	4
+994abae	994abae	2022-12-09 22:11:50.449            vgc.regex.gc: reclaim	1	0	0
+994abae	994abae	2022-12-09 22:11:50.449            vgc.regex.gc:  retain	0	2	6
+994abae	994abae	2022-12-09 22:11:50.449            vgc.regex.gc:   total	2	5	9
+994abae	994abae	2022-12-09 22:11:51.290       vgc.sintervals.gc: reclaim	1	1	0
+994abae	994abae	2022-12-09 22:11:51.290       vgc.sintervals.gc:  retain	0	0	1
+994abae	994abae	2022-12-09 22:11:51.290       vgc.sintervals.gc:   total	2	4	4
+994abae	994abae	2022-12-09 22:11:52.170       vgc.tintervals.gc: reclaim	1	0	1
+994abae	994abae	2022-12-09 22:11:52.170       vgc.tintervals.gc:  retain	0	1	1
+994abae	994abae	2022-12-09 22:11:52.170       vgc.tintervals.gc:   total	2	4	4
+994abae	994abae	2022-12-09 22:11:58.976     linuxkernelregex.gc: reclaim	1	1	2	24	13
+994abae	994abae	2022-12-09 22:11:58.976     linuxkernelregex.gc:  retain	0	59	59	39	39
+994abae	994abae	2022-12-09 22:11:58.976     linuxkernelregex.gc:   total	2	63	77	77	77
+994abae	994abae	2022-12-09 22:12:00.080          linuxkernel.gc: reclaim	1	1	0
+994abae	994abae	2022-12-09 22:12:00.080          linuxkernel.gc:  retain	0	0	1
+994abae	994abae	2022-12-09 22:12:00.080          linuxkernel.gc:   total	2	4	4
+994abae	994abae	2022-12-09 22:12:01.349     linuxkernelloose.gc: reclaim	1	1	0	1
+994abae	994abae	2022-12-09 22:12:01.349     linuxkernelloose.gc:  retain	0	0	1	1
+994abae	994abae	2022-12-09 22:12:01.349     linuxkernelloose.gc:   total	2	4	4	4
+994abae	994abae	2022-12-09 22:12:02.619    linuxkernelstrict.gc: reclaim	1	1	0	1
+994abae	994abae	2022-12-09 22:12:02.619    linuxkernelstrict.gc:  retain	0	0	1	1
+994abae	994abae	2022-12-09 22:12:02.619    linuxkernelstrict.gc:   total	2	4	4	4
+994abae	994abae	2022-12-09 22:13:06.952            vgc.regex.gc: reclaim	1	0	0
+994abae	994abae	2022-12-09 22:13:06.952            vgc.regex.gc:  retain	0	2	6
+994abae	994abae	2022-12-09 22:13:06.952            vgc.regex.gc:   total	2	5	9
+994abae	994abae	2022-12-09 22:13:07.789       vgc.sintervals.gc: reclaim	1	1	0
+994abae	994abae	2022-12-09 22:13:07.789       vgc.sintervals.gc:  retain	0	0	1
+994abae	994abae	2022-12-09 22:13:07.789       vgc.sintervals.gc:   total	2	4	4
+994abae	994abae	2022-12-09 22:13:08.657       vgc.tintervals.gc: reclaim	1	1	0
+994abae	994abae	2022-12-09 22:13:08.657       vgc.tintervals.gc:  retain	0	0	1
+994abae	994abae	2022-12-09 22:13:08.657       vgc.tintervals.gc:   total	2	4	4
+994abae	994abae	2022-12-09 22:13:15.394     linuxkernelregex.gc: reclaim	1	1	2	24	14
+994abae	994abae	2022-12-09 22:13:15.394     linuxkernelregex.gc:  retain	0	59	59	39	39
+994abae	994abae	2022-12-09 22:13:15.394     linuxkernelregex.gc:   total	2	63	78	78	78
+994abae	994abae	2022-12-09 22:13:16.456          linuxkernel.gc: reclaim	1	1	0
+994abae	994abae	2022-12-09 22:13:16.456          linuxkernel.gc:  retain	0	0	1
+994abae	994abae	2022-12-09 22:13:16.456          linuxkernel.gc:   total	2	4	4
+994abae	994abae	2022-12-09 22:13:17.582     linuxkernelloose.gc: reclaim	1	1	0	1
+994abae	994abae	2022-12-09 22:13:17.582     linuxkernelloose.gc:  retain	0	0	1	1
+994abae	994abae	2022-12-09 22:13:17.582     linuxkernelloose.gc:   total	2	4	4	4
+994abae	994abae	2022-12-09 22:13:18.870    linuxkernelstrict.gc: reclaim	1	1	0	1
+994abae	994abae	2022-12-09 22:13:18.870    linuxkernelstrict.gc:  retain	0	0	1	1
+994abae	994abae	2022-12-09 22:13:18.870    linuxkernelstrict.gc:   total	2	4	4	4

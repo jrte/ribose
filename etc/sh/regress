@@ -1,0 +1,51 @@
+#! /bin/bash
+clean=0
+if [[ "$1" == "--clean" ]]; then
+  clean=1
+fi
+#s="$(git status --short|grep -Eo '[^ ]+*$')"
+#if [[ ! -z "$s" && "$s" != "regression.gc" ]]; then 
+#  clean=0
+#f1
+if [[ "$1" == "--clean" ]]; then
+  shift
+fi
+short=0
+if [[ "$1" == "--short" ]]; then
+  short=1
+  shift 1
+fi
+for f in $(ls -1tr "$@"); do 
+  h=""
+  n=$(basename "$f")
+  rm /tmp/$n
+  c="$(git log --oneline -n 1|grep -Eo '^[0-9a-f]+')"
+  if [[ ! -z $(git ls-files etc/sh/regress) ]]; then
+    g="$(git log --oneline -n 1 etc/sh/regress|grep -Eo '^[0-9a-f]+')"
+  else 
+    g="fffffff";
+  fi
+  d="$(stat -c %y $f|grep -oE '[0-9]+.[0-9]+.[0-9]+ [0-9]+:[0-9]+:[0-9]+[.][0-9][0-9][0-9]')"
+  if ((short==0)); then
+    h="$c\t$g\t$d"
+  fi
+  p="$h$(printf "%24s:" "$n")$(printf "%8s" "reclaim")"
+  for x in $(grep -E '.G1 Evacuation Pause. [0-9]+M->[0-9]+M\([0-9]+M\)' $f | grep -Eo '[0-9]+M->[0-9]+M' | tr -dc '\n[0-9]-'); do 
+    p="$p\t$(($x))"
+  done
+  echo -e "$p">>/tmp/$n
+  q="$h$(printf "%24s:" "$n")$(printf "%8s" "retain")"
+  for x in $(grep -E '.G1 Evacuation Pause. [0-9]+M->[0-9]+M\([0-9]+M\)' $f | grep -Eo '>[0-9]+M' | tr -dc '\n[0-9]'); do 
+    q="$q\t$(($x))"
+  done
+  echo -e "$q">>/tmp/$n
+  t="$h$(printf "%24s:" "$n")$(printf "%8s" "total")"
+  for x in $(grep -E '.G1 Evacuation Pause. [0-9]+M->[0-9]+M\([0-9]+M\)' $f | grep -Eo '\([0-9]+M\)' | tr -dc '\n[0-9]'); do 
+    t="$t\t$(($x))"
+  done
+  echo -e "$t">>/tmp/$n
+  grep -Eho " [^:]+$n:.*$" /tmp/$n
+  if ((clean==1)); then
+    cat /tmp/$n>>regression.gc
+  fi
+done
