@@ -39,7 +39,7 @@ import com.characterforming.ribose.base.TargetBindingException;
  * from the specified {@code byte[][]} arrays. 
  * <br><br>
  * In runtime contexts the effector is invoked in the proxy target to precompile
- * its parameters as above. The precompiled paramters are passed on to the 
+ * its parameters as above. The precompiled parameters are passed on to the 
  * effector instance in the runtime target via {@link #setParameter(int, Object)}.
  * 
  * @author Kim Briggs

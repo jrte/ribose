@@ -53,18 +53,27 @@ import com.characterforming.ribose.base.Signal;
  * A paused transduction can be resumed when input is available ({@code push()}).
  * A waiting transduction can be resumed by starting a transducer ({@code start()}).
  * A stopped transducer can be reused to start a new transduction by pushing new
- * input and transducers. 
+ * input and transducers. After the transduction has exhausted all input, the 
+ * transductor should {@code push(Signal.eos)} and {@code run()} once to ensure the
+ * transduction is complete. If there is no final transition defined for {@code eos}
+ * it will be ignored. Finally, {@code stop()} must be called again to clear the 
+ * transducer and input stacks before the transductor instance can be reused.
  * <br><br>
- * After the transduction has exhausted all input, the transductor should {@code push(Signal.eos)}
- * and {@code run()} once to ensure the transduction is complete. If there is no 
- * final transition defined for {@code eos} it will be ignored. Finally, {@code stop()}
- * must be called again to clear the transducer and input stacks before the 
- * transductor instance can be reused.
+ * {@link ITarget} implementations must present a nullary constructor, which is used
+ * to instantiate proxy targets for effector enumeration and parameter compilation. A
+ * proxy target is instantiated by the compiler, which invokes each parameterized 
+ * effector to validate and compile its parameters. In the ribose runtime, a proxy
+ * target is instantiated when a ribose model is loaded and used to precompile
+ * parameters from raw bytes stored in the model. In either case, only the 
+ * constructor and {@link ITarget#getEffectors()} methods are called on the proxy
+ * target (unless called by its own effectors during parameter compilation). Live 
+ * {@link ITarget} instances can be constructed in any manner and bound to a 
+ * ribose {@link ITransductor} for runtime use.
  * <br><br>
  * <pre>
- * proxyTarget = new Target(); runTarget = new Target();
+ * proxyTarget = new Target(); liveTarget = new Target(args);
  * runtime = Ribose.loadRuntimeModel(modelFile,proxyTarget);
- * trex = runtime.newTransductor(runTarget);
+ * trex = runtime.newTransductor(liveTarget);
  * if (trex.stop().push(data,limit).push(Signal.nil).start(transducer).status().isRunnable()) {
  *   do {
  *     if (trex.run().status().isPaused()) {
@@ -86,15 +95,13 @@ import com.characterforming.ribose.base.Signal;
  * {@code} nul signal, giving the transduction an opportunity to handle it with an
  * explicit transition on {@code nul}. Typically this involves searching without effect
  * for a synchronization pattern and resuming with effect after synchronizing. If 
- * {@code nul} is not handled a {@code DomainException} is thrown. The transductor
- * will push an {@code eos} signal when the input stack runs dry. If input is 
- * segmented and presented with a series of {@code push(byte[], int)} method calls,
- * {@code eos} will be raised at the end of each buffer. Transducers can safely
- * ignore {@code eos} or use it explicitly when required. If {@code eos} is ignored
- * the {@code run()} method will return with {@code Status.PAUSED} and 
- * {@code DomainErrorException} will not be raised.
+ * {@code nul} is not handled a {@code DomainException} is thrown, with one exception,
+ * the {@code eos} signal. Transducers can safely ignore {@code eos} or use it
+ * explicitly if required. If {@code eos} is ignored the {@code run()} method
+ * will return with {@code Status.PAUSED} and {@code DomainErrorException}
+ * will not be thrown.
  * <br><br>
- * Signals like {@code nul} that are raised asynchronously and are difficult
+ * Signals like {@code nul} that are raised asynchronously are difficult
  * to address in the expression of transduction patterns. However, if they are ignored
  * in the original pattern expression, the expression can be modified after the fact 
  * by transducing the pattern itself to inject behaviors relating to asynchronpus signals.
@@ -233,7 +240,7 @@ public interface ITransductor extends ITarget {
 	ITransductor push(Signal signal);
 
 	/**
-	 * Push a transducer onto the transductor's transducer stack and set it state
+	 * Push a transducer onto the transductor's transducer stack and set its state
 	 * to the initial state. The topmost (last) pushed transducer will be activated 
 	 * when the {@code run()} method is called.
 	 * 
@@ -245,16 +252,22 @@ public interface ITransductor extends ITarget {
 
 	/**
 	 * Run the transduction with current input until the input or transduction
-	 * stack is empty, trabsduction paues or stops, or an exception is thrown. 
-	 * This method should be called repeatedly until {@code status().hasInput()}
-	 * returns {@code false}, although this check can be ignored if it is known 
-	 * that the {@code pause} effector is not engaged in the transduction.
+	 * stack is empty, transduction pauses or stops, or an exception is thrown. 
+	 * This method should be called repeatedly until {@code status().isRunnable()}
+	 * returns {@code false}. Normally, the transduction status is {@link Status#PAUSED}
+	 * (input stack empty, {@code push()} more input to resume) or {@link Status#WAITING}
+	 * (transducer stack empty, {@code start()} another transducer to resume) when
+	 * {@code run()} returns, unless the {@code pause} effector forces return with 
+	 * {@link Status#RUNNABLE}. The latter case may arise if the transduction needs
+	 * to synchronize with the process driving the transduction for some unimaginable
+	 * reason. In any case, when the necessary action has been taken the transduction
+	 * can be resumed by calling {@code run()} again. 
 	 * <br><br>
 	 * If a mark is set, it applies to the primary input stream and marked input
 	 * buffers held in the transduction mark set cannot be reused by the caller 
 	 * until a new mark is set or the input has been reset and all marked buffers
-	 * have been transduced. Call {@link ITransductor#hasMark()} before reusing 
-	 * data buffers if the transduction involves backtracking with mark/reset. 
+	 * have been transduced. Call {@link #recycle(byte[])} before reusing data buffers
+	 * if the transduction involves backtracking with mark/reset. 
 	 * 
 	 * @return this ITransductor
 	 * @throws RiboseException on error

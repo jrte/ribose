@@ -24,7 +24,9 @@ import com.characterforming.ribose.base.TargetBindingException;
  * To build a basic transduction model, compile with ginr a set of ribose-conformant
  * ginr patterns, saving automata (*.dfa) to be compiled into the model into a
  * directory. Then run {@link TCompile} with {@link TRun} as target class to package
- * the automata in the directory into a ribose model.
+ * the automata in the directory into a ribose model. To build a model for a specialized
+ * {@link ITarget} implementation class, run {@link TCompile} specifying the specialized
+ * target class for the model. 
  * <br><br>
  * <table style="font-size:12px">
  * <caption style="text-align:left"><b>TRun usage</b></caption>
@@ -37,7 +39,8 @@ import com.characterforming.ribose.base.TargetBindingException;
  * <tr><td style="text-align:right"><i>output</i></td><td>The path to the output file.</td></tr>
  * </table>
  * <br>
- * Default target is {@link TRun} but any target class with a nullary constructor can use used. Default output is System.out.
+ * Default target is {@link TRun} but any {@link ITarget} implementation with a nullary
+ * constructor can use used. Default output is System.out.
  * 
  */
 public class TRun extends BaseTarget {

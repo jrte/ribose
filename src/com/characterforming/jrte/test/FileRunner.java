@@ -72,7 +72,7 @@ public class FileRunner {
 		final boolean jrteOutEnabled = System.getProperty("jrte.out.enabled", "false").equals("true");
 		final boolean regexOutEnabled = !regex.isEmpty() && System.getProperty("regex.out.enabled", "false").equals("true");
 		if (jrteOutEnabled && regexOutEnabled) {
-			System.out.println(String.format("Usage: java -cp <classpath> [-Djrte.out.enabled=true ^|^ -Dregex.out.enabled=true] %s [--nil] <transducer-name> <input-path> <model-path> [regex]%s(jrteOutputEnabled and regexOutputEnabled can't both be true)", 
+			System.out.println(String.format("Usage: java -cp <classpath> [-Djrte.out.enabled=true ^|^ -Dregex.out.enabled=true] %s [--nil] <transducer-name> <input-path> <model-path> [regex]%s(jrteOutputEnabled and regexOutputEnabled can't both be true)",
 				FileRunner.class.getName(), Base.lineEnd));
 			System.exit(1);
 		}
@@ -218,7 +218,7 @@ public class FileRunner {
 					assert count > 0;
 					tregex = System.currentTimeMillis() - t0;
 					double mbps = (tregex > 0) ? ((double)clen / (double)(tregex*1024*1024)) * 1000 : -1;
-					rteLogger.log(Level.FINE, String.format("%20s : %7.3f mb/s; %s (%,d bytes)", "RegEx", mbps, inputPath, clen));
+					rteLogger.log(Level.FINE, String.format("%20s : %7.3f mb/s; %s (%,d bytes)", transducerName, mbps, inputPath, clen));
 				}
 			}
 			exitCode = 0;

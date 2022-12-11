@@ -1,7 +1,10 @@
 /**
  * Component interfaces and runnable classes for the ribose model compiler and runtime. 
  * <br><br>
- * The ribose model compiler {@link TCompile} can be run from the command line using
+ * A collection of related ribose patterns are compiled to automata by ginr. The automata
+ * ({@code *.dfa}) files are saved to directory and the ribose model compiler packages them
+ * into a ribose model ({@code *.model}) file for use in the ribose runtime. The ribose
+ * model compiler {@link TCompile} can be run from the command line using
  * {@link TCompile#main(String[])} to build a ribose model specifying an {@link ITarget}
  * implementation class (eg, {@link TRun}) as target class, the path to the automata directory 
  * and the path and name of the file to contain the compiled model. The compiler is also 

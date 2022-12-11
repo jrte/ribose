@@ -23,46 +23,39 @@ package com.characterforming.ribose;
 import com.characterforming.ribose.base.TargetBindingException;
 
 /**
- * Interface for transduction target classes, which express IEffector instances
- * that are invoked from runtime transductions. The runtime Transductor class,
- * which encapsulate ribose transductions, presents a core set of built-in
- * effectors that are accessible to all transductions. Specialized ITarget
- * implementations supplement these with specialized effectors.
+ * Interface for transduction target classes, which express {@link IEffector}
+ * and{@link IParameterizedEffector} instances that are invoked from runtime
+ * transductions. The runtime {@code Transductor} class, which encapsulates
+ * ribose transductions, implements {@code ITarget} and presents a core set
+ * of built-in effectors that are accessible to all transductions. Specialized 
+ * {@code ITarget} implementations may supplement these with specialized
+ * effectors.
  * <br><br>
- * Target classes must present a public default constructor with no arguments. A
- * proxy instance of the target implementation class is instantiated during
- * model compilation to determine the names and types of the target effectors
- * and to compile and validate effector parameters. At that time, for each effector,
- * the {@link IParameterizedEffector#newParameters(int)} will be called first and
- * then {@link IParameterizedEffector#compileParameter(int, byte[][])} will be
- * called for each IParameterizedEffector.
+ * {@code ITarget} implementations must present a public default constructor
+ * with no arguments. This is used to instantiate proxy instances to enumerate
+ * effectors and compile effector parameters when a model is constructed and again 
+ * when a model is loaded for runtime use. In those contexts, {@link ITarget#getEffectors()}
+ * is called to obtain an enumeration of the target's effectors. For each 
+ * paramterized proxy effector, {@link IParameterizedEffector#newParameters(int)}
+ * is called first, indicating the number of parameters to be compiled. Then
+ * {@link IParameterizedEffector#compileParameter(int, byte[][])} is called 
+ * for each parameter. No other methods are called on the proxy target or 
+ * effectors during model compilation and loading, and proxy target and effector
+ * instances are never involved in live transduction processes.
  * <br><br>
- * At runtime, each target is bound only once to a transductor and the binding
- * persists for the lifetime of the transductor. Note that transductors are 
- * restartable and reuseable and may serially run more than one transduction
- * using the same target. Each transduction, including an ITransductor, an 
- * ITarget and its IEffectors, is intended to be a single-threaded process. 
- * Explicit synchronization is required to ensure safety if multiple threads
- * are involved.
- * <br><br>
- * {@code ITarget} implementations must provide a nullary constructor receiving no 
- * arguments. Target classes are instantiated in ribose compilation contexts, where
- * they serve as proxies for effector enumeration and compilation of effector 
- * parameters, and in runtime contexts. In compilation context, the ribose compiler
- * calls {@code getEffectors()} to enumerate the target effectors and calls the 
- * {@code IEffector} methods {@code newParameters(int)} (to set parameter array in 
- * the effector) and {@code compileParameter(int, bye[][])} for each {@code 
- * ParameterizedEffector}. No other {@code ITarget} methods are called during
- * compilation. No other methods are called on the proxy target or effectors
- * during model compilation. 
- * <br><br>
- * In runtime contexts, a proxy target is instantiated when a ribose model is loaded.
- * The proxy recompiles all parameterized effector parameters to make them available
- * to runtime targets and is otherwise not involved in runtime model use. Runtime targets
- * are instantiated externally and passed to the runtime to create {@code ITransductor}
- * instances to run transductions. When a runtime target is bound to a transductor each
- * parameterized effector receives a call to {@code setParameter(int, Object)} to set
- * the precompiled parameter for the specified parameter index. 
+ * At runtime, a live target instance is bound to a transductor and the binding
+ * persists for the lifetime of the transductor. Live runtime targets are instantiated
+ * externally and passed to the {@link IRuntime#newTransductor(ITarget)} method
+ * to create {@code ITransductor} instances to run transductions. When a runtime target
+ * is bound to a transductor each parameterized effector receives a call to
+ * {@code setParameter(int, Object)} to set the precompiled parameter for the
+ * specified parameter index. {@link ITransductor} instances are restartable and
+ * reuseable and may serially run more than one transduction using the same target
+ * instance. Each transduction is assumed to be a single-threaded process. Explicit
+ * synchronization is required to ensure safety if multiple threads are allowed 
+ * to access transduction artifacts ({@link ITransductor}, {@link ITarget}, 
+ * {@link IEffector}, {@link INamedValue}).
+ *
  * @author Kim Briggs
  */
 public interface ITarget {
