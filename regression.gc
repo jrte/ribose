@@ -208,3 +208,213 @@
 994abae	994abae	2022-12-09 22:13:18.870    linuxkernelstrict.gc: reclaim	1	1	0	1
 994abae	994abae	2022-12-09 22:13:18.870    linuxkernelstrict.gc:  retain	0	0	1	1
 994abae	994abae	2022-12-09 22:13:18.870    linuxkernelstrict.gc:   total	2	4	4	4
+116c263	116c263	2022-12-11 17:06:51.091            vgc.regex.gc: reclaim	1	0	0
+116c263	116c263	2022-12-11 17:06:51.091            vgc.regex.gc:  retain	0	2	6
+116c263	116c263	2022-12-11 17:06:51.091            vgc.regex.gc:   total	2	5	9
+116c263	116c263	2022-12-11 17:06:51.920       vgc.sintervals.gc: reclaim	1	1	0
+116c263	116c263	2022-12-11 17:06:51.920       vgc.sintervals.gc:  retain	0	0	1
+116c263	116c263	2022-12-11 17:06:51.920       vgc.sintervals.gc:   total	2	4	4
+116c263	116c263	2022-12-11 17:06:52.781       vgc.tintervals.gc: reclaim	1	1	0
+116c263	116c263	2022-12-11 17:06:52.781       vgc.tintervals.gc:  retain	0	0	1
+116c263	116c263	2022-12-11 17:06:52.781       vgc.tintervals.gc:   total	2	4	4
+116c263	116c263	2022-12-11 17:06:59.388     linuxkernelregex.gc: reclaim	1	1	2	24	14
+116c263	116c263	2022-12-11 17:06:59.388     linuxkernelregex.gc:  retain	0	59	59	39	39
+116c263	116c263	2022-12-11 17:06:59.388     linuxkernelregex.gc:   total	2	63	78	78	78
+116c263	116c263	2022-12-11 17:07:00.454          linuxkernel.gc: reclaim	1	1	0
+116c263	116c263	2022-12-11 17:07:00.454          linuxkernel.gc:  retain	0	0	1
+116c263	116c263	2022-12-11 17:07:00.454          linuxkernel.gc:   total	2	4	4
+116c263	116c263	2022-12-11 17:07:01.680     linuxkernelloose.gc: reclaim	1	0	1	1
+116c263	116c263	2022-12-11 17:07:01.680     linuxkernelloose.gc:  retain	0	1	1	1
+116c263	116c263	2022-12-11 17:07:01.680     linuxkernelloose.gc:   total	2	4	4	4
+116c263	116c263	2022-12-11 17:07:02.932    linuxkernelstrict.gc: reclaim	1	1	0	1
+116c263	116c263	2022-12-11 17:07:02.932    linuxkernelstrict.gc:  retain	0	0	1	1
+116c263	116c263	2022-12-11 17:07:02.932    linuxkernelstrict.gc:   total	2	4	4	4
+116c263	116c263	2022-12-11 17:08:12.764            vgc.regex.gc: reclaim	1	0	0
+116c263	116c263	2022-12-11 17:08:12.764            vgc.regex.gc:  retain	0	2	6
+116c263	116c263	2022-12-11 17:08:12.764            vgc.regex.gc:   total	2	5	9
+116c263	116c263	2022-12-11 17:08:13.781       vgc.sintervals.gc: reclaim	1	0	1
+116c263	116c263	2022-12-11 17:08:13.781       vgc.sintervals.gc:  retain	0	1	1
+116c263	116c263	2022-12-11 17:08:13.781       vgc.sintervals.gc:   total	2	4	4
+116c263	116c263	2022-12-11 17:08:14.845       vgc.tintervals.gc: reclaim	1	1	0
+116c263	116c263	2022-12-11 17:08:14.845       vgc.tintervals.gc:  retain	0	0	1
+116c263	116c263	2022-12-11 17:08:14.845       vgc.tintervals.gc:   total	2	4	4
+116c263	116c263	2022-12-11 17:08:23.211     linuxkernelregex.gc: reclaim	1	1	2	23	14
+116c263	116c263	2022-12-11 17:08:23.211     linuxkernelregex.gc:  retain	0	59	59	40	39
+116c263	116c263	2022-12-11 17:08:23.211     linuxkernelregex.gc:   total	2	63	77	77	77
+116c263	116c263	2022-12-11 17:08:24.482          linuxkernel.gc: reclaim	1	1	0
+116c263	116c263	2022-12-11 17:08:24.482          linuxkernel.gc:  retain	0	0	1
+116c263	116c263	2022-12-11 17:08:24.482          linuxkernel.gc:   total	2	4	4
+116c263	116c263	2022-12-11 17:08:25.903     linuxkernelloose.gc: reclaim	1	0	1	1
+116c263	116c263	2022-12-11 17:08:25.903     linuxkernelloose.gc:  retain	0	1	1	1
+116c263	116c263	2022-12-11 17:08:25.903     linuxkernelloose.gc:   total	2	4	4	4
+116c263	116c263	2022-12-11 17:08:27.494    linuxkernelstrict.gc: reclaim	1	1	0	1
+116c263	116c263	2022-12-11 17:08:27.494    linuxkernelstrict.gc:  retain	0	0	1	1
+116c263	116c263	2022-12-11 17:08:27.494    linuxkernelstrict.gc:   total	2	4	4	4
+116c263	116c263	2022-12-11 17:09:45.326            vgc.regex.gc: reclaim	1	0	0
+116c263	116c263	2022-12-11 17:09:45.326            vgc.regex.gc:  retain	0	2	6
+116c263	116c263	2022-12-11 17:09:45.326            vgc.regex.gc:   total	2	5	9
+116c263	116c263	2022-12-11 17:09:46.361       vgc.sintervals.gc: reclaim	1	1	0
+116c263	116c263	2022-12-11 17:09:46.361       vgc.sintervals.gc:  retain	0	0	1
+116c263	116c263	2022-12-11 17:09:46.361       vgc.sintervals.gc:   total	2	4	4
+116c263	116c263	2022-12-11 17:09:47.438       vgc.tintervals.gc: reclaim	1	1	0
+116c263	116c263	2022-12-11 17:09:47.438       vgc.tintervals.gc:  retain	0	0	1
+116c263	116c263	2022-12-11 17:09:47.438       vgc.tintervals.gc:   total	2	4	4
+116c263	116c263	2022-12-11 17:09:55.742     linuxkernelregex.gc: reclaim	1	2	22	8	10	11
+116c263	116c263	2022-12-11 17:09:55.742     linuxkernelregex.gc:  retain	0	59	39	39	39	39
+116c263	116c263	2022-12-11 17:09:55.742     linuxkernelregex.gc:   total	2	64	64	64	64	64
+116c263	116c263	2022-12-11 17:09:57.020          linuxkernel.gc: reclaim	1	1	0
+116c263	116c263	2022-12-11 17:09:57.020          linuxkernel.gc:  retain	0	0	1
+116c263	116c263	2022-12-11 17:09:57.020          linuxkernel.gc:   total	2	4	4
+116c263	116c263	2022-12-11 17:09:58.379     linuxkernelloose.gc: reclaim	1	1	0	1
+116c263	116c263	2022-12-11 17:09:58.379     linuxkernelloose.gc:  retain	0	0	1	1
+116c263	116c263	2022-12-11 17:09:58.379     linuxkernelloose.gc:   total	2	4	4	4
+116c263	116c263	2022-12-11 17:09:59.942    linuxkernelstrict.gc: reclaim	1	1	0	1
+116c263	116c263	2022-12-11 17:09:59.942    linuxkernelstrict.gc:  retain	0	0	1	1
+116c263	116c263	2022-12-11 17:09:59.942    linuxkernelstrict.gc:   total	2	4	4	4
+116c263	116c263	2022-12-11 17:11:20.824            vgc.regex.gc: reclaim	1	0	0
+116c263	116c263	2022-12-11 17:11:20.824            vgc.regex.gc:  retain	0	2	6
+116c263	116c263	2022-12-11 17:11:20.824            vgc.regex.gc:   total	2	5	9
+116c263	116c263	2022-12-11 17:11:21.951       vgc.sintervals.gc: reclaim	1	1	0
+116c263	116c263	2022-12-11 17:11:21.951       vgc.sintervals.gc:  retain	0	0	1
+116c263	116c263	2022-12-11 17:11:21.951       vgc.sintervals.gc:   total	2	4	4
+116c263	116c263	2022-12-11 17:11:23.135       vgc.tintervals.gc: reclaim	1	1	0
+116c263	116c263	2022-12-11 17:11:23.135       vgc.tintervals.gc:  retain	0	0	1
+116c263	116c263	2022-12-11 17:11:23.135       vgc.tintervals.gc:   total	2	4	4
+116c263	116c263	2022-12-11 17:11:31.561     linuxkernelregex.gc: reclaim	1	1	2	25	15
+116c263	116c263	2022-12-11 17:11:31.561     linuxkernelregex.gc:  retain	0	59	59	39	39
+116c263	116c263	2022-12-11 17:11:31.561     linuxkernelregex.gc:   total	2	63	80	80	80
+116c263	116c263	2022-12-11 17:11:32.637          linuxkernel.gc: reclaim	1	1	0
+116c263	116c263	2022-12-11 17:11:32.637          linuxkernel.gc:  retain	0	0	1
+116c263	116c263	2022-12-11 17:11:32.637          linuxkernel.gc:   total	2	4	4
+116c263	116c263	2022-12-11 17:11:33.797     linuxkernelloose.gc: reclaim	1	1	0	1
+116c263	116c263	2022-12-11 17:11:33.797     linuxkernelloose.gc:  retain	0	0	1	1
+116c263	116c263	2022-12-11 17:11:33.797     linuxkernelloose.gc:   total	2	4	4	4
+116c263	116c263	2022-12-11 17:11:35.077    linuxkernelstrict.gc: reclaim	1	1	0	1
+116c263	116c263	2022-12-11 17:11:35.077    linuxkernelstrict.gc:  retain	0	0	1	1
+116c263	116c263	2022-12-11 17:11:35.077    linuxkernelstrict.gc:   total	2	4	4	4
+116c263	116c263	2022-12-11 17:12:41.364            vgc.regex.gc: reclaim	1	0	0
+116c263	116c263	2022-12-11 17:12:41.364            vgc.regex.gc:  retain	0	2	6
+116c263	116c263	2022-12-11 17:12:41.364            vgc.regex.gc:   total	2	5	9
+116c263	116c263	2022-12-11 17:12:42.200       vgc.sintervals.gc: reclaim	1	1	0
+116c263	116c263	2022-12-11 17:12:42.200       vgc.sintervals.gc:  retain	0	0	1
+116c263	116c263	2022-12-11 17:12:42.200       vgc.sintervals.gc:   total	2	4	4
+116c263	116c263	2022-12-11 17:12:43.084       vgc.tintervals.gc: reclaim	1	1	0
+116c263	116c263	2022-12-11 17:12:43.084       vgc.tintervals.gc:  retain	0	0	1
+116c263	116c263	2022-12-11 17:12:43.084       vgc.tintervals.gc:   total	2	4	4
+116c263	116c263	2022-12-11 17:12:49.921     linuxkernelregex.gc: reclaim	1	1	2	24	13
+116c263	116c263	2022-12-11 17:12:49.921     linuxkernelregex.gc:  retain	0	59	59	39	39
+116c263	116c263	2022-12-11 17:12:49.921     linuxkernelregex.gc:   total	2	63	77	77	77
+116c263	116c263	2022-12-11 17:12:51.009          linuxkernel.gc: reclaim	1	1	0
+116c263	116c263	2022-12-11 17:12:51.009          linuxkernel.gc:  retain	0	0	1
+116c263	116c263	2022-12-11 17:12:51.009          linuxkernel.gc:   total	2	4	4
+116c263	116c263	2022-12-11 17:12:52.361     linuxkernelloose.gc: reclaim	1	0	1	1
+116c263	116c263	2022-12-11 17:12:52.361     linuxkernelloose.gc:  retain	0	1	1	1
+116c263	116c263	2022-12-11 17:12:52.361     linuxkernelloose.gc:   total	2	4	4	4
+116c263	116c263	2022-12-11 17:12:53.641    linuxkernelstrict.gc: reclaim	1	1	0	1
+116c263	116c263	2022-12-11 17:12:53.641    linuxkernelstrict.gc:  retain	0	0	1	1
+116c263	116c263	2022-12-11 17:12:53.641    linuxkernelstrict.gc:   total	2	4	4	4
+116c263	116c263	2022-12-11 17:13:58.928            vgc.regex.gc: reclaim	1	0	0
+116c263	116c263	2022-12-11 17:13:58.928            vgc.regex.gc:  retain	0	2	6
+116c263	116c263	2022-12-11 17:13:58.928            vgc.regex.gc:   total	2	5	9
+116c263	116c263	2022-12-11 17:13:59.780       vgc.sintervals.gc: reclaim	1	1	0
+116c263	116c263	2022-12-11 17:13:59.780       vgc.sintervals.gc:  retain	0	0	1
+116c263	116c263	2022-12-11 17:13:59.780       vgc.sintervals.gc:   total	2	4	4
+116c263	116c263	2022-12-11 17:14:00.709       vgc.tintervals.gc: reclaim	1	1	0
+116c263	116c263	2022-12-11 17:14:00.709       vgc.tintervals.gc:  retain	0	0	1
+116c263	116c263	2022-12-11 17:14:00.709       vgc.tintervals.gc:   total	2	4	4
+116c263	116c263	2022-12-11 17:14:08.032     linuxkernelregex.gc: reclaim	1	1	2	24	13
+116c263	116c263	2022-12-11 17:14:08.032     linuxkernelregex.gc:  retain	0	59	59	39	39
+116c263	116c263	2022-12-11 17:14:08.032     linuxkernelregex.gc:   total	2	63	77	77	77
+116c263	116c263	2022-12-11 17:14:09.095          linuxkernel.gc: reclaim	1	0	1
+116c263	116c263	2022-12-11 17:14:09.095          linuxkernel.gc:  retain	0	1	1
+116c263	116c263	2022-12-11 17:14:09.095          linuxkernel.gc:   total	2	4	4
+116c263	116c263	2022-12-11 17:14:10.254     linuxkernelloose.gc: reclaim	1	1	0	1
+116c263	116c263	2022-12-11 17:14:10.254     linuxkernelloose.gc:  retain	0	0	1	1
+116c263	116c263	2022-12-11 17:14:10.254     linuxkernelloose.gc:   total	2	4	4	4
+116c263	116c263	2022-12-11 17:14:11.514    linuxkernelstrict.gc: reclaim	1	1	0	1
+116c263	116c263	2022-12-11 17:14:11.514    linuxkernelstrict.gc:  retain	0	0	1	1
+116c263	116c263	2022-12-11 17:14:11.514    linuxkernelstrict.gc:   total	2	4	4	4
+116c263	116c263	2022-12-11 17:15:27.236            vgc.regex.gc: reclaim	1	0	0
+116c263	116c263	2022-12-11 17:15:27.236            vgc.regex.gc:  retain	0	2	6
+116c263	116c263	2022-12-11 17:15:27.236            vgc.regex.gc:   total	2	5	9
+116c263	116c263	2022-12-11 17:15:28.092       vgc.sintervals.gc: reclaim	1	1	0
+116c263	116c263	2022-12-11 17:15:28.092       vgc.sintervals.gc:  retain	0	0	1
+116c263	116c263	2022-12-11 17:15:28.092       vgc.sintervals.gc:   total	2	4	4
+116c263	116c263	2022-12-11 17:15:28.974       vgc.tintervals.gc: reclaim	1	1	0
+116c263	116c263	2022-12-11 17:15:28.974       vgc.tintervals.gc:  retain	0	0	1
+116c263	116c263	2022-12-11 17:15:28.974       vgc.tintervals.gc:   total	2	4	4
+116c263	116c263	2022-12-11 17:15:36.013     linuxkernelregex.gc: reclaim	1	1	2	24	13
+116c263	116c263	2022-12-11 17:15:36.013     linuxkernelregex.gc:  retain	0	59	59	39	39
+116c263	116c263	2022-12-11 17:15:36.013     linuxkernelregex.gc:   total	2	63	77	77	77
+116c263	116c263	2022-12-11 17:15:37.074          linuxkernel.gc: reclaim	1	1	0
+116c263	116c263	2022-12-11 17:15:37.074          linuxkernel.gc:  retain	0	0	1
+116c263	116c263	2022-12-11 17:15:37.074          linuxkernel.gc:   total	2	4	4
+116c263	116c263	2022-12-11 17:15:38.246     linuxkernelloose.gc: reclaim	1	1	0	1
+116c263	116c263	2022-12-11 17:15:38.246     linuxkernelloose.gc:  retain	0	0	1	1
+116c263	116c263	2022-12-11 17:15:38.246     linuxkernelloose.gc:   total	2	4	4	4
+116c263	116c263	2022-12-11 17:15:39.527    linuxkernelstrict.gc: reclaim	1	1	0	1
+116c263	116c263	2022-12-11 17:15:39.527    linuxkernelstrict.gc:  retain	0	0	1	1
+116c263	116c263	2022-12-11 17:15:39.527    linuxkernelstrict.gc:   total	2	4	4	4
+116c263	116c263	2022-12-11 17:16:44.593            vgc.regex.gc: reclaim	1	0	0
+116c263	116c263	2022-12-11 17:16:44.593            vgc.regex.gc:  retain	0	2	6
+116c263	116c263	2022-12-11 17:16:44.593            vgc.regex.gc:   total	2	5	9
+116c263	116c263	2022-12-11 17:16:45.432       vgc.sintervals.gc: reclaim	1	1	0
+116c263	116c263	2022-12-11 17:16:45.432       vgc.sintervals.gc:  retain	0	0	1
+116c263	116c263	2022-12-11 17:16:45.432       vgc.sintervals.gc:   total	2	4	4
+116c263	116c263	2022-12-11 17:16:46.336       vgc.tintervals.gc: reclaim	1	1	0
+116c263	116c263	2022-12-11 17:16:46.336       vgc.tintervals.gc:  retain	0	0	1
+116c263	116c263	2022-12-11 17:16:46.336       vgc.tintervals.gc:   total	2	4	4
+116c263	116c263	2022-12-11 17:16:53.179     linuxkernelregex.gc: reclaim	1	1	2	23	14
+116c263	116c263	2022-12-11 17:16:53.179     linuxkernelregex.gc:  retain	0	59	59	40	39
+116c263	116c263	2022-12-11 17:16:53.179     linuxkernelregex.gc:   total	2	63	77	77	77
+116c263	116c263	2022-12-11 17:16:54.253          linuxkernel.gc: reclaim	1	0	1
+116c263	116c263	2022-12-11 17:16:54.253          linuxkernel.gc:  retain	0	1	1
+116c263	116c263	2022-12-11 17:16:54.253          linuxkernel.gc:   total	2	4	4
+116c263	116c263	2022-12-11 17:16:55.423     linuxkernelloose.gc: reclaim	1	1	0	1
+116c263	116c263	2022-12-11 17:16:55.423     linuxkernelloose.gc:  retain	0	0	1	1
+116c263	116c263	2022-12-11 17:16:55.423     linuxkernelloose.gc:   total	2	4	4	4
+116c263	116c263	2022-12-11 17:16:56.726    linuxkernelstrict.gc: reclaim	1	1	0	1
+116c263	116c263	2022-12-11 17:16:56.726    linuxkernelstrict.gc:  retain	0	0	1	1
+116c263	116c263	2022-12-11 17:16:56.726    linuxkernelstrict.gc:   total	2	4	4	4
+116c263	116c263	2022-12-11 17:18:02.063            vgc.regex.gc: reclaim	1	0	0
+116c263	116c263	2022-12-11 17:18:02.063            vgc.regex.gc:  retain	0	2	6
+116c263	116c263	2022-12-11 17:18:02.063            vgc.regex.gc:   total	2	5	9
+116c263	116c263	2022-12-11 17:18:02.901       vgc.sintervals.gc: reclaim	1	1	0
+116c263	116c263	2022-12-11 17:18:02.901       vgc.sintervals.gc:  retain	0	0	1
+116c263	116c263	2022-12-11 17:18:02.901       vgc.sintervals.gc:   total	2	4	4
+116c263	116c263	2022-12-11 17:18:03.774       vgc.tintervals.gc: reclaim	1	1	0
+116c263	116c263	2022-12-11 17:18:03.774       vgc.tintervals.gc:  retain	0	0	1
+116c263	116c263	2022-12-11 17:18:03.774       vgc.tintervals.gc:   total	2	4	4
+116c263	116c263	2022-12-11 17:18:10.462     linuxkernelregex.gc: reclaim	1	1	2	24	13
+116c263	116c263	2022-12-11 17:18:10.462     linuxkernelregex.gc:  retain	0	59	59	39	39
+116c263	116c263	2022-12-11 17:18:10.462     linuxkernelregex.gc:   total	2	63	77	77	77
+116c263	116c263	2022-12-11 17:18:11.543          linuxkernel.gc: reclaim	1	1	0
+116c263	116c263	2022-12-11 17:18:11.543          linuxkernel.gc:  retain	0	0	1
+116c263	116c263	2022-12-11 17:18:11.543          linuxkernel.gc:   total	2	4	4
+116c263	116c263	2022-12-11 17:18:12.705     linuxkernelloose.gc: reclaim	1	1	0	1
+116c263	116c263	2022-12-11 17:18:12.705     linuxkernelloose.gc:  retain	0	0	1	1
+116c263	116c263	2022-12-11 17:18:12.705     linuxkernelloose.gc:   total	2	4	4	4
+116c263	116c263	2022-12-11 17:18:13.983    linuxkernelstrict.gc: reclaim	1	1	0	1
+116c263	116c263	2022-12-11 17:18:13.983    linuxkernelstrict.gc:  retain	0	0	1	1
+116c263	116c263	2022-12-11 17:18:13.983    linuxkernelstrict.gc:   total	2	4	4	4
+116c263	116c263	2022-12-11 17:19:19.719            vgc.regex.gc: reclaim	1	0	0
+116c263	116c263	2022-12-11 17:19:19.719            vgc.regex.gc:  retain	0	2	6
+116c263	116c263	2022-12-11 17:19:19.719            vgc.regex.gc:   total	2	5	9
+116c263	116c263	2022-12-11 17:19:20.551       vgc.sintervals.gc: reclaim	1	1	0
+116c263	116c263	2022-12-11 17:19:20.551       vgc.sintervals.gc:  retain	0	0	1
+116c263	116c263	2022-12-11 17:19:20.551       vgc.sintervals.gc:   total	2	4	4
+116c263	116c263	2022-12-11 17:19:21.444       vgc.tintervals.gc: reclaim	1	1	0
+116c263	116c263	2022-12-11 17:19:21.444       vgc.tintervals.gc:  retain	0	0	1
+116c263	116c263	2022-12-11 17:19:21.444       vgc.tintervals.gc:   total	2	4	4
+116c263	116c263	2022-12-11 17:19:28.162     linuxkernelregex.gc: reclaim	1	1	2	24	14
+116c263	116c263	2022-12-11 17:19:28.162     linuxkernelregex.gc:  retain	0	59	59	39	39
+116c263	116c263	2022-12-11 17:19:28.162     linuxkernelregex.gc:   total	2	63	78	78	78
+116c263	116c263	2022-12-11 17:19:29.209          linuxkernel.gc: reclaim	1	1	0
+116c263	116c263	2022-12-11 17:19:29.209          linuxkernel.gc:  retain	0	0	1
+116c263	116c263	2022-12-11 17:19:29.209          linuxkernel.gc:   total	2	4	4
+116c263	116c263	2022-12-11 17:19:30.362     linuxkernelloose.gc: reclaim	1	1	0	1
+116c263	116c263	2022-12-11 17:19:30.362     linuxkernelloose.gc:  retain	0	0	1	1
+116c263	116c263	2022-12-11 17:19:30.362     linuxkernelloose.gc:   total	2	4	4	4
+116c263	116c263	2022-12-11 17:19:31.671    linuxkernelstrict.gc: reclaim	1	1	0	1
+116c263	116c263	2022-12-11 17:19:31.671    linuxkernelstrict.gc:  retain	0	0	1	1
+116c263	116c263	2022-12-11 17:19:31.671    linuxkernelstrict.gc:   total	2	4	4	4
