@@ -418,3 +418,234 @@
 116c263	116c263	2022-12-11 17:19:31.671    linuxkernelstrict.gc: reclaim	1	1	0	1
 116c263	116c263	2022-12-11 17:19:31.671    linuxkernelstrict.gc:  retain	0	0	1	1
 116c263	116c263	2022-12-11 17:19:31.671    linuxkernelstrict.gc:   total	2	4	4	4
+784ea05	784ea05	2022-12-11 20:00:38.742            vgc.regex.gc: reclaim	1	0	0
+784ea05	784ea05	2022-12-11 20:00:38.742            vgc.regex.gc:  retain	0	2	6
+784ea05	784ea05	2022-12-11 20:00:38.742            vgc.regex.gc:   total	2	5	9
+784ea05	784ea05	2022-12-11 20:00:39.955       vgc.sintervals.gc: reclaim	1	1	0
+784ea05	784ea05	2022-12-11 20:00:39.955       vgc.sintervals.gc:  retain	0	0	1
+784ea05	784ea05	2022-12-11 20:00:39.955       vgc.sintervals.gc:   total	2	4	4
+784ea05	784ea05	2022-12-11 20:00:43.051       vgc.tintervals.gc: reclaim	1	1	0
+784ea05	784ea05	2022-12-11 20:00:43.051       vgc.tintervals.gc:  retain	0	0	1
+784ea05	784ea05	2022-12-11 20:00:43.051       vgc.tintervals.gc:   total	2	4	4
+784ea05	784ea05	2022-12-11 20:00:50.096     linuxkernelregex.gc: reclaim	1	1	2	24	13
+784ea05	784ea05	2022-12-11 20:00:50.096     linuxkernelregex.gc:  retain	0	59	59	39	39
+784ea05	784ea05	2022-12-11 20:00:50.096     linuxkernelregex.gc:   total	2	63	77	77	77
+784ea05	784ea05	2022-12-11 20:00:51.551          linuxkernel.gc: reclaim	1	1	0
+784ea05	784ea05	2022-12-11 20:00:51.551          linuxkernel.gc:  retain	0	0	1
+784ea05	784ea05	2022-12-11 20:00:51.551          linuxkernel.gc:   total	2	4	4
+784ea05	784ea05	2022-12-11 20:00:53.025     linuxkernelloose.gc: reclaim	1	1	0	1
+784ea05	784ea05	2022-12-11 20:00:53.025     linuxkernelloose.gc:  retain	0	0	1	1
+784ea05	784ea05	2022-12-11 20:00:53.025     linuxkernelloose.gc:   total	2	4	4	4
+784ea05	784ea05	2022-12-11 20:00:54.665    linuxkernelstrict.gc: reclaim	1	1	0	1
+784ea05	784ea05	2022-12-11 20:00:54.665    linuxkernelstrict.gc:  retain	0	0	1	1
+784ea05	784ea05	2022-12-11 20:00:54.665    linuxkernelstrict.gc:   total	2	4	4	4
+784ea05	784ea05	2022-12-11 20:02:10.832            vgc.regex.gc: reclaim	1	0	0
+784ea05	784ea05	2022-12-11 20:02:10.832            vgc.regex.gc:  retain	0	2	6
+784ea05	784ea05	2022-12-11 20:02:10.832            vgc.regex.gc:   total	2	5	9
+784ea05	784ea05	2022-12-11 20:02:12.384       vgc.sintervals.gc: reclaim	1	1	0
+784ea05	784ea05	2022-12-11 20:02:12.384       vgc.sintervals.gc:  retain	0	0	1
+784ea05	784ea05	2022-12-11 20:02:12.384       vgc.sintervals.gc:   total	2	4	4
+784ea05	784ea05	2022-12-11 20:02:13.839       vgc.tintervals.gc: reclaim	1	1	0
+784ea05	784ea05	2022-12-11 20:02:13.839       vgc.tintervals.gc:  retain	0	0	1
+784ea05	784ea05	2022-12-11 20:02:13.839       vgc.tintervals.gc:   total	2	4	4
+784ea05	784ea05	2022-12-11 20:02:22.420     linuxkernelregex.gc: reclaim	1	0	2	26	17
+784ea05	784ea05	2022-12-11 20:02:22.420     linuxkernelregex.gc:  retain	0	1	59	39	39
+784ea05	784ea05	2022-12-11 20:02:22.420     linuxkernelregex.gc:   total	2	4	83	83	83
+784ea05	784ea05	2022-12-11 20:02:24.184          linuxkernel.gc: reclaim	1	1	0
+784ea05	784ea05	2022-12-11 20:02:24.184          linuxkernel.gc:  retain	0	0	1
+784ea05	784ea05	2022-12-11 20:02:24.184          linuxkernel.gc:   total	2	4	4
+784ea05	784ea05	2022-12-11 20:02:26.030     linuxkernelloose.gc: reclaim	1	1	0	1
+784ea05	784ea05	2022-12-11 20:02:26.030     linuxkernelloose.gc:  retain	0	0	1	1
+784ea05	784ea05	2022-12-11 20:02:26.030     linuxkernelloose.gc:   total	2	4	4	4
+784ea05	784ea05	2022-12-11 20:02:28.138    linuxkernelstrict.gc: reclaim	1	1	0	1
+784ea05	784ea05	2022-12-11 20:02:28.138    linuxkernelstrict.gc:  retain	0	0	1	1
+784ea05	784ea05	2022-12-11 20:02:28.138    linuxkernelstrict.gc:   total	2	4	4	4
+784ea05	784ea05	2022-12-11 20:03:45.201            vgc.regex.gc: reclaim	1	0	0
+784ea05	784ea05	2022-12-11 20:03:45.201            vgc.regex.gc:  retain	0	2	6
+784ea05	784ea05	2022-12-11 20:03:45.201            vgc.regex.gc:   total	2	5	9
+784ea05	784ea05	2022-12-11 20:03:46.373       vgc.sintervals.gc: reclaim	1	1	0
+784ea05	784ea05	2022-12-11 20:03:46.373       vgc.sintervals.gc:  retain	0	0	1
+784ea05	784ea05	2022-12-11 20:03:46.373       vgc.sintervals.gc:   total	2	4	4
+784ea05	784ea05	2022-12-11 20:03:47.549       vgc.tintervals.gc: reclaim	1	1	0
+784ea05	784ea05	2022-12-11 20:03:47.549       vgc.tintervals.gc:  retain	0	0	1
+784ea05	784ea05	2022-12-11 20:03:47.549       vgc.tintervals.gc:   total	2	4	4
+784ea05	784ea05	2022-12-11 20:03:54.353     linuxkernelregex.gc: reclaim	1	1	1	23	13	18
+784ea05	784ea05	2022-12-11 20:03:54.353     linuxkernelregex.gc:  retain	0	0	59	39	39	39
+784ea05	784ea05	2022-12-11 20:03:54.353     linuxkernelregex.gc:   total	2	4	76	76	76	76
+784ea05	784ea05	2022-12-11 20:03:55.754          linuxkernel.gc: reclaim	1	1	0
+784ea05	784ea05	2022-12-11 20:03:55.754          linuxkernel.gc:  retain	0	0	1
+784ea05	784ea05	2022-12-11 20:03:55.754          linuxkernel.gc:   total	2	4	4
+784ea05	784ea05	2022-12-11 20:03:57.250     linuxkernelloose.gc: reclaim	1	1	0	1
+784ea05	784ea05	2022-12-11 20:03:57.250     linuxkernelloose.gc:  retain	0	0	1	1
+784ea05	784ea05	2022-12-11 20:03:57.250     linuxkernelloose.gc:   total	2	4	4	4
+784ea05	784ea05	2022-12-11 20:03:58.807    linuxkernelstrict.gc: reclaim	1	1	0	1
+784ea05	784ea05	2022-12-11 20:03:58.807    linuxkernelstrict.gc:  retain	0	0	1	1
+784ea05	784ea05	2022-12-11 20:03:58.807    linuxkernelstrict.gc:   total	2	4	4	4
+784ea05	784ea05	2022-12-11 20:05:03.451            vgc.regex.gc: reclaim	1	0	0
+784ea05	784ea05	2022-12-11 20:05:03.451            vgc.regex.gc:  retain	0	2	6
+784ea05	784ea05	2022-12-11 20:05:03.451            vgc.regex.gc:   total	2	5	9
+784ea05	784ea05	2022-12-11 20:05:04.635       vgc.sintervals.gc: reclaim	1	1	0
+784ea05	784ea05	2022-12-11 20:05:04.635       vgc.sintervals.gc:  retain	0	0	1
+784ea05	784ea05	2022-12-11 20:05:04.635       vgc.sintervals.gc:   total	2	4	4
+784ea05	784ea05	2022-12-11 20:05:05.813       vgc.tintervals.gc: reclaim	1	1	0
+784ea05	784ea05	2022-12-11 20:05:05.813       vgc.tintervals.gc:  retain	0	0	1
+784ea05	784ea05	2022-12-11 20:05:05.813       vgc.tintervals.gc:   total	2	4	4
+784ea05	784ea05	2022-12-11 20:05:12.640     linuxkernelregex.gc: reclaim	1	1	1	23	13	18
+784ea05	784ea05	2022-12-11 20:05:12.640     linuxkernelregex.gc:  retain	0	0	59	39	39	39
+784ea05	784ea05	2022-12-11 20:05:12.640     linuxkernelregex.gc:   total	2	4	76	76	76	76
+784ea05	784ea05	2022-12-11 20:05:14.038          linuxkernel.gc: reclaim	1	1	0
+784ea05	784ea05	2022-12-11 20:05:14.038          linuxkernel.gc:  retain	0	0	1
+784ea05	784ea05	2022-12-11 20:05:14.038          linuxkernel.gc:   total	2	4	4
+784ea05	784ea05	2022-12-11 20:05:15.481     linuxkernelloose.gc: reclaim	1	0	1	1
+784ea05	784ea05	2022-12-11 20:05:15.481     linuxkernelloose.gc:  retain	0	1	1	1
+784ea05	784ea05	2022-12-11 20:05:15.481     linuxkernelloose.gc:   total	2	4	4	4
+784ea05	784ea05	2022-12-11 20:05:17.020    linuxkernelstrict.gc: reclaim	1	1	0	1
+784ea05	784ea05	2022-12-11 20:05:17.020    linuxkernelstrict.gc:  retain	0	0	1	1
+784ea05	784ea05	2022-12-11 20:05:17.020    linuxkernelstrict.gc:   total	2	4	4	4
+784ea05	784ea05	2022-12-11 20:06:22.327            vgc.regex.gc: reclaim	1	0	0
+784ea05	784ea05	2022-12-11 20:06:22.327            vgc.regex.gc:  retain	0	2	6
+784ea05	784ea05	2022-12-11 20:06:22.327            vgc.regex.gc:   total	2	5	9
+784ea05	784ea05	2022-12-11 20:06:23.514       vgc.sintervals.gc: reclaim	1	1	0
+784ea05	784ea05	2022-12-11 20:06:23.514       vgc.sintervals.gc:  retain	0	0	1
+784ea05	784ea05	2022-12-11 20:06:23.514       vgc.sintervals.gc:   total	2	4	4
+784ea05	784ea05	2022-12-11 20:06:24.673       vgc.tintervals.gc: reclaim	1	1	0
+784ea05	784ea05	2022-12-11 20:06:24.673       vgc.tintervals.gc:  retain	0	0	1
+784ea05	784ea05	2022-12-11 20:06:24.673       vgc.tintervals.gc:   total	2	4	4
+784ea05	784ea05	2022-12-11 20:06:31.579     linuxkernelregex.gc: reclaim	1	1	1	23	13	18
+784ea05	784ea05	2022-12-11 20:06:31.579     linuxkernelregex.gc:  retain	0	0	59	39	39	39
+784ea05	784ea05	2022-12-11 20:06:31.579     linuxkernelregex.gc:   total	2	4	76	76	76	76
+784ea05	784ea05	2022-12-11 20:06:32.993          linuxkernel.gc: reclaim	1	1	0
+784ea05	784ea05	2022-12-11 20:06:32.993          linuxkernel.gc:  retain	0	0	1
+784ea05	784ea05	2022-12-11 20:06:32.993          linuxkernel.gc:   total	2	4	4
+784ea05	784ea05	2022-12-11 20:06:34.419     linuxkernelloose.gc: reclaim	1	1	0	1
+784ea05	784ea05	2022-12-11 20:06:34.419     linuxkernelloose.gc:  retain	0	0	1	1
+784ea05	784ea05	2022-12-11 20:06:34.419     linuxkernelloose.gc:   total	2	4	4	4
+784ea05	784ea05	2022-12-11 20:06:35.983    linuxkernelstrict.gc: reclaim	1	1	0	1
+784ea05	784ea05	2022-12-11 20:06:35.983    linuxkernelstrict.gc:  retain	0	0	1	1
+784ea05	784ea05	2022-12-11 20:06:35.983    linuxkernelstrict.gc:   total	2	4	4	4
+784ea05	784ea05	2022-12-11 20:07:40.768            vgc.regex.gc: reclaim	1	0	0
+784ea05	784ea05	2022-12-11 20:07:40.768            vgc.regex.gc:  retain	0	2	6
+784ea05	784ea05	2022-12-11 20:07:40.768            vgc.regex.gc:   total	2	5	9
+784ea05	784ea05	2022-12-11 20:07:41.968       vgc.sintervals.gc: reclaim	1	1	0
+784ea05	784ea05	2022-12-11 20:07:41.968       vgc.sintervals.gc:  retain	0	0	1
+784ea05	784ea05	2022-12-11 20:07:41.968       vgc.sintervals.gc:   total	2	4	4
+784ea05	784ea05	2022-12-11 20:07:43.383       vgc.tintervals.gc: reclaim	1	1	0
+784ea05	784ea05	2022-12-11 20:07:43.383       vgc.tintervals.gc:  retain	0	0	1
+784ea05	784ea05	2022-12-11 20:07:43.383       vgc.tintervals.gc:   total	2	4	4
+784ea05	784ea05	2022-12-11 20:07:50.514     linuxkernelregex.gc: reclaim	1	1	1	23	13	18
+784ea05	784ea05	2022-12-11 20:07:50.514     linuxkernelregex.gc:  retain	0	0	59	39	39	39
+784ea05	784ea05	2022-12-11 20:07:50.514     linuxkernelregex.gc:   total	2	4	76	76	76	76
+784ea05	784ea05	2022-12-11 20:07:51.964          linuxkernel.gc: reclaim	1	1	0
+784ea05	784ea05	2022-12-11 20:07:51.964          linuxkernel.gc:  retain	0	0	1
+784ea05	784ea05	2022-12-11 20:07:51.964          linuxkernel.gc:   total	2	4	4
+784ea05	784ea05	2022-12-11 20:07:53.386     linuxkernelloose.gc: reclaim	1	1	0	1
+784ea05	784ea05	2022-12-11 20:07:53.386     linuxkernelloose.gc:  retain	0	0	1	1
+784ea05	784ea05	2022-12-11 20:07:53.386     linuxkernelloose.gc:   total	2	4	4	4
+784ea05	784ea05	2022-12-11 20:07:54.928    linuxkernelstrict.gc: reclaim	1	1	0	1
+784ea05	784ea05	2022-12-11 20:07:54.928    linuxkernelstrict.gc:  retain	0	0	1	1
+784ea05	784ea05	2022-12-11 20:07:54.928    linuxkernelstrict.gc:   total	2	4	4	4
+784ea05	784ea05	2022-12-11 20:09:06.541            vgc.regex.gc: reclaim	1	0	0
+784ea05	784ea05	2022-12-11 20:09:06.541            vgc.regex.gc:  retain	0	2	6
+784ea05	784ea05	2022-12-11 20:09:06.541            vgc.regex.gc:   total	2	5	9
+784ea05	784ea05	2022-12-11 20:09:08.007       vgc.sintervals.gc: reclaim	1	1	0
+784ea05	784ea05	2022-12-11 20:09:08.007       vgc.sintervals.gc:  retain	0	0	1
+784ea05	784ea05	2022-12-11 20:09:08.007       vgc.sintervals.gc:   total	2	4	4
+784ea05	784ea05	2022-12-11 20:09:09.482       vgc.tintervals.gc: reclaim	1	1	0
+784ea05	784ea05	2022-12-11 20:09:09.482       vgc.tintervals.gc:  retain	0	0	1
+784ea05	784ea05	2022-12-11 20:09:09.482       vgc.tintervals.gc:   total	2	4	4
+784ea05	784ea05	2022-12-11 20:09:17.931     linuxkernelregex.gc: reclaim	1	1	1	25	15
+784ea05	784ea05	2022-12-11 20:09:17.931     linuxkernelregex.gc:  retain	0	0	59	39	39
+784ea05	784ea05	2022-12-11 20:09:17.931     linuxkernelregex.gc:   total	2	4	78	78	78
+784ea05	784ea05	2022-12-11 20:09:19.617          linuxkernel.gc: reclaim	1	1	0
+784ea05	784ea05	2022-12-11 20:09:19.617          linuxkernel.gc:  retain	0	0	1
+784ea05	784ea05	2022-12-11 20:09:19.617          linuxkernel.gc:   total	2	4	4
+784ea05	784ea05	2022-12-11 20:09:21.409     linuxkernelloose.gc: reclaim	1	1	0	1
+784ea05	784ea05	2022-12-11 20:09:21.409     linuxkernelloose.gc:  retain	0	0	1	1
+784ea05	784ea05	2022-12-11 20:09:21.409     linuxkernelloose.gc:   total	2	4	4	4
+784ea05	784ea05	2022-12-11 20:09:23.416    linuxkernelstrict.gc: reclaim	1	1	0	1
+784ea05	784ea05	2022-12-11 20:09:23.416    linuxkernelstrict.gc:  retain	0	0	1	1
+784ea05	784ea05	2022-12-11 20:09:23.416    linuxkernelstrict.gc:   total	2	4	4	4
+784ea05	784ea05	2022-12-11 20:10:39.200            vgc.regex.gc: reclaim	1	0	0
+784ea05	784ea05	2022-12-11 20:10:39.200            vgc.regex.gc:  retain	0	2	6
+784ea05	784ea05	2022-12-11 20:10:39.200            vgc.regex.gc:   total	2	5	9
+784ea05	784ea05	2022-12-11 20:10:40.682       vgc.sintervals.gc: reclaim	1	1	0
+784ea05	784ea05	2022-12-11 20:10:40.682       vgc.sintervals.gc:  retain	0	0	1
+784ea05	784ea05	2022-12-11 20:10:40.682       vgc.sintervals.gc:   total	2	4	4
+784ea05	784ea05	2022-12-11 20:10:42.092       vgc.tintervals.gc: reclaim	1	1	0
+784ea05	784ea05	2022-12-11 20:10:42.092       vgc.tintervals.gc:  retain	0	0	1
+784ea05	784ea05	2022-12-11 20:10:42.092       vgc.tintervals.gc:   total	2	4	4
+784ea05	784ea05	2022-12-11 20:10:50.825     linuxkernelregex.gc: reclaim	1	1	1	23	13	18
+784ea05	784ea05	2022-12-11 20:10:50.825     linuxkernelregex.gc:  retain	0	0	59	39	39	39
+784ea05	784ea05	2022-12-11 20:10:50.825     linuxkernelregex.gc:   total	2	4	76	76	76	76
+784ea05	784ea05	2022-12-11 20:10:52.608          linuxkernel.gc: reclaim	1	1	0
+784ea05	784ea05	2022-12-11 20:10:52.608          linuxkernel.gc:  retain	0	0	1
+784ea05	784ea05	2022-12-11 20:10:52.608          linuxkernel.gc:   total	2	4	4
+784ea05	784ea05	2022-12-11 20:10:54.409     linuxkernelloose.gc: reclaim	1	0	1	1
+784ea05	784ea05	2022-12-11 20:10:54.409     linuxkernelloose.gc:  retain	0	1	1	1
+784ea05	784ea05	2022-12-11 20:10:54.409     linuxkernelloose.gc:   total	2	4	4	4
+784ea05	784ea05	2022-12-11 20:10:56.366    linuxkernelstrict.gc: reclaim	1	1	0	1
+784ea05	784ea05	2022-12-11 20:10:56.366    linuxkernelstrict.gc:  retain	0	0	1	1
+784ea05	784ea05	2022-12-11 20:10:56.366    linuxkernelstrict.gc:   total	2	4	4	4
+784ea05	784ea05	2022-12-11 20:12:13.585            vgc.regex.gc: reclaim	1	0	0
+784ea05	784ea05	2022-12-11 20:12:13.585            vgc.regex.gc:  retain	0	2	6
+784ea05	784ea05	2022-12-11 20:12:13.585            vgc.regex.gc:   total	2	5	9
+784ea05	784ea05	2022-12-11 20:12:15.044       vgc.sintervals.gc: reclaim	1	1	0
+784ea05	784ea05	2022-12-11 20:12:15.044       vgc.sintervals.gc:  retain	0	0	1
+784ea05	784ea05	2022-12-11 20:12:15.044       vgc.sintervals.gc:   total	2	4	4
+784ea05	784ea05	2022-12-11 20:12:16.570       vgc.tintervals.gc: reclaim	1	1	0
+784ea05	784ea05	2022-12-11 20:12:16.570       vgc.tintervals.gc:  retain	0	0	1
+784ea05	784ea05	2022-12-11 20:12:16.570       vgc.tintervals.gc:   total	2	4	4
+784ea05	784ea05	2022-12-11 20:12:25.187     linuxkernelregex.gc: reclaim	1	1	1	24	14
+784ea05	784ea05	2022-12-11 20:12:25.187     linuxkernelregex.gc:  retain	0	0	59	39	39
+784ea05	784ea05	2022-12-11 20:12:25.187     linuxkernelregex.gc:   total	2	4	77	77	77
+784ea05	784ea05	2022-12-11 20:12:26.900          linuxkernel.gc: reclaim	1	1	0
+784ea05	784ea05	2022-12-11 20:12:26.900          linuxkernel.gc:  retain	0	0	1
+784ea05	784ea05	2022-12-11 20:12:26.900          linuxkernel.gc:   total	2	4	4
+784ea05	784ea05	2022-12-11 20:12:28.728     linuxkernelloose.gc: reclaim	1	0	1	1
+784ea05	784ea05	2022-12-11 20:12:28.728     linuxkernelloose.gc:  retain	0	1	1	1
+784ea05	784ea05	2022-12-11 20:12:28.728     linuxkernelloose.gc:   total	2	4	4	4
+784ea05	784ea05	2022-12-11 20:12:30.664    linuxkernelstrict.gc: reclaim	1	1	0	1
+784ea05	784ea05	2022-12-11 20:12:30.664    linuxkernelstrict.gc:  retain	0	0	1	1
+784ea05	784ea05	2022-12-11 20:12:30.664    linuxkernelstrict.gc:   total	2	4	4	4
+784ea05	784ea05	2022-12-11 20:13:48.889            vgc.regex.gc: reclaim	1	0	0
+784ea05	784ea05	2022-12-11 20:13:48.889            vgc.regex.gc:  retain	0	2	6
+784ea05	784ea05	2022-12-11 20:13:48.889            vgc.regex.gc:   total	2	5	9
+784ea05	784ea05	2022-12-11 20:13:50.343       vgc.sintervals.gc: reclaim	1	1	0
+784ea05	784ea05	2022-12-11 20:13:50.343       vgc.sintervals.gc:  retain	0	0	1
+784ea05	784ea05	2022-12-11 20:13:50.343       vgc.sintervals.gc:   total	2	4	4
+784ea05	784ea05	2022-12-11 20:13:51.814       vgc.tintervals.gc: reclaim	1	1	0
+784ea05	784ea05	2022-12-11 20:13:51.814       vgc.tintervals.gc:  retain	0	0	1
+784ea05	784ea05	2022-12-11 20:13:51.814       vgc.tintervals.gc:   total	2	4	4
+784ea05	784ea05	2022-12-11 20:14:00.625     linuxkernelregex.gc: reclaim	1	1	1	24	14
+784ea05	784ea05	2022-12-11 20:14:00.625     linuxkernelregex.gc:  retain	0	0	59	39	39
+784ea05	784ea05	2022-12-11 20:14:00.625     linuxkernelregex.gc:   total	2	4	77	77	77
+784ea05	784ea05	2022-12-11 20:14:02.549          linuxkernel.gc: reclaim	1	1	0
+784ea05	784ea05	2022-12-11 20:14:02.549          linuxkernel.gc:  retain	0	0	1
+784ea05	784ea05	2022-12-11 20:14:02.549          linuxkernel.gc:   total	2	4	4
+784ea05	784ea05	2022-12-11 20:14:04.298     linuxkernelloose.gc: reclaim	1	1	0	1
+784ea05	784ea05	2022-12-11 20:14:04.298     linuxkernelloose.gc:  retain	0	0	1	1
+784ea05	784ea05	2022-12-11 20:14:04.298     linuxkernelloose.gc:   total	2	4	4	4
+784ea05	784ea05	2022-12-11 20:14:06.244    linuxkernelstrict.gc: reclaim	1	1	0	1
+784ea05	784ea05	2022-12-11 20:14:06.244    linuxkernelstrict.gc:  retain	0	0	1	1
+784ea05	784ea05	2022-12-11 20:14:06.244    linuxkernelstrict.gc:   total	2	4	4	4
+784ea05	784ea05	2022-12-11 20:15:34.459            vgc.regex.gc: reclaim	1	0	0
+784ea05	784ea05	2022-12-11 20:15:34.459            vgc.regex.gc:  retain	0	2	6
+784ea05	784ea05	2022-12-11 20:15:34.459            vgc.regex.gc:   total	2	5	9
+784ea05	784ea05	2022-12-11 20:15:35.989       vgc.sintervals.gc: reclaim	1	0	1
+784ea05	784ea05	2022-12-11 20:15:35.989       vgc.sintervals.gc:  retain	0	1	1
+784ea05	784ea05	2022-12-11 20:15:35.989       vgc.sintervals.gc:   total	2	4	4
+784ea05	784ea05	2022-12-11 20:15:37.558       vgc.tintervals.gc: reclaim	1	1	0
+784ea05	784ea05	2022-12-11 20:15:37.558       vgc.tintervals.gc:  retain	0	0	1
+784ea05	784ea05	2022-12-11 20:15:37.558       vgc.tintervals.gc:   total	2	4	4
+784ea05	784ea05	2022-12-11 20:15:46.397     linuxkernelregex.gc: reclaim	1	1	1	24	13
+784ea05	784ea05	2022-12-11 20:15:46.397     linuxkernelregex.gc:  retain	0	0	59	39	40
+784ea05	784ea05	2022-12-11 20:15:46.397     linuxkernelregex.gc:   total	2	4	77	77	77
+784ea05	784ea05	2022-12-11 20:15:48.128          linuxkernel.gc: reclaim	1	1	0
+784ea05	784ea05	2022-12-11 20:15:48.128          linuxkernel.gc:  retain	0	0	1
+784ea05	784ea05	2022-12-11 20:15:48.128          linuxkernel.gc:   total	2	4	4
+784ea05	784ea05	2022-12-11 20:15:49.951     linuxkernelloose.gc: reclaim	1	1	0	1
+784ea05	784ea05	2022-12-11 20:15:49.951     linuxkernelloose.gc:  retain	0	0	1	1
+784ea05	784ea05	2022-12-11 20:15:49.951     linuxkernelloose.gc:   total	2	4	4	4
+784ea05	784ea05	2022-12-11 20:15:51.959    linuxkernelstrict.gc: reclaim	1	1	0	1
+784ea05	784ea05	2022-12-11 20:15:51.959    linuxkernelstrict.gc:  retain	0	0	1	1
+784ea05	784ea05	2022-12-11 20:15:51.959    linuxkernelstrict.gc:   total	2	4	4	4
