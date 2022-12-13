@@ -22,21 +22,6 @@ if [[ ! -z $(git ls-files etc/sh/regress) ]]; then
 else
   g="fffffff";
 fi
-
-if [[ "$1" == "--time" ]]; then
-  if ((clean==1)); then
-    h=""
-    d="$(stat -c %y build/testenv|grep -oE '[0-9]+.[0-9]+.[0-9]+ [0-9]+:[0-9]+:[0-9]+[.][0-9][0-9][0-9]')"
-    if ((short==1)); then
-      h="$c\t$g\t$d"
-    fi
-    for f in $(ls -1tr build/testenv/*.time); do
-      echo -e "$h\t$(cat $f|tr 'A-Z' 'a-z')" >> regression.time
-    done
-  fi
-  exit 0
-fi
-
 for f in $(ls -1tr "$@"); do
   n=$(basename "$f")
   rm -f /tmp/$n

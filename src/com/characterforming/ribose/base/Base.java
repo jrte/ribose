@@ -1,18 +1,18 @@
 /***
  * Ribose is a recursive transduction engine for Java
- * 
+ *
  * Copyright (C) 2011,2022 Kim Briggs
- * 
+ *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program (LICENSE-gpl-3.0). If not, see
  * <http://www.gnu.org/licenses/#GPL>.
@@ -32,20 +32,20 @@ import java.util.logging.SimpleFormatter;
 /**
  * This {@code Base} class provides commonly used defintions that are
  * used across the ribose framework.
- * 
+ *
  * @author Kim Briggs
  */
 public class Base {
 	/** 'ribose-0.0.0', current version */
 	public static final String RTE_VERSION = "ribose-HEAD";
-	
+
 	/** '.dfa', filename suffix for saved ginr automata */
 	public static final String AUTOMATON_FILE_SUFFIX = ".dfa";
 	/** (65536), least upper bound for transducer/effectors/value/signal enumerators */
 	public static final int MAX_ORDINAL = Short.MAX_VALUE;
 	/** (256 = {@code !nul}), least signal ordinal value */
 	public static final int RTE_SIGNAL_BASE = 256;
-	
+
 	/** type decoration prefix (type decorations declared here are for internal use) */
 	public static final byte TYPE_ORDINAL_INDICATOR = (byte)0xff;
 	/** type decoration for ginr tokens representing transducers in ribose patterns */
@@ -59,11 +59,9 @@ public class Base {
 
 	/** End of line sequence */
 	public static final String lineEnd = System.getProperty("line.separator", "\n");
-	
+
 	private static final int FILE_LOGGER_COUNT = 2;
 	private static final int FILE_LOGGER_LIMIT = 1024*1024;
-	private static final String RTE_LOGGER_NAME = "ribose-runtime";
-	private static final String RTC_LOGGER_NAME = "ribose-compile";
 	private static final int INPUT_BUFFER_SIZE = Integer.parseInt(System.getProperty("ribose.inbuffer.size", "65536"));
 	private static final int OUTPUT_BUFFER_SIZE = Integer.parseInt(System.getProperty("ribose.outbuffer.size", "8196"));
 	private static final Charset runtimeCharset = Charset.forName(System.getProperty("ribose.runtime.charset", "UTF-8"));
@@ -77,11 +75,16 @@ public class Base {
 
 	private static Logger rtcLogger = null;
 	private static Logger rteLogger = null;
+	private static Logger rtmLogger = null;
+
+	private static final String RTE_LOGGER_NAME = "ribose-runtime";
+	private static final String RTC_LOGGER_NAME = "ribose-compile";
+	private static final String RTM_LOGGER_NAME = "ribose-metrics";
 
 	/**
 	 * Get a reference to the compiler logger. This should be used only
 	 * in compilation contexts.
-	 * 
+	 *
 	 * @return the compiler logger
 	 */
 	public static Logger getCompileLogger() {
@@ -93,24 +96,24 @@ public class Base {
 						for (Handler h : Base.rtcLogger.getHandlers()) {
 							h.setLevel(Level.INFO);
 						}
-						FileHandler rtcHandler = new FileHandler(Base.rtcLogger.getName() + "%g.log", 
+						FileHandler rtcHandler = new FileHandler(Base.rtcLogger.getName() + "%g.log",
 							Base.FILE_LOGGER_LIMIT, Base.FILE_LOGGER_COUNT, true);
 						rtcHandler.setFormatter(new SimpleFormatter());
 						rtcHandler.setLevel(Level.FINE);
-						rtcLogger.addHandler(rtcHandler);
+						Base.rtcLogger.addHandler(rtcHandler);
 					} catch (Exception e) {
-						rtcLogger.log(Level.SEVERE, "Unable to attach file log handler for " + Base.rtcLogger.getName());
+						Base.rtcLogger.getParent().log(Level.SEVERE, "Unable to attach file log handler for " + Base.rtcLogger.getName());
 					}
-					rtcLogger.setLevel(Level.FINE);
+					Base.rtcLogger.setLevel(Level.FINE);
 				}
 			}
 		}
 		return Base.rtcLogger;
 	}
-	
+
 	/**
 	 * Get a reference to the runtime logger.
-	 * 
+	 *
 	 * @return the runtime logger
 	 */
 	public static Logger getRuntimeLogger() {
@@ -122,25 +125,53 @@ public class Base {
 						for (Handler h : Base.rteLogger.getHandlers()) {
 							h.setLevel(Level.INFO);
 						}
-						FileHandler rteHandler = new FileHandler(Base.rteLogger.getName() + "%g.log", 
+						FileHandler rteHandler = new FileHandler(Base.rteLogger.getName() + "%g.log",
 							Base.FILE_LOGGER_LIMIT, Base.FILE_LOGGER_COUNT, true);
 						rteHandler.setFormatter(new SimpleFormatter());
 						rteHandler.setLevel(Level.FINE);
-						rteLogger.addHandler(rteHandler);
+						Base.rteLogger.addHandler(rteHandler);
 					} catch (Exception e) {
-						rteLogger.log(Level.SEVERE, "Unable to attach file log handler for " + Base.rteLogger.getName());
+						Base.rteLogger.getParent().log(Level.SEVERE, "Unable to attach file log handler for " + Base.rteLogger.getName());
 					}
-					rteLogger.setLevel(Level.FINE);
+					Base.rteLogger.setLevel(Level.FINE);
 				}
 			}
 		}
 		return Base.rteLogger;
 	}
-	
+
+	/**
+	 * Get a reference to the compiler logger. This should be used only
+	 * in compilation contexts.
+	 *
+	 * @return the compiler logger
+	 */
+	public static Logger getMetricsLogger() {
+		if (Base.rtmLogger == null) {
+			synchronized (Base.RTE_VERSION) {
+				if (Base.rtmLogger == null) {
+					Base.rtmLogger = Logger.getLogger(Base.RTM_LOGGER_NAME);
+					try {
+						FileHandler rtmHandler = new FileHandler(Base.rtmLogger.getName() + "%g.log",
+						Base.FILE_LOGGER_LIMIT, Base.FILE_LOGGER_COUNT, true);
+						rtmHandler.setFormatter(new SimpleFormatter());
+						rtmHandler.setLevel(Level.FINE);
+						Base.rtmLogger.addHandler(rtmHandler);
+						Base.rtmLogger.setUseParentHandlers(false);
+					} catch (Exception e) {
+						Base.rtmLogger.getParent().log(Level.SEVERE, "Unable to attach file log handler for " + Base.rtmLogger.getName());
+					}
+					Base.rtmLogger.setLevel(Level.FINE);
+				}
+			}
+		}
+		return Base.rtmLogger;
+	}
+
 	/**
 	 * Instantiate a new {@code CharsetDecoder}. All textual data in ribose models
 	 * are represented in encoded form (eg, UTF-8 byte arrays).
-	 * 
+	 *
 	 * @return a new CharsetDecoder insstance
 	 */
 	static public CharsetDecoder newCharsetDecoder() {
@@ -150,7 +181,7 @@ public class Base {
 	/**
 	 * Instantiate a new {@code CharsetEncoder}. All textual data in ribose models
 	 * are represented in encoded form (eg, UTF-8 byte arrays).
-	 * 
+	 *
 	 * @return a new CharsetEncoder instance
 	 */
 	static public CharsetEncoder newCharsetEncoder() {
@@ -159,7 +190,7 @@ public class Base {
 
 	/**
 	 * Get the size (in bytes) to use for input buffers.
-	 * 
+	 *
 	 * @return input buffer size in bytes
 	 */
 	static public int getInBufferSize() {
@@ -168,29 +199,29 @@ public class Base {
 
 	/**
 	 * Get the size (in bytes) to use for output buffers.
-	 * 
+	 *
 	 * @return output buffer size in bytes
 	 */
 	static public int getOutBufferSize() {
 		return Base.OUTPUT_BUFFER_SIZE;
 	}
-	
+
 	/**
 	 * Check for reference ordinal (a 4-byte encoding of a value, signal
 	 * or transducer ordinal).
-	 * 
+	 *
 	 * @param bytes Encoded reference ordinal
 	 * @return true if {@code bytes} encodes a reference ordinal
 	 */
 	static public boolean isReferenceOrdinal(final byte bytes[]) {
 		return (bytes.length == 4) && (bytes[0] == TYPE_ORDINAL_INDICATOR);
 	}
-	
+
 	/**
 	 * Get reference type from an encoded reference ordinal with type indicator prefix
 	 * (eg {@code [\ff ! 256]} encodes {@code `!nul`} as an effector parameter).
-	 * 
-	 * @param bytes Encoded reference ordinal 
+	 *
+	 * @param bytes Encoded reference ordinal
 	 * @return a {@code byte} representing the reference type
 	 * @see TYPE_REFERENCE_SIGNAL
 	 * @see TYPE_REFERENCE_TRANSDUCER
@@ -209,11 +240,11 @@ public class Base {
 		}
 		return TYPE_REFERENCE_NONE;
 	}
-	
+
 	/**
 	 * Get reference type from an encoded referent ordinal without type indicator prefix
 	 * (eg, [! 256] encodes {@code nul} as an input signal).
-	 * 
+	 *
 	 * @param bytes Encoded reference ordinal
 	 * @return a {@code byte} representing the reference type
 	 * @see TYPE_REFERENCE_SIGNAL
@@ -233,10 +264,10 @@ public class Base {
 		}
 		return TYPE_REFERENCE_NONE;
 	}
-	
+
 	/**
 	 * Check for reference name (a ginr token with a type prefix byte, eg {@code `!nil`}).
-	 * 
+	 *
 	 * @param reference Bytes to check
 	 * @return the reference name if {@code bytes} encodes a reference, or null
 	 */
@@ -253,10 +284,10 @@ public class Base {
 		}
 		return null;
 	}
-	
+
 	/**
 	 * Decode a reference ordinal.
-	 * 
+	 *
 	 * @param type Expected reference type
 	 * @param bytes Bytes to check
 	 * @return the reference ordinal or a negative integer if none
@@ -275,11 +306,11 @@ public class Base {
 		}
 		return Integer.MIN_VALUE;
 	}
-	
+
 	/**
 	 * Encode a reference ordinal.
-	 * 
-	 * @param type The reference type 
+	 *
+	 * @param type The reference type
 	 * @param ordinal The reference ordinal
 	 * @return the enc oded reference ordinal
 	 */
@@ -289,11 +320,11 @@ public class Base {
 		assert ordinal == decodeReferenceOrdinal(type, bytes);
 		return bytes;
 	}
-	
+
 	/**
 	 * Decode an integer from a UTF-8 byte array.
-	 * 
-	 * @param bytes The UTF-8 byte array 
+	 *
+	 * @param bytes The UTF-8 byte array
 	 * @param length The number of bytes to decode, starting from 0
 	 * @return the decoded integer
 	 * @throws NumberFormatException on error

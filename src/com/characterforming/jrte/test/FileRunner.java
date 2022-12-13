@@ -78,21 +78,22 @@ public class FileRunner {
 		}
 
 		final File f = new File(inputPath);
-		int clen = (int)f.length();
+		long clen = (int)f.length();
 		if (clen <= 0) {
 			System.out.println(String.format("Input file is empty: %s", inputPath));
 			System.exit(1);
 		}
 		int exitCode = 1;
 		final Logger rteLogger = Base.getRuntimeLogger();
+		final Logger rtmLogger = Base.getMetricsLogger();
 		final CharsetDecoder decoder = Base.newCharsetDecoder();
 		final CharsetEncoder encoder = Base.newCharsetEncoder();
 		try (final FileInputStream isr = new FileInputStream(f)) {
 			long ejrte = 0, tjrte = 0, t0 = 0, t1 = 0;
 			byte[] cbuf = null;
 			if (regexOutEnabled || !jrteOutEnabled) {
-				cbuf = new byte[clen];
-				clen = isr.read(cbuf, 0, clen);
+				cbuf = new byte[(int)clen];
+				clen = isr.read(cbuf, 0, (int)clen);
 				assert clen == cbuf.length;
 			}
 			int loops = 1;
@@ -105,10 +106,10 @@ public class FileRunner {
 						loops = 20;
 						for (int i = 0; i < loops; i++) {
 							assert trex.status().isStopped();
-							if (trex.push(cbuf, clen).status().isWaiting()
+							if (trex.push(cbuf, (int)clen).status().isWaiting()
 							&& (!nil || (trex.push(Signal.nil).status().isWaiting()))
 							&& (trex.start(Bytes.encode(encoder, transducerName)).status().isRunnable())) {
-								t0 = System.currentTimeMillis();
+								t0 = System.nanoTime();
 								do {
 									trex.run();
 									ejrte += trex.getErrorCount();
@@ -117,29 +118,30 @@ public class FileRunner {
 									trex.push(Signal.eos).run();
 									ejrte += trex.getErrorCount();
 								}
-								t1 = System.currentTimeMillis() - t0;
+								t1 = System.nanoTime() - t0;
 								if (i >= 10) {
 									tjrte += t1;
 								}
-								System.out.print(String.format("%4d", t1));
+								System.out.print(String.format("%4d", t1/(1000000)));
 								assert !trex.status().isRunnable();
 								trex.stop();
 								assert trex.status().isStopped();
 							}
 						}
 						double epkb = (double)(ejrte*1024) / (double)(clen*loops);
-						double mbps = (tjrte > 0) ? ((double)clen / (double)(tjrte*1024*1024)) * (loops - 10) * 1000 : -1;
+						double mbps = (tjrte > 0) ? (double)((loops - 10)*clen*1000) / (double)tjrte : -1;
 						System.out.println(String.format(" : %7.3f mb/s %7.3f nul/kb", mbps, epkb));
+						rtmLogger.log(Level.INFO, String.format("%s\t%7.3f\t%d\t%s", inputPath, mbps, clen, transducerName));
 					} else {
-						t0 = System.currentTimeMillis();
+						t0 = System.nanoTime();
 						if (nil) {
 							ribose.transduce(runTarget, Bytes.encode(encoder, transducerName), Signal.nil, isr, System.out);
 						} else {
 							ribose.transduce(runTarget, Bytes.encode(encoder, transducerName), isr, System.out);
 						}
-						tjrte = System.currentTimeMillis() - t0;
-						double mbps = (tjrte > 0) ? ((double)clen / (double)(tjrte*1024*1024)) * 1000 : -1;
-						rteLogger.log(Level.FINE, String.format("%20s : %7.3f mb/s; %s (%,d bytes)", transducerName, mbps, inputPath, clen));
+						tjrte = System.nanoTime() - t0;
+						double mbps = (tjrte > 0) ? (double)(clen*1000) / (double)tjrte : -1;
+						rtmLogger.log(Level.FINE, String.format("%s\t%7.3f\t%d\t%s", inputPath, mbps, clen, transducerName));
 					}
 				} catch (Exception e) {
 					rteLogger.log(Level.SEVERE, "Runtime failed, exception thrown.", e);
@@ -158,7 +160,7 @@ public class FileRunner {
 					loops = 20;
 					for (int i = 0; i < loops; i++) {
 						Matcher matcher = pattern.matcher(charInput);
-						t0 = System.currentTimeMillis();
+						t0 = System.nanoTime();
 						int count = 0;
 						while (matcher.find()) {
 							int k = matcher.groupCount();
@@ -173,23 +175,24 @@ public class FileRunner {
 								}
 							}
 						}
-						t1 = System.currentTimeMillis() - t0;
-						System.out.print(String.format("%4d", count > 0 ? t1 : -1));
+						t1 = System.nanoTime() - t0;
+						System.out.print(String.format("%4d", count > 0 ? t1/1000000 : -1));
 						if (i >= 10) {
 							tregex += t1;
 						}
 						assert count > 0;
 					}
 					double tr = (tjrte > 0) ? (double) tregex / tjrte : -1;
-					double mbps = (tregex > 0) ? ((double)clen / (double)(tregex*1024*1024)) * (loops - 10) * 1000 : -1;
+					double mbps = (tregex > 0) ? (double)((loops - 10)*clen*1000) / (double)tregex : -1;
 					System.out.println(String.format(" : %7.3f mb/s %7.3f ribose:regex", mbps, tr));
+					rtmLogger.log(Level.INFO, String.format("%s\t%7.3f\t%d\t%s", inputPath, mbps, clen, regex));
 				} else {
 					int count = 0;
 					byte[] bytes = new byte[Base.getOutBufferSize()];
 					ByteBuffer bbuf = ByteBuffer.wrap(bytes);
 					CharBuffer sbuf = CharBuffer.allocate(bytes.length);
 					Matcher matcher = pattern.matcher(charInput);
-					t0 = System.currentTimeMillis();
+					t0 = System.nanoTime();
 					while (matcher.find()) {
 						int k = matcher.groupCount();
 						for (int j = 1; j <= k; j++) {
@@ -216,9 +219,9 @@ public class FileRunner {
 					}
 					System.out.flush();
 					assert count > 0;
-					tregex = System.currentTimeMillis() - t0;
-					double mbps = (tregex > 0) ? ((double)clen / (double)(tregex*1024*1024)) * 1000 : -1;
-					rteLogger.log(Level.FINE, String.format("%20s : %7.3f mb/s; %s (%,d bytes)", transducerName, mbps, inputPath, clen));
+					tregex = System.nanoTime() - t0;
+					double mbps = (tregex > 0) ? (double)(clen*1000d) / (double)tregex : -1;
+					rtmLogger.log(Level.INFO, String.format("%s\t%7.3f\t%d\t%s", inputPath, mbps, clen, regex));
 				}
 			}
 			exitCode = 0;

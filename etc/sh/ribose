@@ -16,18 +16,15 @@ if (($#!=3 && $# != 4)); then
   echo 'Default output stream is System.out'
 else
   jars="$(dirname $(readlink -f $0))/../../jars"
-  trun="java -cp $jars/ribose-0.0.0.jar $vmargs com.characterforming.ribose.TRun"
-  args="$1 $2 $3"
-  if (($#==4)); then
-    args="$args $4"
+  java="java -cp $jars/ribose-0.0.0.jar"
+	model="$1"
+	transducer="$2"
+	input="$3"
+  shift 3
+  if (($#>0)); then
+    $java $vmargs com.characterforming.ribose.TRun $nil "$model" "$transducer" "$input" $*
+  else
+    $java $vmargs com.characterforming.ribose.TRun $nil "$model" "$transducer" "$input"
   fi
-	jars="$(dirname $(readlink -f $0))/../../jars"
-	java="java -cp $jars/ribose-0.0.0.jar:$jars/ribose-0.0.0-test.jar"
-	{ time $trun $nil $args ; } 2>/tmp/$2.tmpx
-  last=$(ls -1t ribose-runtime*.log|head -n 1)
-	mbps=$(grep -Eio "$2 :[ ]*[0-9.]* mb/s;" $last|tail -n 1|grep -Eo " [0-9.]+ "|tr -d ' ')
-	echo -e "$(cat /tmp/$2.tmpx | tr '\r\n\t' ' ' | tr -s ' ')${mbps} mb/s $2" >/tmp/$2.time
-  cp /tmp/$2.time build/testenv
-  rm /tmp/$2.tmpx
 fi
 #set +x

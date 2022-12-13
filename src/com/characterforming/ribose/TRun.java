@@ -19,14 +19,14 @@ import com.characterforming.ribose.base.TargetBindingException;
 
 /**
  * Provides a {@link TRun#main(String[])} method to run a transduction using a ribose
- * model. {@code TRun} also serves as a target class for building basic UTF-8 text or 
- * other byte stream transduction models that use only built-in ribose effectors. 
+ * model. {@code TRun} also serves as a target class for building basic UTF-8 text or
+ * other byte stream transduction models that use only built-in ribose effectors.
  * To build a basic transduction model, compile with ginr a set of ribose-conformant
  * ginr patterns, saving automata (*.dfa) to be compiled into the model into a
  * directory. Then run {@link TCompile} with {@link TRun} as target class to package
  * the automata in the directory into a ribose model. To build a model for a specialized
  * {@link ITarget} implementation class, run {@link TCompile} specifying the specialized
- * target class for the model. 
+ * target class for the model.
  * <br><br>
  * <table style="font-size:12px">
  * <caption style="text-align:left"><b>TRun usage</b></caption>
@@ -41,7 +41,7 @@ import com.characterforming.ribose.base.TargetBindingException;
  * <br>
  * Default target is {@link TRun} but any {@link ITarget} implementation with a nullary
  * constructor can use used. Default output is System.out.
- * 
+ *
  */
 public class TRun extends BaseTarget {
 	/**
@@ -50,7 +50,7 @@ public class TRun extends BaseTarget {
 	public TRun() {
 		super();
 	}
-	
+
 	@Override // ITarget#getEffectors()
 	public IEffector<?>[] getEffectors() throws TargetBindingException {
 		// This is just a proxy for Transductor.getEffectors()
@@ -65,11 +65,11 @@ public class TRun extends BaseTarget {
 	/**
 	 * Opens a text transduction model built with {@link TRun} as model target class
 	 * and runs a transduction on an input file, optionally pushing a {@code nil}
-	 * signal as prologue. The named transducer, to be pushed to begin the transduction, 
+	 * signal as prologue. The named transducer, to be pushed to begin the transduction,
 	 * must be contained in the specified model file.
 	 * <br><br>
 	 * If no output file is soecified the {@code out[]} effector will write to System.out.
-	 *    
+	 *
 	 * @param args [--nil] <i>trun-model-path transducer-name input-file-path [output-file-path]</i>
 	 * @throws IOException if unable to start the logging susystem
 	 * @throws SecurityException if unable to start the logging susystem
@@ -90,9 +90,10 @@ public class TRun extends BaseTarget {
 		final String transducerName = args[arg++];
 		final String inputPath = args[arg++];
 		final String outputPath = arg < argc ? args[arg++] : null;
-		
+
 		final CharsetEncoder encoder = Base.newCharsetEncoder();
 		final Logger rteLogger = Base.getRuntimeLogger();
+		final Logger rtmLogger = Base.getMetricsLogger();
 		final File input = inputPath.charAt(0) == '-' ? null : new File(inputPath);
 		if (input != null && !input.exists()) {
 			System.out.println("No input file found at " + inputPath);
@@ -126,12 +127,12 @@ public class TRun extends BaseTarget {
 				if (ribose != null) {
 					Bytes transducer = Bytes.encode(encoder, transducerName);
 					ITarget runTarget = (ITarget) Class.forName(targetName).getDeclaredConstructor().newInstance();
-					long t0 = System.currentTimeMillis();
 					long clen = input.length();
+					long t0 = System.nanoTime();
 					if (ribose.transduce(runTarget, transducer, nil ? Signal.nil : null, isr, osw)) {
-						long t1 = System.currentTimeMillis() - t0;
-						double mbps = (t1 > 0) ? ((double)clen / (double)(t1*1024*1024)) * 1000 : -1;
-						rteLogger.log(Level.FINE, String.format("%20s : %7.3f mb/s; %s (%,d bytes)", transducerName, mbps, inputPath, clen));
+						double t1 = System.nanoTime() - t0;
+						double mbps = (t1 > 0) ? (double)(clen*1000) / t1 : -1;
+						rtmLogger.log(Level.FINE, String.format("%s\t%7.3f\t%d\t%s", inputPath, mbps, clen, transducerName));
 						exitCode = 0;
 					}
 				}

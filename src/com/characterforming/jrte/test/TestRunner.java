@@ -1,18 +1,18 @@
 /***
  * Ribose is a recursive transduction engine for Java
- * 
+ *
  * Copyright (C) 2011,2022 Kim Briggs
- * 
+ *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program (LICENSE-gpl-3.0). If not, see
  * <http://www.gnu.org/licenses/#GPL>.
@@ -52,7 +52,7 @@ public class TestRunner {
 			System.out.println(String.format("Usage: java -cp <classpath> %1$s <model-path> [wait-ms]", TestRunner.class.getName()));
 			System.exit(1);
 		}
-		
+
 		final Logger rteLogger = Base.getRuntimeLogger();
 		final String modelPath = args[0];
 		final long arg = args.length > 1 ? Long.parseLong(args[1]) : 0;
@@ -67,11 +67,17 @@ public class TestRunner {
 
 		Thread.sleep(arg);
 		if (arg == 1) {
-			System.out.printf("%20s: ", "Regex10PctDense");
+			System.out.printf("%20s: ", "(a{9}d)");
+			regexRun(achars, "(a{9}d)");
+			System.out.printf("%20s: ", "a{9}[bc]");
+			regexRun(achars, "a{9}[bc]");
+			System.out.printf("%20s: ", "(a{9}[bc])");
+			regexRun(achars, "(a{9}[bc])");
+			System.out.printf("%20s: ", "(a{9}c)");
 			regexRun(achars, "(a{9}c)");
-			System.out.printf("%20s: ", "Regex90PctDense");
+			System.out.printf("%20s: ", "(a{9}b)");
 			regexRun(achars, "(a{9}b)");
-			System.out.printf("%20s: ", "Regex100PctLong");
+			System.out.printf("%20s: ", "(a{9}b)*(a{9}c)");
 			regexRun(achars, "(a{9}b)*(a{9}c)");
 		}
 
@@ -92,24 +98,24 @@ public class TestRunner {
 					if (trex.push(abytes, abytes.length).status().isWaiting()
 					&& trex.push(Signal.nil).status().isWaiting()
 					&& (trex.start(transducer).status().isRunnable())) {
-						t0 = System.currentTimeMillis();
+						t0 = System.nanoTime();
 						do {
 							trex.run();
 						} while (trex.status().isRunnable());
 						if (trex.status().isPaused()) {
 							trex.push(Signal.eos).run();
 						}
-						t1 = System.currentTimeMillis() - t0;
+						t1 = System.nanoTime() - t0;
 						if (i >= 10) {
 							t2 += t1;
 						}
-						System.out.print(String.format("%4d", t1));
+						System.out.print(String.format("%4d", t1/1000000));
 						assert !trex.status().isRunnable();
 						trex.stop();
 						assert trex.status().isStopped();
 					}
 				}
-				double mbps = (t2 > 0) ? ((double)(10000000) / (double)(t2*1024*1024)) * (10*1000) : -1;
+				double mbps = (t2 > 0) ? (double)(10l*10000000l*1000l) / (double)t2 : -1;
 				System.out.println(String.format(" : %7.3f mb/s (bytes)", mbps));
 			}
 			exitCode = 0;
@@ -130,20 +136,20 @@ public class TestRunner {
 		Pattern regex = Pattern.compile(pattern, Pattern.MULTILINE);
 		for (int i = 0; i < 20; i++) {
 			Matcher matcher = regex.matcher(CharBuffer.wrap(input));
-			t0 = System.currentTimeMillis();
+			t0 = System.nanoTime();
 			while (matcher.find()) {
 				if (matcher.group(0) != null) {
 					captured += matcher.group(0).length();
 				}
 			}
-			t1 = System.currentTimeMillis() - t0;
-			System.out.print(String.format("%4d", t1));
+			t1 = System.nanoTime() - t0;
+			System.out.print(String.format("%4d", t1/1000000));
 			if (i >= 10) {
 				t2 += t1;
 			}
 		}
 		double density = (double)100 * ((double)captured / (double)(20*input.length));
-		double mbps = (t2 == 0) ? -1 : ((double)(10*input.length) / (double)(1024*1024)) / ((double)t2 / (double)1000);
-		System.out.println(String.format(" : %7.3f mb/s (chars, %.1f%% captured)", mbps, density));
+		double mbps = (t2 > 0) ? (double)(10*(long)input.length*1000) / (double)t2 : -1;
+		System.out.println(String.format(" : %7.3f mb/s (chars, captured %.1f%%)", mbps, density));
 	}
 }

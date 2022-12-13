@@ -1,18 +1,18 @@
 /***
  * Ribose is a recursive transduction engine for Java
- * 
+ *
  * Copyright (C) 2011,2022 Kim Briggs
- * 
+ *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program (LICENSE-gpl-3.0). If not, see
  * <http://www.gnu.org/licenses/#GPL>.
@@ -27,19 +27,19 @@ import com.characterforming.ribose.base.TargetBindingException;
  * and{@link IParameterizedEffector} instances that are invoked from runtime
  * transductions. The runtime {@code Transductor} class, which encapsulates
  * ribose transductions, implements {@code ITarget} and presents a core set
- * of built-in effectors that are accessible to all transductions. Specialized 
+ * of built-in effectors that are accessible to all transductions. Specialized
  * {@code ITarget} implementations may supplement these with specialized
  * effectors.
  * <br><br>
  * {@code ITarget} implementations must present a public default constructor
  * with no arguments. This is used to instantiate proxy instances to enumerate
- * effectors and compile effector parameters when a model is constructed and again 
+ * effectors and compile effector parameters when a model is constructed and again
  * when a model is loaded for runtime use. In those contexts, {@link ITarget#getEffectors()}
- * is called to obtain an enumeration of the target's effectors. For each 
+ * is called to obtain an enumeration of the target's effectors. For each
  * paramterized proxy effector, {@link IParameterizedEffector#newParameters(int)}
  * is called first, indicating the number of parameters to be compiled. Then
- * {@link IParameterizedEffector#compileParameter(int, byte[][])} is called 
- * for each parameter. No other methods are called on the proxy target or 
+ * {@link IParameterizedEffector#compileParameter(int, byte[][])} is called
+ * for each parameter. No other methods are called on the proxy target or
  * effectors during model compilation and loading, and proxy target and effector
  * instances are never involved in live transduction processes.
  * <br><br>
@@ -52,9 +52,21 @@ import com.characterforming.ribose.base.TargetBindingException;
  * specified parameter index. {@link ITransductor} instances are restartable and
  * reuseable and may serially run more than one transduction using the same target
  * instance. Each transduction is assumed to be a single-threaded process. Explicit
- * synchronization is required to ensure safety if multiple threads are allowed 
- * to access transduction artifacts ({@link ITransductor}, {@link ITarget}, 
+ * synchronization is required to ensure safety if multiple threads are allowed
+ * to access transduction artifacts ({@link ITransductor}, {@link ITarget},
  * {@link IEffector}, {@link INamedValue}).
+ * <br><br>
+ * Targets need not be monolithic. In fact, every ribose transduction involves a
+ * composite target comprised of the {@link ITransductor} implementation class, which
+ * implements {@code ITarget} interface and exports the core ribose effectors, and
+ * at least one other {@code ITarget instance}. To extend this to include more targets,
+ * select one target class as the representative target to present to the transduction.
+ * The representative target instantiates and calls {@link ITarget#getEffectors()}
+ * on each of the subordinate {@code ITarget} instances and merges them with its own
+ * effectors into a single array to return when its own {@link #getEffectors()} method
+ * is called. This technique may be especially useful for deserializing inputs that
+ * represent large and complex objects, as it allows semantics to encapsulated in
+ * tightly focussed targets (separation of concerns).
  *
  * @author Kim Briggs
  */
@@ -62,25 +74,25 @@ public interface ITarget {
 	/**
 	 * Get the name of the target as referenced in transducers that use the
 	 * target.
-	 * 
+	 *
 	 * @return The name of of this target
 	 */
 	String getName();
-	
+
 	/**
 	 * Lists the names and types of the effectors expressed by the target class
 	 * for binding to the runtime model.
 	 * <br><br>
-	 * Implementation classes must include their effectors in the IEffector 
+	 * Implementation classes must include their effectors in the IEffector
 	 * array returned. Targets may be composite, arranged in an inheritance
 	 * chain or encapsulated in discrete component classes, or a mixture of
 	 * these. In any case, the top-level target class is responsible for gathering
 	 * effectors from all involved target instances into a single array to present
-	 * when the target is bound to a runtime model. 
-	 * 
+	 * when the target is bound to a runtime model.
+	 *
 	 * After runtime binding is complete effectors are invoked when triggered
 	 * by running transductions in response to cues in the input stream.
-	 * 
+	 *
 	 * @return An array of IEffector instances bound to the target instance
 	 * @throws TargetBindingException on error
 	 */

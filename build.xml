@@ -98,7 +98,7 @@
 
 	<target name="clean-test">
 		<delete quiet="true" dir="${build.testenv}"/>
-		<delete quiet="true" dir="/tmp" includes="*.time,*.gc"/>
+		<delete quiet="true" dir="/tmp" includes="*.gc"/>
 	</target>
 
 	<target name="init">
@@ -121,20 +121,19 @@
 		<echoproperties/>
 	</target>
 
-	<target name="ribose" depends="init,package-java,javadoc,build-compiler-model"
+	<target name="ribose" depends="init,package-java,build-compiler-model,javadoc"
 		description="Clean build for java and patterns"/>
 
 	<target name="ci-test" depends="clean,test,env"
 		description="Full build with CI tests for java and patterns"/>
 
 	<target name="check-compile-java" depends="init">
-		<uptodate targetfile="${jars.dir}/${ribose.version}.jar" property="java.uptodate">
-			<srcfiles dir="${java.source.dir}" excludes="**/${java.test.dir}/**"/>
-			<srcfiles dir="." includes="LICENSE*"/>
-		</uptodate>
+		<depend srcdir="${java.source.dir}" destdir="${build.java.classes}" closure="yes">
+			<exclude name="**/Test/*.java"/>
+		</depend>
 	</target>
 
-	<target name="compile-java" unless="java.uptodate" depends="check-compile-java">
+	<target name="compile-java" depends="check-compile-java">
 		<javac fork="true" executable="${jdk}/bin/javac" compiler="modern" includeantruntime="false"
 		srcdir="${java.source.dir}" excludes="**/${java.test.dir}/**" destdir="${build.java.classes}"
 		debug="true" debuglevel="lines,vars,source">
@@ -198,12 +197,11 @@
 			<arg line="--target com.characterforming.ribose.TCompile ${build.compiler.model} ${build.compiler.model}/TCompile.model"/>
 		</java>
 		<fixcrlf file="${build.compiler.model}/TCompile.map" eol="lf"/>
-		<echo message="./TCompile.(map,model) -> ./TCompile.(map,model).last"/>
-		<move file="./TCompile.map" tofile="./TCompile.map.last" failonerror="false" verbose="false"/>
-		<move file="./TCompile.model" tofile="./TCompile.model.last" failonerror="false" verbose="false"/>
-		<echo message="${build.compiler.model}/TCompile.(map,model) -> ./TCompile.(map,model)"/>
-		<copy file="${build.compiler.model}/TCompile.map" tofile="./TCompile.map" preservelastmodified="true" failonerror="true" verbose="false"/>
-		<copy file="${build.compiler.model}/TCompile.model" tofile="./TCompile.model" preservelastmodified="true" failonerror="true" verbose="false"/>
+		<move file="./TCompile.map" tofile="./TCompile.map.last" failonerror="false" verbose="true"/>
+		<move file="./TCompile.model" tofile="./TCompile.model.last" failonerror="false" verbose="true"/>
+		<move todir="." verbose="true">
+			<fileset dir="${build.compiler.model}" includes="TCompile.*"/>
+		</move>
 	</target>
 
 	<target name="check-test-patterns" depends="ribose">
@@ -236,7 +234,14 @@
 		<fixcrlf file="build/Test.map" eol="lf"/>
 	</target>
 
-	<target name="compile-test" depends="package-java">
+	<target name="check-compile-test" depends="package-java">
+		<depend srcdir="${java.source.dir}" destdir="${build.java.classes}" closure="yes">
+			<include name="**/Test/*.java"/>
+			<classpath refid="java.classpath"/>
+		</depend>
+	</target>
+
+	<target name="compile-test" depends="check-compile-test">
 		<javac fork="true" executable="${jdk}/bin/javac" compiler="modern" release="11" includeantruntime="false"
 		srcdir="${java.source.dir}" destdir="${build.java.classes}" includes="**/${java.test.dir}/**"
 		debug="true" debuglevel="lines,vars,source">
@@ -373,13 +378,8 @@
 		</condition>
 		<fail unless="intervals.match" message="Not identical: ${build.testenv}/vgc.*.out"/>
 		<echo message="Identical: ${build.testenv}/vgc.*.out"/>
-<!-- verbose gc log throughput metrics (megabytes) -->
-		<echo message="Runtime and throughput metrics from ${build.testenv}/vgc.*.gc"/>
-		<exec failonerror="false" executable="bash">
-			<arg value="-c"/><arg value="cat /tmp/verbosegcregex.time /tmp/Sintervals.time /tmp/Tintervals.time|tr -s ' '"/>
-		</exec>
 <!-- verbose gc log transduction G1 pause metrics (megabytes) -->
-		<echo message="G1 evacuation pause metrics (megabytes) from ${build.testenv}/vgc.*.gc"/>
+		<echo message="G1 evacuation pause metrics (megabytes)"/>
 		<exec failonerror="true" executable="bash">
 			<arg value="-c"/>
 			<arg value="etc/sh/regress --clean ${build.testenv}/vgc.*.gc"/>
@@ -439,13 +439,8 @@
 		</condition>
 		<fail unless="kernel.match" message="Not identical: ${build.testenv}/linuxkernel*.out"/>
 		<echo message="Identical: ${build.testenv}/linuxkernel*.out"/>
-<!-- linux kernel log throughput metrics (megabytes) -->
-		<echo message="Runtime and throughput metrics from ${build.testenv}/linuxkernel*.gc"/>
-		<exec failonerror="false" executable="bash">
-			<arg value="-c"/><arg value="cat /tmp/linuxkernelregex.time /tmp/LinuxKernel.time /tmp/LinuxKernelLoose.time /tmp/LinuxKernelStrict.time|tr -s ' '"/>
-		</exec>
 <!-- linux kernel log transduction G1 pause metrics (megabytes) -->
-		<echo message="G1 evacuation pause metrics (megabytes) from ${build.testenv}/linuxkernel*.gc"/>
+		<echo message="G1 evacuation pause metrics (megabytes)"/>
 		<exec failonerror="true" executable="bash">
 			<arg value="-c"/>
 			<arg value="etc/sh/regress --clean ${build.testenv}/linuxkernel*.gc"/>
@@ -455,11 +450,6 @@
 		<exec failonerror="true" executable="bash">
 			<arg value="-c"/>
 			<arg value="grep -o -H 'total [0-9]*K, used [0-9]*K' ${build.testenv}/linuxkernel*.gc"/>
-		</exec>
-<!-- log regression time stats -->
-		<exec failonerror="true" executable="bash">
-			<arg value="-c"/>
-			<arg value="etc/sh/regress --clean --time"/>
 		</exec>
 	</target>
 
