@@ -3,7 +3,7 @@ StackTest = (
 ):dfamin;
 
 StackTestSub = (
-	(a* b, in[`!Bsig`] stop)* (a* eos, clear in[`!eos`] stop)
+	(a* b, signal[`!Bsig`] stop)* (a* eos, clear signal[`!eos`] stop)
 ):dfamin;
 
 StackTest:save `build/automata/StackTest.dfa`;

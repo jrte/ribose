@@ -1,21 +1,21 @@
 /***
  * Ribose is a recursive transduction engine for Java
- * 
+ *
  * Copyright (C) 2011,2022 Kim Briggs
- * 
+ *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.	See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received copies of the GNU General Public License
- * and GNU Lesser Public License along with this program.	See 
- * LICENSE-gpl-3.0. If not, see 
+ * and GNU Lesser Public License along with this program.	See
+ * LICENSE-gpl-3.0. If not, see
  * <http://www.gnu.org/licenses/>.
  */
 
@@ -61,7 +61,7 @@ public class ModelCompiler implements ITarget {
 	 * The model to be compiled.
 	 */
 	protected final Model model;
-	
+
 	private static final long VERSION = 210;
 	private final CharsetEncoder encoder;
 	private final CharsetDecoder decoder;
@@ -92,7 +92,7 @@ public class ModelCompiler implements ITarget {
 		this.rtcLogger = Base.getCompileLogger();
 		this.reset();
 	}
-	
+
 	@Override
 	public String getName() {
 		return this.getClass().getSimpleName();
@@ -138,7 +138,7 @@ public class ModelCompiler implements ITarget {
 			}
 			return compiler.getErrors().isEmpty();
 		} catch (ModelException e) {
-			String msg = String.format("Exception caught compiling automata directrory '%1$s'", inrAutomataDirectory.getPath());
+			String msg = String.format("Exception caught compiling automata directory '%1$s'", inrAutomataDirectory.getPath());
 			rtcLogger.log(Level.SEVERE, msg, e);
 			return false;
 		}
@@ -159,14 +159,14 @@ public class ModelCompiler implements ITarget {
 			this.symbols = symbols;
 		}
 	}
-	
+
 	class HeaderEffector extends BaseEffector<ModelCompiler> {
 		INamedValue fields[];
-		
+
 		HeaderEffector(ModelCompiler automaton) {
 			super(automaton, "header");
 	 }
-		
+
 		@Override
 		public
 		void setOutput(IOutput output) throws TargetBindingException {
@@ -180,7 +180,7 @@ public class ModelCompiler implements ITarget {
 				super.output.getNamedValue(Bytes.encode(super.output.getCharsetEncoder(), "symbols"))
 			};
 		}
-		
+
 		@Override
 		public
 		int invoke() throws EffectorException {
@@ -194,11 +194,11 @@ public class ModelCompiler implements ITarget {
 			);
 			target.header = h;
 			if (target.header.version != ModelCompiler.VERSION) {
-				target.error(String.format("%1$s: Invalid INR version %2$d", 
+				target.error(String.format("%1$s: Invalid INR version %2$d",
 					target.getTransducerName(), h.version));
 			}
 			if ((h.tapes < 2) || (h.tapes > 3)) {
-				target.error(String.format("%1$s: Invalid tape count %2$d", 
+				target.error(String.format("%1$s: Invalid tape count %2$d",
 					target.getTransducerName(), h.tapes));
 			}
 			target.transitions = new Transition[h.transitions];
@@ -222,14 +222,14 @@ public class ModelCompiler implements ITarget {
 			this.symbol = symbol;
 		}
 	}
-		
+
 	class TransitionEffector extends BaseEffector<ModelCompiler> {
 		INamedValue fields[];
-		
+
 		TransitionEffector(ModelCompiler automaton) {
 			super(automaton, "transition");
 		}
-		
+
 		@Override
 		public
 		void setOutput(IOutput output) throws TargetBindingException {
@@ -242,7 +242,7 @@ public class ModelCompiler implements ITarget {
 				super.output.getNamedValue(Bytes.encode(super.output.getCharsetEncoder(), "symbol"))
 			};
 		}
-		
+
 		@Override
 		public
 		int invoke() throws EffectorException {
@@ -259,7 +259,7 @@ public class ModelCompiler implements ITarget {
 				target.error(String.format("%1$s: Epsilon transition from state %2$d to %3$d (use :dfamin to remove these)",
 					target.getTransducerName(), t.from, t.to));
 			} else if (t.symbol.length == 0) {
-				target.error(String.format("%1$s: Empty symbol on tape %2$d", 
+				target.error(String.format("%1$s: Empty symbol on tape %2$d",
 					target.getTransducerName(), t.tape));
 			} else {
 				HashMap<Integer, Integer> rteStates = target.stateMaps[t.tape];
@@ -293,7 +293,7 @@ public class ModelCompiler implements ITarget {
 		}
 	}
 
-	class AutomatonEffector extends BaseEffector<ModelCompiler> {		
+	class AutomatonEffector extends BaseEffector<ModelCompiler> {
 		AutomatonEffector(ModelCompiler target) {
 			super(target, "automaton");
 		}
@@ -308,10 +308,10 @@ public class ModelCompiler implements ITarget {
 				super.output.getRtcLogger().log(Level.SEVERE, msg);
 				throw new EffectorException(msg);
 			}
-			
+
 			for (final ArrayList<Transition> transitions : target.stateTransitionMap.values()) {
 				transitions.trimToSize();
-			}		
+			}
 			final int[][][] transitionMatrix = new int[target.model.getSignalLimit()][inrInputStates.length][2];
 			for (int i = 0; i < transitionMatrix.length; i++) {
 				for (int j = 0; j < inrInputStates.length; j++) {
@@ -329,10 +329,10 @@ public class ModelCompiler implements ITarget {
 						continue;
 					}
 					if (t.tape != 0) {
-						target.error(String.format("%1$s: Ambiguous state %2$d", 
+						target.error(String.format("%1$s: Ambiguous state %2$d",
 							target.getTransducerName(), t.from));
 						continue;
-					} 
+					}
 					try {
 						final int rteState = target.getRteState(0, t.from);
 						final int inputOrdinal = target.model.getInputOrdinal(t.symbol);
@@ -358,7 +358,7 @@ public class ModelCompiler implements ITarget {
 							}
 						}
 					} catch (CompilationException e) {
-						target.error(String.format("%1$s: %2$s", 
+						target.error(String.format("%1$s: %2$s",
 							target.getTransducerName(), e.getMessage()));
 					}
 				}
@@ -368,7 +368,7 @@ public class ModelCompiler implements ITarget {
 				target.effectorVectorList.trimToSize();
 				target.factor(transitionMatrix);
 			}
-			
+
 			return IEffector.RTX_NONE;
 		}
 	}
@@ -376,7 +376,7 @@ public class ModelCompiler implements ITarget {
 	protected void setTransductor(ITransductor transductor) {
 		this.transductor = transductor;
 	}
-	
+
 	private void reset() {
 		this.transducerName = null;
 		this.stateMaps = null;
@@ -390,7 +390,7 @@ public class ModelCompiler implements ITarget {
 		this.transition = 0;
 		this.errors.clear();
 	}
-	
+
 	@SuppressWarnings("unchecked")
 	protected boolean compile(File inrFile) throws RiboseException {
 		this.reset();
@@ -409,11 +409,11 @@ public class ModelCompiler implements ITarget {
 			}
 			assert position == size;
 		} catch (FileNotFoundException e) {
-			this.error(String.format("%1$s: File not found '%2$s'", 
+			this.error(String.format("%1$s: File not found '%2$s'",
 				name, inrFile.getPath()));
 			return false;
 		} catch (IOException e) {
-			this.error(String.format("%1$s: IOException compiling '%2$s'; %3$s", 
+			this.error(String.format("%1$s: IOException compiling '%2$s'; %3$s",
 				name, inrFile.getPath(), e.getMessage()));
 			return false;
 		}
@@ -438,15 +438,15 @@ public class ModelCompiler implements ITarget {
 				return false;
 			}
 		} catch (ModelException e) {
-			this.error(String.format("%1$s: ModelException compiling '%2$s'; %3$s", 
+			this.error(String.format("%1$s: ModelException compiling '%2$s'; %3$s",
 				name, inrFile.getPath(), e.getMessage()));
 			return false;
 		} catch (DomainErrorException e) {
-			this.error(String.format("%1$s: DomainErrorException compiling '%2$s'; %3$s", 
+			this.error(String.format("%1$s: DomainErrorException compiling '%2$s'; %3$s",
 				name, inrFile.getPath(), e.getMessage()));
 			return false;
 		} catch (RiboseException e) {
-			this.error(String.format("%1$s: RteException compiling '%2$s'; %3$s", 
+			this.error(String.format("%1$s: RteException compiling '%2$s'; %3$s",
 				name, inrFile.getPath(), e.getMessage()));
 			return false;
 		} catch (AssertionError e) {
@@ -458,7 +458,7 @@ public class ModelCompiler implements ITarget {
 	}
 
 	private void factor(final int[][][] transitionMatrix) {
-		final HashMap<IntsArray, HashSet<Integer>> rowEquivalenceMap = 
+		final HashMap<IntsArray, HashSet<Integer>> rowEquivalenceMap =
 			new HashMap<IntsArray, HashSet<Integer>>((5 * transitionMatrix.length) >> 2);
 		for (int i = 0; i < transitionMatrix.length; i++) {
 			final IntsArray row = new IntsArray(transitionMatrix[i]);
@@ -500,7 +500,7 @@ public class ModelCompiler implements ITarget {
 						effectorVector = Arrays.copyOf(effectorVector, (effectorVector.length * 3) >> 1);
 					}
 					if (parameterPos > 0) {
-						assert((effectorPos > 0) && (effectorOrdinal == effectorVector[effectorPos - 1])); 
+						assert((effectorPos > 0) && (effectorOrdinal == effectorVector[effectorPos - 1]));
 						effectorVector[effectorPos - 1] *= -1;
 						final byte[][] parameters = Arrays.copyOf(parameterList, parameterPos);
 						int parameterOrdinal = this.model.compileParameters(effectorOrdinal, parameters);
@@ -539,7 +539,7 @@ public class ModelCompiler implements ITarget {
 				effectorVector = Arrays.copyOf(effectorVector, vectorLength);
 			}
 			if (parameterPos > 0) {
-				assert((effectorPos > 0) && (effectorOrdinal == effectorVector[effectorPos - 1])); 
+				assert((effectorPos > 0) && (effectorOrdinal == effectorVector[effectorPos - 1]));
 				final byte[][] parameters = Arrays.copyOf(parameterList, parameterPos);
 				int parameterOrdinal = this.model.compileParameters(effectorOrdinal, parameters);
 				effectorVector[effectorPos] = parameterOrdinal;
@@ -608,7 +608,7 @@ public class ModelCompiler implements ITarget {
 	private String getTransducerName() {
 		return this.transducerName.toString();
 	}
-	
+
 	private void compileInputToken(byte[] bytes) {
 		if (bytes.length > 1) {
 			String type = null;
@@ -633,7 +633,7 @@ public class ModelCompiler implements ITarget {
 				this.getTransducerName(), Bytes.decode(this.decoder, bytes, bytes.length), type));
 		}
 	}
-	
+
 	private void compileEffectorToken(byte[] bytes) {
 		assert (bytes.length > 0);
 		if (0 > this.model.getEffectorOrdinal(new Bytes(bytes))) {

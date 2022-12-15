@@ -19,12 +19,12 @@ numericDate = (
 	)
 	white
 @@
-	( md d0	dd d1 yyyy (white, d2 in[`!_mdy`])
-	|	dd d0	md d1 yyyy (white, d2 in[`!_dmy`])
-	|	md d0	md d1 yyyy (white, d2 in[qy])
-	|	yyyy d0	md d1 dd (white, d2 in[`!_ymd`])
-	|	yyyy d0	dd d1 md (white, d2 in[`!_ydm`])
-	|	yyyy d0	md d1 md (white, d2 in[yq])
+	( md d0	dd d1 yyyy (white, d2 signal[`!_mdy`])
+	|	dd d0	md d1 yyyy (white, d2 signal[`!_dmy`])
+	|	md d0	md d1 yyyy (white, d2 signal[qy])
+	|	yyyy d0	md d1 dd (white, d2 signal[`!_ymd`])
+	|	yyyy d0	dd d1 md (white, d2 signal[`!_ydm`])
+	|	yyyy d0	md d1 md (white, d2 signal[yq])
 	)
 );
 
@@ -50,12 +50,12 @@ m0 = ((((month$2:alph) - `~?`)$(0,0))* (`~?`, `~d0`)*)*;
 m1 = ((((month$2:alph) - `~?`)$(0,0))* (`~?`, `~d1`)*)*;
 
 alphanumericDate = (
-		day (white, select[`~d0`] cut) white* 'of'? white* 
-		(month @ m1) white+ 
-		yyyy (white, select[`~d2`] cut select in[`!_dmy`])
-	| (month @ m0) white+ 
-		day (white, select[`~d1`] cut select) white* 
-		yyyy (white, select[`~d2`] cut select in[`!_mdy`])
+		day (white, select[`~d0`] cut) white* 'of'? white*
+		(month @ m1) white+
+		yyyy (white, select[`~d2`] cut select signal[`!_dmy`])
+	| (month @ m0) white+
+		day (white, select[`~d1`] cut select) white*
+		yyyy (white, select[`~d2`] cut select signal[`!_mdy`])
 );
 
 date = (numericDate | alphanumericDate);
@@ -83,14 +83,14 @@ null = (
 		(nullify$(0 1 2))
 	@	((a0$(0,0))* (a1$(0,,0))* (a2$(0,,,0))*)*
 		(nul, nul, clear[`~*`] select)
-		(nul* a0* a1* a2*)* 
+		(nul* a0* a1* a2*)*
 	)
 );
 noise = (utf8 - (date$0:pref)) - white;
 
 dates = (
 	(
-		white* noise* 
+		white* noise*
 		(
 			(numericDate | alphanumericDate)
 			( (`_mdy`, out[`~d2` SLASH `~d0` SLASH `~d1` SPACE] clear[`~*`] select)

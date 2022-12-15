@@ -1,18 +1,18 @@
 /***
  * Ribose is a recursive transduction engine for Java
- * 
+ *
  * Copyright (C) 2011,2022 Kim Briggs
- * 
+ *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program (LICENSE-gpl-3.0). If not, see
  * <http://www.gnu.org/licenses/#GPL>.
@@ -30,7 +30,7 @@ import java.util.Map.Entry;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import com.characterforming.jrte.engine.Model.Mode;
+import com.characterforming.jrte.engine.Model.TargetMode;
 import com.characterforming.ribose.IEffector;
 import com.characterforming.ribose.INamedValue;
 import com.characterforming.ribose.IOutput;
@@ -52,7 +52,7 @@ import com.characterforming.ribose.base.TargetBindingException;
 /**
  * Runtime transductor instances are instantiated using {@link IRuntime#newTransductor(ITarget)}
  * presenting a collection of {@link IEffector} and {@link IParameterizedEffector}
- * instances. Client applications drive transduction using the Transductor.run() method, 
+ * instances. Client applications drive transduction using the Transductor.run() method,
  * which processes the input stack until one of the following conditions is satisfied:
  * <br><br>
  * <ol>
@@ -61,14 +61,14 @@ import com.characterforming.ribose.base.TargetBindingException;
  * <li>an effector returns RTX_PAUSE
  * <li>the transduction throws an exception.
  * </ol>
- * 
+ *
  * @author Kim Briggs
  */
 public final class Transductor implements ITransductor, IOutput {
 	static final int INITIAL_STACK_SIZE = 8;
 	static final int INITIAL_NAMED_VALUE_BYTES = 256;
 	static final int INITIAL_NAMED_VALUE_BUFFERS = 256;
-		
+
 	/* enumeration of built-in effectors, all below inlined in run(), except (*) */
 	private static final int NUL = 0;
 	private static final int NIL = 1;
@@ -78,16 +78,19 @@ public final class Transductor implements ITransductor, IOutput {
 	private static final int CUT = 5;
 	private static final int CLEAR = 6;
 	private static final int COUNT = 7;
-	private static final int IN = 8;
-	private static final int OUT = 9;
-	private static final int MARK = 10;
-	private static final int RESET = 11;
 	@SuppressWarnings("unused")
-	private static final int START = 12;
-	private static final int PAUSE = 13;
-	private static final int STOP = 14;
-	
+	private static final int SIGNAL = 8;
+	private static final int IN = 9;
+	private static final int OUT = 10;
+	private static final int MARK = 11;
+	private static final int RESET = 12;
+	@SuppressWarnings("unused")
+	private static final int START = 13;
+	private static final int PAUSE = 14;
+	private static final int STOP = 15;
+
 	private final Model model;
+	private final TargetMode mode;
 	private IEffector<?>[] effectors;
 	private NamedValue selected;
 	private NamedValue[] namedValueHandles;
@@ -105,12 +108,13 @@ public final class Transductor implements ITransductor, IOutput {
 	/**
 	 *  Constructor
 	 *
-	 * @param model The runtime model 
+	 * @param model The runtime model
 	 * @throws ModelException on error
 	 */
-	Transductor(final Model model, Mode mode) {
+	Transductor(final Model model, TargetMode mode) {
 		super();
 		this.model = model;
+		this.mode = mode;
 		this.effectors = null;
 		this.namedValueHandles = null;
 		this.namedValueOrdinalMap = null;
@@ -123,7 +127,7 @@ public final class Transductor implements ITransductor, IOutput {
 		this.rtcLogger = Base.getCompileLogger();
 		this.rteLogger = Base.getRuntimeLogger();
 
-		if (mode == Mode.run) {
+		if (this.mode == TargetMode.run) {
 			this.namedValueOrdinalMap = this.model.getNamedValueMap();
 			this.namedValueHandles = new NamedValue[this.namedValueOrdinalMap.size()];
 			for (final Entry<Bytes, Integer> entry : this.namedValueOrdinalMap.entrySet()) {
@@ -142,23 +146,47 @@ public final class Transductor implements ITransductor, IOutput {
 
 	@Override // @see com.characterforming.ribose.ITarget#getEffectors()
 	public IEffector<?>[] getEffectors() throws TargetBindingException {
-		return new IEffector<?>[] {
-	/* 0*/	new InlineEffector(this, "0"),
-	/* 1*/	new InlineEffector(this, "1"),
-	/* 2*/	new PasteEffector(this),
-	/* 3*/	new SelectEffector(this),
-	/* 4*/	new CopyEffector(this),
-	/* 5*/	new CutEffector(this),
-	/* 6*/	new ClearEffector(this),
-	/* 7*/	new CountEffector(this),
-	/* 8*/	new InEffector(this),
-	/* 9*/	new OutEffector(this),
-	/*10*/	new InlineEffector(this, "mark"),
-	/*11*/	new InlineEffector(this, "reset"),
-	/*12*/	new StartEffector(this),
-	/*13*/	new PauseEffector(this),
-	/*14*/	new StopEffector(this)
-		};
+		if (this.model.getModelVersion().equals(Base.RTE_VERSION)) {
+			return new IEffector<?>[] {
+			/* 0*/ new InlineEffector(this, "0"),
+			/* 1*/ new InlineEffector(this, "1"),
+			/* 2*/ new PasteEffector(this),
+			/* 3*/ new SelectEffector(this),
+			/* 4*/ new CopyEffector(this),
+			/* 5*/ new CutEffector(this),
+			/* 6*/ new ClearEffector(this),
+			/* 7*/ new CountEffector(this),
+			/* 8*/ new SignalEffector(this),
+			/* 9*/ new InEffector(this),
+			/*10*/ new OutEffector(this),
+			/*11*/ new InlineEffector(this, "mark"),
+			/*12*/ new InlineEffector(this, "reset"),
+			/*13*/ new StartEffector(this),
+			/*14*/ new PauseEffector(this),
+			/*15*/ new StopEffector(this)
+			};
+		} else if (this.model.getModelVersion().equals(Base.RTE_PREVIOUS)) {
+			return new IEffector<?>[] {
+			/* 0*/ new InlineEffector(this, "0"),
+			/* 1*/ new InlineEffector(this, "1"),
+			/* 2*/ new PasteEffector(this),
+			/* 3*/ new SelectEffector(this),
+			/* 4*/ new CopyEffector(this),
+			/* 5*/ new CutEffector(this),
+			/* 6*/ new ClearEffector(this),
+			/* 7*/ new CountEffector(this),
+			/* 8*/ new InEffector(this),
+			/* 9*/ new OutEffector(this),
+			/*10*/ new InlineEffector(this, "mark"),
+			/*11*/ new InlineEffector(this, "reset"),
+			/*12*/ new StartEffector(this),
+			/*13*/ new PauseEffector(this),
+			/*14*/ new StopEffector(this)
+			};
+		} else {
+			throw new TargetBindingException(String.format("Unsupported ribose model version '%s'.",
+				this.model.getModelVersion()));
+		}
 	}
 
 	@Override // @see com.characterforming.ribose.ITarget#getCharsetDecoder()
@@ -323,13 +351,13 @@ T:		do {
 							}
 						} else {
 							break T;
-						} 
+						}
 					}
 					// flag input stack condition if at end of frame
 					if (input.position >= input.limit) {
 						signalInput = -1;
 					}
-					
+
 					int action = NUL;
 					int index = 0;
 I:				do {
@@ -349,7 +377,7 @@ I:				do {
 							if (action < NUL) {
 								index = -action;
 								action = effectorVector[index++];
-							} 
+							}
 							break I;
 						}
 						if (signalInput == 0) {
@@ -362,15 +390,15 @@ I:				do {
 								signalInput = -1;
 							}
 							break I;
-						} 
+						}
 					} while (true);
-					
+
 					// continue at top of input loop after a run (nil* paste*)* nil singleton effects
 					if (action == NIL) {
 						continue;
 					}
-										
-					// invoke a vector of 1 or more effectors and record side effects on transducer and input stacks 
+
+					// invoke a vector of 1 or more effectors and record side effects on transducer and input stacks
 					aftereffects[0] = 0;
 					do {
 						int effect = IEffector.RTX_NONE;
@@ -423,7 +451,7 @@ I:				do {
 							this.inputStack.value(this.selected.getValue(), this.selected.getLength());
 							effect = IEffector.RTX_PUSH;
 							break;
-						case OUT: 
+						case OUT:
 							if (this.isOutEnabled && this.selected.getLength() > 0) {
 								try {
 									this.output.write(this.selected.getValue(), 0, this.selected.getLength());
@@ -452,8 +480,8 @@ I:				do {
 						}
 						// invariant: effector vector at index 0 holds NUL, so singletons (index == 0) always break out of loop here
 						action = effectorVector[index++];
-					} while (action != NUL);		
-					
+					} while (action != NUL);
+
 					// check for transducer or input stack adjustmnent
 					if (aftereffects[0] != 0) {
 						int breakout = 0;
@@ -512,7 +540,7 @@ I:				do {
 				transducer.state = state;
 			}
 		}
-		
+
 		// Transduction is paused or stopped; if paused it will resume on next call to run()
 		return this;
 	}
@@ -674,7 +702,7 @@ I:				do {
 		last /= top.inputEquivalents;
 		state /= top.inputEquivalents;
 		StringBuilder output = new StringBuilder(256);
-		output.append(String.format("Domain error on (%1$d~%2$d) in %3$s [%4$d]->[%5$d]%6$s,\tTransducer stack:%7$s", 
+		output.append(String.format("Domain error on (%1$d~%2$d) in %3$s [%4$d]->[%5$d]%6$s,\tTransducer stack:%7$s",
 			errorInput, top.inputFilter[errorInput], top.name, last, state, Base.lineEnd, Base.lineEnd));
 		for (int i = this.transducerStack.tos(); i >= 0; i--) {
 			TransducerState t = this.transducerStack.get(i);
@@ -682,7 +710,7 @@ I:				do {
 			output.append(String.format("\t\t%1$20s state:%2$3d; accepting", t.name, s));
 			for (int j = 0; j < top.inputEquivalents; j++) {
 				if (t.transitionMatrix[t.state + j][1] != Transductor.NUL) {
-					output.append(String.format(" (%1$d)->[%2$d]", j, 
+					output.append(String.format(" (%1$d)->[%2$d]", j,
 						t.transitionMatrix[t.state + j][0] / t.inputEquivalents));
 				}
 			}
@@ -711,7 +739,7 @@ I:				do {
 					inchar = String.format("%1$2x", Byte.toUnsignedInt(input.array[position]));
 				}
 				inbyte = Byte.toUnsignedInt(input.array[position]);
-				output.append(String.format("\t\t[ char='%1$s' (0x%2$02X); pos=%3$d; length=%4$d < ", 
+				output.append(String.format("\t\t[ char='%1$s' (0x%2$02X); pos=%3$d; length=%4$d < ",
 					inchar, inbyte, position, input.array.length));
 				while (start < end) {
 					int ubyte = Byte.toUnsignedInt(input.array[start]);
@@ -726,7 +754,7 @@ I:				do {
 				output.append("> ]").append(Base.lineEnd);
 			} else {
 				output.append("\t\t[ < end-of-input > ]").append(Base.lineEnd);
-			} 
+			}
 		}
 		return output.toString();
 	}
@@ -836,7 +864,50 @@ I:				do {
 		public int invoke(final int parameterIndex) throws EffectorException {
 			final int nameIndex = super.getParameter(parameterIndex);
 			return super.getTarget().clear(nameIndex);
-		} 
+		}
+	}
+
+	private final class SignalEffector extends BaseParameterizedEffector<Transductor, byte[][]> {
+		private SignalEffector(final Transductor transductor) {
+			super(transductor, "signal");
+		}
+
+		@Override
+		public void newParameters(final int parameterCount) {
+			super.parameters = new byte[parameterCount][][];
+		}
+
+		@Override
+		public int invoke() throws EffectorException {
+			throw new EffectorException("The signal effector requires a parameter");
+		}
+
+		@Override
+		public int invoke(final int parameterIndex) throws EffectorException {
+			return super.getTarget().in(super.getParameter(parameterIndex));
+		}
+
+		@Override
+		public byte[][] compileParameter(final int parameterIndex, final byte[][] parameterList) throws TargetBindingException {
+			if (parameterList.length != 1) {
+				throw new TargetBindingException("The signal effector accepts at most one parameter");
+			}
+			assert !Base.isReferenceOrdinal(parameterList[0]);
+			if (Base.getReferentType(parameterList[0]) == Base.TYPE_REFERENCE_SIGNAL) {
+				final Bytes name = new Bytes(Base.getReferenceName(parameterList[0]));
+				final int ordinal = super.getTarget().getModel().getSignalOrdinal(name);
+				if (ordinal >= 0) {
+					super.setParameter(parameterIndex,
+						new byte[][] {Base.encodeReferenceOrdinal(Base.TYPE_REFERENCE_SIGNAL, ordinal)});
+				} else {
+					throw new TargetBindingException(String.format("Null signal reference for signal effector: %s", name.toString()));
+				}
+				return this.getParameter(parameterIndex);
+			} else {
+				throw new TargetBindingException(String.format("Invalid signal reference `%s` for signal effector, requires type indicator ('%c') before the transducer name",
+					new Bytes(parameterList[0]).toString(), Base.TYPE_REFERENCE_SIGNAL));
+			}
+		}
 	}
 
 	private final class InEffector extends BaseInputOutputEffector {
@@ -862,12 +933,12 @@ I:				do {
 			super(transductor, "out");
 			this.isOutEnabled = super.target.isOutEnabled;
 		}
-		
+
 		@Override
 		public int invoke() throws EffectorException {
 			return IEffector.RTX_NONE;
 		}
-		
+
 		@Override
 		public int invoke(final int parameterIndex) throws EffectorException {
 			if (this.isOutEnabled) {
@@ -889,18 +960,18 @@ I:				do {
 			return IEffector.RTX_NONE;
 		}
 	}
-	
+
 	private final class CountEffector extends BaseParameterizedEffector<Transductor, int[]> {
-		
+
 		private CountEffector(final Transductor transductor) {
 			super(transductor, "count");
 		}
-		
+
 		@Override
 		public void newParameters(final int parameterCount) {
 			super.parameters = new int[parameterCount][];
 		}
-		
+
 		@Override
 		public int invoke() throws EffectorException {
 			throw new EffectorException(String.format("Cannot invoke inline effector '%1$s'", super.getName()));
@@ -938,7 +1009,7 @@ I:				do {
 				throw new TargetBindingException(String.format("%1$s.%2$s: invalid signal '%3$%s' for count effector",
 					super.getTarget().getName(), super.getName(), Bytes.decode(super.output.getCharsetDecoder(),
 					parameterList[1], parameterList[1].length)));
-			}		
+			}
 		}
 
 		@Override
@@ -978,8 +1049,8 @@ I:				do {
 				}
 				return ordinal;
 			} else {
-				throw new TargetBindingException(String.format("Invalid transducer reference `%s` for start effector, requires type indicator ('%c') before the transducer name", 
-					new Bytes(parameterList[0]).toString(), Base.TYPE_REFERENCE_TRANSDUCER));
+				throw new TargetBindingException(String.format("Invalid transducer reference `%s` for start effector, requires type indicator ('%c') before the transducer name",
+			 new Bytes(parameterList[0]).toString(), Base.TYPE_REFERENCE_TRANSDUCER));
 			}
 		}
 

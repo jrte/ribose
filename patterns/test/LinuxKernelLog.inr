@@ -1,9 +1,9 @@
-#May 15 07:58:52 kb-ubuntu kernel: [ 1794.599801] DROPPED IN=eth0 OUT= MAC=01:00:5e:00:00:fb:00:13:20:c0:36:32:08:00 SRC=192.168.144.101 DST=224.0.0.251 LEN=32 TOS=0x00 PREC=0x00 TTL=1 ID=8596 OPT (94040000) PROTO=2 
+#May 15 07:58:52 kb-ubuntu kernel: [ 1794.599801] DROPPED IN=eth0 OUT= MAC=01:00:5e:00:00:fb:00:13:20:c0:36:32:08:00 SRC=192.168.144.101 DST=224.0.0.251 LEN=32 TOS=0x00 PREC=0x00 TTL=1 ID=8596 OPT (94040000) PROTO=2
 
 ### LinuxKernel
-# This will extract up to 10 field values from iptables log messages in a Linux kernel log 
+# This will extract up to 10 field values from iptables log messages in a Linux kernel log
 # containing mixed messages from various sources. Input is reduced in a single pass without
-# lookahead, fields extracted from iptables messages are reordered for output to stdout. 
+# lookahead, fields extracted from iptables messages are reordered for output to stdout.
 ###
 
 value = {alpha, digit, punct}*;
@@ -13,7 +13,7 @@ timestamp = upper lower+ space digit digit? space (digit digit ':')+ digit digit
 header = (
 	(timestamp @@ PasteAny)
 	(space, select[`~hostname`])
-	(value @@ PasteAny) 
+	(value @@ PasteAny)
 	(space 'kernel: [' space* digit+ '.' digit+ space* ']')
 );
 
@@ -27,7 +27,7 @@ field = (
 		|	('SRC=', select[`~srcip`])
 		|	('DST=', select[`~dstip`])
 		|	('SPT=', select[`~srcport`])
-		|	('DPT=', select[`~dstport`]) 
+		|	('DPT=', select[`~dstport`])
 		|	('PROTO=', select[`~protocol`])
 	)
 	(value @@ PasteAny)
@@ -49,7 +49,7 @@ null = (
 	(
 			((AnyOrNul* @ iptables)$(0 1 2))
 		@	((a0$(0,0))* (a1$(0,,0))* (a2$(0,,,0))*)*
-			(nul$(0,0)) (nul* a0* a1* a2*)* 
+			(nul$(0,0)) (nul* a0* a1* a2*)*
 	)
 	(byte - nl)*
 );
@@ -71,31 +71,31 @@ save = out[
 continue = clear[`~*`] select[`~timestamp`];
 
 LinuxKernel = (
-	(nil, continue) 
+	(nil, continue)
 	(
 		iptables (nl, save continue)
 	|	null (nl, continue)
 	)*
 ):dfamin;
 
-### LinuxKernelStrict 
+### LinuxKernelStrict
 # This will mark input at start of line and look ahead using the input patterns of 3 transducers
-# describing lines of interest up to and including nl. If any of these patterns match the entire 
+# describing lines of interest up to and including nl. If any of these patterns match the entire
 # line, the input is reset to the mark and the matching transducer is started to consume the line.
-# If nul is signaled in the matching pass it will be caught and the entire line will be consumed 
+# If nul is signaled in the matching pass it will be caught and the entire line will be consumed
 # without effect.
 ###
 
 LinuxKernelDropped = (
-	header (space, select[`~tag`]) ('DROPPED' @@ PasteAny) fields (nl, save in[`!nil`] stop)
+	header (space, select[`~tag`]) ('DROPPED' @@ PasteAny) fields (nl, save signal[`!nil`] stop)
 ):dfamin;
 
 LinuxKernelLimited = (
-	header (space, select[`~tag`]) ('LIMITED' @@ PasteAny) fields (nl, save in[`!nil`] stop)
+	header (space, select[`~tag`]) ('LIMITED' @@ PasteAny) fields (nl, save signal[`!nil`] stop)
 ):dfamin;
 
 LinuxKernelAborted = (
-	header (space, select[`~tag`]) ('ABORTED' @@ PasteAny) fields (nl, save in[`!nil`] stop)
+	header (space, select[`~tag`]) ('ABORTED' @@ PasteAny) fields (nl, save signal[`!nil`] stop)
 ):dfamin;
 
 dropped = LinuxKernelDropped$0;
@@ -113,13 +113,13 @@ LinuxKernelStrict = (
 			(dropped, next start[`@LinuxKernelDropped`])
 		|	(limited, next start[`@LinuxKernelLimited`])
 		|	(aborted, next start[`@LinuxKernelAborted`])
-		| (null nl, in[`!nil`])
+		| (null nl, signal[`!nil`])
 		)?
 	)*
 ):dfamin;
 
-### LinuxKernelLoose 
-# This will mark and look ahead only far enough to select a capable transducer 
+### LinuxKernelLoose
+# This will mark and look ahead only far enough to select a capable transducer
 # or skip a line.
 ###
 
@@ -132,10 +132,10 @@ null = ((type:pref) - type) nul (byte - nl)*;
 
 LinuxKernelLoose = (
 	(
-		(nil, mark) 
+		(nil, mark)
 		(
 			(type, next start[`@LinuxKernelCapture`])
-		|	(null nl, in[`!nil`])
+		|	(null nl, signal[`!nil`])
 		)?
 	)*
 ):dfamin;

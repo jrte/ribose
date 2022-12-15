@@ -6,7 +6,7 @@ Fibonacci = (
 			# fib(n>0): cycle (~r) <- (~q) <- (~p) <- (~p)(~r), (~r) <- empty
 			('0', select[`~r`] cut[`~p`] select[`~p`] copy[`~q`] select[`~q`] cut[`~r`])*
 			# (~q) is selected and holds the result, so append nl, print fib(n) and signal nil to restart
-			(nl, paste out in[`!nil`])
+			(nl, paste out signal[`!nil`])
 		)?
 	)*
 	(eos, clear[`~*`] stop)
