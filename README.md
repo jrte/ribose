@@ -130,12 +130,12 @@ class Header {
   final int symbols;
   Header(int version, int tapes, int transitions, int states, int symbols)
   throws EffectorException {
+  // Apply value range and sanity checks (omitted here)
     this.version = version;
     this.tapes = tapes;
     this.transitions = transitions;
     this.states = states;
     this.symbols = symbols;
-    // Apply value range and sanity checks here
   }
 }
 
@@ -176,20 +176,7 @@ class HeaderEffector extends BaseEffector<ModelCompiler> {
   }
 }
 ```
-This demonstrates the clear separation of syntactic (input) and semantic (target) concerns obtained with pattern oriented design. All of the fine-grained character-level code that would otherwise be involved to navigate the input stream is relegated to transduction patterns expressed in a symbolic, algebraic framework supported by a robust compiler for multidimensional regular patterns. Target and effector implementations are thereby greatly reduced. For comparison, here is a snippet of **C** source from the ginr repo that decodes the tab-delimited sequence of ASCII digits representing the tape count in the header line:
-```
-if ( c < '0' || c > '9' ) { fail(8); }
-number_tapes = c - '0';
-c = getc( fp );
-while ( c != '\t' ) {
-  if ( c < '0' || c > '9' ) { fail(9); }
-  number_tapes = number_tapes * 10  +  ( c - '0' );
-  c = getc( fp );
-  if ( number_tapes >= MAXSHORT ) { fail(10); }
-}
-A-> A_nT = number_tapes;
-```
-Here, as with most ribose solutions, the effector implementation and supporting value class involve no external libraries outside the ribose runtime and are completely decoupled from the syntactic structure of the input. That is not to say that the target class and effectors, composed in a native programming language, cannot interact with more complex components in the application or service domain. But these interactions are orthogonal and opaque to transduction patterns since they are either encapsulated by effectors or occur downstream from transduction processes.
+This demonstrates the clear separation of syntactic (input) and semantic (target) concerns obtained with pattern oriented design. All of the fine-grained character-level code that would otherwise be involved to navigate the input stream is relegated to transduction patterns expressed in a symbolic, algebraic framework supported by a robust compiler for multidimensional regular patterns. Target and effector implementations are thereby greatly reduced. In this example, as with most ribose solutions, the effector implementations and supporting value classes involve no external libraries outside the ribose runtime and are completely decoupled from the syntactic structure of the input. That is not to say that the target and effector implementations, composed in a native programming language, cannot interact with more complex components in the application or service domain. But these interactions are orthogonal and opaque to transduction patterns since they are either encapsulated by effectors or occur downstream from transduction processes.
 ### Navigating Noisy Inputs (Nullification)
 It is often necessary to extract features that are embedded in otherwise irrelevant or noisy inputs. The ribose runtime supports this by injecting a `nul` signal into the input stream whenever no transition is defined for a received input. Any ribose pattern can be extended to handle a `nul` signal at any point by simply skipping over input with nil effect until a synchronization pattern marking the beginning of the innermost enclosing loop is recognized and then continuing as before. This extends the range of recognizable (but not necessarily acceptable) inputs to cover `byte*` while accepting only selected embedded features. In the example below, the `interval` pattern extracts `interval-ms` attribute values from `cycle-start` stanzas embedded in an XML document.
 
@@ -310,7 +297,7 @@ Consider ribonucleic acid (RNA), a strip of sugar (ribose) molecules strung toge
   <a href="https://www.youtube.com/watch?v=TfYf_rPWUdY"><img src="https://github.com/jrte/ribose/raw/master/etc/markdown/2-gears-white.jpeg"></a>
 </p>
 
-For a more recent example, consider a **C** function compiled to sequences of machine instructions with an entry point (call) and maybe one or more exit points (return). This can be decomposed into a set of vectors of non-branching instructions, each terminating with a branch (or return) instruction. These vectors are ratcheted through the control unit of a CPU and each sequential instruction is mapped (decoded and executed) to effect specific local changes in the state of the machine. Branching instructions evaluate machine state to select the next vector for execution. All of this is effected by a von Neumann CPU, chasing an instruction pointer. As long as the stack pointer is fixed on the frame containing a function the instruction pointer will trace a regular pattern within the bounds of the compiled function. This regularity would be obvious in the source code for the function as implemented in a procedural programming language like **C**, where the interplay of concatenation (';'), union (if/else/switch) and repetition (while/do/for) is apparent. It may not be so obvious in source code written in other, eg functional, programming languages, but it all gets compiled down to machine code to run on von Neumann CPUs, on the ground or in the cloud.
+For a more recent example, consider a **C** function compiled to sequences of machine instructions with an entry point (call) and maybe one or more exit points (return). This can be decomposed into a set of vectors of non-branching instructions, each terminating with a branch (or return) instruction. These vectors are ratcheted through the control unit of a CPU and each sequential instruction is decoded and executed to effect specific local changes in the state of the machine. Branching instructions evaluate machine state to select the next vector for execution. All of this is effected by a von Neumann CPU, chasing an instruction pointer. As long as the stack pointer is fixed on the frame containing a function the instruction pointer will trace a regular pattern within the bounds of the compiled function. This regularity would be obvious in the source code for the function as implemented in a procedural programming language like **C**, where the interplay of concatenation (';'), union (if/else/switch) and repetition (while/do/for) is apparent. It may not be so obvious in source code written in other, eg functional, programming languages, but it all gets compiled down to machine code to run on von Neumann CPUs, on the ground or in the cloud.
 
 From an extreme but directionally correct perspective it can be said that almost all software processes operating today are running on programmable calculators with keyboards and heaps of RAM. Modern computing machines are the multigenerational inheritors of von Neumann's architecture, which was originally developed to support numeric use cases. These machines are "[Turing complete](https://en.wikipedia.org/wiki/Brainfuck)", so all that is required to accommodate textual data is a numeric encoding of text characters. [Programmers can do the rest](https://www.cs.nott.ac.uk/~pszgmh/Parsing.hs). Since von Neumann's day we've seen lots of giddy-up but the focus in [machine development](https://github.com/jrte/ribose/raw/master/reference/50_Years_of_Army_Computing.pdf) has mainly been on miniaturization and optimizations to compensate for RAM access lag.
 
@@ -342,7 +329,7 @@ Ribose is presented for demonstration only and is not regularly maintained. You 
 
 Clone the ribose repo and run `ant ribose` to build the ribose library in the `jars/` folder. The `test` ant target runs the CI test suite, `ci-test` runs a clean build with tests. This should work on any unix-ish platform, including `git bash` or `Msys2\mingw` for Windows, with `ant`, `java`, `bash`, `cat`, `wc`, `grep` in the executable search path. Binary executable copies of `ginr` (for linux) and `ginr.exe` (for Windows) are included in `etc/ginr` (with the author's permission) for personal use. You are encouraged to clone or download and build ginr directly from the [ginr repo](https://github.com/ntozubod/ginr).
 
-The `BaseTarget` class expresses the built-in ribose effectors, which are sufficient for basic ribose runtime models with transductions that only write transduction output though the `out[...]` effector into the transduction output stream. These can be supplemented with additional effectors presented by specialized `ITarget` implementations that capture transduction output in simple value objects for assimilation into the target, which mey also interact with other domain objects. In any case, to build a ribose model for a collection of transduction patterns, emulate the procedure for building `Test.model` (see the `compile-test-patterns` and `package-test-patterns` targets in `build.xml`).
+The `BaseTarget` class expresses the built-in ribose effectors, which are sufficient for basic ribose runtime models with transductions that only write transduction output though the `out[...]` effector into the transduction output stream. These can be supplemented with additional effectors presented by specialized `ITarget` implementations that capture transduction output in simple value objects for assimilation into the target, which may also interact with other domain objects. In any case, to build a ribose model for a collection of transduction patterns, emulate the procedure for building `Test.model` (see the `compile-test-patterns` and `package-test-patterns` targets in `build.xml`).
 
 Shell scripts are available in `etc/sh` to support compiling patterns, packaging transducers into models, and running transductions with ribose models:
 

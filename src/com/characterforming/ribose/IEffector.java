@@ -28,7 +28,7 @@ import com.characterforming.ribose.base.TargetBindingException;
  * Interface for simple effectors that present only a nullary {@link #invoke()}
  * method to the transductor. Effectors are invoked at runtime in response to
  * state transitions in a running transduction. They are typically implemented
- * as anonymous inner classes withinin a specialized {@link ITarget} implementation
+ * as anonymous inner classes within a specialized {@link ITarget} implementation
  * class.
  * <br><br>
  * Simple effectors present an {@link invoke()} method that is called from running
@@ -43,12 +43,9 @@ public interface IEffector<T extends ITarget> {
 	/**
 	 * RTX bits are additive and accumulate as the effect vector is
 	 * executed for a transition. Most RTX bits reflect the action
-	 * of built-in effectors. Domain specific effectors should return
-	 * only {@code RTX_NONE} (to continue transduction normally).
-	 *
-	 * Return RTX_NONE from effector.invoke() methods that do not
-	 * affect the {@link ITransductor} transducer stack or input
-	 * stack.
+	 * of built-in effectors. Effectors that do not affect the
+	 * {@link ITransductor} transducer stack or input stack should
+	 * return only {@code RTX_NONE} (to continue transduction normally).
 	 */
 	static final int RTX_NONE = 0;
 	/**
@@ -64,7 +61,7 @@ public interface IEffector<T extends ITarget> {
 	 */
 	static final int RTX_PUSH = 4;
 	/**
-	 * ITransductor input stack popped.
+	 * Input stack popped.
 	 */
 	static final int RTX_POP = 8;
 	/**
@@ -91,9 +88,9 @@ public interface IEffector<T extends ITarget> {
 	/**
 	 * Receive an IOutput view of transduction loggers and named values. Named
 	 * values are arrays of bytes extracted from transduction input. Effectors will
-	 * typically select and hold a {@link java.util.logging.Logger} and a subset of {@link INamedValue}
-	 * fields of interest here and extract value data in {@link #invoke()} for
-	 * assimilation into the target.
+	 * typically select and hold a {@link java.util.logging.Logger} and a subset
+	 * of {@link INamedValue} fields of interest here and extract value data in
+	 * {@link #invoke()} for assimilation into the target.
 	 *
 	 * @param output A object that provides a view or transduction runtime values
 	 * @throws TargetBindingException if value names can't be resolved
@@ -101,7 +98,7 @@ public interface IEffector<T extends ITarget> {
 	void setOutput(IOutput output) throws TargetBindingException;
 
 	/**
-	 * Returns the target that expresses the effector
+	 * Returns the target that expresses the effector.
 	 *
 	 * @return The target that expresses the effector
 	 */

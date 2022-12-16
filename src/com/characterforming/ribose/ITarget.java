@@ -35,7 +35,7 @@ import com.characterforming.ribose.base.TargetBindingException;
  * with no arguments. This is used to instantiate proxy instances to enumerate
  * effectors and compile effector parameters when a model is constructed and again
  * when a model is loaded for runtime use. In those contexts, {@link ITarget#getEffectors()}
- * is called to obtain an enumeration of the target's effectors. For each
+ * is called to obtain an enumeration of the proxy target's effectors. For each
  * paramterized proxy effector, {@link IParameterizedEffector#newParameters(int)}
  * is called first, indicating the number of parameters to be compiled. Then
  * {@link IParameterizedEffector#compileParameter(int, byte[][])} is called
@@ -62,7 +62,7 @@ import com.characterforming.ribose.base.TargetBindingException;
  * at least one other {@code ITarget instance}. To extend this to include more targets,
  * select one target class as the representative target to present to the transduction.
  * The representative target instantiates and calls {@link ITarget#getEffectors()}
- * on each of the subordinate {@code ITarget} instances and merges them with its own
+ * on each of the subordinate {@code ITarget} instances and merges its effectors with its own
  * effectors into a single array to return when its own {@link #getEffectors()} method
  * is called. This technique may be especially useful for deserializing inputs that
  * represent large and complex objects, as it allows semantics to encapsulated in

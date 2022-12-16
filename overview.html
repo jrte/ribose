@@ -3,54 +3,74 @@
 <body>
 	<a href="https://github.com/jrte/ribose" target="_blank"><img alt="a-b-gears" src="{@docRoot}/a-b-gears-white.gif"></a>
 	<a href="https://github.com/jrte/ribose" target="_blank"><b>Ribose</b></a> is about inversion of
-	control for high-volume text analysis and information extraction and transformation. For a more 
-	detailed presentation see the README at <a href="https://github.com/jrte/ribose" target="_blank">https://github.com/jrte/ribose</a>.
+	control for high-volume text analysis and information extraction and transformation. For a more
+	detailed presentation see <a href="https://github.com/jrte/ribose#the-general-idea" target="_blank">https://github.com/jrte/ribose</a>.
 	<br><br>
-	The ribose compiler builds transducers from <b><a href="https://github.com/ntozubod/ginr" target="_blank">ginr</a></b>
-	automata and packages them in persistent models for use in the ribose runtime. The ribose runtime
-	is a container for any number of transduction processes, each driving an input source through an
+	The ribose model compiler builds transducers from <b><a href="https://github.com/ntozubod/ginr" target="_blank">ginr</a></b>
+	automata and packages them in persistent models for use in the ribose runtime. Ginr
+	transcodes Unicode characters in ribose transducer patterns to UTF-8 byte sequences
+	that may involve multiple transitions in compiled automata, and binary {@code byte*}
+	sequences can be represented in ginr tokens. The ribose runtime is a container for any
+	number of transduction processes, each driving an input source through an
 	{@link com.characterforming.ribose.ITransductor} to an {@link com.characterforming.ribose.ITarget}
-	expressing tightly-focused {@link com.characterforming.ribose.IEffector} and 
-	{@link com.characterforming.ribose.IParameterizedEffector} effectors. Each transduction instance
-	is itself an {@code ITarget} implementation presenting a set of built-in effectors that are 
-	implicitly	available to all transducers. These core effectors are listed in the
+	expressing tightly-focused {@link com.characterforming.ribose.IEffector} and
+	{@link com.characterforming.ribose.IParameterizedEffector} effectors. Every
+	{@link com.characterforming.ribose.ITransductor} instance includes itself as an
+	{@link com.characterforming.ribose.ITarget} presenting a set of built-in effectors
+	that are implicitly available in all transduction patterns. These are listed in the
 	{@link com.characterforming.ribose.ITransductor} interface documentation.
 	<br><br>
-	The ribose {@link com.characterforming.ribose.IRuntime} engine loads transducers from model
-	files and binds them to targets to start ribose	transductions. Each transduction is 
+	The ribose runtime component {@link com.characterforming.ribose.IRuntime} loads transducers
+	from model files and binds them to targets to start ribose transductions. Each transduction is
 	encapsulated in a {@link com.characterforming.ribose.ITransductor} instance, which maintains
-	a transducer stack and an input stack. Ginr transcodes Unicode characters	in ribose transducer
-	patterns to UTF-8 byte sequences that may involve multiple transitions in compiled automata.
-	Primary input is presented as a stream of {@code byte} and may contain UTF-8 encoded text 
-	and/or binary data. The transductor presents an {@link com.characterforming.ribose.IOutput}
-	view to each effector bound to the transduction target, enabling them to pull transduction
-	outputs into the target domain. Data are extracted as {@code byte} sequences, and captured
-	text and binary data are decoded by target effectors when they are pulled from the
-	transduction process.
-	<br><br>
-	Ribose transductions operate in the {@code byte} <b>*</b>-semiring
-	augmented	with out-of-band (&gt;255) control signals, which may be pushed onto the
-	input stack	as required to effect governance for transduction processes. The built-in
-	signals	<i>nul nil eol eos</i> can be augmented with additional signals and used in ribose
-	transducer patterns. For example, {@code [count[`~length` `!token`]] (byte, paste count)* token}
-	sets a counter using a previously captured {@code `~length`} value and ties it to a
-	{@code `!token`} signal. Bytes are captured ({@code paste}) and counted ({@code count})
-	until the counter pops and pushes the {@code token} signal onto the input stack for
-	immediate consumption.
-	<br><br>
-	See the {@link com.characterforming.ribose} package for ribose interfaces	and runnable
-	compiler and transduction classes {@link com.characterforming.ribose.TCompile} and 
+	a transducer stack and an input stack. Ribose transductors operate in the {@code byte}
+	<b>*</b>-semiring augmented with out-of-band (&gt;255) control signals, which may be pushed
+	onto the input stack as required to effect governance for transduction processes. The built-in
+	signals <i>nul nil eol eos</i> can be augmented with additional signals for use in ribose
+	transducer patterns. Primary input is presented to the transductor as a {@code byte*} stream
+	and may contain UTF-8 encoded text and/or binary data. The transductor presents an
+	{@link com.characterforming.ribose.IOutput} view to each effector bound to the target,
+	enabling effectors to pull transduction outputs into the target domain. Data are
+	extracted as {@code byte*} sequences, and decoded by target effectors when they are
+	pulled from the transduction output.
+	<br>
+<pre>
+Fibonacci = (
+  (
+    ('0', select[`~q`] paste['1')
+    ('0', select[`~r`] cut[`~p`] select[`~p`] copy[`~q`] select[`~q`] cut[`~r`])*
+  )?
+  (nl, paste out stop)
+);
+
+(Fibonacci$(0,1 2)):prsseq;
+(START)  0  [ select ~q paste 1 ]                                   1
+(START)  nl [ paste out stop ]                                      (FINAL)
+1        0  [ select ~r cut ~p select ~p copy ~q select ~q cut ~r ] 1
+1        nl [ paste out stop ]                                      (FINAL)
+
+$ for n in '' 0 00 000 0000 00000 000000; do echo $n | ribose Fibonacci; done
+
+1
+1
+11
+111
+11111
+11111111
+</pre>
+	See the {@link com.characterforming.ribose} package for ribose interfaces and runnable
+	compiler and transduction classes {@link com.characterforming.ribose.TCompile} and
 	{@link com.characterforming.ribose.TRun}. The {@link com.characterforming.ribose.base}
-	package	includes ribose base classes for extension and use in other domains. Specialized
-	targets that compose domain objects from transduction outputs can be realized by 
+	package includes ribose base classes for extension and use in other domains. Specialized
+	targets that compose domain objects from transduction outputs can be realized by
 	implementing the ITarget interface in a class with additional domain-specific effectors. See
-	<i><a href="https://github.com/jrte/ribose/wiki#ginr-as-a-service-provider" target="_blank">	
+	<i><a href="https://github.com/jrte/ribose/wiki#ginr-as-a-service-provider" target="_blank">
 	Ginr as a Service Provider</a></i> and {@link com.characterforming.ribose.TCompile} for an example
 	of a specialized ITarget implementation.
-<br><br>
+	<br><br>
 	See also the shell scripts at <a href="https://github.com/jrte/ribose/tree/master/etc/sh" target="_blank">etc/sh</a>
-	for help with compiling ginr patterns to automata,	packaging ginr automata into ribose models
-	and running basic text transductions in the ribose runtime. 
+	for help with compiling ginr patterns to automata, packaging ginr automata into ribose models
+	and running basic text transductions in the ribose runtime.
 </body>
 <td style="text-align:right"></td>
 </html>
