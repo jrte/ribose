@@ -95,7 +95,7 @@ import com.characterforming.ribose.base.Signal;
  * {@code} nul signal, giving the transduction an opportunity to handle it with an
  * explicit transition on {@code nul}. Typically this involves searching without effect
  * for a synchronization pattern and resuming with effect after synchronizing. If
- * {@code nul} is not handled a {@code DomainException} is thrown, with one exception,
+ * {@code nul} is not handled a {@code DomainErrorException} is thrown, with one exception,
  * the {@code eos} signal. Transducers can safely ignore {@code eos} or use it
  * explicitly if required. If {@code eos} is ignored the {@code run()} method
  * will return with {@code Status.PAUSED} and {@code DomainErrorException}
