@@ -71,15 +71,19 @@ import com.characterforming.ribose.base.Signal;
  * ribose {@link ITransductor} for runtime use.
  * <br><br>
  * <pre>
- * proxyTarget = new Target(); liveTarget = new Target(args);
- * runtime = Ribose.loadRuntimeModel(modelFile,proxyTarget);
- * trex = runtime.newTransductor(liveTarget);
+ * ITarget proxyTarget = new Target();
+ * ITarget liveTarget = new Target(args);
+ * IRuntime runtime = Ribose.loadRuntimeModel(modelFile,proxyTarget);
+ * ITransductor trex = runtime.newTransductor(liveTarget);
+ * byte[] data = new byte[64 * 1024];
+ * int limit = input.read(data,data.length);
  * if (trex.stop().push(data,limit).push(Signal.nil).start(transducer).status().isRunnable()) {
  *   do {
  *     if (trex.run().status().isPaused()) {
  *       data = trex.recycle(data);
- *       if (0 &lt; input.read(data,limit)) {
- *         trex.push(data);
+ *       limit = input.read(data,data.length);
+ *       if (0 &lt; limit) {
+ *         trex.push(data,limit);
  *       else {
  *         break;
  *       }
@@ -128,9 +132,9 @@ import com.characterforming.ribose.base.Signal;
  * <tr><td style="text-align:right"><i>clear[`~name`]</i></td><td>Clear a named value </td></tr>
  * <tr><td style="text-align:right"><i>count</i></td><td>Decrement the active counter and signal when counter drops to 0</td></tr>
  * <tr><td style="text-align:right"><i>count[`~name` `!signal`]</i></td><td>Set up a counter and signal from numeric named value</td></tr>
- * <tr><td style="text-align:right"><i>signal</i></td><td>Invalid (throws {@link com.characterforming.ribose.base.EffectorException})</td></tr>
- * <tr><td style="text-align:right"><i>signal[`!signal`]</i></td><td>Inject a signal into the input stream for immediate transduction</td></tr>
- * <tr><td style="text-align:right"><i>in</i></td><td>Push the selected value onto the input stack</td></tr>
+ * <tr><td style="text-align:right"><i>signal</i></td><td>Equivalent to <i>signal[`!nil`]</i></td></tr>
+ * <tr><td style="text-align:right"><i>signal[`!signal`]</i></td><td>Push a signal onto the input stack</td></tr>
+ * <tr><td style="text-align:right"><i>in</i></td><td>Push the currently selected named value onto the input stack</td></tr>
  * <tr><td style="text-align:right"><i>in[(`~name`|`...`)+]</i></td><td>Push a concatenation of literal data and/or named values onto the input stack</td></tr>
  * <tr><td style="text-align:right"><i>out</i></td><td>Write the selected value onto the output stream</td></tr>
  * <tr><td style="text-align:right"><i>out[(`~name`|`...`)+]</i></td><td>Write literal data and/or named values onto the output stream</td></tr>
@@ -226,11 +230,10 @@ public interface ITransductor extends ITarget {
 
 	/**
 	 * Push an initial segment {@code [0..limit)} of a data array onto the
-	 * transduction input stack. Data pushed onto empty stack constitute the
-	 * primary input stream for the purpose or marking and resetting via
-	 * the `mark` and `reset` effectors. These effectors project their effect
-	 * onto the primary input stream if they are invoked while other data are
-	 * on top of the primary input stack frame.
+	 * transduction input stack. The bottom input stack frame is the target
+	 * for marking and resetting via the {@code mark} and {@code reset} effectors.
+	 * These effectors project their effect onto the bottom frame if they are
+	 * invoked while there are &gt;1 active frames on the input stack.
 	 *
 	 * @param input data to push onto input stack for immediate transduction
 	 * @param limit truncate effective input range at {@code max(limit, data.length)}

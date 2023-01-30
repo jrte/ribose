@@ -868,8 +868,13 @@ I:				do {
 	}
 
 	private final class SignalEffector extends BaseParameterizedEffector<Transductor, byte[][]> {
+		private final byte[][] nil;
+
 		private SignalEffector(final Transductor transductor) {
 			super(transductor, "signal");
+			nil = new byte[][] {
+				Base.encodeReferenceOrdinal(Base.TYPE_REFERENCE_SIGNAL, Base.RTE_SIGNAL_BASE + 1)
+			};
 		}
 
 		@Override
@@ -879,7 +884,7 @@ I:				do {
 
 		@Override
 		public int invoke() throws EffectorException {
-			throw new EffectorException("The signal effector requires a parameter");
+			return super.getTarget().in(nil);
 		}
 
 		@Override
