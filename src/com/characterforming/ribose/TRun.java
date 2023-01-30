@@ -6,6 +6,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.CharsetEncoder;
 import java.util.logging.Level;
@@ -82,13 +83,14 @@ public class TRun extends BaseTarget {
 		? args[++arg] : TRun.class.getName();
 		arg += (arg > (nil ? 1 : 0)) ? 1 : 0;
 		if ((argc - arg) != 3 && (argc - arg) != 4) {
-			System.out.println(String.format("Usage: java -cp <classpath> [-Djrte.out.enabled=false] [--nil] [--target <target-classname>] <model-path> <transducer-name> <input-path> [<output-path>]"));
+			System.out.println("Usage: java -cp <classpath> [-Djrte.out.enabled=false] [--nil] [--target <target-classname>] <model-path> <transducer-name> <input-path>|'-' [<output-path>]");
 			System.out.println("Default target is com.characterforming.ribose.TRun, default output System.out is used unless <output-path> specified.");
+			System.out.println("Use '-' for input-path to read from System.in");
 			System.exit(1);
 		}
 		final String modelPath = args[arg++];
 		final String transducerName = args[arg++];
-		final String inputPath = args[arg++];
+		final String inputPath = arg < argc ? args[arg++] : "-";
 		final String outputPath = arg < argc ? args[arg++] : null;
 
 		final CharsetEncoder encoder = Base.newCharsetEncoder();
@@ -122,17 +124,19 @@ public class TRun extends BaseTarget {
 		try (BufferedOutputStream osw = new BufferedOutputStream(os, Base.getOutBufferSize())) {
 			try (
 				IRuntime ribose = Ribose.loadRiboseModel(model);
-				FileInputStream isr = new FileInputStream(input);
+				InputStream isr = input != null ? new FileInputStream(input) : System.in;
 			) {
 				if (ribose != null) {
 					Bytes transducer = Bytes.encode(encoder, transducerName);
 					ITarget runTarget = (ITarget) Class.forName(targetName).getDeclaredConstructor().newInstance();
-					long clen = input.length();
 					long t0 = System.nanoTime();
 					if (ribose.transduce(runTarget, transducer, nil ? Signal.nil : null, isr, osw)) {
-						double t1 = System.nanoTime() - t0;
-						double mbps = (t1 > 0) ? (double)(clen*1000) / t1 : -1;
-						rtmLogger.log(Level.FINE, String.format("%s\t%7.3f\t%d\t%s", inputPath, mbps, clen, transducerName));
+						if (input != null) {
+							long clen = input.length();
+							double t1 = System.nanoTime() - t0;
+							double mbps = (t1 > 0) ? (double)(clen*1000) / t1 : -1;
+							rtmLogger.log(Level.FINE, String.format("%s\t%7.3f\t%d\t%s", inputPath, mbps, clen, transducerName));
+						}
 						exitCode = 0;
 					}
 				}

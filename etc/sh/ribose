@@ -11,9 +11,9 @@ if [[ "$1" == "--nil" ]]; then
   shift
 fi
 if (($#!=3 && $# != 4)); then
-	echo 'Usage: ribose [<vm-arg> ...] [--nil] <model-file> <transducer> <input-file> [<output-file>]'
+	echo 'Usage: ribose [<vm-arg> ...] [--nil] <model-file> <transducer> <input-file>|'-' [<output-file>]'
  	echo "Use (vm-args) '-Djrte.out.enabled=false' and/or '-Dregex.out.enabled=false' to mute output."
-  echo 'Default output stream is System.out'
+  echo 'Use '-' for input-path to read from System.in; default output stream is System.out.'
 else
   jars="$(dirname $(readlink -f $0))/../../jars"
   java="java -cp $jars/ribose-0.0.0.jar"
