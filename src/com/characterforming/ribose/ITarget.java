@@ -80,8 +80,7 @@ public interface ITarget {
 	String getName();
 
 	/**
-	 * Lists the names and types of the effectors expressed by the target class
-	 * for binding to the runtime model.
+	 * Lists the effectors expressed by the target class for binding to the runtime model.
 	 * <br><br>
 	 * Implementation classes must include their effectors in the IEffector
 	 * array returned. Targets may be composite, arranged in an inheritance

@@ -27,8 +27,8 @@ import com.characterforming.ribose.ITarget;
 /**
  * Base {@link ITarget} implementation provides subclasses with charset (UTF-8)
  * codecs and access to the built-in transduction effectors. It can be extended
- * to realize specialzed targets with additional effectors and behaviours.
- * 
+ * to realize specialized targets with additional effectors and behaviours.
+ *
  * @author Kim Briggs
  */
 public class BaseTarget implements ITarget {
@@ -40,7 +40,7 @@ public class BaseTarget implements ITarget {
 		Base.newCharsetDecoder();
 		Base.newCharsetEncoder();
 	}
-	
+
 	@Override // ITarget#getEffectors()
 	public IEffector<?>[] getEffectors() throws TargetBindingException {
 		// This is just a proxy for Transductor.getEffectors()

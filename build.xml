@@ -279,9 +279,6 @@
 		<echo message="Ant @ ${env.ANT_HOME}"/>
 		<mkdir dir="${build.testenv}"/>
 		<mkdir dir="${test.input.dir}"/>
-	</target>
-
-	<target name="test" depends="test-env">
 		<unzip src="${test.patterns}/inputs.zip" dest="${test.input.dir}">
 			<patternset>
 				<include name="dates.txt"/>
@@ -290,6 +287,9 @@
 				<include name="verbosegc.vgc"/>
 			</patternset>
 		</unzip>
+	</target>
+
+	<target name="test" depends="test-env">
 <!-- Basic ribose tests -->
 		<echo>Basic FileRunner tests:</echo>
 		<exec failonerror="true" executable="bash">
