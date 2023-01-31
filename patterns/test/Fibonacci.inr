@@ -1,15 +1,16 @@
 Fibonacci = (
 	(
-		# ~r, ~q, ~p are sequences of 0s preset to empty
-		(nil, clear[`~*`] select[`~q`] paste['1'])
+		(nil, clear[`~*`])
 		(
+			# ~r, ~q, ~p are sequences of 0s preset to empty
+			('0', select[`~q`] paste['1'])
 			# fib(n>0): cycle (~r) <- (~q) <- (~p) <- (~p)(~r), (~r) <- empty
 			('0', select[`~r`] cut[`~p`] select[`~p`] copy[`~q`] select[`~q`] cut[`~r`])*
-			# (~q) is selected and holds the result, so append nl, print fib(n) and signal nil to restart
-			(nl, paste out signal[`!nil`])
 		)?
+		# (~q) is selected and holds the result, so append nl, print fib(n) and signal nil to restart
+		(nl, paste out signal[`!nil`])
 	)*
-	(eos, clear[`~*`] stop)
+	(eos, stop)
 ):dfamin;
 
 Fibonacci$(0,1 2):prsseq `build/automata/Fibonacci.pr`;

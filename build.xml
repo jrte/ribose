@@ -292,6 +292,7 @@
 	<target name="test" depends="test-env">
 <!-- Basic ribose tests -->
 		<echo>Basic FileRunner tests:</echo>
+		<echo>Fibonacci:</echo>
 		<exec failonerror="true" executable="bash">
 			<arg value="-c"/>
 			<arg value="etc/sh/ribose --nil build/Test.model Fibonacci ${test.input.dir}/fib.txt"/>

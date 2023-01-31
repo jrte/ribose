@@ -96,6 +96,7 @@ Fibonacci = (
 $ for i in '' 0 00 000 0000 00000 000000 0000000 00000000 000000000 0000000000; do \
 > echo $i | etc/sh/ribose --nil build/Test.model Fibonacci -; \
 > done
+
 1
 1
 11
@@ -106,7 +107,6 @@ $ for i in '' 0 00 000 0000 00000 000000 0000000 00000000 000000000 0000000000; 
 111111111111111111111
 1111111111111111111111111111111111
 1111111111111111111111111111111111111111111111111111111
-11111111111111111111111111111111111111111111111111111111111111111111111111111111111111111
 ```
 ### Tuple Extraction
 This example was previewed above. It is taken from the ribose model compiler, which transduces serialized ginr automata to construct FSTs for inclusion in a ribose runtime model. Ginr serializes compiled pattern automata to tab-delimited text files beginning with a header line listing ginr version number and the number of tapes, transitions, states, and symbols. Below, the `Header` pattern determines how ribose deserializes the header line, transducing it into an immutable value object in the target model. This is presented in more detail in the ribose wiki (see [Ginr as a Service Provider](https://github.com/jrte/ribose/wiki#ginr-as-a-service-provider)). Here it is refined a bit to show how ginr's composition operator (`@`) can be used to replace formal parameters in a template pattern (`Field`).
