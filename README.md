@@ -290,9 +290,7 @@ Ginr automata are state-minimized but the ribose model compiler is able to obtai
 | **Ribose** |     30 |     58 |         343 |  7K |
 
 Size is important in the ribose runtime because transducer transition functions are represented in 2-dimensional (state, input) arrays and these are often sparse. Only about 20% of the cells in the `LinuxKernelStrict` transition matrix are populated, the rest are dead cells that trigger `nul` when hit. Successive transitions may reference cells that are widely distributed in RAM and this can degrade the performance of the L1 data cache, forcing more traffic on the CPU-RAM bus. I vented some steam about this in one of my favorite rants, see _[A Few Words about Time and Space](https://github.com/jrte/ribose/wiki/Stories#a-few-words-about-time-and-space)_ on the wiki.
-
----
-## Everything is Code
+# Everything is Code
 In computing ecosystems regular patterns and their equivalent automata, like microbes in biological ecosystems, are ubiquitous and do almost all of the work. String them out on another construct like a stack or a spine and they can perform new tricks.
 
 Consider ribonucleic acid (RNA), a strip of sugar (ribose) molecules strung together, each bound to one of four nitrogenous bases (A|U|G|C|), encoding genetic information. Any ordered contiguous group of 3 bases constitutes a *codon*, and 61 of the 64 codons are mapped deterministically onto the 21 amino acids used in protein synthesis (the other three are control codons). This mapping is effected by a remarkable molecular machine, the *ribosome*, which ratchets messenger RNA (mRNA) through an aperture to align the codons for translation and build a protein molecule, one amino acid at a time (click on the image below to see a realtime animation of this process). Over aeons, nature has programmed myriad mRNA scripts and compiled them into DNA libraries to be distributed among the living. So this trick of using sequential information from one domain (eg, mRNA->codons) to drive a process in another domain (amino acids->protein) is not new.

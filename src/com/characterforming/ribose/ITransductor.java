@@ -177,22 +177,42 @@ public interface ITransductor extends ITarget {
 		 */
 		NULL;
 
+		/**
+		 * Status == RUNNABLE
+		 * @return true if Status == RUNNABLE
+		 */
 		public boolean isRunnable() {
 			return this.equals(RUNNABLE);
 		}
 
+		/**
+		 * Status == PAUSED
+		 * @return true if Status == PAUSED
+		 */
 		public boolean isPaused() {
 			return this.equals(PAUSED);
 		}
 
+		/**
+		 * Status == WAITING
+		 * @return true if Status == WAITING
+		 */
 		public boolean isWaiting() {
 			return this.equals(WAITING);
 		}
 
+		/**
+		 * Status == STOPPED
+		 * @return true if Status == STOPPED
+		 */
 		public boolean isStopped() {
 			return this.equals(STOPPED);
 		}
 
+		/**
+		 * Status != NULL
+		 * @return true if Status != NULL
+		 */
 		public boolean isOperable() {
 			return !this.equals(NULL);
 		}
