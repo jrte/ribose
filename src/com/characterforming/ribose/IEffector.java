@@ -34,7 +34,7 @@ import com.characterforming.ribose.base.TargetBindingException;
  * Simple effectors present an {@link invoke()} method that is called from running
  * transductions. Parameterized effectors implementing {@link IParameterizedEffector} may
  * also be included in ribose targets. The ribose {@link ITransductor} implmentation
- * also presents a core suite of built-in effectors that are accessible to all targets.
+ * also presents a core suite of base effectors that are accessible to all targets.
  * @param <T> The effector target type
  * @author Kim Briggs
  */
@@ -43,7 +43,7 @@ public interface IEffector<T extends ITarget> {
 	/**
 	 * RTX bits are additive and accumulate as the effect vector is
 	 * executed for a transition. Most RTX bits reflect the action
-	 * of built-in effectors. Effectors that do not affect the
+	 * of base effectors. Effectors that do not affect the
 	 * {@link ITransductor} transducer stack or input stack should
 	 * return only {@code RTX_NONE} (to continue transduction normally).
 	 */

@@ -26,10 +26,9 @@ import com.characterforming.ribose.base.TargetBindingException;
  * Interface for transduction target classes, which express {@link IEffector}
  * and{@link IParameterizedEffector} instances that are invoked from runtime
  * transductions. The runtime {@code Transductor} class, which encapsulates
- * ribose transductions, implements {@code ITarget} and presents a core set
- * of built-in effectors that are accessible to all transductions. Specialized
- * {@code ITarget} implementations may supplement these with specialized
- * effectors.
+ * ribose transductions, implements {@code ITarget} and presents the base ribose
+ * effectors that are accessible to all transductions. Specialized {@code ITarget}
+ * implementations may supplement these with specialized effectors.
  * <br><br>
  * {@code ITarget} implementations must present a public default constructor
  * with no arguments. This is used to instantiate proxy instances to enumerate
@@ -46,27 +45,28 @@ import com.characterforming.ribose.base.TargetBindingException;
  * At runtime, a live target instance is bound to a transductor and the binding
  * persists for the lifetime of the transductor. Live runtime targets are instantiated
  * externally and passed to the {@link IRuntime#newTransductor(ITarget)} method
- * to create {@code ITransductor} instances to run transductions. When a runtime target
- * is bound to a transductor each parameterized effector receives a call to
- * {@code setParameter(int, Object)} to set the precompiled parameter for the
- * specified parameter index. {@link ITransductor} instances are restartable and
- * reuseable and may serially run more than one transduction using the same target
- * instance. Each transduction is assumed to be a single-threaded process. Explicit
- * synchronization is required to ensure safety if multiple threads are allowed
- * to access transduction artifacts ({@link ITransductor}, {@link ITarget},
+ * to create {@code ITransductor} instances. When a runtime target is bound to a
+ * transductor each parameterized effector receives a call to
+ * {@link IParameterizedEffector#setParameter(int, Object)} to set the precompiled
+ * parameter for the specified parameter index. {@link ITransductor} instances are
+ * restartable and reuseable and may serially run more than one transduction using
+ * the same target instance. Each transduction is assumed to be a single-threaded
+ * process. Explicit synchronization is required to ensure safety if multiple threads
+ * are allowed to access transduction artifacts ({@link ITransductor}, {@link ITarget},
  * {@link IEffector}, {@link INamedValue}).
  * <br><br>
  * Targets need not be monolithic. In fact, every ribose transduction involves a
  * composite target comprised of the {@link ITransductor} implementation class, which
- * implements {@code ITarget} interface and exports the core ribose effectors, and
- * at least one other {@code ITarget instance}. To extend this to include more targets,
- * select one target class as the representative target to present to the transduction.
- * The representative target instantiates and calls {@link ITarget#getEffectors()}
- * on each of the subordinate {@code ITarget} instances and merges its effectors with its own
- * effectors into a single array to return when its own {@link #getEffectors()} method
- * is called. This technique may be especially useful for deserializing inputs that
- * represent large and complex objects, as it allows semantics to encapsulated in
- * tightly focussed targets (separation of concerns).
+ * implements the {@code ITarget} interface and exports the base ribose effectors, and
+ * at least one other {@code ITarget instance} (eg, {@link TCompile}, {@link TRun}).
+ * To construct a composite target, select one target class as the representative
+ * target to present to the transduction. The representative target instantiates and
+ * calls {@link #getEffectors()} on each of the subordinate {@code ITarget}
+ * instances and merges their effectors with its own effectors into a single array
+ * to return when its {@link #getEffectors()} method is called from the ribose
+ * compiler or runtime. Composite targets may be especially useful for seperating
+ * concerns within complex semantic domains, as they encapsulate discrete semantic
+ * models in tightly focussed and reusable target classes.
  *
  * @author Kim Briggs
  */

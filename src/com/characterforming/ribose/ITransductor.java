@@ -112,7 +112,7 @@ import com.characterforming.ribose.base.Signal;
  * See <a href="https://github.com/jrte/ribose#navigating-noisy-inputs-nullification">
  * Navigating Noisy Inputs (Nullification)</a> for an example showing how this can be done.
  * <br><br>
- * The runtime ITransductor implementation provides a core set of built-in effectors,
+ * The runtime ITransductor implementation provides a core set of base effectors,
  * listed below, that are available to all ribose transducers.
  * <br><br>
  * <table style="font-size:12px">

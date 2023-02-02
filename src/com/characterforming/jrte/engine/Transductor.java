@@ -69,7 +69,7 @@ public final class Transductor implements ITransductor, IOutput {
 	static final int INITIAL_NAMED_VALUE_BYTES = 256;
 	static final int INITIAL_NAMED_VALUE_BUFFERS = 256;
 
-	/* enumeration of built-in effectors, all below inlined in run(), except (*) */
+	/* enumeration of base effectors, all below inlined in run(), except (*) */
 	private static final int NUL = 0;
 	private static final int NIL = 1;
 	private static final int PASTE = 2;
@@ -345,7 +345,7 @@ T:		do {
 								token = Byte.toUnsignedInt(input.array[input.position++]);
 								break;
 							default:
-								token = Byte.toUnsignedInt(input.array[input.position++]);
+								token = nulSignal;
 								assert false;
 								break;
 							}

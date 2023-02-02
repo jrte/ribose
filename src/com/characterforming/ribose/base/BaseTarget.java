@@ -26,7 +26,7 @@ import com.characterforming.ribose.ITarget;
 
 /**
  * Base {@link ITarget} implementation provides subclasses with charset (UTF-8)
- * codecs and access to the built-in transduction effectors. It can be extended
+ * codecs and access to the base ribose effectors. It can be extended
  * to realize specialized targets with additional effectors and behaviours.
  *
  * @author Kim Briggs

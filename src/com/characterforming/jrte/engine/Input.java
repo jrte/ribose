@@ -22,6 +22,14 @@ final class Input {
 	Input(Input input) {
 		this.copy(input);
 	}
+
+  static Input[] stack(final int initialSize) {
+  	Input stack[] = new Input[initialSize];
+  	for (int i = 0; i < stack.length; i++) {
+  		stack[i] = new Input();
+  	}
+  	return stack;
+  }
 	
 	Input copy(Input input) {
 		this.array = input.array;

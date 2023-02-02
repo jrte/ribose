@@ -18,7 +18,7 @@
  * <tr><td style="text-align:right"><i>model</i></td><td>The path to the file to contain the compiled model.</td></tr>
  * </table>
  * <br>
- * {@link TRun} implements a simple target presenting the core built-in effectors
+ * {@link TRun} implements a simple target presenting the base ribose effectors
  * which can be used to build models that do not require specialized targets and effectors.
  * It also presents a {@link TRun#main(String[])} method to load compiled ribose models
  * and run transductions from the command line. Use {@link TRun#main(String[])} to load
@@ -45,11 +45,10 @@
  * {@link IRuntime#transduce(ITarget, Bytes, java.io.InputStream, java.io.OutputStream)}
  * method offers generic support for setting up and running stream-oriented transductions.
  * For more fine-grained control of transductions, apply {@link ITransductor} methods
- * directly to set up inputs and transducers and run transductions. Concurrent transductions
- * should run on separate threads. Transductions and the involved objects (transductor,
- * target, effectors, values) are assumed to be single-threaded although a single thread
- * can safely multiplex over &gt;1 live transductors, each bound to a unique target instance
- * and running different transductions.
+ * directly to set up inputs and transducers and run transductions. Transductions and
+ * the involved objects (transductor, target, effectors, values) are assumed to be
+ * single-threaded. Concurrent transductions should run on separate threads, although
+ * a single thread can safely multiplex over &gt;1 live transductors.
  *
  * @author Kim Briggs
  * @see IRuntime#transduce(ITarget, Bytes, java.io.InputStream, java.io.OutputStream)

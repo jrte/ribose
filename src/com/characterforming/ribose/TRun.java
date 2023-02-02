@@ -21,7 +21,7 @@ import com.characterforming.ribose.base.TargetBindingException;
 /**
  * Provides a {@link TRun#main(String[])} method to run a transduction using a ribose
  * model. {@code TRun} also serves as a target class for building basic UTF-8 text or
- * other byte stream transduction models that use only built-in ribose effectors.
+ * other byte stream transduction models that use only base ribose effectors.
  * To build a basic transduction model, compile with ginr a set of ribose-conformant
  * ginr patterns, saving automata (*.dfa) to be compiled into the model into a
  * directory. Then run {@link TCompile} with {@link TRun} as target class to package
