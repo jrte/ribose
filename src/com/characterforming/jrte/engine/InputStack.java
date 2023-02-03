@@ -215,8 +215,11 @@ final class InputStack {
 	 */
 	void unmark() {
 		this.stack[0].mark = -1;
+		this.bom = this.tom = 0;
 		this.markState = MarkState.clear;
-		this.bom = this.tom;
+		for (Input input : this.marked) {
+			input.clear();
+		}
 	}
 	
 	/** 
