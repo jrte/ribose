@@ -100,7 +100,6 @@ public final class Transductor implements ITransductor, IOutput {
 	private final CharsetDecoder decoder;
 	private final CharsetEncoder encoder;
 	private OutputStream output;
-	private final boolean isOutEnabled;
 	private final Logger rtcLogger;
 	private final Logger rteLogger;
 	private int errorCount;
@@ -118,10 +117,9 @@ public final class Transductor implements ITransductor, IOutput {
 		this.effectors = null;
 		this.namedValueHandles = null;
 		this.namedValueOrdinalMap = null;
-		this.output = System.out;
+		this.output = System.getProperty("jrte.out.enabled", "true").equals("true") ? System.out : null;
 		this.selected = null;
 		this.errorCount = 0;
-		this.isOutEnabled = System.getProperty("jrte.out.enabled", "true").equals("true");
 		this.decoder = Base.newCharsetDecoder();
 		this.encoder = Base.newCharsetEncoder();
 		this.rtcLogger = Base.getCompileLogger();
@@ -452,7 +450,7 @@ I:				do {
 							effect = IEffector.RTX_PUSH;
 							break;
 						case OUT:
-							if (this.isOutEnabled && this.selected.getLength() > 0) {
+							if (this.output != null && this.selected.getLength() > 0) {
 								try {
 									this.output.write(this.selected.getValue(), 0, this.selected.getLength());
 								} catch (IOException e) {
@@ -932,11 +930,9 @@ I:				do {
 	}
 
 	private final class OutEffector extends BaseInputOutputEffector {
-		private final boolean isOutEnabled;
 
 		private OutEffector(final Transductor transductor) {
 			super(transductor, "out");
-			this.isOutEnabled = super.target.isOutEnabled;
 		}
 
 		@Override
@@ -946,7 +942,7 @@ I:				do {
 
 		@Override
 		public int invoke(final int parameterIndex) throws EffectorException {
-			if (this.isOutEnabled) {
+			if (super.target.output != null) {
 				for (final byte[] bytes : super.getParameter(parameterIndex)) {
 					try {
 						if (Base.isReferenceOrdinal(bytes)) {
