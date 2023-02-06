@@ -63,12 +63,15 @@ import com.characterforming.ribose.base.Signal;
  * to instantiate proxy targets for effector enumeration and parameter compilation. A
  * proxy target is instantiated by the compiler, which invokes each parameterized
  * effector to validate and compile its parameters. In the ribose runtime, a proxy
- * target is instantiated to precompile parameters from raw bytes stored in the
- * model when a ribose model is loaded. In either case, only the constructor and
+ * target is instantiated when a ribose model is loaded to precompile parameters from
+ * raw bytes stored in the model. In either case, only the constructor and
  * {@link ITarget#getEffectors()} methods are called on a proxy target unless
- * one or more of its own effectors involves its target in parameter compilation.
- * Live {@link ITarget} instances can be constructed in any manner and bound to a
- * ribose {@link ITransductor} for runtime use.
+ * one or more of its own effectors involves its target in parameter compilation. Proxy
+ * target effectors called only to compile parameters; their `invoke()` methods are never
+ * called. Live {@link ITarget} instances can be constructed in any manner and bound to a
+ * ribose {@link ITransductor} for runtime use. Live target effectors receive precompiled
+ * parameters from the proxy target and their `invoke()` methods are called during
+ * transduction in response to syntactic cues in transduction input.
  * <br><br>
  * <pre>
  * ITarget proxyTarget = new Target();
@@ -90,7 +93,7 @@ import com.characterforming.ribose.base.Signal;
  *     }
  *   } while (trex.status().isRunnable());
  *   if (trex.status().isPaused()) {
- *     tex.push(Signal.eos).run();
+ *     trex.push(Signal.eos).run();
  *   }
  *   trex.stop();
  * }
@@ -129,10 +132,10 @@ import com.characterforming.ribose.base.Signal;
  * <tr><td style="text-align:right"><i>cut</i></td><td>Cut the anonymous named value into selected named value</td></tr>
  * <tr><td style="text-align:right"><i>cut[`~name`]</i></td><td>Cut a named value into selected named value</td></tr>
  * <tr><td style="text-align:right"><i>clear</i></td><td>Clear the selected named value</td></tr>
- * <tr><td style="text-align:right"><i>clear[`~name`]</i></td><td>Clear a named value </td></tr>
  * <tr><td style="text-align:right"><i>clear[`~*`]</i></td><td>Clear all named values </td></tr>
- * <tr><td style="text-align:right"><i>count</i></td><td>Decrement the active counter and signal when counter drops to 0</td></tr>
- * <tr><td style="text-align:right"><i>count[`~name` `!signal`]</i></td><td>Set up a counter and signal from numeric named value</td></tr>
+ * <tr><td style="text-align:right"><i>clear[`~name`]</i></td><td>Clear a specific named value </td></tr>
+ * <tr><td style="text-align:right"><i>count</i></td><td>Decrement the active counter and signal when counter drops to zero</td></tr>
+ * <tr><td style="text-align:right"><i>count[(`~name`|`digit+`) `!signal`]</i></td><td>Set up a counter and signal from an initial numeric literal or named value</td></tr>
  * <tr><td style="text-align:right"><i>signal</i></td><td>Equivalent to <i>signal[`!nil`]</i></td></tr>
  * <tr><td style="text-align:right"><i>signal[`!signal`]</i></td><td>Push a signal onto the input stack</td></tr>
  * <tr><td style="text-align:right"><i>in</i></td><td>Push the currently selected named value onto the input stack</td></tr>
