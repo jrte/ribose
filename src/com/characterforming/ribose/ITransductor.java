@@ -130,6 +130,7 @@ import com.characterforming.ribose.base.Signal;
  * <tr><td style="text-align:right"><i>cut[`~name`]</i></td><td>Cut a named value into selected named value</td></tr>
  * <tr><td style="text-align:right"><i>clear</i></td><td>Clear the selected named value</td></tr>
  * <tr><td style="text-align:right"><i>clear[`~name`]</i></td><td>Clear a named value </td></tr>
+ * <tr><td style="text-align:right"><i>clear[`~*`]</i></td><td>Clear all named values </td></tr>
  * <tr><td style="text-align:right"><i>count</i></td><td>Decrement the active counter and signal when counter drops to 0</td></tr>
  * <tr><td style="text-align:right"><i>count[`~name` `!signal`]</i></td><td>Set up a counter and signal from numeric named value</td></tr>
  * <tr><td style="text-align:right"><i>signal</i></td><td>Equivalent to <i>signal[`!nil`]</i></td></tr>
@@ -333,8 +334,8 @@ public interface ITransductor extends ITarget {
 	boolean hasMark();
 
 	/**
-	 * Allocate and return a new byte[] buffer if the previous buffer ({@code bytes})
-	 * is marked in the input stack. Otherwise return the unmarked {@code bytes} buffer.
+	 * Return a new or unmarked byte[] buffer if the previous buffer ({@code bytes})
+	 * is marked in the input stack, else return the unmarked {@code bytes} buffer.
 	 *
 	 * @param bytes a recently used input buffer
 	 * @return the input buffer ({@code bytes}), or a new biffer of equal size if {@code bytes} is marked
