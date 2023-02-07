@@ -88,8 +88,16 @@ public final class Transductor implements ITransductor, IOutput {
 	private static final int START = 13;
 	private static final int PAUSE = 14;
 	private static final int STOP = 15;
+/* Suppress new effector enumerators until after TCompile.model is updated to new version
+	@SuppressWarnings("unused")
+	private static final int MSUM = 16;
+	@SuppressWarnings("unused")
+	private static final int MPRODUCT = 17;
+*/
 
-	private final Model model;
+private enum MatchMode { None, Sum, Product }
+
+private final Model model;
 	private final TargetMode mode;
 	private IEffector<?>[] effectors;
 	private NamedValue selected;
@@ -97,6 +105,13 @@ public final class Transductor implements ITransductor, IOutput {
 	private Map<Bytes, Integer> namedValueOrdinalMap;
 	private final TransducerStack transducerStack;
 	private final InputStack inputStack;
+	private MatchMode matchMode;
+	@SuppressWarnings("unused")
+	private long[] matchSum;
+	@SuppressWarnings("unused")
+	private byte[] matchProduct;
+	@SuppressWarnings("unused")
+	private int matchPosition;
 	private final CharsetDecoder decoder;
 	private final CharsetEncoder encoder;
 	private OutputStream output;
@@ -119,6 +134,10 @@ public final class Transductor implements ITransductor, IOutput {
 		this.namedValueOrdinalMap = null;
 		this.output = System.getProperty("jrte.out.enabled", "true").equals("true") ? System.out : null;
 		this.selected = null;
+		this.matchMode = MatchMode.None;
+		this.matchSum = null;
+		this.matchProduct = null;
+		this.matchPosition = 0;
 		this.errorCount = 0;
 		this.decoder = Base.newCharsetDecoder();
 		this.encoder = Base.newCharsetEncoder();
@@ -161,9 +180,11 @@ public final class Transductor implements ITransductor, IOutput {
 			/*12*/ new InlineEffector(this, "reset"),
 			/*13*/ new StartEffector(this),
 			/*14*/ new PauseEffector(this),
-			/*15*/ new StopEffector(this)
+			/*15*/ new StopEffector(this),
+			/*16*/ new MsumEffector(this),
+			/*17*/ new MproductEffector(this)
 			};
-		} else if (this.model.getModelVersion().equals(Base.RTE_PREVIOUS)) {
+	} else if (this.model.getModelVersion().equals(Base.RTE_PREVIOUS)) {
 			return new IEffector<?>[] {
 			/* 0*/ new InlineEffector(this, "0"),
 			/* 1*/ new InlineEffector(this, "1"),
@@ -173,13 +194,14 @@ public final class Transductor implements ITransductor, IOutput {
 			/* 5*/ new CutEffector(this),
 			/* 6*/ new ClearEffector(this),
 			/* 7*/ new CountEffector(this),
-			/* 8*/ new InEffector(this),
-			/* 9*/ new OutEffector(this),
-			/*10*/ new InlineEffector(this, "mark"),
-			/*11*/ new InlineEffector(this, "reset"),
-			/*12*/ new StartEffector(this),
-			/*13*/ new PauseEffector(this),
-			/*14*/ new StopEffector(this)
+			/* 8*/ new SignalEffector(this),
+			/* 9*/ new InEffector(this),
+			/*10*/ new OutEffector(this),
+			/*11*/ new InlineEffector(this, "mark"),
+			/*12*/ new InlineEffector(this, "reset"),
+			/*13*/ new StartEffector(this),
+			/*14*/ new PauseEffector(this),
+			/*15*/ new StopEffector(this)
 			};
 		} else {
 			throw new TargetBindingException(String.format("Unsupported ribose model version '%s'.",
@@ -694,6 +716,24 @@ I:				do {
 		}
 	}
 
+	private void matchSum(long[] matchMap) throws EffectorException {
+		if (this.matchMode == MatchMode.None) {
+			this.matchMode = MatchMode.Sum;
+			this.matchSum = matchMap;
+		} else {
+			throw new EffectorException("Illegal attempt to override match mode");
+		}
+	}
+
+	private void matchProduct(byte[] matchSequence) throws EffectorException {
+		if (this.matchMode == MatchMode.None) {
+			this.matchMode = MatchMode.Product;
+			this.matchProduct = matchSequence;
+		} else {
+			throw new EffectorException("Illegal attempt to override match mode");
+		}
+	}
+
 	private String getErrorInput(int last, int state, int errorInput) {
 		TransducerState top = this.transducerStack.peek();
 		top.state = state;
@@ -1081,5 +1121,71 @@ I:				do {
 		public int invoke() throws EffectorException {
 			return this.getTarget().popTransducer();
 		}
+	}
+
+	private final class MsumEffector extends BaseParameterizedEffector<Transductor, long[]> {
+		private MsumEffector(final Transductor transductor) {
+			super(transductor, "msum");
+		}
+
+		@Override
+		public int invoke() throws EffectorException {
+			return IEffector.RTX_NONE;
+		}
+
+		@Override
+		public int invoke(final int parameterIndex) throws EffectorException {
+			super.target.matchSum(super.parameters[parameterIndex]);
+			return IEffector.RTX_NONE;
+		}
+
+		@Override
+		public void newParameters(int parameterCount) {
+			super.parameters = new long[parameterCount][];
+		}
+	
+		@Override
+		public long[] compileParameter(final int parameterIndex, final byte[][] parameterList) throws TargetBindingException {
+			if (parameterList.length != 1) {
+				throw new TargetBindingException("The msum effector accepts at most one parameter");
+			}
+			long[] byteMap = new long[] {0, 0, 0, 0};
+			for (byte b : parameterList[0]) {
+				byteMap[b >> 2] |= 1 << (b & 0x3f);
+			}
+			super.setParameter(parameterIndex, byteMap);
+			return super.parameters[parameterIndex];
+ 		}
+	}
+
+	private final class MproductEffector extends BaseParameterizedEffector<Transductor, byte[]> {
+		private MproductEffector(final Transductor transductor) {
+			super(transductor, "mproduct");
+		}
+
+		@Override
+		public int invoke() throws EffectorException {
+			return IEffector.RTX_NONE;
+		}
+
+		@Override
+		public int invoke(final int parameterIndex) throws EffectorException {
+			super.target.matchProduct(super.parameters[parameterIndex]);
+			return IEffector.RTX_NONE;
+		}
+
+		@Override
+		public void newParameters(int parameterCount) {
+			super.parameters = new byte[parameterCount][];
+		}
+	
+		@Override
+		public byte[] compileParameter(final int parameterIndex, final byte[][] parameterList) throws TargetBindingException {
+			if (parameterList.length != 1) {
+				throw new TargetBindingException("The mproduct effector accepts at most one parameter");
+			}
+			super.setParameter(parameterIndex, parameterList[0]);
+			return super.parameters[parameterIndex];
+ 		}
 	}
 }

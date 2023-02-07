@@ -1,4 +1,4 @@
-version	ribose-0.0.0
+version	ribose-0.0.1
 target	com.characterforming.ribose.TCompile
 transducer	Automaton	0
 signal	nul	256
@@ -21,9 +21,11 @@ effector	reset	12
 effector	start	13
 effector	pause	14
 effector	stop	15
-effector	header	16
-effector	transition	17
-effector	automaton	18
+effector	msum	16
+effector	mproduct	17
+effector	header	18
+effector	transition	19
+effector	automaton	20
 value		0
 value	*	1
 value	version	2

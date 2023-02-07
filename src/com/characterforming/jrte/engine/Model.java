@@ -123,7 +123,7 @@ public final class Model implements AutoCloseable {
 			this.io = new RandomAccessFile(this.modelPath, this.ioMode);
 			this.io.seek(0);
 			this.getLong();
-			this.getString();
+			this.modelVersion = this.getString();
 			targetClassname = this.getString();
 			Class<?> targetClass = Class.forName(targetClassname);
 			this.proxyTarget = (ITarget) targetClass.getDeclaredConstructor().newInstance();

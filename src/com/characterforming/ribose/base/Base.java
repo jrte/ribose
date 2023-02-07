@@ -37,8 +37,8 @@ import java.util.logging.SimpleFormatter;
  */
 public class Base {
 	/** 'ribose-0.0.0', current version */
-	public static final String RTE_VERSION = "ribose-0.0.0";
-	public static final String RTE_PREVIOUS = "ribose-HEAD";
+	public static final String RTE_VERSION = "ribose-0.0.1";
+	public static final String RTE_PREVIOUS = "ribose-0.0.0";
 
 	/** '.dfa', filename suffix for saved ginr automata */
 	public static final String AUTOMATON_FILE_SUFFIX = ".dfa";
