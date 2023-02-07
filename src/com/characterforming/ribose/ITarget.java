@@ -64,7 +64,7 @@ import com.characterforming.ribose.base.TargetBindingException;
  * calls {@link #getEffectors()} on each of the subordinate {@code ITarget}
  * instances and merges their effectors with its own effectors into a single array
  * to return when its {@link #getEffectors()} method is called from the ribose
- * compiler or runtime. Composite targets may be especially useful for seperating
+ * compiler or runtime. Composite targets may be especially useful for separating
  * concerns within complex semantic domains, as they encapsulate discrete semantic
  * models in tightly focussed and reusable target classes.
  *
