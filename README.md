@@ -93,7 +93,7 @@ Fibonacci = (
 1        nl [ paste out stop ]                                      (FINAL)
 
 $ for i in '' 0 00 000 0000 00000 000000 0000000 00000000 000000000 0000000000; do \
-> echo $i | etc/sh/ribose --nil build/Test.model Fibonacci -; \
+> echo $i | etc/sh/ribose build/Test.model Fibonacci -; \
 > done
 
 1
