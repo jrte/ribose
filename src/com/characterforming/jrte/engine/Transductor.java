@@ -88,12 +88,10 @@ public final class Transductor implements ITransductor, IOutput {
 	private static final int START = 13;
 	private static final int PAUSE = 14;
 	private static final int STOP = 15;
-/* Suppress new effector enumerators until after TCompile.model is updated to new version
 	@SuppressWarnings("unused")
 	private static final int MSUM = 16;
 	@SuppressWarnings("unused")
 	private static final int MPRODUCT = 17;
-*/
 
 private enum MatchMode { None, Sum, Product }
 

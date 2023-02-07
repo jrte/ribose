@@ -34,6 +34,16 @@ import com.characterforming.ribose.base.TargetBindingException;
  * <tr><td style="text-align:right"><i>automata</i></td><td>The path to the directory containing automata (*.dfa) to include in the model.</td></tr>
  * <tr><td style="text-align:right"><i>model</i></td><td>The path to the file to contain the compiled model.</td></tr>
  * </table>
+ * <br><br>
+ * The compiler model and map files ({@code TCompile.model, TCompile.map}) must be rebuilt when
+ * new effectors are added to the {@code Transductor} class. New effectors must be appended to 
+ * the existing enumeration so that models not yet updated can be supported in the updated runtime.
+ * To do this increment the ribose version string {@code Base.RTE_VERSION} and set {@code Base.RTE_PREVIOUS}
+ * to the previous {@code Base.RTE_VERSION} string. Then modify {@code Transductor.getEffectors()}
+ * to include the new effectors for {@code Base.RTE_VERSION} and the previous version effectors for 
+ * {@code Base.RTE_PREVIOUS}. Run the compiler compiler to update {@code TCompile.model, TCompile.map}
+ * and you're done. Other existing ribose models built by the previous version will still run with
+ * the new transductor effectors included but must be recompiled to update to the new model version. 
 */
 public final class TCompile extends ModelCompiler {
 	/**
