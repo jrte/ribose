@@ -10,7 +10,7 @@ model=$3
 input=$4
 shift 4
 output="-Djrte.out.enabled=true -Dregex.out.enabled=false"
-cp="-classpath jars/ribose-0.0.0.jar"
+cp="-classpath jars/$(cat version).jar"
 rm -f /tmp/bench.{gc.time}*
 for i in $(seq $n); do
 	echo -n "$transducer " >> /tmp/bench.$transducer.time

@@ -32,6 +32,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -365,8 +366,8 @@ public class ModelCompiler implements ITarget {
 			}
 
 			if (target.errors.isEmpty()) {
-				target.effectorVectorList.trimToSize();
 				target.factor(transitionMatrix);
+				target.effectorVectorList.trimToSize();
 			}
 
 			return IEffector.RTX_NONE;
@@ -458,9 +459,11 @@ public class ModelCompiler implements ITarget {
 	}
 
 	private void factor(final int[][][] transitionMatrix) {
+		final int nStates = transitionMatrix[0].length;
 		final HashMap<IntsArray, HashSet<Integer>> rowEquivalenceMap =
 			new HashMap<IntsArray, HashSet<Integer>>((5 * transitionMatrix.length) >> 2);
 		for (int i = 0; i < transitionMatrix.length; i++) {
+			assert transitionMatrix[i].length == nStates;
 			final IntsArray row = new IntsArray(transitionMatrix[i]);
 			HashSet<Integer> equivalentInputOrdinals = rowEquivalenceMap.get(row);
 			if (equivalentInputOrdinals == null) {
@@ -478,6 +481,52 @@ public class ModelCompiler implements ITarget {
 				this.inputEquivalenceIndex[inputOrdinal] = equivalenceIndex;
 			}
 			this.kernelMatrix[equivalenceIndex++] = row.getInts();
+		}
+		final int nInputs = equivalenceIndex;
+		final int msumOrdinal = this.model.getEffectorOrdinal(Bytes.encode(this.encoder, "msum"));
+		int[] equivalenceLengths = new int[nInputs];
+		byte[][] equivalentInputs = new byte[nInputs][256];
+		for (final Map.Entry<IntsArray, HashSet<Integer>> entry : rowEquivalenceMap.entrySet()) {
+			Iterator<Integer> it = entry.getValue().iterator();
+			assert it.hasNext();
+			do {
+				int inputOrdinal = it.next();
+				if (inputOrdinal < 256) {
+					int equivalenceClass = this.inputEquivalenceIndex[inputOrdinal];
+					equivalentInputs[equivalenceClass][equivalenceLengths[equivalenceClass]++] = (byte)inputOrdinal;
+				}
+			} while (it.hasNext());
+		}
+		byte[] selfBytes = new byte[256];
+		for (int state = 0; state < nStates; state++) {
+			int selfCount = 0;
+			Arrays.fill(selfBytes, (byte)0);
+			for (int input = 0; input < nInputs; input++) {
+				if (this.kernelMatrix[input][state][0] == state
+				&& this.kernelMatrix[input][state][1] == 1) {
+					for (int i = 0; i < equivalenceLengths[input]; i++) {
+						selfBytes[selfCount++] = equivalentInputs[input][i];
+					}
+				}
+			}
+			if (selfCount > 8) {
+				int[] msumVector = {
+					msumOrdinal,
+					this.model.compileParameters(msumOrdinal, new byte[][] { Arrays.copyOf(selfBytes, selfCount) }),
+					0
+				};
+				int effectVectorOrdinal = this.effectorVectorList.size();
+				this.effectorVectorList.add(-1 * msumVector[0]);
+				this.effectorVectorList.add(msumVector[1]);
+				this.effectorVectorList.add(msumVector[2]);
+				this.effectorVectorMap.put(new Ints(msumVector), Integer.valueOf(effectVectorOrdinal));
+				for (int input = 0; input < nInputs; input++) {
+					if (this.kernelMatrix[input][state][0] == state
+					&& this.kernelMatrix[input][state][1] == 1) {
+						this.kernelMatrix[input][state][1] = -1 * effectVectorOrdinal;
+					}
+				}
+			}
 		}
 	}
 

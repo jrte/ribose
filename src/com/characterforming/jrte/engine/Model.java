@@ -462,7 +462,7 @@ public final class Model implements AutoCloseable {
 		for (final Map.Entry<Bytes, Integer> entry : effectorOrdinalMap.entrySet()) {
 			if (this.proxyEffectors[entry.getValue()] == null) {
 				this.rtcLogger.log(Level.SEVERE, String.format("%1$s.%2$s: effector ordinal not found",
-						this.proxyTarget.getName(), entry.getKey().toString()));
+					this.proxyTarget.getName(), entry.getKey().toString()));
 				fail = true;
 			}
 		}

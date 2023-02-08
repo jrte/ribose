@@ -304,6 +304,8 @@ private final Model model;
 				}
 			}
 		}
+		this.matchMode = MatchMode.None;
+		this.matchPosition = 0;
 		if (this.status() == Status.NULL) {
 			RiboseException rtx = new RiboseException("run: Transduction is MODEL and inoperable");
 			this.rteLogger.log(Level.SEVERE, rtx.getMessage(), rtx);
@@ -333,7 +335,7 @@ T:		do {
 				final int[][] transitionMatrix = transducer.transitionMatrix;
 				final int[] effectorVector = transducer.effectorVector;
 				state = transducer.state;
-				do {
+S:			do {
 					// get next input token
 					if (signalInput == 0) {
 						token = Byte.toUnsignedInt(input.array[input.position++]);
@@ -357,7 +359,6 @@ T:		do {
 								input.position = input.length;
 								this.inputStack.pop();
 								input = this.inputStack.push(value.getValue()).limit(value.getLength());
-								token = Byte.toUnsignedInt(input.array[input.position++]);
 								break;
 							case Base.TYPE_REFERENCE_NONE:
 								token = Byte.toUnsignedInt(input.array[input.position++]);
@@ -371,11 +372,47 @@ T:		do {
 							break T;
 						}
 					}
+					
+					// absorb self-referencing or sequential transitions with nil effect
+					if (token < nulSignal) {
+						switch (this.matchMode) {
+						case None:
+							break;
+						case Sum:
+							while (0 != (this.matchSum[token >> 6] & (1L << (token & 0x3f)))) {
+								if (input.position < input.limit) {
+									token = Byte.toUnsignedInt(input.array[input.position++]);
+								} else {
+									signalInput = -1;
+									continue S;
+								}
+							}
+							this.matchMode = MatchMode.None;
+							break;
+						case Product:
+							while (this.matchPosition < this.matchProduct.length) {
+								if (Byte.toUnsignedInt(this.matchProduct[this.matchPosition++]) == token) {
+									if (input.position < input.limit) {
+										token = Byte.toUnsignedInt(input.array[input.position++]);
+									} else {
+										signalInput = -1;
+										continue S;
+									}
+								} else {
+									token = nulSignal;
+									break;
+								}
+							}
+							this.matchMode = MatchMode.None;
+							break;
+						}
+					}
+
 					// flag input stack condition if at end of frame
 					if (input.position >= input.limit) {
 						signalInput = -1;
 					}
-
+					
 					int action = NUL;
 					int index = 0;
 I:				do {
@@ -727,6 +764,7 @@ I:				do {
 		if (this.matchMode == MatchMode.None) {
 			this.matchMode = MatchMode.Product;
 			this.matchProduct = matchSequence;
+			this.matchPosition = 0;
 		} else {
 			throw new EffectorException("Illegal attempt to override match mode");
 		}
@@ -1149,7 +1187,8 @@ I:				do {
 			}
 			long[] byteMap = new long[] {0, 0, 0, 0};
 			for (byte b : parameterList[0]) {
-				byteMap[b >> 2] |= 1 << (b & 0x3f);
+				final int bint = Byte.toUnsignedInt(b);
+				byteMap[bint >> 6] |= 1L << (bint & 0x3f);
 			}
 			super.setParameter(parameterIndex, byteMap);
 			return super.parameters[parameterIndex];

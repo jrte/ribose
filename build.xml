@@ -28,7 +28,7 @@
 
 <project name="ribose-build" default="ci-test" basedir="." xmlns:if="ant:if" xmlns:unless="ant:unless">
   <property environment="env"/>
-	<property name="ribose.version" value="ribose-0.0.0"/>
+	<property name="ribose.version" value="ribose-0.0.1"/>
   <property name="jdk" value="${env.JAVA_HOME}"/>
 	<property name="java.source.dir" value="src"/>
 	<property name="java.test.dir" value="test"/>
@@ -112,6 +112,7 @@
 		<echo message="Git branch: ${git.branch}"/>
 		<echo message="Git commit: ${git.commit}"/>
 		<echo message="Version: ${ribose.version}"/>
+		<echo message="${ribose.version}" file="version"/>
 		<mkdir dir="${build.java.classes}"/>
 		<mkdir dir="${build.compiler.model}"/>
 		<mkdir dir="${build.automata}"/>
@@ -221,7 +222,7 @@
 	<target name="check-package-test-patterns" depends="compile-test-patterns">
 		<uptodate targetfile="build/Test.model" property="patterns.packaged">
 			<srcfiles dir="${build.automata}" includes="**/*.dfa"/>
-			<srcfiles file="jars/ribose.0.0.0.jar"/>
+			<srcfiles file="${jars.dir}/${ribose.version}.jar"/>
 		</uptodate>
 	</target>
 

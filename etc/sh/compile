@@ -13,4 +13,4 @@ else
 	echo "Compiles automata from <dfa-directory-path> into <model-file-path>."
 	exit 1
 fi	
-java -cp jars/ribose-0.0.0.jar com.characterforming.ribose.TCompile --target $target "$dfadir" "$model"
+java -cp jars/$(cat version).jar com.characterforming.ribose.TCompile --target $target "$dfadir" "$model"
