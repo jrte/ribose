@@ -16,7 +16,7 @@ if (($#!=3 && $# != 4)); then
   echo 'Use '-' for input-path to read from System.in; default output stream is System.out.'
 else
   jars="$(dirname $(readlink -f $0))/../../jars"
-  java="java -cp $jars/$(cat version).jar"
+  java="${JAVA_HOME}/bin/java -cp $jars/$(cat version).jar"
 	model="$1"
 	transducer="$2"
 	input="$3"

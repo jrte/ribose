@@ -21,6 +21,6 @@ else
 	shift 3
 	version="$(cat version)"
 	jars="$(dirname $(readlink -f $0))/../../jars"
-	java="java -cp $jars/$version.jar:$jars/$version-test.jar"
+	java="${JAVA_HOME}/bin/java -cp $jars/$version.jar:$jars/$version-test.jar"
 	$java $vmargs com.characterforming.jrte.test.FileRunner $nil "$model" "$transducer" "$input" $*
 fi

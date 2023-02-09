@@ -1,14 +1,16 @@
 #! /bin/bash
 if (($#<4)); then
-	echo " Usage: bench <iteration-count> <transducer> <model-path> <input-path>"
+	echo " Usage: bench <iteration-count> <model-path> <transducer> <input-path>"
 	echo "Output: /tmp/bench.<transducer>.time, /tmp/bench-<transducer>-<iteration>.gc"
 	exit 1
 fi 
+set -x
 n=$1
-transducer=$2
-model=$3
+model=$2
+transducer=$3
 input=$4
 shift 4
+set +x
 output="-Djrte.out.enabled=true -Dregex.out.enabled=false"
 cp="-classpath jars/$(cat version).jar"
 rm -f /tmp/bench.{gc.time}*
@@ -16,6 +18,6 @@ for i in $(seq $n); do
 	echo -n "$transducer " >> /tmp/bench.$transducer.time
 	gc="-Xms2m -Xlog:gc*:file=/tmp/bench-$transducer-$i.gc"
 	/usr/bin/time -a -o /tmp/bench.$transducer.time -f "%Uuser %Ssystem %Eelapsed %PCPU %Iinputs+%Ooutputs (%Fmajor+%Rminor)" \
-	java $output $gc $cp -Dfile.encoding=UTF-8 com.characterforming.ribose.TRun --nil $transducer "$input" "$model" "$@" \
+	${JAVA_HOME}/bin/java $output $gc $cp -Dfile.encoding=UTF-8 com.characterforming.ribose.TRun --nil "$model" $transducer "$input" "$@" \
 	> /tmp/bench-$transducer-$i.out
 done
