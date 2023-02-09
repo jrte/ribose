@@ -359,6 +359,7 @@ S:			do {
 								input.position = input.length;
 								this.inputStack.pop();
 								input = this.inputStack.push(value.getValue()).limit(value.getLength());
+								token = Byte.toUnsignedInt(input.array[input.position++]);
 								break;
 							case Base.TYPE_REFERENCE_NONE:
 								token = Byte.toUnsignedInt(input.array[input.position++]);
@@ -412,7 +413,7 @@ S:			do {
 					if (input.position >= input.limit) {
 						signalInput = -1;
 					}
-					
+
 					int action = NUL;
 					int index = 0;
 I:				do {

@@ -509,17 +509,23 @@ public class ModelCompiler implements ITarget {
 					}
 				}
 			}
-			if (selfCount > 8) {
+			if (selfCount > 64) {
 				int[] msumVector = {
 					msumOrdinal,
 					this.model.compileParameters(msumOrdinal, new byte[][] { Arrays.copyOf(selfBytes, selfCount) }),
 					0
 				};
-				int effectVectorOrdinal = this.effectorVectorList.size();
-				this.effectorVectorList.add(-1 * msumVector[0]);
-				this.effectorVectorList.add(msumVector[1]);
-				this.effectorVectorList.add(msumVector[2]);
-				this.effectorVectorMap.put(new Ints(msumVector), Integer.valueOf(effectVectorOrdinal));
+				int effectVectorOrdinal = -1;
+				Ints msumInts = new Ints(msumVector);
+				if (this.effectorVectorMap.containsKey(msumInts)) {
+					effectVectorOrdinal = this.effectorVectorMap.get(msumInts);
+				} else {
+					effectVectorOrdinal = this.effectorVectorList.size();
+					this.effectorVectorList.add(-1 * msumVector[0]);
+					this.effectorVectorList.add(msumVector[1]);
+					this.effectorVectorList.add(msumVector[2]);
+					this.effectorVectorMap.put(msumInts, Integer.valueOf(effectVectorOrdinal));
+				}
 				for (int input = 0; input < nInputs; input++) {
 					if (this.kernelMatrix[input][state][0] == state
 					&& this.kernelMatrix[input][state][1] == 1) {
@@ -648,7 +654,7 @@ public class ModelCompiler implements ITarget {
 				}
 			}
 		}
-		double sparsity = (double)100 - (double)(100 * transitions)/(double)(this.kernelMatrix.length * this.kernelMatrix[0].length);
+		double sparsity = 100 - (double)(100 * transitions)/(double)(this.kernelMatrix.length * this.kernelMatrix[0].length);
 		this.rtcLogger.log(Level.INFO, String.format("%1$20s: %2$5d input classes %3$5d states %4$5d transitions (%5$.0f%% nul)",
 			this.getTransducerName(), this.kernelMatrix.length, this.kernelMatrix[0].length, transitions, sparsity));
 		System.out.flush();
