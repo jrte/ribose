@@ -352,11 +352,11 @@ Shell scripts are available in `etc/sh` to support compiling patterns, packaging
 - _compile_: compile ginr DFAs to ribose transducers and package transducers into a ribose model
 - _ribose_: start a ribose transducer on a runtime transductor to transduce an input file
 
-To learn how to use ribose models in the JVM runtime build ribose and see the javadoc pages in `javadoc/` or `jars/ribose-0.0.0-api.jar`.
+To learn how to use ribose models in the JVM runtime build ribose and see the javadoc pages in `javadoc/` or `jars/ribose-0.0.1-api.jar`.
 
 For some background reading and a historical perspective visit the [ribose wiki](https://github.com/jrte/ribose/wiki).
 
-The current version of ribose is packaged in `jars/ribose-0.0.0.jar`.
+The current version of ribose is packaged in `jars/ribose-0.0.1.jar`.
 
 See [LICENSE](https://github.com/jrte/ribose/raw/master/LICENSE) for ribose licensing details.
 
