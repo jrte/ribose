@@ -290,8 +290,7 @@
 		</unzip>
 	</target>
 
-	<target name="test" depends="test-env">
-<!-- Basic ribose tests -->
+	<target name="test-basic" depends="test-env">
 		<echo>Basic FileRunner tests:</echo>
 		<echo>Fibonacci:</echo>
 		<exec failonerror="true" executable="bash">
@@ -304,14 +303,18 @@
 			<arg value="etc/sh/ribose --nil build/Test.model DateExtractor ${test.input.dir}/dates.txt"/>
 		</exec>
 		<echo/>
-<!-- TestRunner benchmarks -->
+	</target>
+
+	<target name="test-testrunner" depends="test-env">
 		<echo>TestRunner benchmarking (simple fsts driving base transduction effectors):</echo>
 		<java fork="true" jvm="${jdk}/bin/java" dir="." classname="com.characterforming.jrte.test.TestRunner" classpathref="testing.classpath" failonerror="true">
 			<jvmarg line="${jargs} -Djrte.out.enabled=false -Dregex.out.enabled=false"/>
 			<arg line="build/Test.model 1"/>
 		</java>
 		<echo/>
-<!-- FileRunner benchmarks -->
+	</target>
+
+	<target name="test-filerunner" depends="test-env">
 		<echo>FileRunner benchmarking (ribose fsts vs similar regex, input from single buffer in RAM, output muted):</echo>
 		<java fork="true" jvm="${jdk}/bin/java" dir="." classname="com.characterforming.jrte.test.FileRunner" classpathref="testing.classpath" failonerror="true">
 			<jvmarg line="${jargs} -Djrte.out.enabled=false -Dregex.out.enabled=false"/>
@@ -338,10 +341,11 @@
 			<arg line="--nil build/Test.model Sintervals ${test.input.dir}/verbosegc.vgc &quot;${regex.verbose.gc}&quot;"/>
 		</java>
 		<echo/>
-<!-- I/O equivalence tests -->
+	</target>
+
+	<target name="test-output-equivalence" depends="test-env">
 		<echo>Ribose output equivalence tests with ${ribose.inbuffer.size}b input buffer (showing line and byte counts for input/output files):</echo>
 		<echo/>
-<!-- verbose gc run -->
 		<echo message="Reducing ${test.input.dir}/verbosegc.vgc -> ${build.testenv}/vgc.*.out"/>
 		<exec failonerror="true" executable="wc">
 			<arg line="--lines --bytes ${test.input.dir}/verbosegc.vgc"/>
@@ -380,18 +384,6 @@
 		</condition>
 		<fail unless="intervals.match" message="Not identical: ${build.testenv}/vgc.*.out"/>
 		<echo message="Identical: ${build.testenv}/vgc.*.out"/>
-<!-- verbose gc log transduction G1 pause metrics (megabytes) -->
-		<echo message="G1 evacuation pause metrics (megabytes)"/>
-		<exec failonerror="true" executable="bash">
-			<arg value="-c"/>
-			<arg value="etc/sh/regress --clean ${build.testenv}/vgc.*.gc"/>
-		</exec>
-<!-- verbose gc log transduction final heap stats -->
-		<echo message="Final heap stats:"/>
-		<exec failonerror="true" executable="bash">
-			<arg value="-c"/>
-			<arg value="grep -o -H 'total [0-9]*K, used [0-9]*K' ${build.testenv}/vgc*.gc"/>
-		</exec>
 		<echo/>
 <!-- linux kernel run -->
 		<echo message="Reducing ${test.input.dir}/kern-10.log -> ${build.testenv}/linuxkernel*.out"/>
@@ -441,6 +433,22 @@
 		</condition>
 		<fail unless="kernel.match" message="Not identical: ${build.testenv}/linuxkernel*.out"/>
 		<echo message="Identical: ${build.testenv}/linuxkernel*.out"/>
+	</target>
+
+	<target name="test" depends="test-env,test-basic,test-testrunner,test-filerunner,test-output-equivalence">
+<!-- verbose gc log transduction G1 pause metrics (megabytes) -->
+		<echo message="G1 evacuation pause metrics (megabytes)"/>
+		<exec failonerror="true" executable="bash">
+			<arg value="-c"/>
+			<arg value="etc/sh/regress --clean ${build.testenv}/vgc.*.gc"/>
+		</exec>
+<!-- verbose gc log transduction final heap stats -->
+		<echo message="Final heap stats:"/>
+		<exec failonerror="true" executable="bash">
+			<arg value="-c"/>
+			<arg value="grep -o -H 'total [0-9]*K, used [0-9]*K' ${build.testenv}/vgc*.gc"/>
+		</exec>
+		<echo/>
 <!-- linux kernel log transduction G1 pause metrics (megabytes) -->
 		<echo message="G1 evacuation pause metrics (megabytes)"/>
 		<exec failonerror="true" executable="bash">
