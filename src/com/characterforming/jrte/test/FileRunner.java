@@ -78,8 +78,8 @@ public class FileRunner {
 		}
 
 		final File f = new File(inputPath);
-		long clen = (int)f.length();
-		if (clen <= 0) {
+		long blen = (int)f.length();
+		if (blen <= 0) {
 			System.out.println(String.format("Input file is empty: %s", inputPath));
 			System.exit(1);
 		}
@@ -88,14 +88,18 @@ public class FileRunner {
 		final Logger rtmLogger = Base.getMetricsLogger();
 		final CharsetDecoder decoder = Base.newCharsetDecoder();
 		final CharsetEncoder encoder = Base.newCharsetEncoder();
+		byte[] bbuf = new byte[(int)blen];
+		CharBuffer charInput = null;
 		try (final FileInputStream isr = new FileInputStream(f)) {
+			blen = isr.read(bbuf, 0, (int)blen);
+			assert blen == bbuf.length;
+			charInput = decoder.decode(ByteBuffer.wrap(bbuf, 0, bbuf.length));
+		} catch (Exception e) {
+			System.out.println("Runtime exception thrown.");
+			rteLogger.log(Level.SEVERE, "Runtime failed, exception thrown.", e);
+		}
+		try {
 			long ejrte = 0, tjrte = 0, t0 = 0, t1 = 0;
-			byte[] cbuf = null;
-			if (regexOutEnabled || !jrteOutEnabled) {
-				cbuf = new byte[(int)clen];
-				clen = isr.read(cbuf, 0, (int)clen);
-				assert clen == cbuf.length;
-			}
 			int loops = 1;
 			if (jrteOutEnabled || !regexOutEnabled) {
 				try (IRuntime ribose = Ribose.loadRiboseModel(new File(modelPath))) {
@@ -106,7 +110,7 @@ public class FileRunner {
 						loops = 20;
 						for (int i = 0; i < loops; i++) {
 							assert trex.status().isStopped();
-							if (trex.push(cbuf, (int)clen).status().isWaiting()
+							if (trex.push(bbuf, (int)blen).status().isWaiting()
 							&& (!nil || (trex.push(Signal.nil).status().isWaiting()))
 							&& (trex.start(Bytes.encode(encoder, transducerName)).status().isRunnable())) {
 								t0 = System.nanoTime();
@@ -128,20 +132,28 @@ public class FileRunner {
 								assert trex.status().isStopped();
 							}
 						}
-						double epkb = (double)(ejrte*1024) / (double)(clen*loops);
-						double mbps = (tjrte > 0) ? (double)((loops - 10)*clen*1000) / (double)tjrte : -1;
+						double epkb = (double)(ejrte*1024) / (double)(blen*loops);
+						double mbps = (tjrte > 0) ? (double)((loops - 10)*blen*1000) / (double)tjrte : -1;
 						System.out.println(String.format(" : %7.3f mb/s %7.3f nul/kb", mbps, epkb));
-						rtmLogger.log(Level.INFO, String.format("%s\t%7.3f\t%d\t%s", inputPath, mbps, clen, transducerName));
+						rtmLogger.log(Level.INFO, String.format("%s\t%7.3f\t%d\t%s", inputPath, mbps, blen, transducerName));
 					} else {
-						t0 = System.nanoTime();
-						if (nil) {
-							ribose.transduce(runTarget, Bytes.encode(encoder, transducerName), Signal.nil, isr, System.out);
-						} else {
-							ribose.transduce(runTarget, Bytes.encode(encoder, transducerName), isr, System.out);
+						try (final FileInputStream isr = new FileInputStream(f)) {
+							t0 = System.nanoTime();
+							if (nil) {
+								ribose.transduce(runTarget, Bytes.encode(encoder, transducerName), Signal.nil, isr, System.out);
+							} else {
+								ribose.transduce(runTarget, Bytes.encode(encoder, transducerName), isr, System.out);
+							}
+							tjrte = System.nanoTime() - t0;
+						} catch (Exception e) {
+							System.out.println("Runtime exception thrown.");
+							rteLogger.log(Level.SEVERE, "Runtime failed, exception thrown.", e);
+						} catch (AssertionError e) {
+							System.out.println("Runtime assertion failed.");
+							rteLogger.log(Level.SEVERE, "Runtime assertion failed", e);
 						}
-						tjrte = System.nanoTime() - t0;
-						double mbps = (tjrte > 0) ? (double)(clen*1000) / (double)tjrte : -1;
-						rtmLogger.log(Level.FINE, String.format("%s\t%7.3f\t%d\t%s", inputPath, mbps, clen, transducerName));
+						double mbps = (tjrte > 0) ? (double)(blen*1000) / (double)tjrte : -1;
+						rtmLogger.log(Level.FINE, String.format("%s\t%7.3f\t%d\t%s", inputPath, mbps, blen, transducerName));
 					}
 				} catch (Exception e) {
 					rteLogger.log(Level.SEVERE, "Runtime failed, exception thrown.", e);
@@ -152,7 +164,6 @@ public class FileRunner {
 				}
 			}
 			if (regexOutEnabled || !jrteOutEnabled) {
-				CharBuffer charInput = decoder.decode(ByteBuffer.wrap(cbuf, 0, cbuf.length));
 				Pattern pattern = Pattern.compile(regex, Pattern.MULTILINE);
 				long tregex = 0;
 				if (!regexOutEnabled) {
@@ -183,14 +194,15 @@ public class FileRunner {
 						assert count > 0;
 					}
 					double tr = (tjrte > 0) ? (double) tregex / tjrte : -1;
-					double mbps = (tregex > 0) ? (double)((loops - 10)*clen*1000) / (double)tregex : -1;
+					double mbps = (tregex > 0) ? (double)((loops - 10)*blen*1000) / (double)tregex : -1;
 					System.out.println(String.format(" : %7.3f mb/s %7.3f ribose:regex", mbps, tr));
-					rtmLogger.log(Level.INFO, String.format("%s\t%7.3f\t%d\t%s", inputPath, mbps, clen, regex));
+					rtmLogger.log(Level.INFO, String.format("%s\t%7.3f\t%d\t%s", inputPath, mbps, blen, regex));
 				} else {
 					int count = 0;
+					charInput.rewind();
 					byte[] bytes = new byte[Base.getOutBufferSize()];
-					ByteBuffer bbuf = ByteBuffer.wrap(bytes);
-					CharBuffer sbuf = CharBuffer.allocate(bytes.length);
+					ByteBuffer bbuffer = ByteBuffer.wrap(bytes);
+					CharBuffer cbuffer = CharBuffer.allocate(bytes.length);
 					Matcher matcher = pattern.matcher(charInput);
 					t0 = System.nanoTime();
 					while (matcher.find()) {
@@ -200,28 +212,28 @@ public class FileRunner {
 							if (match == null) {
 								match = "";
 							}
-							if (sbuf.remaining() < (match.length() + 1)) {
-								CoderResult code = encoder.encode(sbuf.flip(), bbuf, false);
+							if (cbuffer.remaining() < (match.length() + 1)) {
+								CoderResult code = encoder.encode(cbuffer.flip(), bbuffer, false);
 								assert code.isUnderflow();
-								System.out.write(bbuf.array(), 0, bbuf.position());
-								bbuf.clear(); sbuf.clear();
+								System.out.write(bbuffer.array(), 0, bbuffer.position());
+								bbuffer.clear(); cbuffer.clear();
 							}
-							sbuf.append(match).append(j < k ? '|' : '\n');
+							cbuffer.append(match).append(j < k ? '|' : '\n');
 						}
 						if (k > 0) {
 							count++;
 						}
 					}
-					if (sbuf.position() > 0) {
-						CoderResult code = encoder.encode(sbuf.flip(), bbuf, true);
+					if (cbuffer.position() > 0) {
+						CoderResult code = encoder.encode(cbuffer.flip(), bbuffer, true);
 						assert code.isUnderflow();
-						System.out.write(bytes, 0, bbuf.position());
+						System.out.write(bytes, 0, bbuffer.position());
 					}
 					System.out.flush();
 					assert count > 0;
 					tregex = System.nanoTime() - t0;
-					double mbps = (tregex > 0) ? (double)(clen*1000d) / (double)tregex : -1;
-					rtmLogger.log(Level.INFO, String.format("%s\t%7.3f\t%d\t%s", inputPath, mbps, clen, regex));
+					double mbps = (tregex > 0) ? (double)(blen*1000d) / (double)tregex : -1;
+					rtmLogger.log(Level.INFO, String.format("%s\t%7.3f\t%d\t%s", inputPath, mbps, blen, regex));
 				}
 			}
 			exitCode = 0;
