@@ -459,6 +459,7 @@ public class ModelCompiler implements ITarget {
 	}
 
 	private void factor(final int[][][] transitionMatrix) {
+		// factor matrix modulo input equivalence
 		final int nStates = transitionMatrix[0].length;
 		final HashMap<IntsArray, HashSet<Integer>> rowEquivalenceMap =
 			new HashMap<IntsArray, HashSet<Integer>>((5 * transitionMatrix.length) >> 2);
@@ -482,6 +483,7 @@ public class ModelCompiler implements ITarget {
 			}
 			this.kernelMatrix[equivalenceIndex++] = row.getInts();
 		}
+		// msum instrumentation
 		final int nInputs = equivalenceIndex;
 		final int msumOrdinal = this.model.getEffectorOrdinal(Bytes.encode(this.encoder, "msum"));
 		int[] equivalenceLengths = new int[nInputs];
@@ -497,9 +499,13 @@ public class ModelCompiler implements ITarget {
 				}
 			} while (it.hasNext());
 		}
-		byte[] selfBytes = new byte[256];
+		int nulEquivalent = this.inputEquivalenceIndex[Signal.nul.signal()];
+		boolean nulSingleton = 1 == equivalenceLengths[nulEquivalent];
+		int[] outDegree = new int[nStates];
+		Arrays.fill(outDegree, 0);
 		for (int state = 0; state < nStates; state++) {
 			int selfCount = 0;
+			byte[] selfBytes = new byte[256];
 			Arrays.fill(selfBytes, (byte)0);
 			for (int input = 0; input < nInputs; input++) {
 				if (this.kernelMatrix[input][state][0] == state
@@ -508,23 +514,24 @@ public class ModelCompiler implements ITarget {
 						selfBytes[selfCount++] = equivalentInputs[input][i];
 					}
 				}
+				if (((input != nulEquivalent || !nulSingleton))
+				&& this.kernelMatrix[input][state][1] != 0) {
+					outDegree[state] += 1;
+				}
 			}
 			if (selfCount > 64) {
-				int[] msumVector = {
-					msumOrdinal,
-					this.model.compileParameters(msumOrdinal, new byte[][] { Arrays.copyOf(selfBytes, selfCount) }),
-					0
-				};
 				int effectVectorOrdinal = -1;
-				Ints msumInts = new Ints(msumVector);
-				if (this.effectorVectorMap.containsKey(msumInts)) {
-					effectVectorOrdinal = this.effectorVectorMap.get(msumInts);
+				byte[][] msumParameterBytes = { Arrays.copyOf(selfBytes, selfCount) };
+				int msumParameterOrdinal = this.model.compileParameters(msumOrdinal, msumParameterBytes);
+				Ints msumEffectVector = new Ints(new int[] { -1 * msumOrdinal, msumParameterOrdinal, 0 });
+				if (this.effectorVectorMap.containsKey(msumEffectVector)) {
+					effectVectorOrdinal = this.effectorVectorMap.get(msumEffectVector);
 				} else {
 					effectVectorOrdinal = this.effectorVectorList.size();
-					this.effectorVectorList.add(-1 * msumVector[0]);
-					this.effectorVectorList.add(msumVector[1]);
-					this.effectorVectorList.add(msumVector[2]);
-					this.effectorVectorMap.put(msumInts, Integer.valueOf(effectVectorOrdinal));
+					for (int effectVectorElement : msumEffectVector.getInts()) {
+						this.effectorVectorList.add(effectVectorElement);
+					}
+					this.effectorVectorMap.put(msumEffectVector, Integer.valueOf(effectVectorOrdinal));
 				}
 				for (int input = 0; input < nInputs; input++) {
 					if (this.kernelMatrix[input][state][0] == state
@@ -534,6 +541,7 @@ public class ModelCompiler implements ITarget {
 				}
 			}
 		}
+		// mproduct instrumentation
 	}
 
 	private Chain chain(final Transition transition) {

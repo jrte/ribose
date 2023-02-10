@@ -134,8 +134,8 @@ public class FileRunner {
 						}
 						double epkb = (double)(ejrte*1024) / (double)(blen*loops);
 						double mbps = (tjrte > 0) ? (double)((loops - 10)*blen*1000) / (double)tjrte : -1;
-						System.out.println(String.format(" : %7.3f mb/s %7.3f nul/kb", mbps, epkb));
-						rtmLogger.log(Level.INFO, String.format("%s\t%7.3f\t%d\t%s", inputPath, mbps, blen, transducerName));
+						System.out.println(String.format(" : %8.3f mb/s %7.3f nul/kb", mbps, epkb));
+						rtmLogger.log(Level.INFO, String.format("%s\t%8.3f\t%d\t%s", inputPath, mbps, blen, transducerName));
 					} else {
 						try (final FileInputStream isr = new FileInputStream(f)) {
 							t0 = System.nanoTime();
@@ -153,7 +153,7 @@ public class FileRunner {
 							rteLogger.log(Level.SEVERE, "Runtime assertion failed", e);
 						}
 						double mbps = (tjrte > 0) ? (double)(blen*1000) / (double)tjrte : -1;
-						rtmLogger.log(Level.FINE, String.format("%s\t%7.3f\t%d\t%s", inputPath, mbps, blen, transducerName));
+						rtmLogger.log(Level.FINE, String.format("%s\t%8.3f\t%d\t%s", inputPath, mbps, blen, transducerName));
 					}
 				} catch (Exception e) {
 					rteLogger.log(Level.SEVERE, "Runtime failed, exception thrown.", e);
@@ -195,8 +195,8 @@ public class FileRunner {
 					}
 					double tr = (tjrte > 0) ? (double) tregex / tjrte : -1;
 					double mbps = (tregex > 0) ? (double)((loops - 10)*blen*1000) / (double)tregex : -1;
-					System.out.println(String.format(" : %7.3f mb/s %7.3f ribose:regex", mbps, tr));
-					rtmLogger.log(Level.INFO, String.format("%s\t%7.3f\t%d\t%s", inputPath, mbps, blen, regex));
+					System.out.println(String.format(" : %8.3f mb/s %7.3f ribose:regex", mbps, tr));
+					rtmLogger.log(Level.INFO, String.format("%s\t%8.3f\t%d\t%s", inputPath, mbps, blen, regex));
 				} else {
 					int count = 0;
 					charInput.rewind();
@@ -233,7 +233,7 @@ public class FileRunner {
 					assert count > 0;
 					tregex = System.nanoTime() - t0;
 					double mbps = (tregex > 0) ? (double)(blen*1000d) / (double)tregex : -1;
-					rtmLogger.log(Level.INFO, String.format("%s\t%7.3f\t%d\t%s", inputPath, mbps, blen, regex));
+					rtmLogger.log(Level.INFO, String.format("%s\t%8.3f\t%d\t%s", inputPath, mbps, blen, regex));
 				}
 			}
 			exitCode = 0;

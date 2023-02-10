@@ -11,6 +11,7 @@ java_pid*
 *.dfa
 *.pr
 *.last
+.tmp/
 .settings/
 .vscode/
 .classpath

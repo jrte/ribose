@@ -116,7 +116,7 @@ public class TestRunner {
 					}
 				}
 				double mbps = (t2 > 0) ? (double)(10l*10000000l*1000l) / (double)t2 : -1;
-				System.out.println(String.format(" : %7.3f mb/s (bytes)", mbps));
+				System.out.println(String.format(" : %8.3f mb/s (bytes)", mbps));
 			}
 			exitCode = 0;
 		} catch (Exception e) {
@@ -150,6 +150,6 @@ public class TestRunner {
 		}
 		double density = (double)100 * ((double)captured / (double)(20*input.length));
 		double mbps = (t2 > 0) ? (double)(10*(long)input.length*1000) / (double)t2 : -1;
-		System.out.println(String.format(" : %7.3f mb/s (chars, captured %.1f%%)", mbps, density));
+		System.out.println(String.format(" : %8.3f mb/s (chars, captured %.1f%%)", mbps, density));
 	}
 }
