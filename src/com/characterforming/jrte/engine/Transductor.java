@@ -93,9 +93,11 @@ public final class Transductor implements ITransductor, IOutput {
 	@SuppressWarnings("unused")
 	private static final int MPRODUCT = 17;
 
-private enum MatchMode { None, Sum, Product }
+	private final int Mnone = 0;
+	private final int Msum = 1;
+	private final int Mproduct = 2;
 
-private final Model model;
+	private final Model model;
 	private final TargetMode mode;
 	private IEffector<?>[] effectors;
 	private NamedValue selected;
@@ -103,12 +105,9 @@ private final Model model;
 	private Map<Bytes, Integer> namedValueOrdinalMap;
 	private final TransducerStack transducerStack;
 	private final InputStack inputStack;
-	private MatchMode matchMode;
-	@SuppressWarnings("unused")
+	private int matchMode;
 	private long[] matchSum;
-	@SuppressWarnings("unused")
 	private byte[] matchProduct;
-	@SuppressWarnings("unused")
 	private int matchPosition;
 	private final CharsetDecoder decoder;
 	private final CharsetEncoder encoder;
@@ -132,7 +131,7 @@ private final Model model;
 		this.namedValueOrdinalMap = null;
 		this.output = System.getProperty("jrte.out.enabled", "true").equals("true") ? System.out : null;
 		this.selected = null;
-		this.matchMode = MatchMode.None;
+		this.matchMode = Mnone;
 		this.matchSum = null;
 		this.matchProduct = null;
 		this.matchPosition = 0;
@@ -304,7 +303,7 @@ private final Model model;
 				}
 			}
 		}
-		this.matchMode = MatchMode.None;
+		this.matchMode = Mnone;
 		this.matchPosition = 0;
 		if (this.status() == Status.NULL) {
 			RiboseException rtx = new RiboseException("run: Transduction is MODEL and inoperable");
@@ -375,11 +374,11 @@ S:			do {
 					}
 					
 					// absorb self-referencing or sequential transitions with nil effect
-					if (token < nulSignal) {
-						switch (this.matchMode) {
-						case None:
-							break;
-						case Sum:
+					switch (this.matchMode) {
+					case Mnone:
+						break;
+					case Msum:
+						if (token < nulSignal) {
 							while (0 != (this.matchSum[token >> 6] & (1L << (token & 0x3f)))) {
 								if (input.position < input.limit) {
 									token = Byte.toUnsignedInt(input.array[input.position++]);
@@ -388,25 +387,28 @@ S:			do {
 									continue S;
 								}
 							}
-							this.matchMode = MatchMode.None;
-							break;
-						case Product:
-							while (this.matchPosition < this.matchProduct.length) {
-								if (Byte.toUnsignedInt(this.matchProduct[this.matchPosition++]) == token) {
-									if (input.position < input.limit) {
-										token = Byte.toUnsignedInt(input.array[input.position++]);
-									} else {
-										signalInput = -1;
-										continue S;
-									}
-								} else {
-									token = nulSignal;
-									break;
-								}
-							}
-							this.matchMode = MatchMode.None;
-							break;
 						}
+						this.matchMode = Mnone;
+						break;
+					case Mproduct:
+						while (this.matchPosition < this.matchProduct.length) {
+							if (Byte.toUnsignedInt(this.matchProduct[this.matchPosition++]) == token) {
+								if (input.position < input.limit) {
+									token = Byte.toUnsignedInt(input.array[input.position++]);
+								} else {
+									signalInput = -1;
+									continue S;
+								}
+							} else {
+								token = nulSignal;
+								break;
+							}
+						}
+						this.matchMode = Mnone;
+						break;
+					default:
+						assert false;
+						break;
 					}
 
 					// flag input stack condition if at end of frame
@@ -450,7 +452,7 @@ I:				do {
 					} while (true);
 
 					// continue at top of input loop after a run (nil* paste*)* nil singleton effects
-					if (action == NIL) {
+					if (index == 0 && action == NIL) {
 						continue;
 					}
 
@@ -753,8 +755,10 @@ I:				do {
 	}
 
 	private void matchSum(long[] matchMap) throws EffectorException {
-		if (this.matchMode == MatchMode.None) {
-			this.matchMode = MatchMode.Sum;
+		if (this.matchMode == Mnone) {
+			this.matchMode = Msum;
+		}
+		if (this.matchMode == Msum) {
 			this.matchSum = matchMap;
 		} else {
 			throw new EffectorException("Illegal attempt to override match mode");
@@ -762,8 +766,10 @@ I:				do {
 	}
 
 	private void matchProduct(byte[] matchSequence) throws EffectorException {
-		if (this.matchMode == MatchMode.None) {
-			this.matchMode = MatchMode.Product;
+		if (this.matchMode == Mnone) {
+			this.matchMode = Mproduct;
+		}
+		if (this.matchMode == Mproduct) {
 			this.matchProduct = matchSequence;
 			this.matchPosition = 0;
 		} else {

@@ -32,8 +32,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -73,7 +73,7 @@ public class ModelCompiler implements ITarget {
 	private HashMap<Integer, Integer>[] stateMaps;
 	private HashMap<Integer, ArrayList<Transition>> stateTransitionMap;
 	private HashMap<Ints, Integer> effectorVectorMap;
-	private ArrayList<Integer> effectorVectorList;
+	private int[] effectorVectors;
 	private Header header = null;
 	private Transition transitions[] = null;
 	private int[] inputEquivalenceIndex;
@@ -313,6 +313,7 @@ public class ModelCompiler implements ITarget {
 			for (final ArrayList<Transition> transitions : target.stateTransitionMap.values()) {
 				transitions.trimToSize();
 			}
+
 			final int[][][] transitionMatrix = new int[target.model.getSignalLimit()][inrInputStates.length][2];
 			for (int i = 0; i < transitionMatrix.length; i++) {
 				for (int j = 0; j < inrInputStates.length; j++) {
@@ -322,8 +323,7 @@ public class ModelCompiler implements ITarget {
 			}
 
 			target.effectorVectorMap = new HashMap<Ints, Integer>(1024);
-			target.effectorVectorList = new ArrayList<Integer>(8196);
-			target.effectorVectorList.add(0);
+			target.effectorVectorMap.put(new Ints(new int[] {0}), 0);
 			for (final Integer inrInputState : inrInputStates) {
 				for (final Transition t : target.getTransitions(inrInputState)) {
 					if (t.isFinal) {
@@ -349,10 +349,7 @@ public class ModelCompiler implements ITarget {
 								Ints vector = new Ints(effectVector);
 								Integer vectorOrdinal = target.effectorVectorMap.get(vector);
 								if (vectorOrdinal == null) {
-									vectorOrdinal = target.effectorVectorList.size();
-									for (final int element : effectVector) {
-										target.effectorVectorList.add(element);
-									}
+									vectorOrdinal = target.effectorVectorMap.size();
 									target.effectorVectorMap.put(vector, vectorOrdinal);
 								}
 								transitionMatrix[inputOrdinal][rteState][1] = -vectorOrdinal;
@@ -367,7 +364,6 @@ public class ModelCompiler implements ITarget {
 
 			if (target.errors.isEmpty()) {
 				target.factor(transitionMatrix);
-				target.effectorVectorList.trimToSize();
 			}
 
 			return IEffector.RTX_NONE;
@@ -383,7 +379,6 @@ public class ModelCompiler implements ITarget {
 		this.stateMaps = null;
 		this.stateTransitionMap = null;
 		this.effectorVectorMap = null;
-		this.effectorVectorList = null;
 		this.inputEquivalenceIndex = null;
 		this.kernelMatrix = null;
 		this.header = null;
@@ -485,63 +480,103 @@ public class ModelCompiler implements ITarget {
 		}
 		// msum instrumentation
 		final int nInputs = equivalenceIndex;
+		final int nulSignal = Signal.nul.signal();
+		final int nulEquivalent = this.inputEquivalenceIndex[nulSignal];
 		final int msumOrdinal = this.model.getEffectorOrdinal(Bytes.encode(this.encoder, "msum"));
 		int[] equivalenceLengths = new int[nInputs];
-		byte[][] equivalentInputs = new byte[nInputs][256];
-		for (final Map.Entry<IntsArray, HashSet<Integer>> entry : rowEquivalenceMap.entrySet()) {
-			Iterator<Integer> it = entry.getValue().iterator();
-			assert it.hasNext();
-			do {
-				int inputOrdinal = it.next();
-				if (inputOrdinal < 256) {
-					int equivalenceClass = this.inputEquivalenceIndex[inputOrdinal];
-					equivalentInputs[equivalenceClass][equivalenceLengths[equivalenceClass]++] = (byte)inputOrdinal;
-				}
-			} while (it.hasNext());
+		byte[][] equivalentInputs = new byte[nInputs][nulSignal];
+		for (int inputOrdinal = 0; inputOrdinal < nulSignal; inputOrdinal++) {
+			int q = this.inputEquivalenceIndex[inputOrdinal];
+			equivalentInputs[q][equivalenceLengths[q]++] = (byte)inputOrdinal;
 		}
-		int nulEquivalent = this.inputEquivalenceIndex[Signal.nul.signal()];
-		boolean nulSingleton = 1 == equivalenceLengths[nulEquivalent];
 		int[] outDegree = new int[nStates];
 		Arrays.fill(outDegree, 0);
+		int[] outInputs = new int[nStates + 1];
+		Arrays.fill(outInputs, -1);
+		int[][] msumStateEffects = new int[nStates][];
+		Arrays.fill(msumStateEffects, null);
 		for (int state = 0; state < nStates; state++) {
-			int selfCount = 0;
-			byte[] selfBytes = new byte[256];
+			int selfIndex = 0, selfCount = 0;
+			byte[] selfBytes = new byte[nulSignal];
 			Arrays.fill(selfBytes, (byte)0);
 			for (int input = 0; input < nInputs; input++) {
-				if (this.kernelMatrix[input][state][0] == state
-				&& this.kernelMatrix[input][state][1] == 1) {
+				int[] transition = this.kernelMatrix[input][state];
+				if (transition[0] == state && transition[1] == 1) {
 					for (int i = 0; i < equivalenceLengths[input]; i++) {
-						selfBytes[selfCount++] = equivalentInputs[input][i];
+						selfBytes[selfIndex++] = equivalentInputs[input][i];
 					}
+					selfCount += equivalenceLengths[input];
 				}
-				if (((input != nulEquivalent || !nulSingleton))
-				&& this.kernelMatrix[input][state][1] != 0) {
+				if (transition[1] != 0 && input != nulEquivalent) {
+					outInputs[state] = input;
 					outDegree[state] += 1;
 				}
 			}
 			if (selfCount > 64) {
-				int effectVectorOrdinal = -1;
 				byte[][] msumParameterBytes = { Arrays.copyOf(selfBytes, selfCount) };
-				int msumParameterOrdinal = this.model.compileParameters(msumOrdinal, msumParameterBytes);
-				Ints msumEffectVector = new Ints(new int[] { -1 * msumOrdinal, msumParameterOrdinal, 0 });
-				if (this.effectorVectorMap.containsKey(msumEffectVector)) {
-					effectVectorOrdinal = this.effectorVectorMap.get(msumEffectVector);
-				} else {
-					effectVectorOrdinal = this.effectorVectorList.size();
-					for (int effectVectorElement : msumEffectVector.getInts()) {
-						this.effectorVectorList.add(effectVectorElement);
-					}
-					this.effectorVectorMap.put(msumEffectVector, Integer.valueOf(effectVectorOrdinal));
-				}
-				for (int input = 0; input < nInputs; input++) {
-					if (this.kernelMatrix[input][state][0] == state
-					&& this.kernelMatrix[input][state][1] == 1) {
-						this.kernelMatrix[input][state][1] = -1 * effectVectorOrdinal;
-					}
-				}
+				int msumParameterIndex = this.model.compileParameters(msumOrdinal, msumParameterBytes);
+				msumStateEffects[state] = new int[] { -1 * msumOrdinal, msumParameterIndex, 0 };
 			}
 		}
 		// mproduct instrumentation
+		// effect vector mapping
+		int effectCount = 0;
+		int vectorCount = this.effectorVectorMap.size();
+		int[][] effectVectors = new int[(vectorCount * 3) >> 1][];
+		for (Entry<Ints, Integer> entry : this.effectorVectorMap.entrySet())  {
+			int[] vector = entry.getKey().getInts();
+			effectVectors[entry.getValue()] = vector;
+			effectCount += vector.length;
+		}
+		for (int input = 0; input < nInputs; input++) {
+			for (int state = 0; state < nStates; state++) {
+				int[] transition = this.kernelMatrix[input][state];
+				int msumLength = msumStateEffects[transition[0]] != null ? msumStateEffects[transition[0]].length : 0;
+				int vectorOrdinal = transition[1];
+				if (vectorOrdinal != 0 && transition[0] != state && msumStateEffects[transition[0]] != null
+				&& ((vectorOrdinal > 0) || (effectVectors[-1 * vectorOrdinal][effectVectors[-1 * vectorOrdinal].length - msumLength] != msumOrdinal))) {
+					int[] msumEffect = msumStateEffects[transition[0]];
+					int[] vector = vectorOrdinal > 0 ? new int[] { vectorOrdinal, 0 } : effectVectors[-1 * vectorOrdinal];
+					int[] vectorex = Arrays.copyOf(vector, vector.length + msumEffect.length - 1);
+					System.arraycopy(msumEffect, 0, vectorex, vector.length - 1, msumEffect.length);
+					Ints vxkey = new Ints(vectorex);
+					if (this.effectorVectorMap.containsKey(vxkey)) {
+						vectorOrdinal = this.effectorVectorMap.get(vxkey);
+					} else {
+						vectorOrdinal = this.effectorVectorMap.size();
+						this.effectorVectorMap.put(vxkey, vectorOrdinal);
+						if (vectorOrdinal >= effectVectors.length) {
+							int[][] newv = new int[vectorOrdinal > 1 ? (vectorOrdinal * 3) >> 1 : 2][];
+							for (int i = 0; i < effectVectors.length; i++) {
+								newv[i] = effectVectors[i];
+							}
+							effectVectors = newv;
+						}
+						effectVectors[vectorOrdinal] = vectorex;
+						effectCount += vectorex.length;
+						vectorCount += 1;
+					}
+					transition[1] = -1 * vectorOrdinal;
+				}
+			}
+		}
+		this.effectorVectors = new int[effectCount];
+		int[] effectorVectorPosition = new int[this.effectorVectorMap.size()];
+		int position = 0;
+		for (int ordinal = 0; ordinal < vectorCount; ordinal++) {
+			System.arraycopy(effectVectors[ordinal], 0, this.effectorVectors, position, effectVectors[ordinal].length);
+			effectorVectorPosition[ordinal] = position;
+			position += effectVectors[ordinal].length;
+		}
+		for (int input = 0; input < nInputs; input++) {
+			for (int state = 0; state < nStates; state++) {
+				int[] transition = this.kernelMatrix[input][state];
+				int effectVectorOrdinal = transition[1];
+				if (effectVectorOrdinal < 0) {
+					transition[1] = -1 * effectorVectorPosition[-1 * effectVectorOrdinal];
+				}
+			}
+		}
 	}
 
 	private Chain chain(final Transition transition) {
@@ -644,16 +679,11 @@ public class ModelCompiler implements ITarget {
 
 	private void save() throws ModelException {
 		assert this.errors.isEmpty();
-		int effectIndex = 0;
-		final int[] effectorVector = new int[this.effectorVectorList.size()];
-		for (final int effect : this.effectorVectorList) {
-			effectorVector[effectIndex++] = effect;
-		}
 		this.model.putString(this.getTransducerName());
 		this.model.putString(this.getName());
 		this.model.putIntArray(this.inputEquivalenceIndex);
 		this.model.putTransitionMatrix(this.kernelMatrix);
-		this.model.putIntArray(effectorVector);
+		this.model.putIntArray(this.effectorVectors);
 		int transitions = 0;
 		for (final int[][] row : this.kernelMatrix) {
 			for (final int[] col : row) {

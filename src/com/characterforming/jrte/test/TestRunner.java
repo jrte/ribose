@@ -55,7 +55,6 @@ public class TestRunner {
 
 		final Logger rteLogger = Base.getRuntimeLogger();
 		final String modelPath = args[0];
-		final long arg = args.length > 1 ? Long.parseLong(args[1]) : 0;
 		final char[] achars = new char[10000000];
 		for (int i = 0; i < achars.length; i++) {
 			achars[i] = ((i % 10 != 9) ? 'a' : (((i+1) % 100 != 0) ? 'b' : 'c'));
@@ -64,22 +63,23 @@ public class TestRunner {
 		for (int i = 0; i < abytes.length; i++) {
 			abytes[i] = (byte)((i % 10 != 9) ? 'a' : 'b');
 		}
-
-		Thread.sleep(arg);
-		if (arg == 1) {
-			System.out.printf("%20s: ", "(a{9}d)");
-			regexRun(achars, "(a{9}d)");
-			System.out.printf("%20s: ", "a{9}[bc]");
-			regexRun(achars, "a{9}[bc]");
-			System.out.printf("%20s: ", "(a{9}[bc])");
-			regexRun(achars, "(a{9}[bc])");
-			System.out.printf("%20s: ", "(a{9}c)");
-			regexRun(achars, "(a{9}c)");
-			System.out.printf("%20s: ", "(a{9}b)");
-			regexRun(achars, "(a{9}b)");
-			System.out.printf("%20s: ", "(a{9}b)*(a{9}c)");
-			regexRun(achars, "(a{9}b)*(a{9}c)");
-		}
+		
+		// final long arg = args.length > 1 ? Long.parseLong(args[1]) : 0;
+		// Thread.sleep(arg);
+		// if (arg == 1) {
+		// 	System.out.printf("%20s: ", "(a{9}d)");
+		// 	regexRun(achars, "(a{9}d)");
+		// 	System.out.printf("%20s: ", "a{9}[bc]");
+		// 	regexRun(achars, "a{9}[bc]");
+		// 	System.out.printf("%20s: ", "(a{9}[bc])");
+		// 	regexRun(achars, "(a{9}[bc])");
+		// 	System.out.printf("%20s: ", "(a{9}c)");
+		// 	regexRun(achars, "(a{9}c)");
+		// 	System.out.printf("%20s: ", "(a{9}b)");
+		// 	regexRun(achars, "(a{9}b)");
+		// 	System.out.printf("%20s: ", "(a{9}b)*(a{9}c)");
+		// 	regexRun(achars, "(a{9}b)*(a{9}c)");
+		// }
 
 		int exitCode = 1;
 		String[] tests = new String[] {

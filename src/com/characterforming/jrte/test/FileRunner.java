@@ -163,7 +163,7 @@ public class FileRunner {
 					System.exit(exitCode);
 				}
 			}
-			if (regexOutEnabled || !jrteOutEnabled) {
+			if (!regex.isEmpty() && (regexOutEnabled || !jrteOutEnabled)) {
 				Pattern pattern = Pattern.compile(regex, Pattern.MULTILINE);
 				long tregex = 0;
 				if (!regexOutEnabled) {
