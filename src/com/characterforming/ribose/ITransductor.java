@@ -346,11 +346,11 @@ public interface ITransductor extends ITarget {
 	byte[] recycle(byte[] bytes);
 
 	/**
-	 * Return the number of domain errors counted in the most recent run() call. A
-	 * domain error occurs when no transition is defined from current state for
-	 * current input.
+	 * Return the number of msum instrumented transitions counted in the most recent
+	 * run() call. An msum transition enters a self-looping state with &gt;64 self-referencing
+	 * input bytes.
 	 *
-	 * @return the number of domain errors counted in the most recent run() call.
+	 * @return the number of msum instrumented transitions counted in the most recent run() call.
 	 */
-	int getErrorCount();
+	int getSumCount();
 }

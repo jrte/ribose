@@ -106,6 +106,7 @@ public final class Transductor implements ITransductor, IOutput {
 	private final TransducerStack transducerStack;
 	private final InputStack inputStack;
 	private int matchMode;
+	private int msumCount;
 	private long[] matchSum;
 	private byte[] matchProduct;
 	private int matchPosition;
@@ -114,7 +115,6 @@ public final class Transductor implements ITransductor, IOutput {
 	private OutputStream output;
 	private final Logger rtcLogger;
 	private final Logger rteLogger;
-	private int errorCount;
 
 	/**
 	 *  Constructor
@@ -135,7 +135,7 @@ public final class Transductor implements ITransductor, IOutput {
 		this.matchSum = null;
 		this.matchProduct = null;
 		this.matchPosition = 0;
-		this.errorCount = 0;
+		this.msumCount = 0;
 		this.decoder = Base.newCharsetDecoder();
 		this.encoder = Base.newCharsetEncoder();
 		this.rtcLogger = Base.getCompileLogger();
@@ -325,7 +325,7 @@ public final class Transductor implements ITransductor, IOutput {
 		int errorInput = -1, signalInput = -1;
 		int[] aftereffects = new int[32];
 		Input input = Input.empty;
-		this.errorCount = 0;
+		this.msumCount = 0;
 		try {
 T:		do {
 				// start a pushed transducer
@@ -478,7 +478,6 @@ I:				do {
 							} else {
 								errorInput = token;
 								signalInput = nulSignal;
-								++this.errorCount;
 							}
 							break;
 						case NIL:
@@ -613,9 +612,9 @@ I:				do {
 		return this.inputStack.recycle(bytes);
 	}
 
-	@Override // @see com.characterforming.ribose.IOutput#getErrorCount()
-	public int getErrorCount() {
-		return this.errorCount;
+	@Override // @see com.characterforming.ribose.ITransductor#getErrorCount()
+	public int getSumCount() {
+		return this.msumCount;
 	}
 
 	@Override // @see com.characterforming.ribose.IOutput#getValueOrdinal(Bytes)
@@ -763,6 +762,7 @@ I:				do {
 		} else {
 			throw new EffectorException("Illegal attempt to override match mode");
 		}
+		++this.msumCount;
 	}
 
 	private void matchProduct(byte[] matchSequence) throws EffectorException {

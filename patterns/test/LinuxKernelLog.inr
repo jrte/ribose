@@ -33,9 +33,8 @@ field = (
 	(value @@ PasteAny)
 );
 
-void = value;
-fields = (space (field || void))+ space;
-iptables = header tag fields;
+fields = ((field || value) space)*;
+iptables = header tag space fields;
 
 a0 = (iptables$0):alph;
 a1 = (iptables$1):alph;
