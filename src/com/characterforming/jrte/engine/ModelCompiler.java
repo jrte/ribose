@@ -518,7 +518,6 @@ public class ModelCompiler implements ITarget {
 				msumStateEffects[state] = new int[] { -1 * msumOrdinal, msumParameterIndex, 0 };
 			}
 		}
-		// mproduct instrumentation
 		// effect vector mapping
 		int effectCount = 0;
 		int vectorCount = this.effectorVectorMap.size();
@@ -560,23 +559,31 @@ public class ModelCompiler implements ITarget {
 				}
 			}
 		}
-		this.effectorVectors = new int[effectCount];
 		int[] effectorVectorPosition = new int[this.effectorVectorMap.size()];
-		int position = 0;
-		for (int ordinal = 0; ordinal < vectorCount; ordinal++) {
-			System.arraycopy(effectVectors[ordinal], 0, this.effectorVectors, position, effectVectors[ordinal].length);
-			effectorVectorPosition[ordinal] = position;
-			position += effectVectors[ordinal].length;
-		}
+		Arrays.fill(effectorVectorPosition, -1);
+		this.effectorVectors = new int[effectCount];
+		this.effectorVectors[0] = 0;
+		int position = 1;
 		for (int input = 0; input < nInputs; input++) {
 			for (int state = 0; state < nStates; state++) {
-				int[] transition = this.kernelMatrix[input][state];
-				int effectVectorOrdinal = transition[1];
-				if (effectVectorOrdinal < 0) {
-					transition[1] = -1 * effectorVectorPosition[-1 * effectVectorOrdinal];
+				int ordinal = this.kernelMatrix[input][state][1];
+				if (ordinal < 0) {
+					ordinal *= -1;
+					if (effectorVectorPosition[ordinal] < 0) {
+						System.arraycopy(effectVectors[ordinal], 0, this.effectorVectors, position, effectVectors[ordinal].length);
+						this.kernelMatrix[input][state][1] = -1 * position;
+						effectorVectorPosition[ordinal] = position;
+						position += effectVectors[ordinal].length;
+					} else {
+						this.kernelMatrix[input][state][1] = -1 * effectorVectorPosition[ordinal];
+					}
 				}
 			}
 		}
+		if (position < this.effectorVectors.length) {
+			this.effectorVectors = Arrays.copyOf(this.effectorVectors, position);
+		}
+		// mproduct instrumentation
 	}
 
 	private Chain chain(final Transition transition) {
