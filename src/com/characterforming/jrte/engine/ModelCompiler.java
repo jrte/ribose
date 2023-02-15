@@ -481,18 +481,13 @@ public class ModelCompiler implements ITarget {
 		// msum instrumentation
 		final int nInputs = equivalenceIndex;
 		final int nulSignal = Signal.nul.signal();
-		final int nulEquivalent = this.inputEquivalenceIndex[nulSignal];
 		final int msumOrdinal = this.model.getEffectorOrdinal(Bytes.encode(this.encoder, "msum"));
 		int[] equivalenceLengths = new int[nInputs];
-		byte[][] equivalentInputs = new byte[nInputs][nulSignal];
-		for (int inputOrdinal = 0; inputOrdinal < nulSignal; inputOrdinal++) {
+		byte[][] equivalentInputs = new byte[nInputs][transitionMatrix.length];
+		for (int inputOrdinal = 0; inputOrdinal < transitionMatrix.length; inputOrdinal++) {
 			int q = this.inputEquivalenceIndex[inputOrdinal];
 			equivalentInputs[q][equivalenceLengths[q]++] = (byte)inputOrdinal;
 		}
-		int[] outDegree = new int[nStates];
-		Arrays.fill(outDegree, 0);
-		int[] outInputs = new int[nStates + 1];
-		Arrays.fill(outInputs, -1);
 		int[][] msumStateEffects = new int[nStates][];
 		Arrays.fill(msumStateEffects, null);
 		for (int state = 0; state < nStates; state++) {
@@ -506,10 +501,6 @@ public class ModelCompiler implements ITarget {
 						selfBytes[selfIndex++] = equivalentInputs[input][i];
 					}
 					selfCount += equivalenceLengths[input];
-				}
-				if (transition[1] != 0 && input != nulEquivalent) {
-					outInputs[state] = input;
-					outDegree[state] += 1;
 				}
 			}
 			if (selfCount > 64) {
@@ -535,7 +526,9 @@ public class ModelCompiler implements ITarget {
 				if (vectorOrdinal != 0 && transition[0] != state && msumStateEffects[transition[0]] != null
 				&& ((vectorOrdinal > 0) || (effectVectors[-1 * vectorOrdinal][effectVectors[-1 * vectorOrdinal].length - msumLength] != msumOrdinal))) {
 					int[] msumEffect = msumStateEffects[transition[0]];
-					int[] vector = vectorOrdinal > 0 ? new int[] { vectorOrdinal, 0 } : effectVectors[-1 * vectorOrdinal];
+					int[] vector = vectorOrdinal > 0
+						? (vectorOrdinal > 1 ? new int[] { vectorOrdinal, 0 } : new int[] { vectorOrdinal })
+						: effectVectors[-1 * vectorOrdinal];
 					int[] vectorex = Arrays.copyOf(vector, vector.length + msumEffect.length - 1);
 					System.arraycopy(msumEffect, 0, vectorex, vector.length - 1, msumEffect.length);
 					Ints vxkey = new Ints(vectorex);
@@ -559,23 +552,26 @@ public class ModelCompiler implements ITarget {
 				}
 			}
 		}
-		int[] effectorVectorPosition = new int[this.effectorVectorMap.size()];
+		final int[] effectorVectorPosition = new int[this.effectorVectorMap.size()];
 		Arrays.fill(effectorVectorPosition, -1);
+		final int nulEquivalent = this.inputEquivalenceIndex[nulSignal];
+		assert equivalenceLengths[nulEquivalent] == 1;
 		this.effectorVectors = new int[effectCount];
 		this.effectorVectors[0] = 0;
 		int position = 1;
 		for (int input = 0; input < nInputs; input++) {
 			for (int state = 0; state < nStates; state++) {
-				int ordinal = this.kernelMatrix[input][state][1];
+				int[] transition = this.kernelMatrix[input][state];
+				int ordinal = transition[1];
 				if (ordinal < 0) {
 					ordinal *= -1;
 					if (effectorVectorPosition[ordinal] < 0) {
 						System.arraycopy(effectVectors[ordinal], 0, this.effectorVectors, position, effectVectors[ordinal].length);
-						this.kernelMatrix[input][state][1] = -1 * position;
+						transition[1] = -1 * position;
 						effectorVectorPosition[ordinal] = position;
 						position += effectVectors[ordinal].length;
 					} else {
-						this.kernelMatrix[input][state][1] = -1 * effectorVectorPosition[ordinal];
+						transition[1] = -1 * effectorVectorPosition[ordinal];
 					}
 				}
 			}
@@ -584,7 +580,47 @@ public class ModelCompiler implements ITarget {
 			this.effectorVectors = Arrays.copyOf(this.effectorVectors, position);
 		}
 		// mproduct instrumentation
+		// final int[] outDegree = new int[nStates];
+		// Arrays.fill(outDegree, 0);
+		// final int[] outInputs = new int[nStates + 1];
+		// Arrays.fill(outInputs, -1);
+		// for (int input = 0; input < nInputs; input++) {
+		// 	for (int state = 0; state < nStates; state++) {
+		// 		int[] transition = this.kernelMatrix[input][state];
+		// 		if (transition[1] != 0 && input != nulEquivalent) {
+		// 			outInputs[state] = input;
+		// 			outDegree[state] += 1;
+		// 		}
+		// 	}
+		// }
+		// StateStack walkStack = new StateStack(nStates);
+		// int[] walkedInputs = new int[nStates];
+		// walkStack.push(0);
+		// while (walkStack.size() > 0) {
+		// 	int walkState = walkStack.pop();
+		// 	if (outDegree[walkState] == 1) {
+		//		walkedInputs[0] = 0;
+		// 		int nulState = this.kernelMatrix[nulEquivalent][walkState][0];
+		// 		int walkEndState = this.walk(walkState, nulState, walkedInputs);
+		// 		if (walkEndState >= 0) {
+		//			...
+		// 			this.kernelMatrix[outInputs[walkState]][walkState][0] = walkEndState;
+		// 		}
+		// 	} else for (int input = 0; input < nInputs; input++) {
+		// 		if (input != nulEquivalent) {
+		// 			int[] transition = this.kernelMatrix[input][walkState];
+		// 			if (transition[0] != walkState) {
+		// 				walkStack.push(transition[0]);
+		// 				assert transition[1] != 0;
+		// 			}
+		// 		}
+		// 	}
+		// }
 	}
+
+	// private int walk(int fromState, int nulState, int[] walked) {
+	// 	return 0;
+	// }
 
 	private Chain chain(final Transition transition) {
 		assert transition.tape != 1 && transition.tape != 2 : "Invalid tape number for chain(InrTransition) : " + transition.toString();

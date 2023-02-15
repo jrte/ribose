@@ -753,30 +753,6 @@ I:				do {
 		}
 	}
 
-	private void matchSum(long[] matchMap) throws EffectorException {
-		if (this.matchMode == Mnone) {
-			this.matchMode = Msum;
-		}
-		if (this.matchMode == Msum) {
-			this.matchSum = matchMap;
-		} else {
-			throw new EffectorException("Illegal attempt to override match mode");
-		}
-		++this.msumCount;
-	}
-
-	private void matchProduct(byte[] matchSequence) throws EffectorException {
-		if (this.matchMode == Mnone) {
-			this.matchMode = Mproduct;
-		}
-		if (this.matchMode == Mproduct) {
-			this.matchProduct = matchSequence;
-			this.matchPosition = 0;
-		} else {
-			throw new EffectorException("Illegal attempt to override match mode");
-		}
-	}
-
 	private String getErrorInput(int last, int state, int errorInput) {
 		TransducerState top = this.transducerStack.peek();
 		top.state = state;
@@ -1178,7 +1154,15 @@ I:				do {
 
 		@Override
 		public int invoke(final int parameterIndex) throws EffectorException {
-			super.target.matchSum(super.parameters[parameterIndex]);
+			if (super.target.matchMode == Mnone) {
+				super.target.matchMode = Msum;
+			}
+			if (super.target.matchMode == Msum) {
+				super.target.matchSum = super.parameters[parameterIndex];
+			} else {
+				throw new EffectorException("Illegal attempt to override match mode");
+			}
+			++super.target.msumCount;
 			return IEffector.RTX_NONE;
 		}
 
@@ -1214,7 +1198,15 @@ I:				do {
 
 		@Override
 		public int invoke(final int parameterIndex) throws EffectorException {
-			super.target.matchProduct(super.parameters[parameterIndex]);
+			if (super.target.matchMode == Mnone) {
+				super.target.matchMode = Mproduct;
+			}
+			if (super.target.matchMode == Mproduct) {
+				super.target.matchProduct = super.parameters[parameterIndex];
+				super.target.matchPosition = 0;
+			} else {
+				throw new EffectorException("Illegal attempt to override match mode");
+			}
 			return IEffector.RTX_NONE;
 		}
 
