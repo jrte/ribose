@@ -334,7 +334,7 @@ T:		do {
 				final int[][] transitionMatrix = transducer.transitionMatrix;
 				final int[] effectorVector = transducer.effectorVector;
 				state = transducer.state;
-S:			do {
+I:			do {
 					// get next input token
 					if (signalInput == 0) {
 						token = Byte.toUnsignedInt(input.array[input.position++]);
@@ -373,7 +373,7 @@ S:			do {
 						}
 					}
 					
-					// absorb self-referencing or sequential transitions with nil effect
+					// absorb self-referencing (msum) or sequential (mproduct) transitions with nil effect
 					switch (this.matchMode) {
 					case Mnone:
 						break;
@@ -384,24 +384,26 @@ S:			do {
 									token = Byte.toUnsignedInt(input.array[input.position++]);
 								} else {
 									signalInput = -1;
-									continue S;
+									continue I;
 								}
 							}
 						}
 						this.matchMode = Mnone;
 						break;
 					case Mproduct:
-						while (this.matchPosition < this.matchProduct.length) {
-							if (Byte.toUnsignedInt(this.matchProduct[this.matchPosition++]) == token) {
-								if (input.position < input.limit) {
-									token = Byte.toUnsignedInt(input.array[input.position++]);
+						if (token < nulSignal) {
+							while (this.matchPosition < this.matchProduct.length) {
+								if (Byte.toUnsignedInt(this.matchProduct[this.matchPosition++]) == token) {
+									if (input.position < input.limit) {
+										token = Byte.toUnsignedInt(input.array[input.position++]);
+									} else {
+										signalInput = -1;
+										continue I;
+									}
 								} else {
-									signalInput = -1;
-									continue S;
+									token = nulSignal;
+									break;
 								}
-							} else {
-								token = nulSignal;
-								break;
 							}
 						}
 						this.matchMode = Mnone;
@@ -416,9 +418,10 @@ S:			do {
 						signalInput = -1;
 					}
 
+					// trap runs in (nil* paste*)* effector space
 					int action = NUL;
 					int index = 0;
-I:				do {
+S:				do {
 						last = state;
 						// filter token to equivalence ordinal and map ordinal and state to next state and action
 						final int transition[] = transitionMatrix[state + inputFilter[token]];
@@ -436,7 +439,7 @@ I:				do {
 								index = -action;
 								action = effectorVector[index++];
 							}
-							break I;
+							break S;
 						}
 						if (signalInput == 0) {
 							token = input.array[input.position++];
@@ -447,16 +450,16 @@ I:				do {
 							if (token >= Base.RTE_SIGNAL_BASE) {
 								signalInput = -1;
 							}
-							break I;
+							break S;
 						}
 					} while (true);
 
-					// continue at top of input loop after a run (nil* paste*)* nil singleton effects
+					// continue at top of input loop after a run of singleton (nil* paste*)* nil effects
 					if (index == 0 && action == NIL) {
 						continue;
 					}
 
-					// invoke a vector of 1 or more effectors and record side effects on transducer and input stacks
+					// invoke a vector of effectors and record side effects on transducer and input stacks
 					aftereffects[0] = 0;
 					do {
 						int effect = IEffector.RTX_NONE;
@@ -580,9 +583,9 @@ I:				do {
 								break;
 							}
 						}
-						if (breakout == 1) {
+						if (breakout > 0) {
 							break T;
-						} else if (breakout == -1) {
+						} else if (breakout < 0) {
 							break;
 						}
 					}

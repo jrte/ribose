@@ -480,14 +480,15 @@ public class ModelCompiler implements ITarget {
 		final int nInputs = equivalenceIndex;
 		final int nulSignal = Signal.nul.signal();
 		final int msumOrdinal = this.model.getEffectorOrdinal(Bytes.encode(this.encoder, "msum"));
-		int[] equivalenceLengths = new int[nInputs];
+		int[][] msumStateEffects = new int[nStates][];
+		Arrays.fill(msumStateEffects, null);
 		byte[][] equivalentInputs = new byte[nInputs][transitionMatrix.length];
+		int[] equivalenceLengths = new int[nInputs];
+		Arrays.fill(equivalenceLengths, 0);
 		for (int inputOrdinal = 0; inputOrdinal < transitionMatrix.length; inputOrdinal++) {
 			int q = this.inputEquivalenceIndex[inputOrdinal];
 			equivalentInputs[q][equivalenceLengths[q]++] = (byte)inputOrdinal;
 		}
-		int[][] msumStateEffects = new int[nStates][];
-		Arrays.fill(msumStateEffects, null);
 		for (int state = 0; state < nStates; state++) {
 			int selfIndex = 0, selfCount = 0;
 			byte[] selfBytes = new byte[nulSignal];

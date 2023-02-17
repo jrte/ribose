@@ -88,7 +88,7 @@ public final class Model implements AutoCloseable {
 
 	public Model(final File modelPath, String targetClassname) throws ModelException {
 		this.ioMode = "rw";
-		this.deleteOnClose = false;
+		this.deleteOnClose = true;
 		this.modelPath = modelPath;
 		this.rtcLogger = Base.getCompileLogger();
 		this.modelVersion = Base.RTE_VERSION;
@@ -219,6 +219,7 @@ public final class Model implements AutoCloseable {
 			this.seek(0);
 			this.putLong(indexPosition);
 			saveMapFile(mapFile);
+			setDeleteOnClose(false);
 			String msg = String.format(
 				"%1$s: target class %2$s%3$s%4$d transducers; %5$d effectors; %6$d named values; %7$d signal ordinals%8$s",
 				this.modelPath.getPath(), this.proxyTarget.getClass().getName(), Base.lineEnd,
@@ -226,18 +227,15 @@ public final class Model implements AutoCloseable {
 				this.namedValueOrdinalMap.size(), this.getSignalCount(), Base.lineEnd);
 			this.rtcLogger.log(Level.INFO, msg);
 		} catch (IOException e) {
-			this.setDeleteOnClose(true);
 			throw new ModelException(
 				String.format("IOException caught compiling model file '%1$s'", this.modelPath.getPath()), e);
 		} catch (RiboseException e) {
-			this.setDeleteOnClose(true);
 			throw new ModelException(
 				String.format("RteException caught compiling model file '%1$s'", this.modelPath.getPath()), e);
 		} finally {
 			if (this.transducerOrdinalMap.size() <= 1) {
 				this.rtcLogger.log(Level.WARNING, String.format("No transducers compiled to %1$s",
 					this.modelPath.getPath()));
-				setDeleteOnClose(true);
 			}
 			if (this.deleteOnClose) {
 				this.rtcLogger.log(Level.SEVERE, "Compilation failed for model " + this.modelPath.getPath());
