@@ -588,8 +588,6 @@ I:				do {
 					}
 				} while (this.status().isRunnable());
 			} while (this.status().isRunnable());
-		} catch (AssertionError e) {
-			throw new RiboseException("Assertion failed:", e);
 		} finally {
 			// Prepare to pause (or stop) transduction
 			if (!this.transducerStack.isEmpty()) {

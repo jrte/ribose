@@ -143,9 +143,6 @@ public class TRun extends BaseTarget {
 			} catch (final Exception e) {
 				rteLogger.log(Level.SEVERE, "Runtime failed", e);
 				System.out.println("Runtime failed, see log for details.");
-			} catch (final AssertionError e) {
-				rteLogger.log(Level.SEVERE, "Runtime assertion failed", e);
-				System.out.println("Runtime assertion failed, see log for details.");
 			} finally {
 				try {
 					osw.flush();

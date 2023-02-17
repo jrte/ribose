@@ -122,9 +122,6 @@ public class TestRunner {
 		} catch (Exception e) {
 			System.out.println("Runtime exception thrown.");
 			rteLogger.log(Level.SEVERE, "Runtime failed, exception thrown.", e);
-		} catch (AssertionError e) {
-			System.out.println("Runtime assertion failed.");
-			rteLogger.log(Level.SEVERE, "Runtime assertion failed", e);
 		} finally {
 			System.exit(exitCode);
 		}

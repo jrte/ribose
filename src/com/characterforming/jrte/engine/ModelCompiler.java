@@ -445,8 +445,6 @@ public class ModelCompiler implements ITarget {
 			this.error(String.format("%1$s: RteException compiling '%2$s'; %3$s",
 				name, inrFile.getPath(), e.getMessage()));
 			return false;
-		} catch (AssertionError e) {
-			throw new RiboseException("Assertion failed:", e);
 		} finally {
 			this.transductor.stop();
 			assert this.transductor.status().isStopped();
@@ -554,8 +552,6 @@ public class ModelCompiler implements ITarget {
 		}
 		final int[] effectorVectorPosition = new int[this.effectorVectorMap.size()];
 		Arrays.fill(effectorVectorPosition, -1);
-		final int nulEquivalent = this.inputEquivalenceIndex[nulSignal];
-		assert equivalenceLengths[nulEquivalent] == 1;
 		this.effectorVectors = new int[effectCount];
 		this.effectorVectors[0] = 0;
 		int position = 1;
@@ -580,10 +576,11 @@ public class ModelCompiler implements ITarget {
 			this.effectorVectors = Arrays.copyOf(this.effectorVectors, position);
 		}
 		// mproduct instrumentation
-		// final int[] outDegree = new int[nStates];
-		// Arrays.fill(outDegree, 0);
+		// final int nulEquivalent = this.inputEquivalenceIndex[nulSignal];
 		// final int[] outInputs = new int[nStates + 1];
+		// final int[] outDegree = new int[nStates];
 		// Arrays.fill(outInputs, -1);
+		// Arrays.fill(outDegree, 0);
 		// for (int input = 0; input < nInputs; input++) {
 		// 	for (int state = 0; state < nStates; state++) {
 		// 		int[] transition = this.kernelMatrix[input][state];
@@ -779,7 +776,6 @@ public class ModelCompiler implements ITarget {
 	}
 
 	private void compileParameterToken(byte[] bytes) {
-		assert bytes.length > 1;
 		if (bytes.length > 1) {
 			Bytes token = new Bytes(bytes, 1, bytes.length - 1);
 			switch (bytes[0]) {
@@ -793,7 +789,6 @@ public class ModelCompiler implements ITarget {
 				this.model.addSignal(token);
 				break;
 			default:
-				assert false;
 				break;
 			}
 		}

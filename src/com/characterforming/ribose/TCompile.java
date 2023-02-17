@@ -132,10 +132,6 @@ public final class TCompile extends ModelCompiler {
 			rtcLogger.log(Level.SEVERE, "Compiler failed", e);
 			System.out.println("Compiler failed, see log for details.");
 			exitCode = 1;
-		} catch (final AssertionError e) {
-			rtcLogger.log(Level.SEVERE, "Compiler assertion failed", e);
-			System.out.println("Compiler assertion failed, see log for details.");
-			exitCode = 1;
 		} finally {
 			if (exitCode != 0) {
 				System.out.println("Runtime compilation failed, see log for details.");

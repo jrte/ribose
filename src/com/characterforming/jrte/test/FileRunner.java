@@ -148,18 +148,12 @@ public class FileRunner {
 						} catch (Exception e) {
 							System.out.println("Runtime exception thrown.");
 							rteLogger.log(Level.SEVERE, "Runtime failed, exception thrown.", e);
-						} catch (AssertionError e) {
-							System.out.println("Runtime assertion failed.");
-							rteLogger.log(Level.SEVERE, "Runtime assertion failed", e);
 						}
 						double mbps = (tjrte > 0) ? (double)(blen*1000) / (double)tjrte : -1;
 						rtmLogger.log(Level.FINE, String.format("%s\t%8.3f\t%d\t%s", inputPath, mbps, blen, transducerName));
 					}
 				} catch (Exception e) {
 					rteLogger.log(Level.SEVERE, "Runtime failed, exception thrown.", e);
-					System.exit(exitCode);
-				} catch (AssertionError e) {
-					rteLogger.log(Level.SEVERE, "Runtime assertion failed", e);
 					System.exit(exitCode);
 				}
 			}
@@ -240,9 +234,6 @@ public class FileRunner {
 		} catch (Exception e) {
 			System.out.println("Runtime exception thrown.");
 			rteLogger.log(Level.SEVERE, "Runtime failed, exception thrown.", e);
-		} catch (AssertionError e) {
-			System.out.println("Runtime assertion failed.");
-			rteLogger.log(Level.SEVERE, "Runtime assertion failed", e);
 		} finally {
 			System.out.flush();
 			System.exit(exitCode);

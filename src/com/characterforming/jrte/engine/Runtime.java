@@ -121,9 +121,6 @@ public final class Runtime implements IRuntime {
 		} catch (IOException e) {
 			this.log(target, transducer, e);
 			return false;
-		} catch (AssertionError e) {
-			this.log(target, transducer, e);
-			return false;
 		}
 		return true;
 	}
