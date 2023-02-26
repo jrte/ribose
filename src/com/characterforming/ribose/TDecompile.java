@@ -32,7 +32,8 @@ import com.characterforming.ribose.base.ModelException;
  * transducer.
  * 
  * Space, 7-bit control and 8-bit byte and signal ordinal inputs are presented in {@code ^hex}
- * format in the input equivalence class index. The {@code nil} effector is represented as {@code 0}.
+ * format in the input equivalence class index. The {@code nil} effector is represented as 
+ * {@code 1} and effector parameters are represented by parameter ordinals in kernel transitions. 
  * <br><br>
  * <table style="font-size:12px">
  * <caption style="text-align:left"><b>TDecompile usage</b></caption>
