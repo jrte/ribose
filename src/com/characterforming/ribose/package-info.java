@@ -12,7 +12,7 @@
  * <br><br>
  * <table style="font-size:12px">
  * <caption style="text-align:left"><b>TCompile usage</b></caption>
- * <tr><td style="text-align:right"><b>java</b></td><td>-cp ribose.0.0.0.jar com.characterforming.ribose.TCompile --target <i>classname automata model</i></td></tr>
+ * <tr><td style="text-align:right"><b>java</b></td><td>-cp ribose-&lt;version&gt;.jar com.characterforming.ribose.TCompile --target <i>classname automata model</i></td></tr>
  * <tr><td style="text-align:right">--target <i>classname</i></td><td>Fully qualified name of the model target class.</td></tr>
  * <tr><td style="text-align:right"><i>automata</i></td><td>The path to the directory containing automata (*.dfa) to include in the model.</td></tr>
  * <tr><td style="text-align:right"><i>model</i></td><td>The path to the file to contain the compiled model.</td></tr>
@@ -30,7 +30,7 @@
  * <br><br>
  * <table style="font-size:12px">
  * <caption style="text-align:left"><b>TRun usage</b></caption>
- * <tr><td style="text-align:right"><b>java</b></td><td>-cp ribose.0.0.0.jar com.characterforming.ribose.TRun [--nil] [--target <i>classname</i>] <i>model transducer input [output]</i></td></tr>
+ * <tr><td style="text-align:right"><b>java</b></td><td>-cp ribose-&lt;version&gt;.jar com.characterforming.ribose.TRun [--nil] [--target <i>classname</i>] <i>model transducer input [output]</i></td></tr>
  * <tr><td style="text-align:right">--nil</td><td>Push {@link com.characterforming.ribose.base.Signal#nil} to start the transduction (recommended).</td></tr>
  * <tr><td style="text-align:right">--target <i>classname</i></td><td>Fully qualified name of a target class with a nullary constructor (default is {@link TRun}).</td></tr>
  * <tr><td style="text-align:right"><i>model</i></td><td>The path to the model file containing the transducer.</td></tr>

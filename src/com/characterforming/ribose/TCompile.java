@@ -1,4 +1,24 @@
-package com.characterforming.ribose;
+/***
+ * Ribose is a recursive transduction engine for Java
+ * 
+ * Copyright (C) 2011,2022 Kim Briggs
+ * 
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with this program (LICENSE-gpl-3.0). If not, see
+ * <http://www.gnu.org/licenses/#GPL>.
+ */
+
+ package com.characterforming.ribose;
 
 import java.io.File;
 import java.io.IOException;
@@ -29,7 +49,7 @@ import com.characterforming.ribose.base.TargetBindingException;
  * <br><br>
  * <table style="font-size:12px">
  * <caption style="text-align:left"><b>TCompile usage</b></caption>
- * <tr><td style="text-align:right"><b>java</b></td><td>-cp ribose.0.0.0.jar com.characterforming.ribose.TCompile --target <i>classname automata model</i></td></tr>
+ * <tr><td style="text-align:right"><b>java</b></td><td>-cp ribose-&lt;version&gt;.jar com.characterforming.ribose.TCompile --target <i>classname automata model</i></td></tr>
  * <tr><td style="text-align:right">--target <i>classname</i></td><td>Fully qualified name of the model target class.</td></tr>
  * <tr><td style="text-align:right"><i>automata</i></td><td>The path to the directory containing automata (*.dfa) to include in the model.</td></tr>
  * <tr><td style="text-align:right"><i>model</i></td><td>The path to the file to contain the compiled model.</td></tr>

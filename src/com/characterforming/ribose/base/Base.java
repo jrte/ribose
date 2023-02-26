@@ -36,7 +36,7 @@ import java.util.logging.SimpleFormatter;
  * @author Kim Briggs
  */
 public class Base {
-	/** 'ribose-0.0.0', current version */
+	/** previous and current version strings */
 	public static final String RTE_VERSION = "ribose-0.0.1";
 	public static final String RTE_PREVIOUS = "ribose-0.0.0";
 
