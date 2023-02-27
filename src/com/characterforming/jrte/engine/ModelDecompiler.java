@@ -80,7 +80,7 @@ public class ModelDecompiler {
         } else {
           for (int e = (-1 * effect); effectorVectors[e] != 0; e++) {
             if (effectorVectors[e] > 0) {
-              System.out.printf(" %s", effectorNames[e]);
+              System.out.printf(" %s", effectorNames[effectorVectors[e]]);
             } else {
               System.out.printf(" %s[", effectorNames[-1 * effectorVectors[e++]]);
               System.out.printf("%d]", effectorVectors[e]);

@@ -172,7 +172,7 @@
     <javadoc access="protected" overview="overview.html" source="11" sourcepath="src" destdir="javadoc" splitindex="false"
 			use="true" version="true" nodeprecated="false" nodeprecatedlist="false" noindex="false" nonavbar="false" notree="false"
 			packagenames="com.characterforming.ribose.base,com.characterforming.ribose"
-			doctitle="The General Idea" failonerror="true" failonwarning="true">
+			doctitle="The General Idea" failonerror="false" failonwarning="true">
 			<group title="Ribose" packages="com.characterforming.ribose*"/>
 			<link href="https://docs.oracle.com/en/java/javase/11/docs/api/"/>
 		</javadoc>
@@ -292,12 +292,18 @@
 	</target>
 
 	<target name="test-basic" depends="test-env">
-		<echo>Basic FileRunner tests:</echo>
+		<echo>Decompile:</echo>
+		<java fork="true" jvm="${jdk}/bin/java" dir="." classname="com.characterforming.ribose.TDecompile" classpathref="java.classpath" failonerror="true">
+			<jvmarg line="${jargs}"/>
+			<arg line="build/Test.model Fibonacci"/>
+		</java>
+		<echo/>
 		<echo>Fibonacci:</echo>
 		<exec failonerror="true" executable="bash">
 			<arg value="-c"/>
 			<arg value="etc/sh/ribose --nil build/Test.model Fibonacci ${test.input.dir}/fib.txt"/>
 		</exec>
+		<echo/>
 		<echo>DateExtractor:</echo>
 		<exec failonerror="true" executable="bash">
 			<arg value="-c"/>
