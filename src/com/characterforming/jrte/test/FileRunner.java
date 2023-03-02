@@ -99,7 +99,7 @@ public class FileRunner {
 			rteLogger.log(Level.SEVERE, "Runtime failed, exception thrown.", e);
 		}
 		try {
-			long msum = 0, tjrte = 0, t0 = 0, t1 = 0;
+			long mproduct = 0, tjrte = 0, t0 = 0, t1 = 0;
 			int loops = 1;
 			if (jrteOutEnabled || !regexOutEnabled) {
 				try (IRuntime ribose = Ribose.loadRiboseModel(new File(modelPath))) {
@@ -116,11 +116,11 @@ public class FileRunner {
 								t0 = System.nanoTime();
 								do {
 									trex.run();
-									msum += trex.getSumCount();
+									mproduct += trex.getProductCount();
 								} while (trex.status().isRunnable());
 								if (trex.status().isPaused()) {
 									trex.push(Signal.eos).run();
-									msum += trex.getSumCount();
+									mproduct += trex.getProductCount();
 								}
 								t1 = System.nanoTime() - t0;
 								if (i >= 10) {
@@ -132,9 +132,9 @@ public class FileRunner {
 								assert trex.status().isStopped();
 							}
 						}
-						double epkb = (double)(msum*1024) / (double)(blen*loops);
+						double epkb = (double)(mproduct*1024) / (double)(blen*loops);
 						double mbps = (tjrte > 0) ? (double)((loops - 10)*blen*1000) / (double)tjrte : -1;
-						System.out.println(String.format(" : %8.3f mb/s %7.3f msum/kb", mbps, epkb));
+						System.out.println(String.format(" : %8.3f mb/s %7.3f mproduct/kb", mbps, epkb));
 						rtmLogger.log(Level.INFO, String.format("%s\t%8.3f\t%d\t%s", inputPath, mbps, blen, transducerName));
 					} else {
 						try (final FileInputStream isr = new FileInputStream(f)) {

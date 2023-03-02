@@ -39,6 +39,23 @@
  * <tr><td style="text-align:right"><i>output</i></td><td>The path to the output file (default is {@code System.out}).</td></tr>
  * </table>
  * <br>
+ * The model compiler reduces the {@code NxM} transition matrix ({@code N}&ge;{@code 260} input bytes or 
+ * signals, {@code M} states) for ginr transducer <b>H</b> to an {@code Nx1} input equivalence
+ * transducer <b>F</b> mapping byte and signal ordinals to input equivalence class index
+ * {@code e}&lt;{@code K}&le;{@code N} and a {@code KxM} kernel transducer <b>G</b> equivalent
+ * to <b>H</b> modulo <b>F*</b> (so <b>H</b>(x)&nbsp;=&nbsp;<b>(G&deg;F*)</b>(x)). The ribose
+ * transducer decompiler {@link TDecompile} can be used to list the input equivalence map and
+ * kernel transitions for any compiled transducer. It can be run from the command line using
+ * {@link TDecompile#main(String[])} specifying the containing model and the transducer
+ * to decompile.
+ * <br><br>
+ * <table style="font-size:12px">
+ * <caption style="text-align:left"><b>TDecompile usage</b></caption>
+ * <tr><td style="text-align:right"><b>java</b></td><td>-cp ribose-&lt;version&gt;.jar com.characterforming.ribose.TDecompile <i>model transducer</i></td></tr>
+ * <tr><td style="text-align:right"><i>model</i></td><td>The path to the file to contain the compiled model.</td></tr>
+ * <tr><td style="text-align:right"><i>transducer</i></td><td>The name of the transducer to decompile.</td></tr>
+ * </table>
+ * <br>
  * To use ribose in an application or service, call {@link Ribose#loadRiboseModel(File)}
  * to load an {@link IRuntime} instance from a compiled ribose model. Use {@link IRuntime#newTransductor(ITarget)}
  * to bind targets to ribose transductors, which encapsulate runtime transductions. The

@@ -346,6 +346,15 @@ public interface ITransductor extends ITarget {
 	byte[] recycle(byte[] bytes);
 
 	/**
+	 * Return the number of mproduct instrumented transitions counted in the most recent
+	 * run() call. An mproduct transition enters a self-looping state while matching input
+	 * bytes against a literal target string of bytes.
+	 *
+	 * @return the number of mproduct instrumented transitions counted in the most recent run() call.
+	 */
+	int getProductCount();
+
+	/**
 	 * Return the number of msum instrumented transitions counted in the most recent
 	 * run() call. An msum transition enters a self-looping state with &gt;64 self-referencing
 	 * input bytes.

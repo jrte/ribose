@@ -341,6 +341,18 @@ public final class Model implements AutoCloseable {
 		return trex;
 	}
 
+	/**
+	 * Get an mproduct effector parameter.
+	 * 
+	 * @param parameterIndex the parameter index
+	 * @return the parameter value
+	 */
+	byte[] getProductParameter(int parameterIndex) {
+		return (byte[])((IParameterizedEffector<?,?>)this.proxyEffectors[
+			this.getEffectorOrdinal(Bytes.encode(this.encoder, "mproduct"))
+		]).getParameter(parameterIndex);
+	}
+
 	@Override
 	public void close() {
 		try {

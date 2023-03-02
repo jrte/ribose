@@ -108,6 +108,7 @@ public final class Transductor implements ITransductor, IOutput {
 	private int matchMode;
 	private int msumCount;
 	private long[] matchSum;
+	public int mproductCount;
 	private byte[] matchProduct;
 	private int matchPosition;
 	private final CharsetDecoder decoder;
@@ -136,6 +137,7 @@ public final class Transductor implements ITransductor, IOutput {
 		this.matchProduct = null;
 		this.matchPosition = 0;
 		this.msumCount = 0;
+		this.mproductCount = 0;
 		this.decoder = Base.newCharsetDecoder();
 		this.encoder = Base.newCharsetEncoder();
 		this.rtcLogger = Base.getCompileLogger();
@@ -325,6 +327,7 @@ public final class Transductor implements ITransductor, IOutput {
 		int errorInput = -1, signalInput = -1;
 		int[] aftereffects = new int[32];
 		Input input = Input.empty;
+		this.mproductCount = 0;
 		this.msumCount = 0;
 		try {
 T:		do {
@@ -392,11 +395,18 @@ I:			do {
 						break;
 					case Mproduct:
 						if (token < nulSignal) {
-							while (this.matchPosition < this.matchProduct.length) {
-								if (Byte.toUnsignedInt(this.matchProduct[this.matchPosition++]) == token) {
-									if (input.position < input.limit) {
-										token = Byte.toUnsignedInt(input.array[input.position++]);
+							final byte[] match = this.matchProduct;
+							int mpos = this.matchPosition, mlen = match.length;
+							assert mpos <= mlen;
+							while (mpos < mlen) {
+								if (token == Byte.toUnsignedInt(match[mpos++])) {
+									if (mpos == mlen) {
+										break;
+									} else if (input.position < input.limit) {
+										token = Byte.toUnsignedInt(input.array[input.position]);
+										input.position++;
 									} else {
+										this.matchPosition = mpos;
 										signalInput = -1;
 										continue I;
 									}
@@ -405,6 +415,7 @@ I:			do {
 									break;
 								}
 							}
+							this.matchPosition = mpos;
 						}
 						this.matchMode = Mnone;
 						break;
@@ -613,9 +624,14 @@ S:				do {
 		return this.inputStack.recycle(bytes);
 	}
 
-	@Override // @see com.characterforming.ribose.ITransductor#getErrorCount()
+	@Override // @see com.characterforming.ribose.ITransductor#getSumCount()
 	public int getSumCount() {
 		return this.msumCount;
+	}
+
+	@Override // @see com.characterforming.ribose.ITransductor#getProductCount()
+	public int getProductCount() {
+		return this.mproductCount;
 	}
 
 	@Override // @see com.characterforming.ribose.IOutput#getValueOrdinal(Bytes)
@@ -1160,10 +1176,10 @@ S:				do {
 			}
 			if (super.target.matchMode == Msum) {
 				super.target.matchSum = super.parameters[parameterIndex];
+				++super.target.msumCount;
 			} else {
 				throw new EffectorException("Illegal attempt to override match mode");
 			}
-			++super.target.msumCount;
 			return IEffector.RTX_NONE;
 		}
 
@@ -1205,6 +1221,7 @@ S:				do {
 			if (super.target.matchMode == Mproduct) {
 				super.target.matchProduct = super.parameters[parameterIndex];
 				super.target.matchPosition = 0;
+				++super.target.mproductCount;
 			} else {
 				throw new EffectorException("Illegal attempt to override match mode");
 			}

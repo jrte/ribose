@@ -453,22 +453,21 @@ public class ModelCompiler implements ITarget {
 
 	private void factor(final int[][][] transitionMatrix) {
 		// factor matrix modulo input equivalence
-		final int nStates = transitionMatrix[0].length;
 		final HashMap<IntsArray, HashSet<Integer>> rowEquivalenceMap =
 			new HashMap<IntsArray, HashSet<Integer>>((5 * transitionMatrix.length) >> 2);
-		for (int i = 0; i < transitionMatrix.length; i++) {
-			assert transitionMatrix[i].length == nStates;
-			final IntsArray row = new IntsArray(transitionMatrix[i]);
-			HashSet<Integer> equivalentInputOrdinals = rowEquivalenceMap.get(row);
-			if (equivalentInputOrdinals == null) {
+			for (int i = 0; i < transitionMatrix.length; i++) {
+				assert transitionMatrix[i].length == transitionMatrix[0].length;
+				final IntsArray row = new IntsArray(transitionMatrix[i]);
+				HashSet<Integer> equivalentInputOrdinals = rowEquivalenceMap.get(row);
+				if (equivalentInputOrdinals == null) {
 				equivalentInputOrdinals = new HashSet<Integer>(16);
 				rowEquivalenceMap.put(row, equivalentInputOrdinals);
 			}
 			equivalentInputOrdinals.add(i);
 		}
-		int equivalenceIndex = 0;
 		this.inputEquivalenceIndex = new int[transitionMatrix.length];
 		this.kernelMatrix = new int[rowEquivalenceMap.size()][][];
+		int equivalenceIndex = 0;
 		for (final Map.Entry<IntsArray, HashSet<Integer>> entry : rowEquivalenceMap.entrySet()) {
 			final IntsArray row = entry.getKey();
 			for (final int inputOrdinal : entry.getValue()) {
@@ -476,12 +475,18 @@ public class ModelCompiler implements ITarget {
 			}
 			this.kernelMatrix[equivalenceIndex++] = row.getInts();
 		}
-		// msum instrumentation
 		final int nInputs = equivalenceIndex;
+		final int nStates = transitionMatrix[0].length;
 		final int nulSignal = Signal.nul.signal();
+		final int nulEquivalent = this.inputEquivalenceIndex[nulSignal];
 		final int msumOrdinal = this.model.getEffectorOrdinal(Bytes.encode(this.encoder, "msum"));
-		int[][] msumStateEffects = new int[nStates][];
+		final int mproductOrdinal = this.model.getEffectorOrdinal(Bytes.encode(this.encoder, "mproduct"));
+		final int[][] mproductStateEffects = new int[nStates][];
+		final int[][] mproductEndpoints = new int[nStates][2];
+		final int[][] msumStateEffects = new int[nStates][];
+		Arrays.fill(mproductStateEffects, null);
 		Arrays.fill(msumStateEffects, null);
+	// msum instrumentation
 		byte[][] equivalentInputs = new byte[nInputs][transitionMatrix.length];
 		int[] equivalenceLengths = new int[nInputs];
 		Arrays.fill(equivalenceLengths, 0);
@@ -508,28 +513,174 @@ public class ModelCompiler implements ITarget {
 				msumStateEffects[state] = new int[] { -1 * msumOrdinal, msumParameterIndex, 0 };
 			}
 		}
-		// effect vector mapping
-		int effectCount = 0;
+		// mproduct instrumentation
+		int[] inputEquivalentCardinality = new int[nInputs];
+		int[] inputEquivalenceToken = new int[nInputs];
+		Arrays.fill(inputEquivalenceToken, -1);
+		for (int i = 0; i < this.inputEquivalenceIndex.length; i++) {
+			if (i != nulSignal && ++inputEquivalentCardinality[this.inputEquivalenceIndex[i]] == 1) {
+				inputEquivalenceToken[this.inputEquivalenceIndex[i]] = i;
+			}
+		}
+		for (int i = 0; i < nInputs; i++) {
+			if (inputEquivalentCardinality[i] > 1) {
+				inputEquivalenceToken[i] = -1;
+			}
+			assert (inputEquivalentCardinality[i] > 0) || (this.inputEquivalenceIndex[nulSignal] == i);
+		}
+		int[] exitEquivalent = new int[nStates];
+		for (int i = 0; i < nStates; i++) {
+			exitEquivalent[i] = -1;
+			for (int j = 0; j < nInputs; j++) {
+				if (j != nulEquivalent && this.kernelMatrix[j][i][1] != 0) {
+					if ((exitEquivalent[i] >= 0) || (inputEquivalenceToken[j] < 0)) {
+						exitEquivalent[i] = -1;
+						break;
+					}
+					assert exitEquivalent[i] == -1;
+					exitEquivalent[i] = j;
+				}
+			}
+		}
+		boolean[] walkedStates = new boolean[nStates];
+		Arrays.fill(walkedStates, false);
+		StateStack walkStack = new StateStack(nStates);
+		byte[] walkedBytes = new byte[nStates];
+		int[] walkResult = new int[] { 0, 0, 0 };
+		walkedStates[0] = walkStack.push(0);
+		while (walkStack.size() > 0) {
+			int walkState = walkStack.pop();
+			for (int input = 0; input < nInputs; input++) {
+				int nextState = this.kernelMatrix[input][walkState][0];
+				if (exitEquivalent[nextState] >= 0) {
+					this.walk(nextState, walkedBytes, walkResult, exitEquivalent, inputEquivalenceToken);
+					if (walkResult[0] > 3) {
+						assert this.inputEquivalenceIndex[walkedBytes[0]] == exitEquivalent[nextState];
+						mproductStateEffects[nextState] = new int[] { 
+							-1 * mproductOrdinal, 
+							this.model.compileParameters(
+								mproductOrdinal, new byte[][] { Arrays.copyOfRange(walkedBytes, 0, walkResult[0]) }
+							), 
+							0
+						};
+						mproductEndpoints[nextState][0] = walkResult[1];
+						mproductEndpoints[nextState][1] = walkResult[2];
+					}
+					walkedStates[walkResult[1]] = walkedStates[walkResult[1]] || walkStack.push(walkResult[1]);
+				} else {
+					walkedStates[nextState] |= walkedStates[nextState] || walkStack.push(nextState);
+					assert (nextState == walkState) || (this.kernelMatrix[input][walkState][1] != 0);
+				}
+			}
+		}
+		// effect vector construction
+		assertKernelSanity();
 		int vectorCount = this.effectorVectorMap.size();
-		int[][] effectVectors = new int[(vectorCount * 3) >> 1][];
+		int[][] effectVectors = new int[vectorCount > 4 ? (vectorCount * 3) >> 1 : 5][];
 		for (Entry<Ints, Integer> entry : this.effectorVectorMap.entrySet())  {
 			int[] vector = entry.getKey().getInts();
 			effectVectors[entry.getValue()] = vector;
-			effectCount += vector.length;
 		}
+		effectVectors = instrument(msumOrdinal, effectVectors, msumStateEffects);
+		assertKernelSanity();
+		effectVectors = instrument(mproductOrdinal, effectVectors, mproductStateEffects, mproductEndpoints);
+		assertKernelSanity();
+		int[] effectorVectorPosition = new int[this.effectorVectorMap.size()];
+		Arrays.fill(effectorVectorPosition, -1);
+		int position = 1; int size = 0;
+		for (int input = 0; input < nInputs; input++) {
+			for (int state = 0; state < nStates; state++) {
+				int effectOrdinal = this.kernelMatrix[input][state][1];
+				if (effectOrdinal < 0) {
+					size += effectVectors[-1 * effectOrdinal].length;
+				}
+			}
+		}
+		this.effectorVectors = new int[size + 1];
+		this.effectorVectors[0] = 0;
 		for (int input = 0; input < nInputs; input++) {
 			for (int state = 0; state < nStates; state++) {
 				int[] transition = this.kernelMatrix[input][state];
-				int msumLength = msumStateEffects[transition[0]] != null ? msumStateEffects[transition[0]].length : 0;
+				int effectOrdinal = transition[1];
+				if (effectOrdinal < 0) {
+					effectOrdinal *= -1;
+					if (effectorVectorPosition[effectOrdinal] < 0) {
+						System.arraycopy(effectVectors[effectOrdinal], 0, this.effectorVectors, position, effectVectors[effectOrdinal].length);
+						effectorVectorPosition[effectOrdinal] = position;
+						position += effectVectors[effectOrdinal].length;
+					}
+					transition[1] = -1 * effectorVectorPosition[effectOrdinal];
+				}
+			}
+		}
+		if (position < this.effectorVectors.length) {
+			this.effectorVectors = Arrays.copyOf(this.effectorVectors, position);
+		}
+		assertKernelSanity();
+	}
+
+	private void assertKernelSanity() {
+		for (int i = 0; i < this.kernelMatrix.length; i++) {
+			assert this.kernelMatrix[0].length == this.kernelMatrix[i].length;
+			for (int j = 0; j < this.kernelMatrix[i].length; j++) {
+				assert (this.kernelMatrix[i][j][1] != 0) || (this.kernelMatrix[i][j][0] == j);
+			}
+		}
+	}
+
+	private void walk(int fromState, byte[] walkedBytes, int[] walkResult, int exitEquivalent[], int singletonEquivalenceMap[]) {
+		int nulEquivalent = this.inputEquivalenceIndex[Signal.nul.signal()];
+		int[] nulTransition = this.kernelMatrix[nulEquivalent][fromState];
+		int[] matchTransition = new int[] { 
+			nulTransition[0] != fromState ? nulTransition[0] : Integer.MIN_VALUE, 
+			nulTransition[1] 
+		};
+		int walkLength = 0;
+		int fromEquivalent = -1;
+		assert exitEquivalent[fromState] >= 0;
+		int exitInput = exitEquivalent[fromState];
+		while (exitInput >= 0 && walkLength < walkedBytes.length
+		&& singletonEquivalenceMap[exitInput] >= 0 && singletonEquivalenceMap[exitInput] < Signal.nul.signal()
+		&& this.kernelMatrix[exitInput][fromState][1] == 1
+		) {
+			int[] errorTransition = this.kernelMatrix[nulEquivalent][fromState];
+			int errorState = matchTransition[0] != Integer.MIN_VALUE ? matchTransition[0] : fromState;
+			if (errorTransition[1] == matchTransition[1] && errorTransition[0] == errorState) {
+				walkedBytes[walkLength] = (byte)singletonEquivalenceMap[exitInput];
+				fromEquivalent = this.inputEquivalenceIndex[walkedBytes[walkLength]];
+				fromState = this.kernelMatrix[fromEquivalent][fromState][0];
+				exitInput = exitEquivalent[fromState];
+				++walkLength;
+			} else {
+				walkResult[0] = walkLength;
+				walkResult[1] = this.kernelMatrix[exitInput][fromState][0];
+				return;
+			}
+		}
+		walkResult[0] = walkLength < walkedBytes.length ? walkLength : 0;
+		walkResult[1] = fromState;
+		walkResult[2] = fromEquivalent;
+	}
+
+	private int[][] instrument(int msumOrdinal, int[][] effectVectors, int[][] msumEffects) {
+		int nInputs = this.kernelMatrix.length;
+		int nStates = this.kernelMatrix[0].length;
+		for (int input = 0; input < nInputs; input++) {
+			for (int state = 0; state < nStates; state++) {
+				int[] transition = this.kernelMatrix[input][state];
+				if ((transition[0] == state) || (transition[1] == 0) || (msumEffects[transition[0]] == null)) {
+					continue;
+				}
+				int vectorLength = msumEffects[transition[0]].length;
 				int vectorOrdinal = transition[1];
-				if (vectorOrdinal != 0 && transition[0] != state && msumStateEffects[transition[0]] != null
-				&& ((vectorOrdinal > 0) || (effectVectors[-1 * vectorOrdinal][effectVectors[-1 * vectorOrdinal].length - msumLength] != msumOrdinal))) {
-					int[] msumEffect = msumStateEffects[transition[0]];
+				if ((vectorOrdinal > 0)
+				|| (effectVectors[-1 * vectorOrdinal][effectVectors[-1 * vectorOrdinal].length - vectorLength] != msumOrdinal)) {
+					int[] effect = msumEffects[transition[0]];
 					int[] vector = vectorOrdinal > 0
 						? (vectorOrdinal > 1 ? new int[] { vectorOrdinal, 0 } : new int[] { vectorOrdinal })
 						: effectVectors[-1 * vectorOrdinal];
-					int[] vectorex = Arrays.copyOf(vector, vector.length + msumEffect.length - 1);
-					System.arraycopy(msumEffect, 0, vectorex, vector.length - 1, msumEffect.length);
+					int[] vectorex = Arrays.copyOf(vector, vector.length + effect.length - 1);
+					System.arraycopy(effect, 0, vectorex, vector.length - 1, effect.length);
 					Ints vxkey = new Ints(vectorex);
 					if (this.effectorVectorMap.containsKey(vxkey)) {
 						vectorOrdinal = this.effectorVectorMap.get(vxkey);
@@ -537,88 +688,65 @@ public class ModelCompiler implements ITarget {
 						vectorOrdinal = this.effectorVectorMap.size();
 						this.effectorVectorMap.put(vxkey, vectorOrdinal);
 						if (vectorOrdinal >= effectVectors.length) {
-							int[][] newv = new int[vectorOrdinal > 1 ? (vectorOrdinal * 3) >> 1 : 2][];
+							int[][] newv = new int[vectorOrdinal > 4 ? (vectorOrdinal * 3) >> 1 : 5][];
 							for (int i = 0; i < effectVectors.length; i++) {
 								newv[i] = effectVectors[i];
 							}
 							effectVectors = newv;
 						}
 						effectVectors[vectorOrdinal] = vectorex;
-						effectCount += vectorex.length;
-						vectorCount += 1;
 					}
 					transition[1] = -1 * vectorOrdinal;
 				}
 			}
 		}
-		final int[] effectorVectorPosition = new int[this.effectorVectorMap.size()];
-		Arrays.fill(effectorVectorPosition, -1);
-		this.effectorVectors = new int[effectCount];
-		this.effectorVectors[0] = 0;
-		int position = 1;
+		return effectVectors;
+	}
+
+	private int[][] instrument(int mproductOrdinal, int[][] effectVectors, int[][] mproductEffects, int[][] mproductEndpoints) {
+		int nInputs = this.kernelMatrix.length;
+		int nStates = this.kernelMatrix[0].length;
 		for (int input = 0; input < nInputs; input++) {
 			for (int state = 0; state < nStates; state++) {
 				int[] transition = this.kernelMatrix[input][state];
-				int ordinal = transition[1];
-				if (ordinal < 0) {
-					ordinal *= -1;
-					if (effectorVectorPosition[ordinal] < 0) {
-						System.arraycopy(effectVectors[ordinal], 0, this.effectorVectors, position, effectVectors[ordinal].length);
-						transition[1] = -1 * position;
-						effectorVectorPosition[ordinal] = position;
-						position += effectVectors[ordinal].length;
+				if ((transition[1] == 0) || (mproductEffects[transition[0]] == null)) {
+					continue;
+				}
+				int vectorLength = mproductEffects[transition[0]].length;
+				int vectorOrdinal = transition[1];
+				if ((vectorOrdinal > 0)
+				|| (effectVectors[-1 * vectorOrdinal][effectVectors[-1 * vectorOrdinal].length - vectorLength] != mproductOrdinal)) {
+					int[] effect = mproductEffects[transition[0]];
+					int[] vector = vectorOrdinal > 0
+						? (vectorOrdinal > 1 ? new int[] { vectorOrdinal, 0 } : new int[] { vectorOrdinal })
+						: effectVectors[-1 * vectorOrdinal];
+					int[] vectorex = Arrays.copyOf(vector, vector.length + effect.length - 1);
+					System.arraycopy(effect, 0, vectorex, vector.length - 1, effect.length);
+					Ints vxkey = new Ints(vectorex);
+					if (this.effectorVectorMap.containsKey(vxkey)) {
+						vectorOrdinal = this.effectorVectorMap.get(vxkey);
 					} else {
-						transition[1] = -1 * effectorVectorPosition[ordinal];
+						vectorOrdinal = this.effectorVectorMap.size();
+						this.effectorVectorMap.put(vxkey, vectorOrdinal);
+						if (vectorOrdinal >= effectVectors.length) {
+							int[][] newv = new int[vectorOrdinal > 4 ? (vectorOrdinal * 3) >> 1 : 5][];
+							for (int i = 0; i < effectVectors.length; i++) {
+								newv[i] = effectVectors[i];
+							}
+							effectVectors = newv;
+						}
+						effectVectors[vectorOrdinal] = vectorex;
 					}
+					assert vectorOrdinal > 0;
+					transition[1] = -1 * vectorOrdinal;
+					int exitTransition[] = this.kernelMatrix[mproductEndpoints[transition[0]][1]][transition[0]];
+					exitTransition[0] = mproductEndpoints[transition[0]][0];
+					exitTransition[1] = 1;
 				}
 			}
 		}
-		if (position < this.effectorVectors.length) {
-			this.effectorVectors = Arrays.copyOf(this.effectorVectors, position);
-		}
-		// mproduct instrumentation
-		// final int nulEquivalent = this.inputEquivalenceIndex[nulSignal];
-		// final int[] outInputs = new int[nStates + 1];
-		// final int[] outDegree = new int[nStates];
-		// Arrays.fill(outInputs, -1);
-		// Arrays.fill(outDegree, 0);
-		// for (int input = 0; input < nInputs; input++) {
-		// 	for (int state = 0; state < nStates; state++) {
-		// 		int[] transition = this.kernelMatrix[input][state];
-		// 		if (transition[1] != 0 && input != nulEquivalent) {
-		// 			outInputs[state] = input;
-		// 			outDegree[state] += 1;
-		// 		}
-		// 	}
-		// }
-		// StateStack walkStack = new StateStack(nStates);
-		// int[] walkedInputs = new int[nStates];
-		// walkStack.push(0);
-		// while (walkStack.size() > 0) {
-		// 	int walkState = walkStack.pop();
-		// 	if (outDegree[walkState] == 1) {
-		//		walkedInputs[0] = 0;
-		// 		int nulState = this.kernelMatrix[nulEquivalent][walkState][0];
-		// 		int walkEndState = this.walk(walkState, nulState, walkedInputs);
-		// 		if (walkEndState >= 0) {
-		//			...
-		// 			this.kernelMatrix[outInputs[walkState]][walkState][0] = walkEndState;
-		// 		}
-		// 	} else for (int input = 0; input < nInputs; input++) {
-		// 		if (input != nulEquivalent) {
-		// 			int[] transition = this.kernelMatrix[input][walkState];
-		// 			if (transition[0] != walkState) {
-		// 				walkStack.push(transition[0]);
-		// 				assert transition[1] != 0;
-		// 			}
-		// 		}
-		// 	}
-		// }
+		return effectVectors;
 	}
-
-	// private int walk(int fromState, int nulState, int[] walked) {
-	// 	return 0;
-	// }
 
 	private Chain chain(final Transition transition) {
 		assert transition.tape != 1 && transition.tape != 2 : "Invalid tape number for chain(InrTransition) : " + transition.toString();
@@ -636,7 +764,8 @@ public class ModelCompiler implements ITarget {
 			switch (t.tape) {
 				case 1:
 					if ((effectorPos + 2) >= effectorVector.length) {
-						effectorVector = Arrays.copyOf(effectorVector, (effectorVector.length * 3) >> 1);
+						int newLength = effectorVector.length > 4 ? (effectorVector.length * 3) >> 1 : 5;
+						effectorVector = Arrays.copyOf(effectorVector, newLength);
 					}
 					if (parameterPos > 0) {
 						assert((effectorPos > 0) && (effectorOrdinal == effectorVector[effectorPos - 1]));
@@ -655,7 +784,8 @@ public class ModelCompiler implements ITarget {
 					break;
 				case 2:
 					if (parameterPos >= parameterList.length) {
-						parameterList = Arrays.copyOf(parameterList, (parameterList.length * 3) >> 1);
+						int newLength = parameterList.length > 4 ? (parameterList.length * 3) >> 1 : 5;
+						parameterList = Arrays.copyOf(parameterList, newLength);
 					}
 					parameterList[parameterPos] = t.symbol;
 					++parameterPos;
@@ -822,5 +952,16 @@ public class ModelCompiler implements ITarget {
 		if (!this.errors.contains(message)) {
 			this.errors.add(message);
 		}
+	}
+
+	@SuppressWarnings("unused")
+	private int[][][] transpose(int[][][] m) {
+		int[][][] t = new int[m[0].length][m.length][m[0][0].length];
+		for(int i=0 ; i<m.length; i++) {
+			for(int j=0 ; j<(m[i].length) ; j++) {
+				t[j][i] = m[i][j];
+			}
+		}
+		return t;
 	}
 }
