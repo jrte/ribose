@@ -106,9 +106,9 @@ public final class Transductor implements ITransductor, IOutput {
 	private final TransducerStack transducerStack;
 	private final InputStack inputStack;
 	private int matchMode;
-	private int msumCount;
+	private long msumCount;
 	private long[] matchSum;
-	public int mproductCount;
+	public long mproductCount;
 	private byte[] matchProduct;
 	private int matchPosition;
 	private final CharsetDecoder decoder;
@@ -116,6 +116,7 @@ public final class Transductor implements ITransductor, IOutput {
 	private OutputStream output;
 	private final Logger rtcLogger;
 	private final Logger rteLogger;
+	private long byteCount;
 
 	/**
 	 *  Constructor
@@ -138,6 +139,7 @@ public final class Transductor implements ITransductor, IOutput {
 		this.matchPosition = 0;
 		this.msumCount = 0;
 		this.mproductCount = 0;
+		this.byteCount = 0;
 		this.decoder = Base.newCharsetDecoder();
 		this.encoder = Base.newCharsetEncoder();
 		this.rtcLogger = Base.getCompileLogger();
@@ -327,9 +329,8 @@ public final class Transductor implements ITransductor, IOutput {
 		int errorInput = -1, signalInput = -1;
 		int[] aftereffects = new int[32];
 		Input input = Input.empty;
-		this.mproductCount = 0;
-		this.msumCount = 0;
 		try {
+			this.mproductCount = this.msumCount = this.byteCount = 0;
 T:		do {
 				// start a pushed transducer
 				transducer = this.transducerStack.peek();
@@ -363,7 +364,7 @@ I:			do {
 								input = this.inputStack.push(value.getValue()).limit(value.getLength());
 								token = Byte.toUnsignedInt(input.array[input.position++]);
 								break;
-							case Base.TYPE_REFERENCE_NONE:
+								case Base.TYPE_REFERENCE_NONE:
 								token = Byte.toUnsignedInt(input.array[input.position++]);
 								break;
 							default:
@@ -382,14 +383,17 @@ I:			do {
 						break;
 					case Msum:
 						if (token < nulSignal) {
+							int pos = input.position;
 							while (0 != (this.matchSum[token >> 6] & (1L << (token & 0x3f)))) {
 								if (input.position < input.limit) {
 									token = Byte.toUnsignedInt(input.array[input.position++]);
 								} else {
+									this.msumCount += (input.position - pos);
 									signalInput = -1;
 									continue I;
 								}
 							}
+							this.msumCount += (input.position - pos);
 						}
 						this.matchMode = Mnone;
 						break;
@@ -415,6 +419,7 @@ I:			do {
 									break;
 								}
 							}
+							this.mproductCount += (mpos - this.matchPosition);
 							this.matchPosition = mpos;
 						}
 						this.matchMode = Mnone;
@@ -608,6 +613,7 @@ S:				do {
 				assert (transducer == this.transducerStack.peek()) || (transducer == this.transducerStack.get(-1));
 				transducer.state = state;
 			}
+//			this.byteCount = this.inputStack.getBytesCount();
 		}
 
 		// Transduction is paused or stopped; if paused it will resume on next call to run()
@@ -625,13 +631,18 @@ S:				do {
 	}
 
 	@Override // @see com.characterforming.ribose.ITransductor#getSumCount()
-	public int getSumCount() {
+	public long getSumCount() {
 		return this.msumCount;
 	}
 
 	@Override // @see com.characterforming.ribose.ITransductor#getProductCount()
-	public int getProductCount() {
+	public long getProductCount() {
 		return this.mproductCount;
+	}
+
+	@Override // @see com.characterforming.ribose.ITransductor#getBytesCount()
+	public long getBytesCount() {
+		return this.byteCount;
 	}
 
 	@Override // @see com.characterforming.ribose.IOutput#getValueOrdinal(Bytes)
@@ -1176,7 +1187,6 @@ S:				do {
 			}
 			if (super.target.matchMode == Msum) {
 				super.target.matchSum = super.parameters[parameterIndex];
-				++super.target.msumCount;
 			} else {
 				throw new EffectorException("Illegal attempt to override match mode");
 			}
@@ -1221,7 +1231,6 @@ S:				do {
 			if (super.target.matchMode == Mproduct) {
 				super.target.matchProduct = super.parameters[parameterIndex];
 				super.target.matchPosition = 0;
-				++super.target.mproductCount;
 			} else {
 				throw new EffectorException("Illegal attempt to override match mode");
 			}

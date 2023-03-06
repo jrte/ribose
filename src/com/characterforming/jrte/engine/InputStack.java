@@ -41,6 +41,7 @@ final class InputStack {
 	private MarkState markState;
 	private Input[] marked;
 	private int bom, tom;
+	private long bytesPopped;
 	
 	class MarkStack extends LinkedList<Input> {
 		private static final long serialVersionUID = 1L;
@@ -64,6 +65,7 @@ final class InputStack {
 		this.markState = MarkState.clear;
 		this.markLimit = 2;
 		this.bom = this.tom = 0;
+		this.bytesPopped = 0;
 		this.tos = -1;
 	}
 	
@@ -151,6 +153,9 @@ final class InputStack {
 					assert !Base.isReferenceOrdinal(input.array);
 					this.addMarked(this.stack[this.tos--]);
 					input.copy(this.getMarked());
+					this.bytesPopped += (input.limit - input.position);
+				} else if (input.position == 0) {
+					this.bytesPopped += (input.limit - input.position);
 				}
 				return input;
 			}
@@ -164,9 +169,7 @@ final class InputStack {
 			assert this.bom != this.tom;
 			assert this.stack[0].array == this.marked[this.bom].array;
 			input = this.push(this.getMarked());
-			if (this.bom == this.tom) {
-				this.markState = MarkState.clear;
-			}
+			this.bytesPopped += (input.limit - input.position);
 			break;
 		case marked:
 			Input marked = this.addMarked(this.stack[0]);
@@ -319,6 +322,16 @@ final class InputStack {
 		return this.tos;
 	}
 
+  /**
+	 * Get and reset the number of bytes popped since last sample.
+	 * @return The number of bytes popped since count last reset
+	 */
+	public long getBytesCount() {
+		long bytes = this.bytesPopped;
+		this.bytesPopped = 0;
+		return bytes;
+  }
+
 	private Input stackcheck() {
 		this.tos += 1;
 		if (this.tos >= this.stack.length) {
@@ -381,6 +394,9 @@ final class InputStack {
 	private Input getMarked() {
 		if (this.bom != this.tom) {
 			this.bom = this.nextMarked(this.bom);
+			if (this.bom == this.tom) {
+				this.markState = MarkState.clear;
+			}
 			return this.marked[this.bom];
 		}
 		return null;

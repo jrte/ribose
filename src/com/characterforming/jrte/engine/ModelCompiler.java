@@ -455,15 +455,15 @@ public class ModelCompiler implements ITarget {
 		// factor matrix modulo input equivalence
 		final HashMap<IntsArray, HashSet<Integer>> rowEquivalenceMap =
 			new HashMap<IntsArray, HashSet<Integer>>((5 * transitionMatrix.length) >> 2);
-			for (int i = 0; i < transitionMatrix.length; i++) {
-				assert transitionMatrix[i].length == transitionMatrix[0].length;
-				final IntsArray row = new IntsArray(transitionMatrix[i]);
-				HashSet<Integer> equivalentInputOrdinals = rowEquivalenceMap.get(row);
-				if (equivalentInputOrdinals == null) {
+		for (int token = 0; token < transitionMatrix.length; token++) {
+			assert transitionMatrix[token].length == transitionMatrix[0].length;
+			final IntsArray row = new IntsArray(transitionMatrix[token]);
+			HashSet<Integer> equivalentInputOrdinals = rowEquivalenceMap.get(row);
+			if (equivalentInputOrdinals == null) {
 				equivalentInputOrdinals = new HashSet<Integer>(16);
 				rowEquivalenceMap.put(row, equivalentInputOrdinals);
 			}
-			equivalentInputOrdinals.add(i);
+			equivalentInputOrdinals.add(token);
 		}
 		this.inputEquivalenceIndex = new int[transitionMatrix.length];
 		this.kernelMatrix = new int[rowEquivalenceMap.size()][][];
@@ -490,9 +490,9 @@ public class ModelCompiler implements ITarget {
 		byte[][] equivalentInputs = new byte[nInputs][transitionMatrix.length];
 		int[] equivalenceLengths = new int[nInputs];
 		Arrays.fill(equivalenceLengths, 0);
-		for (int inputOrdinal = 0; inputOrdinal < transitionMatrix.length; inputOrdinal++) {
-			int q = this.inputEquivalenceIndex[inputOrdinal];
-			equivalentInputs[q][equivalenceLengths[q]++] = (byte)inputOrdinal;
+		for (int token = 0; token < transitionMatrix.length; token++) {
+			int input = this.inputEquivalenceIndex[token];
+			equivalentInputs[input][equivalenceLengths[input]++] = (byte)token;
 		}
 		for (int state = 0; state < nStates; state++) {
 			int selfIndex = 0, selfCount = 0;
@@ -501,8 +501,8 @@ public class ModelCompiler implements ITarget {
 			for (int input = 0; input < nInputs; input++) {
 				int[] transition = this.kernelMatrix[input][state];
 				if (transition[0] == state && transition[1] == 1) {
-					for (int i = 0; i < equivalenceLengths[input]; i++) {
-						selfBytes[selfIndex++] = equivalentInputs[input][i];
+					for (int index = 0; index < equivalenceLengths[input]; index++) {
+						selfBytes[selfIndex++] = equivalentInputs[input][index];
 					}
 					selfCount += equivalenceLengths[input];
 				}
@@ -514,34 +514,49 @@ public class ModelCompiler implements ITarget {
 			}
 		}
 		// mproduct instrumentation
+		int[][][] transposed = this.transpose(this.kernelMatrix);
 		int[] inputEquivalentCardinality = new int[nInputs];
 		int[] inputEquivalenceToken = new int[nInputs];
 		Arrays.fill(inputEquivalenceToken, -1);
-		for (int i = 0; i < this.inputEquivalenceIndex.length; i++) {
-			if (i != nulSignal && ++inputEquivalentCardinality[this.inputEquivalenceIndex[i]] == 1) {
-				inputEquivalenceToken[this.inputEquivalenceIndex[i]] = i;
+		for (int token = 0; token < this.inputEquivalenceIndex.length; token++) {
+			int equivalent = this.inputEquivalenceIndex[token];
+			if (++inputEquivalentCardinality[equivalent] == 1
+			&& inputEquivalenceToken[equivalent] == -1
+			&& token < nulSignal) {
+				inputEquivalenceToken[equivalent] = token;
+			} else {
+				inputEquivalenceToken[equivalent] = -2;
 			}
-		}
-		for (int i = 0; i < nInputs; i++) {
-			if (inputEquivalentCardinality[i] > 1) {
-				inputEquivalenceToken[i] = -1;
-			}
-			assert (inputEquivalentCardinality[i] > 0) || (this.inputEquivalenceIndex[nulSignal] == i);
+			assert (token >= nulSignal)
+			|| (inputEquivalentCardinality[equivalent] == 1) == ((inputEquivalenceToken[equivalent] == token));
+			assert (token < nulSignal) || (inputEquivalenceToken[equivalent] < 0);
 		}
 		int[] exitEquivalent = new int[nStates];
-		for (int i = 0; i < nStates; i++) {
-			exitEquivalent[i] = -1;
-			for (int j = 0; j < nInputs; j++) {
-				if (j != nulEquivalent && this.kernelMatrix[j][i][1] != 0) {
-					if ((exitEquivalent[i] >= 0) || (inputEquivalenceToken[j] < 0)) {
-						exitEquivalent[i] = -1;
-						break;
+		for (int state = 0; state < nStates; state++) {
+			exitEquivalent[state] = -1;
+			for (int input = 0; input < nInputs; input++) {
+				if (input != nulEquivalent) {
+					int[] transition = this.kernelMatrix[input][state];
+					if (transition[0] != state) {
+						if (transition[1] == 1 && exitEquivalent[state] < 0
+						&& inputEquivalenceToken[input] >= 0) {
+							assert exitEquivalent[state] == -1;
+							exitEquivalent[state] = input;
+						} else {
+							exitEquivalent[state] = -1;
+							break;
+						}
+					} else if (transition[1] != 0) {
+							exitEquivalent[state] = -1;
+							break;
 					}
-					assert exitEquivalent[i] == -1;
-					exitEquivalent[i] = j;
 				}
 			}
+			assert (exitEquivalent[state] < 0)
+			|| (this.kernelMatrix[exitEquivalent[state]][state][0] != state
+					&& this.kernelMatrix[exitEquivalent[state]][state][1] == 1);
 		}
+		assertKernelSanity();
 		boolean[] walkedStates = new boolean[nStates];
 		Arrays.fill(walkedStates, false);
 		StateStack walkStack = new StateStack(nStates);
@@ -549,28 +564,49 @@ public class ModelCompiler implements ITarget {
 		int[] walkResult = new int[] { 0, 0, 0 };
 		walkedStates[0] = walkStack.push(0);
 		while (walkStack.size() > 0) {
-			int walkState = walkStack.pop();
+			int fromState = walkStack.pop();
 			for (int input = 0; input < nInputs; input++) {
-				int nextState = this.kernelMatrix[input][walkState][0];
-				if (exitEquivalent[nextState] >= 0) {
-					this.walk(nextState, walkedBytes, walkResult, exitEquivalent, inputEquivalenceToken);
+				int toState = this.kernelMatrix[input][fromState][0];
+				if (exitEquivalent[toState] >= 0) {
+					assert inputEquivalenceToken[exitEquivalent[toState]] >= 0;
+					assert inputEquivalenceToken[exitEquivalent[toState]] < nulSignal;
+					int nextState = this.walk(toState, walkedBytes, walkResult, exitEquivalent, inputEquivalenceToken);
 					if (walkResult[0] > 3) {
-						assert this.inputEquivalenceIndex[walkedBytes[0]] == exitEquivalent[nextState];
-						mproductStateEffects[nextState] = new int[] { 
-							-1 * mproductOrdinal, 
-							this.model.compileParameters(
-								mproductOrdinal, new byte[][] { Arrays.copyOfRange(walkedBytes, 0, walkResult[0]) }
-							), 
-							0
-						};
-						mproductEndpoints[nextState][0] = walkResult[1];
-						mproductEndpoints[nextState][1] = walkResult[2];
+						assert this.inputEquivalenceIndex[walkedBytes[0]] == exitEquivalent[toState];
+						if (mproductStateEffects[toState] == null) {
+							mproductStateEffects[toState] = new int[] { 
+								-1 * mproductOrdinal, 
+								this.model.compileParameters(
+									mproductOrdinal, new byte[][] { Arrays.copyOfRange(walkedBytes, 0, walkResult[0]) }
+								), 
+								0
+							};
+							mproductEndpoints[toState][0] = nextState;
+							mproductEndpoints[toState][1] = walkResult[2];
+						} else {
+							assert mproductEndpoints[toState][0] == nextState;
+							assert mproductEndpoints[toState][1] == walkResult[2];
+						}
+						assert this.inputEquivalenceIndex[walkedBytes[walkResult[0] - 1]] == walkResult[2];
+						toState = nextState;
 					}
-					walkedStates[walkResult[1]] = walkedStates[walkResult[1]] || walkStack.push(walkResult[1]);
-				} else {
-					walkedStates[nextState] |= walkedStates[nextState] || walkStack.push(nextState);
-					assert (nextState == walkState) || (this.kernelMatrix[input][walkState][1] != 0);
+					if (walkResult[0] > 0) {
+						int state = this.kernelMatrix[input][fromState][0];
+						for (int i = 0; i < walkResult[0] - 1; i++) {
+							assert exitEquivalent[state] >= 0;
+							assert walkedBytes[i] == inputEquivalenceToken[exitEquivalent[state]];
+							assert this.inputEquivalenceIndex[walkedBytes[i]] == exitEquivalent[state];
+							int[] transition = this.kernelMatrix[exitEquivalent[state]][state];
+							assert transition[1] == 1;
+							state = transition[0];
+						}
+						assert exitEquivalent[state] == walkResult[2];
+						assert this.inputEquivalenceIndex[walkedBytes[walkResult[0] - 1]] == exitEquivalent[state];
+						assert this.kernelMatrix[exitEquivalent[state]][state][1] == 1;
+						assert nextState == this.kernelMatrix[exitEquivalent[state]][state][0];
+					}
 				}
+				walkedStates[toState] = walkedStates[toState] || walkStack.push(toState);
 			}
 		}
 		// effect vector construction
@@ -617,18 +653,74 @@ public class ModelCompiler implements ITarget {
 			this.effectorVectors = Arrays.copyOf(this.effectorVectors, position);
 		}
 		assertKernelSanity();
-	}
+		// redundant state elimination
+		for (int state = 0; state < nStates; state++) {
+			if (mproductStateEffects[state] != null) {
+				for (int input = 0; input < nInputs; input++) {
+					assert (input != mproductEndpoints[state][1])
+					|| (this.kernelMatrix[input][state][0] == mproductEndpoints[state][0]);
+					if (input != nulEquivalent && input != mproductEndpoints[state][1]) {
+						int[] transition = this.kernelMatrix[input][state];
+						assert (transition[1] == 0 && transition[0] == state)
+						|| (transition[1] == 1 && transition[0] != state)
+						|| (transition[1] < 0);
+						if (transition[1] > 0) {
+							transition[0] = state;
+							transition[1] = 0;
+						}
+					}
+				}
+			}
+		}
+		assert walkStack.size() == 0;
+		Arrays.fill(walkedStates, false);
+		walkStack.push(0);
+		while (walkStack.size() > 0) {
+			int state = walkStack.pop();
+			assert !walkedStates[state];
+			walkedStates[state] = true;
+			for (int input = 0; input < nInputs; input++) {
+				int nextState = this.kernelMatrix[input][state][0];
+				if (nextState != state && !walkedStates[nextState]) {
+					walkStack.push(nextState);
+				}
+			}
+		}
+		int[] stateMap = new int[nStates];
+		Arrays.fill(stateMap, -1);
+		int mStates = 0;
+		for (int state = 0; state < nStates; state++) {
+			if (walkedStates[state]) {
+				stateMap[state] = mStates++;
+			}
+		}
+		for (int input = 0; input < nInputs; input++) {
+			int newColumn = 0;
+			int[][] newRow = new int[mStates][];
+			int[][] oldRow = this.kernelMatrix[input];
+			for (int state = 0; state < nStates; state++) {
+				if (walkedStates[state]) {
+					newRow[newColumn] = oldRow[state];
+					assert stateMap[newRow[newColumn][0]] >= 0;
+					newRow[newColumn][0] = stateMap[newRow[newColumn][0]];
+					newColumn++;
+				}
+			}
+			this.kernelMatrix[input] = newRow;
+		}
+}
 
 	private void assertKernelSanity() {
-		for (int i = 0; i < this.kernelMatrix.length; i++) {
-			assert this.kernelMatrix[0].length == this.kernelMatrix[i].length;
-			for (int j = 0; j < this.kernelMatrix[i].length; j++) {
-				assert (this.kernelMatrix[i][j][1] != 0) || (this.kernelMatrix[i][j][0] == j);
+		for (int input = 0; input < this.kernelMatrix.length; input++) {
+			assert this.kernelMatrix[0].length == this.kernelMatrix[input].length;
+			for (int state = 0; state < this.kernelMatrix[input].length; state++) {
+				assert (this.kernelMatrix[input][state][1] != 0)
+				|| (this.kernelMatrix[input][state][0] == state);
 			}
 		}
 	}
 
-	private void walk(int fromState, byte[] walkedBytes, int[] walkResult, int exitEquivalent[], int singletonEquivalenceMap[]) {
+	private int walk(int fromState, byte[] walkedBytes, int[] walkResult, int exitEquivalent[], int singletonEquivalenceMap[]) {
 		int nulEquivalent = this.inputEquivalenceIndex[Signal.nul.signal()];
 		int[] nulTransition = this.kernelMatrix[nulEquivalent][fromState];
 		int[] matchTransition = new int[] { 
@@ -636,30 +728,34 @@ public class ModelCompiler implements ITarget {
 			nulTransition[1] 
 		};
 		int walkLength = 0;
-		int fromEquivalent = -1;
-		assert exitEquivalent[fromState] >= 0;
-		int exitInput = exitEquivalent[fromState];
+		int walkedInput = -1;
+		int walkState = fromState;
+		Arrays.fill(walkResult, 0);
+		assert exitEquivalent[walkState] >= 0;
+		int exitInput = exitEquivalent[walkState];
 		while (exitInput >= 0 && walkLength < walkedBytes.length
-		&& singletonEquivalenceMap[exitInput] >= 0 && singletonEquivalenceMap[exitInput] < Signal.nul.signal()
-		&& this.kernelMatrix[exitInput][fromState][1] == 1
-		) {
-			int[] errorTransition = this.kernelMatrix[nulEquivalent][fromState];
-			int errorState = matchTransition[0] != Integer.MIN_VALUE ? matchTransition[0] : fromState;
+		&& this.kernelMatrix[exitInput][walkState][1] == 1) {
+			assert singletonEquivalenceMap[exitInput] >= 0
+			&& singletonEquivalenceMap[exitInput] < Signal.nul.signal();
+			int[] errorTransition = this.kernelMatrix[nulEquivalent][walkState];
+			int errorState = matchTransition[0] != Integer.MIN_VALUE ? matchTransition[0] : walkState;
 			if (errorTransition[1] == matchTransition[1] && errorTransition[0] == errorState) {
-				walkedBytes[walkLength] = (byte)singletonEquivalenceMap[exitInput];
-				fromEquivalent = this.inputEquivalenceIndex[walkedBytes[walkLength]];
-				fromState = this.kernelMatrix[fromEquivalent][fromState][0];
-				exitInput = exitEquivalent[fromState];
+				walkedInput = exitInput;
+				walkedBytes[walkLength] = (byte)singletonEquivalenceMap[walkedInput];
+				walkState = this.kernelMatrix[walkedInput][walkState][0];
+				exitInput = exitEquivalent[walkState];
 				++walkLength;
 			} else {
-				walkResult[0] = walkLength;
-				walkResult[1] = this.kernelMatrix[exitInput][fromState][0];
-				return;
+				break;
 			}
 		}
-		walkResult[0] = walkLength < walkedBytes.length ? walkLength : 0;
-		walkResult[1] = fromState;
-		walkResult[2] = fromEquivalent;
+		if (walkLength > 0) {
+			walkResult[0] = walkLength;
+			walkResult[1] = walkState;
+			walkResult[2] = walkedInput;
+			return walkState;
+		}
+		return fromState;
 	}
 
 	private int[][] instrument(int msumOrdinal, int[][] effectVectors, int[][] msumEffects) {
@@ -712,16 +808,21 @@ public class ModelCompiler implements ITarget {
 				if ((transition[1] == 0) || (mproductEffects[transition[0]] == null)) {
 					continue;
 				}
-				int vectorLength = mproductEffects[transition[0]].length;
+				int startState = transition[0];
+				int vectorLength = mproductEffects[startState].length;
 				int vectorOrdinal = transition[1];
 				if ((vectorOrdinal > 0)
 				|| (effectVectors[-1 * vectorOrdinal][effectVectors[-1 * vectorOrdinal].length - vectorLength] != mproductOrdinal)) {
-					int[] effect = mproductEffects[transition[0]];
+					int endState = mproductEndpoints[startState][0];
+					int endInput = mproductEndpoints[startState][1];
+					this.kernelMatrix[endInput][startState][0] = endState;
+					this.kernelMatrix[endInput][startState][1] = 1;
 					int[] vector = vectorOrdinal > 0
-						? (vectorOrdinal > 1 ? new int[] { vectorOrdinal, 0 } : new int[] { vectorOrdinal })
-						: effectVectors[-1 * vectorOrdinal];
-					int[] vectorex = Arrays.copyOf(vector, vector.length + effect.length - 1);
-					System.arraycopy(effect, 0, vectorex, vector.length - 1, effect.length);
+					? (vectorOrdinal > 1 ? new int[] { vectorOrdinal, 0 } : new int[] { vectorOrdinal })
+					: effectVectors[-1 * vectorOrdinal];
+					int[] mproductEffect = mproductEffects[startState];
+					int[] vectorex = Arrays.copyOf(vector, vector.length + mproductEffect.length - 1);
+					System.arraycopy(mproductEffect, 0, vectorex, vector.length - 1, mproductEffect.length);
 					Ints vxkey = new Ints(vectorex);
 					if (this.effectorVectorMap.containsKey(vxkey)) {
 						vectorOrdinal = this.effectorVectorMap.get(vxkey);
@@ -737,11 +838,8 @@ public class ModelCompiler implements ITarget {
 						}
 						effectVectors[vectorOrdinal] = vectorex;
 					}
-					assert vectorOrdinal > 0;
 					transition[1] = -1 * vectorOrdinal;
-					int exitTransition[] = this.kernelMatrix[mproductEndpoints[transition[0]][1]][transition[0]];
-					exitTransition[0] = mproductEndpoints[transition[0]][0];
-					exitTransition[1] = 1;
+					assert vectorOrdinal > 0;
 				}
 			}
 		}
