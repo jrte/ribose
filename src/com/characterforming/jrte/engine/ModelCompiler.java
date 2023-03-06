@@ -708,7 +708,34 @@ public class ModelCompiler implements ITarget {
 			}
 			this.kernelMatrix[input] = newRow;
 		}
-}
+		assertKernelSanity();
+		// Coalesce equivalence classes
+		rowEquivalenceMap.clear();
+		for (int input = 0; input < this.kernelMatrix.length; input++) {
+			assert this.kernelMatrix[input].length == this.kernelMatrix[0].length;
+			final IntsArray row = new IntsArray(this.kernelMatrix[input]);
+			HashSet<Integer> equivalentClassOrdinals = rowEquivalenceMap.get(row);
+			if (equivalentClassOrdinals == null) {
+				equivalentClassOrdinals = new HashSet<Integer>(16);
+				rowEquivalenceMap.put(row, equivalentClassOrdinals);
+			}
+			equivalentClassOrdinals.add(input);
+		}
+		int[] classEquivalenceIndex = new int[this.kernelMatrix.length];
+		int[][][] matrix = new int[rowEquivalenceMap.size()][][];
+		int equivalenceClassIndex = 0;
+		for (final Map.Entry<IntsArray, HashSet<Integer>> entry : rowEquivalenceMap.entrySet()) {
+			final IntsArray row = entry.getKey();
+			for (final int inputOrdinal : entry.getValue()) {
+				classEquivalenceIndex[inputOrdinal] = equivalenceClassIndex;
+			}
+			matrix[equivalenceClassIndex++] = row.getInts();
+		}
+		for (int token = 0; token < this.inputEquivalenceIndex.length; token++) {
+			this.inputEquivalenceIndex[token] = classEquivalenceIndex[this.inputEquivalenceIndex[token]];
+		}
+		this.kernelMatrix = matrix;
+	}
 
 	private void assertKernelSanity() {
 		for (int input = 0; input < this.kernelMatrix.length; input++) {
