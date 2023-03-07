@@ -105,9 +105,7 @@ public final class Transductor implements ITransductor, IOutput {
 	private final TransducerStack transducerStack;
 	private final InputStack inputStack;
 	private int matchMode;
-	private long msumCount;
 	private long[] matchSum;
-	public long mproductCount;
 	private byte[] matchProduct;
 	private int matchPosition;
 	private final CharsetDecoder decoder;
@@ -115,6 +113,8 @@ public final class Transductor implements ITransductor, IOutput {
 	private OutputStream output;
 	private final Logger rtcLogger;
 	private final Logger rteLogger;
+	private long msumCount;
+	private long mproductCount;
 	private long byteCount;
 
 	/**
@@ -324,12 +324,12 @@ public final class Transductor implements ITransductor, IOutput {
 		final int nulSignal = Signal.nul.signal();
 		final int eosSignal = Signal.eos.signal();
 		TransducerState transducer = null;
-		int state = 0, last = -1, token = -1;
 		int errorInput = -1, signalInput = -1;
+		int msumCounter = 0, mproductCounter = 0;
+		int token = -1, state = 0, last = -1;
 		int[] aftereffects = new int[32];
 		Input input = Input.empty;
 		try {
-			this.mproductCount = this.msumCount = this.byteCount = 0;
 T:		do {
 				// start a pushed transducer
 				transducer = this.transducerStack.peek();
@@ -392,7 +392,7 @@ I:			do {
 									continue I;
 								}
 							}
-							this.msumCount += (input.position - pos);
+							msumCounter += (input.position - pos);
 						}
 						this.matchMode = Mnone;
 						break;
@@ -418,8 +418,7 @@ I:			do {
 									break;
 								}
 							}
-							this.mproductCount += (mpos - this.matchPosition);
-							this.matchPosition = mpos;
+							mproductCounter += (mpos - this.matchPosition);
 						}
 						this.matchMode = Mnone;
 						break;
@@ -612,7 +611,9 @@ S:				do {
 				assert (transducer == this.transducerStack.peek()) || (transducer == this.transducerStack.get(-1));
 				transducer.state = state;
 			}
-//			this.byteCount = this.inputStack.getBytesCount();
+			this.byteCount = this.inputStack.getBytesCount();
+			this.mproductCount = mproductCounter;
+			this.msumCount = msumCounter;
 		}
 
 		// Transduction is paused or stopped; if paused it will resume on next call to run()
