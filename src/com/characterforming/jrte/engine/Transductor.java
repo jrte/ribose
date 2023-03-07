@@ -38,7 +38,6 @@ import com.characterforming.ribose.IParameterizedEffector;
 import com.characterforming.ribose.IRuntime;
 import com.characterforming.ribose.ITarget;
 import com.characterforming.ribose.ITransductor;
-import com.characterforming.ribose.base.Base;
 import com.characterforming.ribose.base.BaseEffector;
 import com.characterforming.ribose.base.BaseParameterizedEffector;
 import com.characterforming.ribose.base.Bytes;

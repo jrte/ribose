@@ -20,7 +20,6 @@
 
 package com.characterforming.jrte.engine;
 
-import com.characterforming.ribose.base.Base;
 import com.characterforming.ribose.base.BaseParameterizedEffector;
 import com.characterforming.ribose.base.Bytes;
 import com.characterforming.ribose.base.EffectorException;

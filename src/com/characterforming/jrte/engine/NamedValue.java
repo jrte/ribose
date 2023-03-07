@@ -27,7 +27,6 @@ import java.nio.charset.CoderResult;
 import java.util.Arrays;
 
 import com.characterforming.ribose.INamedValue;
-import com.characterforming.ribose.base.Base;
 import com.characterforming.ribose.base.Bytes;
 
 /**

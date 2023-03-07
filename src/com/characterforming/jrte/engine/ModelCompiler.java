@@ -45,7 +45,6 @@ import com.characterforming.ribose.ITarget;
 import com.characterforming.ribose.ITransductor;
 import com.characterforming.ribose.Ribose;
 import com.characterforming.ribose.TCompile;
-import com.characterforming.ribose.base.Base;
 import com.characterforming.ribose.base.BaseEffector;
 import com.characterforming.ribose.base.Bytes;
 import com.characterforming.ribose.base.CompilationException;

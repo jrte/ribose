@@ -42,7 +42,6 @@ import com.characterforming.ribose.IEffector;
 import com.characterforming.ribose.IOutput;
 import com.characterforming.ribose.IParameterizedEffector;
 import com.characterforming.ribose.ITarget;
-import com.characterforming.ribose.base.Base;
 import com.characterforming.ribose.base.Bytes;
 import com.characterforming.ribose.base.CompilationException;
 import com.characterforming.ribose.base.ModelException;

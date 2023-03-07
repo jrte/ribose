@@ -25,8 +25,6 @@ import java.util.LinkedList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import com.characterforming.ribose.base.Base;
-
 /**
  * @author Kim Briggs
  */

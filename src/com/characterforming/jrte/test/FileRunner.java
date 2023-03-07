@@ -34,11 +34,11 @@ import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.characterforming.jrte.engine.Base;
 import com.characterforming.ribose.IRuntime;
 import com.characterforming.ribose.ITransductor;
 import com.characterforming.ribose.Ribose;
 import com.characterforming.ribose.TRun;
-import com.characterforming.ribose.base.Base;
 import com.characterforming.ribose.base.Bytes;
 import com.characterforming.ribose.base.RiboseException;
 import com.characterforming.ribose.base.Signal;

@@ -19,6 +19,7 @@
  */
 package com.characterforming.ribose.base;
 
+import com.characterforming.jrte.engine.Base;
 import com.characterforming.ribose.ITransductor;
 
 /**

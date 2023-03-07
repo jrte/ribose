@@ -37,3 +37,5 @@
  * @author Kim Briggs
  */
 package com.characterforming.ribose.base;
+
+import com.characterforming.jrte.engine.Base;

@@ -27,6 +27,8 @@ import java.nio.charset.CharsetDecoder;
 import java.nio.charset.CharsetEncoder;
 import java.util.Arrays;
 
+import com.characterforming.jrte.engine.Base;
+
 /**
  * Wraps an immutable array of bytes. Ribose transductions operate in the {@code byte}
  * domain, and transduction input and outputs are represented as byte arrays.

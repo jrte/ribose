@@ -18,7 +18,7 @@
  * <http://www.gnu.org/licenses/#GPL>.
  */
 
-package com.characterforming.ribose.base;
+package com.characterforming.jrte.engine;
 
 import java.nio.charset.Charset;
 import java.nio.charset.CharsetDecoder;
@@ -28,6 +28,8 @@ import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
+
+import com.characterforming.ribose.base.Bytes;
 
 /**
  * This {@code Base} class provides commonly used defintions that are
@@ -67,7 +69,7 @@ public class Base {
 	private static final int OUTPUT_BUFFER_SIZE = Integer.parseInt(System.getProperty("ribose.outbuffer.size", "8196"));
 	private static final Charset runtimeCharset = Charset.forName(System.getProperty("ribose.runtime.charset", "UTF-8"));
 	private static final CharsetEncoder encoder = runtimeCharset.newEncoder();
-	static final Bytes[] RTE_SIGNAL_NAMES = {
+	public static final Bytes[] RTE_SIGNAL_NAMES = {
 		Bytes.encode(Base.encoder, "nul"),
 		Bytes.encode(Base.encoder, "nil"),
 		Bytes.encode(Base.encoder, "eol"),

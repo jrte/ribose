@@ -25,7 +25,7 @@ import java.nio.charset.CharsetDecoder;
 import java.nio.charset.CharsetEncoder;
 import java.util.Map;
 import java.util.Set;
-import com.characterforming.ribose.base.Base;
+
 import com.characterforming.ribose.base.Bytes;
 import com.characterforming.ribose.base.ModelException;
 

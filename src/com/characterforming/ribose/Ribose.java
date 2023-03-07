@@ -24,10 +24,10 @@ import java.io.File;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import com.characterforming.jrte.engine.Base;
 import com.characterforming.jrte.engine.Model;
 import com.characterforming.jrte.engine.ModelCompiler;
 import com.characterforming.jrte.engine.Runtime;
-import com.characterforming.ribose.base.Base;
 import com.characterforming.ribose.base.ModelException;
 
 /**

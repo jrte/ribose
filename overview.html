@@ -44,10 +44,10 @@ Fibonacci = (
 );
 
 Fibonacci$(0,1 2):prsseq;
-(START)  0 [ select ~q paste 1 ]                                   1
-(START)  \n [ paste out stop ]                                     (FINAL)
-1        0 [ select ~r cut ~p select ~p copy ~q select ~q cut ~r ] 1
-1        \n [ paste out stop ]                                     (FINAL)
+(START)  0  [ select ~q paste 1 ]                                   1
+(START)  \n [ paste out stop ]                                      (FINAL)
+1        0  [ select ~r cut ~p select ~p copy ~q select ~q cut ~r ] 1
+1        \n [ paste out stop ]                                      (FINAL)
 
 $ for i in '' 0 00 000 0000 00000 000000 0000000 00000000 000000000; do \
 &gt; echo $i | etc/sh/ribose --nil build/Test.model Fibonacci -; \

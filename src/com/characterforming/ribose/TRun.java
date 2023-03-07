@@ -32,7 +32,7 @@ import java.nio.charset.CharsetEncoder;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import com.characterforming.ribose.base.Base;
+import com.characterforming.jrte.engine.Base;
 import com.characterforming.ribose.base.BaseTarget;
 import com.characterforming.ribose.base.Bytes;
 import com.characterforming.ribose.base.Signal;
