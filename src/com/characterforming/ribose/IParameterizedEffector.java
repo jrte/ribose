@@ -114,6 +114,13 @@ public interface IParameterizedEffector<T extends ITarget, P> extends IEffector<
 	P getParameter(int parameterIndex);
 
 	/**
+	 * Get the compiled parameter array.
+	 *
+	 * @return The parameter array
+	 */
+	P[] getParameters();
+
+	/**
 	 * Parameterized effector invocation receivews the index of the {@code P}
 	 * instance to apply for the invocation.
 	 *

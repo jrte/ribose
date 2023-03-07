@@ -513,7 +513,9 @@ public class ModelCompiler implements ITarget {
 			}
 		}
 		// mproduct instrumentation
-		int[][][] transposed = this.transpose(this.kernelMatrix);
+		@SuppressWarnings("unused")
+		int[][][] transposed; // for debug sessions with assertions enabled
+		assert null != (transposed = this.transpose(this.kernelMatrix));
 		int[] inputEquivalentCardinality = new int[nInputs];
 		int[] inputEquivalenceToken = new int[nInputs];
 		Arrays.fill(inputEquivalenceToken, -1);

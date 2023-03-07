@@ -71,6 +71,11 @@ public abstract class BaseParameterizedEffector<T extends ITarget, P> extends Ba
 		return this.parameters[parameterIndex];
 	}
 	
+	@Override // com.characterforming.ribose.IParameterizedEffector#getParameter(int)
+	public P[] getParameters() {
+		return this.parameters;
+	}
+	
 	@Override // @see com.characterforming.ribose.IParameterizedEffector#invoke(int)
 	public abstract int invoke(int parameterIndex) throws EffectorException;
 }

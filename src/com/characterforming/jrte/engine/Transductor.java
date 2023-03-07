@@ -106,8 +106,10 @@ public final class Transductor implements ITransductor, IOutput {
 	private final InputStack inputStack;
 	private int matchMode;
 	private long[] matchSum;
+	private long[][] matchSumParameters;
 	private byte[] matchProduct;
 	private int matchPosition;
+	private byte[][] matchProductParameters;
 	private final CharsetDecoder decoder;
 	private final CharsetEncoder encoder;
 	private OutputStream output;
@@ -134,8 +136,10 @@ public final class Transductor implements ITransductor, IOutput {
 		this.selected = null;
 		this.matchMode = Mnone;
 		this.matchSum = null;
+		this.matchSumParameters = null;
 		this.matchProduct = null;
 		this.matchPosition = 0;
+		this.matchProductParameters = null;
 		this.msumCount = 0;
 		this.mproductCount = 0;
 		this.byteCount = 0;
@@ -477,6 +481,9 @@ S:				do {
 					aftereffects[0] = 0;
 					do {
 						int effect = IEffector.RTX_NONE;
+						if (action == -MSUM || action == -MPRODUCT) {
+							action = -1 * action;
+						}
 						switch (action) {
 						default:
 							if (action > 0) {
@@ -547,6 +554,27 @@ S:				do {
 							break;
 						case STOP:
 							effect = popTransducer();
+							break;
+						case MSUM:
+							if (this.matchMode == Mnone) {
+								this.matchMode = Msum;
+							}
+							if (this.matchMode == Msum) {
+								this.matchSum = this.matchSumParameters[effectorVector[index++]];
+							} else {
+								throw new EffectorException("Illegal attempt to override match mode");
+							}
+							break;
+						case MPRODUCT:
+							if (this.matchMode == Mnone) {
+								this.matchMode = Mproduct;
+							}
+							if (this.matchMode == Mproduct) {
+								this.matchProduct = this.matchProductParameters[effectorVector[index++]];
+								this.matchPosition = 0;
+							} else {
+								throw new EffectorException("Illegal attempt to override match mode");
+							}
 							break;
 						}
 						if (effect != 0) {
@@ -696,6 +724,8 @@ S:				do {
 
 	void setEffectors(IEffector<?>[] effectors) {
 		this.effectors = effectors;
+		this.matchSumParameters = (long[][])((IParameterizedEffector<?,?>)this.effectors[MSUM]).getParameters();
+		this.matchProductParameters = (byte[][])((IParameterizedEffector<?,?>)this.effectors[MPRODUCT]).getParameters();
 	}
 
 	void setNamedValueOrdinalMap(Map<Bytes, Integer> namedValueOrdinalMap) {
@@ -1182,14 +1212,7 @@ S:				do {
 
 		@Override
 		public int invoke(final int parameterIndex) throws EffectorException {
-			if (super.target.matchMode == Mnone) {
-				super.target.matchMode = Msum;
-			}
-			if (super.target.matchMode == Msum) {
-				super.target.matchSum = super.parameters[parameterIndex];
-			} else {
-				throw new EffectorException("Illegal attempt to override match mode");
-			}
+			assert false;
 			return IEffector.RTX_NONE;
 		}
 
@@ -1225,15 +1248,7 @@ S:				do {
 
 		@Override
 		public int invoke(final int parameterIndex) throws EffectorException {
-			if (super.target.matchMode == Mnone) {
-				super.target.matchMode = Mproduct;
-			}
-			if (super.target.matchMode == Mproduct) {
-				super.target.matchProduct = super.parameters[parameterIndex];
-				super.target.matchPosition = 0;
-			} else {
-				throw new EffectorException("Illegal attempt to override match mode");
-			}
+			assert false;
 			return IEffector.RTX_NONE;
 		}
 
