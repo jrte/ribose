@@ -43,9 +43,8 @@
 	<property name="test.patterns" value="patterns/test"/>
 	<property name="test.input.dir" value="${build.testenv}/inputs"/>
 	<property name="regex.verbose.gc" value="cycle-start id=.[0-9]+. type=.scavenge. contextid=.[0-9]+. timestamp=.(?:[0-9]+[-.:T])+[0-9]+. intervalms=.([0-9]+.[0-9]+)[^0-9]"/>
-	<property name="regex.verbose.test" value=""/>
+	<property name="regex.nil" value=""/>
 	<property name="regex.linux.kernel.gc" value="([JFMASOND][a-z]+ [0-9]+ (?:[0-9]+:)+[0-9]+) ([-.:A-Za-z_0-9]*) kernel: \[[ ]*[0-9]+\.[0-9]+\] (DROPPED|ABORTED|LIMITED) IN=([-.:A-Za-z_0-9]*) OUT=([-.:A-Za-z_0-9]*)(?: MAC=([-.:A-Za-z_0-9]*))? SRC=([-.:A-Za-z_0-9]*) DST=([-.:A-Za-z_0-9]*).* PROTO=([-.:A-Za-z_0-9]*)(?:.* SPT=([-.:A-Za-z_0-9]*) DPT=([-.:A-Za-z_0-9]*))?"/>
-	<property name="regex.linux.kernel.test" value=""/>
 	<property name="ribose.inbuffer.size" value="65536"/>
 	<property name="ribose.outbuffer.size" value="8196"/>
 	<property name="jargs.jit.diagnostic" value="-XX:+UnlockDiagnosticVMOptions -XX:+PrintCompilation -XX:+PrintInlining"/>
@@ -325,27 +324,35 @@
 		<echo>FileRunner benchmarking (ribose fsts vs similar regex, input from single buffer in RAM, output muted):</echo>
 		<java fork="true" jvm="${jdk}/bin/java" dir="." classname="com.characterforming.jrte.test.FileRunner" classpathref="testing.classpath" failonerror="true">
 			<jvmarg line="${jargs} -Djrte.out.enabled=false -Dregex.out.enabled=false"/>
-			<arg line="--nil build/Test.model LinuxKernelNil ${test.input.dir}/kern-10.log &quot;${regex.linux.kernel.test}&quot;"/>
+			<arg line="--nil build/Test.model LinuxKernelNil ${test.input.dir}/kern-10.log &quot;${regex.linux.kernel.gc}&quot;"/>
 		</java>
 		<java fork="true" jvm="${jdk}/bin/java" dir="." classname="com.characterforming.jrte.test.FileRunner" classpathref="testing.classpath" failonerror="true">
 			<jvmarg line="${jargs} -Djrte.out.enabled=false -Dregex.out.enabled=false"/>
-			<arg line="--nil build/Test.model LinuxKernel ${test.input.dir}/kern-10.log &quot;${regex.linux.kernel.test}&quot;"/>
+			<arg line="--nil build/Test.model LinuxKernelNil ${test.input.dir}/kern-10.log &quot;${regex.nil}&quot;"/>
 		</java>
 		<java fork="true" jvm="${jdk}/bin/java" dir="." classname="com.characterforming.jrte.test.FileRunner" classpathref="testing.classpath" failonerror="true">
 			<jvmarg line="${jargs} -Djrte.out.enabled=false -Dregex.out.enabled=false"/>
-			<arg line="--nil build/Test.model LinuxKernelLoose ${test.input.dir}/kern-10.log &quot;${regex.linux.kernel.test}&quot;"/>
+			<arg line="--nil build/Test.model LinuxKernel ${test.input.dir}/kern-10.log &quot;${regex.nil}&quot;"/>
 		</java>
 		<java fork="true" jvm="${jdk}/bin/java" dir="." classname="com.characterforming.jrte.test.FileRunner" classpathref="testing.classpath" failonerror="true">
 			<jvmarg line="${jargs} -Djrte.out.enabled=false -Dregex.out.enabled=false"/>
-			<arg line="--nil build/Test.model LinuxKernelStrict ${test.input.dir}/kern-10.log &quot;${regex.linux.kernel.test}&quot;"/>
+			<arg line="--nil build/Test.model LinuxKernelLoose ${test.input.dir}/kern-10.log &quot;${regex.nil}&quot;"/>
 		</java>
 		<java fork="true" jvm="${jdk}/bin/java" dir="." classname="com.characterforming.jrte.test.FileRunner" classpathref="testing.classpath" failonerror="true">
 			<jvmarg line="${jargs} -Djrte.out.enabled=false -Dregex.out.enabled=false"/>
-			<arg line="--nil build/Test.model Tintervals ${test.input.dir}/verbosegc.vgc &quot;${regex.verbose.test}&quot;"/>
+			<arg line="--nil build/Test.model LinuxKernelStrict ${test.input.dir}/kern-10.log &quot;${regex.nil}&quot;"/>
 		</java>
 		<java fork="true" jvm="${jdk}/bin/java" dir="." classname="com.characterforming.jrte.test.FileRunner" classpathref="testing.classpath" failonerror="true">
 			<jvmarg line="${jargs} -Djrte.out.enabled=false -Dregex.out.enabled=false"/>
-			<arg line="--nil build/Test.model Sintervals ${test.input.dir}/verbosegc.vgc &quot;${regex.verbose.test}&quot;"/>
+			<arg line="--nil build/Test.model Tintervals ${test.input.dir}/verbosegc.vgc &quot;${regex.verbose.gc}&quot;"/>
+		</java>
+		<java fork="true" jvm="${jdk}/bin/java" dir="." classname="com.characterforming.jrte.test.FileRunner" classpathref="testing.classpath" failonerror="true">
+			<jvmarg line="${jargs} -Djrte.out.enabled=false -Dregex.out.enabled=false"/>
+			<arg line="--nil build/Test.model Tintervals ${test.input.dir}/verbosegc.vgc &quot;${regex.nil}&quot;"/>
+		</java>
+		<java fork="true" jvm="${jdk}/bin/java" dir="." classname="com.characterforming.jrte.test.FileRunner" classpathref="testing.classpath" failonerror="true">
+			<jvmarg line="${jargs} -Djrte.out.enabled=false -Dregex.out.enabled=false"/>
+			<arg line="--nil build/Test.model Sintervals ${test.input.dir}/verbosegc.vgc &quot;${regex.nil}&quot;"/>
 		</java>
 		<echo/>
 	</target>

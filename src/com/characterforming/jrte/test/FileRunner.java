@@ -101,7 +101,7 @@ public class FileRunner {
 		try {
 			long mproduct = 0, msum = 0, inputs = 0, tjrte = 0, t0 = 0, t1 = 0;
 			int loops = 1;
-			if (jrteOutEnabled || !regexOutEnabled) {
+			if (regex.isEmpty() && (jrteOutEnabled || !regexOutEnabled)) {
 				try (IRuntime ribose = Ribose.loadRiboseModel(new File(modelPath))) {
 					TRun runTarget = new TRun();
 					ITransductor trex = ribose.newTransductor(runTarget);
@@ -190,9 +190,8 @@ public class FileRunner {
 						}
 						assert count > 0;
 					}
-					double tr = (tjrte > 0) ? (double) tregex / tjrte : -1;
 					double mbps = (tregex > 0) ? (double)((loops - 10)*blen*1000) / (double)tregex : -1;
-					System.out.println(String.format(" : %8.3f mb/s %7.3f ribose:regex", mbps, tr));
+					System.out.println(String.format(" : %8.3f mb/s", mbps));
 					rtmLogger.log(Level.INFO, String.format("%s\t%8.3f\t%d\t%s", inputPath, mbps, blen, regex));
 				} else {
 					int count = 0;
