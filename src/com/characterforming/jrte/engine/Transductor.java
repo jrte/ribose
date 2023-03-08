@@ -329,7 +329,7 @@ public final class Transductor implements ITransductor, IOutput {
 		final int eosSignal = Signal.eos.signal();
 		TransducerState transducer = null;
 		int errorInput = -1, signalInput = -1;
-		int msumCounter = 0, mproductCounter = 0;
+		long msumCounter = 0, mproductCounter = 0;
 		int token = -1, state = 0, last = -1;
 		int[] aftereffects = new int[32];
 		Input input = Input.empty;
@@ -367,7 +367,7 @@ I:			do {
 								input = this.inputStack.push(value.getValue()).limit(value.getLength());
 								token = Byte.toUnsignedInt(input.array[input.position++]);
 								break;
-								case Base.TYPE_REFERENCE_NONE:
+							case Base.TYPE_REFERENCE_NONE:
 								token = Byte.toUnsignedInt(input.array[input.position++]);
 								break;
 							default:
@@ -422,7 +422,7 @@ I:			do {
 									break;
 								}
 							}
-							mproductCounter += (mpos - this.matchPosition);
+							mproductCounter += mpos;
 						}
 						this.matchMode = Mnone;
 						break;
@@ -481,7 +481,7 @@ S:				do {
 					aftereffects[0] = 0;
 					do {
 						int effect = IEffector.RTX_NONE;
-						if (action == -MSUM || action == -MPRODUCT) {
+						if ((action == -MSUM) || (action == -MPRODUCT)) {
 							action = -1 * action;
 						}
 						switch (action) {
@@ -1213,7 +1213,7 @@ S:				do {
 		@Override
 		public int invoke(final int parameterIndex) throws EffectorException {
 			assert false;
-			return IEffector.RTX_NONE;
+			throw new EffectorException("The msum(P) effector is inlined");
 		}
 
 		@Override
@@ -1249,7 +1249,7 @@ S:				do {
 		@Override
 		public int invoke(final int parameterIndex) throws EffectorException {
 			assert false;
-			return IEffector.RTX_NONE;
+			throw new EffectorException("The mproduct(P) effector is inlined");
 		}
 
 		@Override
