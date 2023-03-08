@@ -290,7 +290,7 @@ Size is important in the ribose runtime because transducer transition functions 
 
 The chart below shows ribose throughput versus regex with transition matrix compression and sum and product traps implemented. The sum and product traps optimize idempotent looping states (sum) and eliminate sequential non-branching states (product). The benchmarking setup was as for the line chart above, and includes another set of regex vs ribose runoffs with an IBM Java GC log input.
 
-![CompressionBenchmarks](https://github.com/jrte/ribose/raw/master/etc/markdown/CompressdedThroughput.png)
+![CompressionBenchmarks](https://github.com/jrte/ribose/raw/master/etc/markdown/compressed-throughput.png)
 
 The linux kernel log workload is dense, capturing about a third of the input, while the verbose GC workload is very sparse capturing <1% of the input. 
 ## Some Use Cases (Design Patterns)
