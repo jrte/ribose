@@ -50,25 +50,19 @@ import com.characterforming.ribose.base.ModelException;
  * Input equivalents (equivalent: input...)
  * 
  *    0: ^a
- *    1: ^0 ^1 ^2 ^3 ^4 ^5 ^6 ^7 ^8 ^9 ^b ^c ^d ^e ^f ^10 ^11 ^12 ^13 ^14 ^15 ^16 ^17 ^18 ^19 ^1a ^1b ^1c ^1d ^1e ^1f ^20
- *       ! " # $ % &amp; ' ( ) * + , - . / 1 2 3 4 5 6 7 8 9 : ; &lt; = &gt; ?
- *       &#64; A B C D E F G H I J K L M N O P Q R S T U V W X Y Z [ \ ] ^ _
- *       ` a b c d e f g h i j k l m n o p q r s t u v w x y z { | } ~ ^7f 
- *       ^80 ^81 ^82 ^83 ^84 ^85 ^86 ^87 ^88 ^89 ^8a ^8b ^8c ^8d ^8e ^8f ... ^ff
- *       ^100 ^102 ^104 ^105 ^106 ^107 ^108
- *    2: ^103
- *    3: ^101
+ *    1: ^101
+ *    2: ^0-^9 ^b-/ 1-^100 ^102 ^104-^109
+ *    3: ^103
  *    4: 0
  * 
  * State transitions (from equivalent -&gt; to effect...)
  * 
- *   0   2 -&gt;   0 stop
- *   0   3 -&gt;   1 clear[0]
+ *   0   1 -&gt;   1 clear[0]
+ *   0   3 -&gt;   0 stop
  *   1   0 -&gt;   0 paste out signal[4]
  *   1   4 -&gt;   2 select[3] paste[12]
  *   2   0 -&gt;   0 paste out signal[4]
- *   2   4 -&gt;   2 select[4] cut[0] select[5] copy[0] select[3] cut[1]
- * </pre>
+ *   2   4 -&gt;   2 select[4] cut[0] select[5] copy[0] select[3] cut[1]</pre>
  */
 public class TDecompile {
   public static void main(final String[] args) throws ModelException {
