@@ -279,14 +279,20 @@ The charts below summarize the results of a data extraction benchmarking runoff 
 
 ![LinuxKernelBench](https://github.com/jrte/ribose/raw/master/etc/markdown/LinuxKernelLog.png)
 
-Ginr automata are state-minimized but the ribose model compiler is able to obtain some lossless compression of ginr FSTs by coalescing equivalent input symbols to eliminate redundancy in the state transition matrix and collapsing vectors of >1 effectors and parameters to eliminate connecting states and transitions. The dimensions of the ginr FST and the ribose transducer compiled for `LinuxKernelStrict` are shown in the table below. Maximal compression of ribose transducers will be obtained when similar treatment for nonbranching chains of input bytes is implemented as planned.
+Ginr automata are state-minimized but the ribose model compiler is able to obtain some lossless compression of ginr FSTs by coalescing equivalent input symbols to eliminate redundancy in the state transition matrix and collapsing non-branching vectors of >1 input bytes or >1 effectors and parameters to eliminate connecting states and transitions. The dimensions of the ginr FST and the ribose transducer compiled for `LinuxKernelStrict` are shown in the table below. The density metric indicates the proportion of non-null transitions in the matrix (`Density = Transitions / (Symbols * States)`).
 
-|        | Symbols | States | Transitions | Size |
-| ------:| -------:| ------:| -----------:| ----:|
-| **Ginr**   |    260 |     83 |        1232 | 25K |
-| **Ribose** |     30 |     58 |         343 |  7K |
+|        | Symbols | States | Transitions | Size | Density |
+| ------:| -------:| ------:| -----------:| ----:| ------: |
+| **Ginr**   |    260 |     83 |        1232 | 25K | 0.057 |
+| **Ribose** |     17 |     32 |         166 |  4K | 0.305 |
 
-Size is important in the ribose runtime because transducer transition functions are represented in 2-dimensional (state, input) arrays and these are often sparse. Only about 20% of the cells in the `LinuxKernelStrict` transition matrix are populated, the rest are dead cells that trigger `nul` when hit. Successive transitions may reference cells that are widely distributed in RAM and this can degrade the performance of the L1 data cache, forcing more traffic on the CPU-RAM bus. I vented some steam about this in one of my favorite rants, see _[A Few Words about Time and Space](https://github.com/jrte/ribose/wiki/Stories#a-few-words-about-time-and-space)_ on the wiki.
+Size is important in the ribose runtime because transducer transition functions are represented in 2-dimensional (state, input) arrays and these are often sparse. Only about 30% of the cells in the `LinuxKernelStrict` transition matrix are populated, the rest are dead cells that trigger `nul` when hit. Successive transitions may reference cells that are widely distributed in RAM and this can degrade the performance of the L1 data cache, forcing more traffic on the CPU-RAM bus. I vented some steam about this in one of my favorite rants, see _[A Few Words about Time and Space](https://github.com/jrte/ribose/wiki/Stories#a-few-words-about-time-and-space)_ on the wiki.
+
+The chart below shows ribose throughput versus regex with transition matrix compression and sum and product traps implemented. The sum and product traps optimize idempotent looping states (sum) and eliminate sequential non-branching states (product). The benchmarking setup was as for the line chart above, and includes another set of regex vs ribose runoffs with an IBM Java GC log input.
+
+![CompressionBenchmarks](https://github.com/jrte/ribose/raw/master/etc/markdown/CompressdedThroughput.png)
+
+The linux kernel log workload is dense, capturing about a third of the input, while the verbose GC workload is very sparse capturing <1% of the input. 
 ## Some Use Cases (Design Patterns)
 Transduction patterns cover a lot of ground, and information architects who employ them liberally will wonder why they ever got on the XML bus. Service providers and their consumers are _de facto_ domain experts and information architects should be free to express idiomatic nested regular patterns to serialize domain artifacts in persistent stores and messages in transit, as long as they syntactically differentiate semantic features and satisfy service and consumer needs. Service providers can publish API messages as nested transducer patterns mapping syntactic features in serialized domain artifacts to semantic labels (artifact names) with annotations (range or relational constraints) defined in a service domain dictionary.
 
