@@ -65,18 +65,18 @@ public class ModelDecompiler {
 							if (startByte > 32 && startByte <127) {
 								System.out.printf(" %c", (char)startByte);
 							} else {
-								System.out.printf(" ^%x", startByte);
+								System.out.printf(" #%x", startByte);
 							}
-							if (j > 32 && j <127) {
+							if ((j - 1) > 32 && (j - 1) <127) {
 								System.out.printf("-%c", (char)(j-1));
 							} else {
-								System.out.printf("-^%x", (j-1));
+								System.out.printf("-#%x", (j-1));
 							}
 						} else {
-							if (j > 32 && j <127) {
-								System.out.printf(" %c", (char)(j-1));
+							if (startByte > 32 && startByte < 127) {
+								System.out.printf(" %c", (char)startByte);
 							} else {
-								System.out.printf(" ^%x", (j-1));
+								System.out.printf(" #%x", startByte);
 							}
 						}
 					}
@@ -91,19 +91,11 @@ public class ModelDecompiler {
 					if (startByte > 32 && startByte <127) {
 						System.out.printf(" %c", (char)startByte);
 					} else {
-						System.out.printf(" ^%x", startByte);
+						System.out.printf(" #%x", startByte);
 					}
-					if (j > 32 && j <127) {
-						System.out.printf("-%c", (char)j);
-					} else {
-						System.out.printf("-^%x", j);
-					}
-				} else if (j > startByte) {
-					if (j > 32 && j <127) {
-						System.out.printf(" %c", (char)j);
-					} else {
-						System.out.printf(" ^%x", j);
-					}
+					System.out.printf("-#%x", (j - 1));
+				} else {
+					System.out.printf(" #%x", (j - 1));
 				}
 			}
 			System.out.printf("\n");

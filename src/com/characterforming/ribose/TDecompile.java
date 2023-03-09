@@ -31,7 +31,7 @@ import com.characterforming.ribose.base.ModelException;
  * equivalence classes and lists the nonnull transitions in the kernel matrix of the 
  * transducer.
  * 
- * Space, 7-bit control and 8-bit byte and signal ordinal inputs are presented in {@code ^hex}
+ * Space, 7-bit control and 8-bit byte and signal ordinal inputs are presented in {@code #x} hexadecimal 
  * format in the input equivalence class index. The {@code nil} effector is represented as 
  * {@code 1} and effector parameters are represented by parameter ordinals in kernel transitions. 
  * <br><br>
@@ -49,10 +49,10 @@ import com.characterforming.ribose.base.ModelException;
  * 
  * Input equivalents (equivalent: input...)
  * 
- *    0: ^a
- *    1: ^101
- *    2: ^0-^9 ^b-/ 1-^100 ^102 ^104-^109
- *    3: ^103
+ *    0: #a
+ *    1: #101
+ *    2: #0-#9 #b-/ 1-#100 #102 #104-#109
+ *    3: #103
  *    4: 0
  * 
  * State transitions (from equivalent -&gt; to effect...)
