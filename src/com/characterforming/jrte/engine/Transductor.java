@@ -327,11 +327,11 @@ public final class Transductor implements ITransductor, IOutput {
 		}
 		final int nulSignal = Signal.nul.signal();
 		final int eosSignal = Signal.eos.signal();
+		final int[] aftereffects = new int[32];
 		TransducerState transducer = null;
 		int errorInput = -1, signalInput = -1;
 		long msumCounter = 0, mproductCounter = 0;
 		int token = -1, state = 0, last = -1;
-		int[] aftereffects = new int[32];
 		Input input = Input.empty;
 		try {
 T:		do {
@@ -387,11 +387,12 @@ I:			do {
 					case Msum:
 						if (token < nulSignal) {
 							int pos = input.position;
-							while (0 != (this.matchSum[token >> 6] & (1L << (token & 0x3f)))) {
+							final long[] matchMask = this.matchSum;
+							while (0 != (matchMask[token >> 6] & (1L << (token & 0x3f)))) {
 								if (input.position < input.limit) {
 									token = Byte.toUnsignedInt(input.array[input.position++]);
 								} else {
-									this.msumCount += (input.position - pos);
+									msumCounter += (input.position - pos);
 									signalInput = -1;
 									continue I;
 								}
@@ -410,8 +411,7 @@ I:			do {
 									if (mpos == mlen) {
 										break;
 									} else if (input.position < input.limit) {
-										token = Byte.toUnsignedInt(input.array[input.position]);
-										input.position++;
+										token = Byte.toUnsignedInt(input.array[input.position++]);
 									} else {
 										this.matchPosition = mpos;
 										signalInput = -1;
@@ -558,22 +558,20 @@ S:				do {
 						case MSUM:
 							if (this.matchMode == Mnone) {
 								this.matchMode = Msum;
-							}
-							if (this.matchMode == Msum) {
 								this.matchSum = this.matchSumParameters[effectorVector[index++]];
 							} else {
-								throw new EffectorException("Illegal attempt to override match mode");
+								throw new EffectorException(String.format("Illegal attempt to override match mode %s with MSUM",
+									this.matchMode == Mproduct ? "MPRODUCT" : "MSUM"));
 							}
 							break;
 						case MPRODUCT:
 							if (this.matchMode == Mnone) {
 								this.matchMode = Mproduct;
-							}
-							if (this.matchMode == Mproduct) {
 								this.matchProduct = this.matchProductParameters[effectorVector[index++]];
 								this.matchPosition = 0;
 							} else {
-								throw new EffectorException("Illegal attempt to override match mode");
+								throw new EffectorException(String.format("Illegal attempt to override match mode %s with MPRODUCT",
+									this.matchMode == Mproduct ? "MPRODUCT" : "MSUM"));
 							}
 							break;
 						}

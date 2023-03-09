@@ -656,23 +656,17 @@ public class ModelCompiler implements ITarget {
 		assertKernelSanity();
 		// redundant state elimination
 		for (int state = 0; state < nStates; state++) {
-			if (mproductStateEffects[state] != null) {
-				for (int input = 0; input < nInputs; input++) {
-					assert (input != mproductEndpoints[state][1])
-					|| (this.kernelMatrix[input][state][0] == mproductEndpoints[state][0]);
-					if (input != nulEquivalent && input != mproductEndpoints[state][1]) {
-						int[] transition = this.kernelMatrix[input][state];
-						assert (transition[1] == 0 && transition[0] == state)
-						|| (transition[1] == 1 && transition[0] != state)
-						|| (transition[1] < 0);
-						if (transition[1] > 0) {
-							transition[0] = state;
-							transition[1] = 0;
-						}
-					}
+			assert (exitEquivalent[state] >= 0) || (mproductStateEffects[state] == null);
+			if (mproductStateEffects[state] != null
+			&& mproductStateEffects[state][1] != exitEquivalent[state]) {
+				int transition[] = this.kernelMatrix[exitEquivalent[state]][state];
+				if (transition[1] > 0) {
+					transition[0] = state;
+					transition[1] = 0;
 				}
 			}
 		}
+		assertKernelSanity();
 		assert walkStack.size() == 0;
 		Arrays.fill(walkedStates, false);
 		walkStack.push(0);
@@ -687,24 +681,21 @@ public class ModelCompiler implements ITarget {
 				}
 			}
 		}
-		int[] stateMap = new int[nStates];
-		Arrays.fill(stateMap, -1);
 		int mStates = 0;
+		int[] stateMap = new int[nStates];
 		for (int state = 0; state < nStates; state++) {
-			if (walkedStates[state]) {
-				stateMap[state] = mStates++;
-			}
+			stateMap[state] = walkedStates[state] ? mStates++ : - 1;
 		}
 		for (int input = 0; input < nInputs; input++) {
-			int newColumn = 0;
+			int mState = 0;
 			int[][] newRow = new int[mStates][];
 			int[][] oldRow = this.kernelMatrix[input];
 			for (int state = 0; state < nStates; state++) {
 				if (walkedStates[state]) {
-					newRow[newColumn] = oldRow[state];
-					assert stateMap[newRow[newColumn][0]] >= 0;
-					newRow[newColumn][0] = stateMap[newRow[newColumn][0]];
-					newColumn++;
+					newRow[mState] = oldRow[state];
+					assert stateMap[newRow[mState][0]] >= 0;
+					newRow[mState][0] = stateMap[newRow[mState][0]];
+					mState++;
 				}
 			}
 			this.kernelMatrix[input] = newRow;
@@ -743,7 +734,10 @@ public class ModelCompiler implements ITarget {
 			assert this.kernelMatrix[0].length == this.kernelMatrix[input].length;
 			for (int state = 0; state < this.kernelMatrix[input].length; state++) {
 				assert (this.kernelMatrix[input][state][1] != 0)
-				|| (this.kernelMatrix[input][state][0] == state);
+				|| (this.kernelMatrix[input][state][0] == state)
+				: String.format("sanity: state[%d->%d] input[%d->%d]", 
+					state, this.kernelMatrix[input][state][0], 
+					input, this.kernelMatrix[input][state][1]);
 			}
 		}
 	}
@@ -875,7 +869,8 @@ public class ModelCompiler implements ITarget {
 	}
 
 	private Chain chain(final Transition transition) {
-		assert transition.tape != 1 && transition.tape != 2 : "Invalid tape number for chain(InrTransition) : " + transition.toString();
+		assert transition.tape != 1 && transition.tape != 2
+		: "Invalid tape number for chain(InrTransition) : " + transition.toString();
 		if (transition.isFinal) {
 			return null;
 		}
