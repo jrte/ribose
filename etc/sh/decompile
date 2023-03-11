@@ -1,0 +1,16 @@
+#! /bin/bash
+target="com.characterforming.ribose.TRun"
+if (($#==2)); then
+	if [[ -f "$1" ]]; then
+		model="$1"
+	else
+		echo "Not found: $1"
+		exit 1
+	fi
+	transducer="$2"
+else 
+	echo "Usage: decompile <model-file-path> <transducer>"
+	echo "Decompile ribose transducer from model in <model-file-path>."
+	exit 1
+fi	
+${JAVA_HOME}/bin/java -ea -cp jars/$(cat version).jar com.characterforming.ribose.TDecompile "$model" "$transducer"

@@ -1,16 +1,21 @@
 #! /bin/bash
-if (($#==4)) && [[ "$1" == "--target" ]]; then
+target="com.characterforming.ribose.TRun"
+if [[ "$1" == "--target" ]]; then
 	target="$2"
-	if [[ -d "$3" ]]; then
-		dfadir="$3"
+	shift 2
+fi
+if (($#==2)); then
+	if [[ -d "$1" ]]; then
+		dfadir="$1"
 	else
-		echo "Not a directory: $3"
+		echo "Not a directory: $1"
 		exit 1
 	fi
-	model="$4"
+	model="$2"
 else 
-	echo "Usage: compile --target <target-classname> <dfa-directory-path> <model-file-path>"
+	echo "Usage: compile [--target <target-classname>] <dfa-directory-path> <model-file-path>"
 	echo "Compiles automata from <dfa-directory-path> into <model-file-path>."
+	echo "Default target is com.characterforming.ribose.TRun."
 	exit 1
 fi	
 ${JAVA_HOME}/bin/java -ea -cp jars/$(cat version).jar com.characterforming.ribose.TCompile --target $target "$dfadir" "$model"
