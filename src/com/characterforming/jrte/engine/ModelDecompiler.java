@@ -124,7 +124,7 @@ public class ModelDecompiler {
 									if (32 < product[j] && 127 > product[j]) {
 										System.out.printf(" %c", (char)product[j]);
 									} else {
-										System.out.printf(" ^%d", Byte.toUnsignedInt(product[j]));
+										System.out.printf(" #%d", Byte.toUnsignedInt(product[j]));
 									}
 								}
 								System.out.printf(" ]");
