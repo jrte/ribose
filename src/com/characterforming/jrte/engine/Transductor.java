@@ -493,15 +493,11 @@ S:				do {
 							}
 							break;
 						case NUL:
-							if (token == nulSignal) {
-								throw new DomainErrorException(this.getErrorInput(last, state, errorInput));
-							} else if (token == eosSignal) {
-								this.inputStack.pop();
-								assert this.inputStack.isEmpty();
-								effect |= IEffector.RTX_STOPPED;
-							} else {
-								errorInput = token;
+							if (token != nulSignal && token != eosSignal) {
 								signalInput = nulSignal;
+								errorInput = token;
+							} else {
+								break T;
 							}
 							break;
 						case NIL:
@@ -631,6 +627,14 @@ S:				do {
 					}
 				} while (this.status().isRunnable());
 			} while (this.status().isRunnable());
+
+			if (token == nulSignal) {
+				throw new DomainErrorException(this.getErrorInput(last, state, errorInput));
+			} else if (token == eosSignal) {
+				this.inputStack.pop();
+				assert this.inputStack.isEmpty();
+			}
+
 		} finally {
 			// Prepare to pause (or stop) transduction
 			if (!this.transducerStack.isEmpty()) {

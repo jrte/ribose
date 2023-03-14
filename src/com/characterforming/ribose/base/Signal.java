@@ -54,21 +54,13 @@ import com.characterforming.ribose.ITransductor;
  *
  */
 public enum Signal {
-	/**
-	 * Signals first chance to handle missing transition on current input symbol
-	 */
+	/** Signals first chance to handle missing transition on current input symbol */
 	nul, 
-	/**
-	 * Signals anything, used as a generic out-of-band prompt to trigger actions 
-	 */
+	/** Signals anything, used as a generic out-of-band prompt to trigger actions */
 	nil, 
-	/**
-	 * Signals end of feature, used as a generic feature delimiter
-	 */
+	/** Signals end of feature, used as a generic feature delimiter */
 	eol,
-	/**
-	 * Signals end of transduction input
-	 */
+	/** Signals end of transduction input */
 	eos;
 	
 	private final Bytes key;
