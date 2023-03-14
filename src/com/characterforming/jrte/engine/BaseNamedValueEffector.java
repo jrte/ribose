@@ -74,4 +74,13 @@ abstract class BaseNamedValueEffector extends BaseParameterizedEffector<Transduc
 		super.setParameter(parameterIndex, valueOrdinal);
 		return valueOrdinal;
 	}
+
+	@Override
+	public String showParameter(int parameterIndex) {
+		byte[] name = super.getTarget().getModel().getValueName(super.parameters[parameterIndex]);
+		byte[] value = new byte[name.length + 1];
+		value[0] = Base.TYPE_REFERENCE_VALUE;
+		System.arraycopy(name, 0, value, 1, name.length);
+		return Bytes.decode(super.getTarget().getCharsetDecoder(), value, value.length).toString();
+	}
 }

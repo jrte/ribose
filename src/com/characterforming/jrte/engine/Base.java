@@ -255,15 +255,14 @@ public class Base {
 	 * @see TYPE_REFERENCE_VALUE
 	 */
 	static public byte getReferentType(final byte bytes[]) {
-		if (!isReferenceOrdinal(bytes)) {
-			switch (bytes[0]) {
-			case TYPE_REFERENCE_TRANSDUCER:
-			case TYPE_REFERENCE_SIGNAL:
-			case TYPE_REFERENCE_VALUE:
-				return bytes[0];
-			default:
-				break;
-			}
+		assert !isReferenceOrdinal(bytes);
+		switch (bytes[0]) {
+		case TYPE_REFERENCE_TRANSDUCER:
+		case TYPE_REFERENCE_SIGNAL:
+		case TYPE_REFERENCE_VALUE:
+			return bytes[0];
+		default:
+			break;
 		}
 		return TYPE_REFERENCE_NONE;
 	}

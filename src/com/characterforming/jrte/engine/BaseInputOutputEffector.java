@@ -71,26 +71,47 @@ abstract class BaseInputOutputEffector extends BaseParameterizedEffector<Transdu
 				}
 				parameter[i] = Base.encodeReferenceOrdinal(Base.TYPE_REFERENCE_VALUE, valueOrdinal);
 			} else if (type == Base.TYPE_REFERENCE_SIGNAL) {
-				final Bytes signalName = new Bytes(Base.getReferenceName(parameterList[i]));
-				final Integer signalOrdinal = super.getTarget().getModel().getSignalOrdinal(signalName);
-				if (signalOrdinal >= 0) {
-					throw new TargetBindingException(String.format("%1$s.%2$s: signal name '%3$s' not acceptable for value reference",
-						super.getTarget().getName(), super.getName().toString(), signalName.toString()));
-				}
-				parameter[i] = parameterList[i];
+				throw new TargetBindingException(String.format("%1$s.%2$s: signal is not an acceptable parameter",
+					super.getTarget().getName(), super.getName().toString()));
 			} else if (type == Base.TYPE_REFERENCE_TRANSDUCER) {
-				final Bytes transducerName = new Bytes(Base.getReferenceName(parameterList[i]));
-				final Integer transducerOrdinal = super.getTarget().getModel().getSignalOrdinal(transducerName);
-				if (transducerOrdinal >= 0) {
-					throw new TargetBindingException(String.format("%1$s.%2$s: transducer name '%3$s' not acceptable for value reference",
-						super.getTarget().getName(), super.getName().toString(), transducerName.toString()));
-				}
-				parameter[i] = parameterList[i];
+				throw new TargetBindingException(String.format("%1$s.%2$s: transducer is not an acceptable parameter",
+					super.getTarget().getName(), super.getName().toString()));
 			} else {
 				parameter[i] = parameterList[i];
 			}
 		}
 		this.parameters[parameterIndex] = parameter;
 		return parameter;
+	}
+
+	@Override
+	public String showParameter(int parameterIndex) {
+		StringBuilder sb = new StringBuilder(256);
+		for (byte[] bytes : super.parameters[parameterIndex]) {
+			int ordinal = Base.isReferenceOrdinal(bytes) ? Base.decodeReferenceOrdinal(Base.TYPE_REFERENCE_VALUE, bytes) : -1;
+			if (ordinal >= 0) {
+				if (sb.length() > 0) {
+					sb.append(' ');
+				}
+				bytes = super.getTarget().getModel().getValueName(ordinal);
+				byte[] name = new byte[bytes.length + 1];
+				System.arraycopy(bytes, 0, name, 1, bytes.length);
+				name[0] = Base.TYPE_REFERENCE_VALUE;
+				sb.append(Bytes.decode(super.getTarget().getCharsetDecoder(), name, name.length));
+			} else {
+				for (int i = 0; i < bytes.length; i++) {
+					if (sb.length() > 0) {
+						sb.append(' ');
+					}
+					if (bytes[i] > 32 && bytes[i] < 127) {
+						sb.append((char)bytes[i]);
+					} else {
+						sb.append('#');
+						sb.append(Integer.toHexString(bytes[i]));
+					}
+				}
+			}
+		}
+		return sb.toString();
 	}
 }

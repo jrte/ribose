@@ -84,6 +84,9 @@ public final class Model implements AutoCloseable {
 
 	private RandomAccessFile io;
 	private boolean deleteOnClose;
+	private byte[][] namedValuesNames;
+	private byte[][] signalNames;
+	private byte[][] transducerNames;
 
 	public Model(final File modelPath, String targetClassname) throws ModelException {
 		this.ioMode = "rw";
@@ -270,9 +273,12 @@ public final class Model implements AutoCloseable {
 			this.modelVersion = modelVersion;
 			this.seek(indexPosition);
 			this.signalOrdinalMap = this.getOrdinalMap();
+			this.signalNames = this.getValueNames(this.signalOrdinalMap);
 			this.namedValueOrdinalMap = this.getOrdinalMap();
+			this.namedValuesNames = this.getValueNames(this.namedValueOrdinalMap);
 			this.effectorOrdinalMap = this.getOrdinalMap();
 			this.transducerOrdinalMap = this.getOrdinalMap();
+			this.transducerNames = this.getValueNames(this.namedValueOrdinalMap);
 			this.initialize(TargetMode.run);
 			assert this.effectorOrdinalMap.size() == this.proxyEffectors.length;
 			if (!this.transducerOrdinalMap.containsKey(Bytes.encode(this.encoder, this.proxyTarget.getName()))) {
@@ -310,6 +316,26 @@ public final class Model implements AutoCloseable {
 		return loaded;
 	}
 
+	private byte[][] getValueNames(HashMap<Bytes, Integer> nameOrdinalMap) {
+		byte[][] names = new byte[nameOrdinalMap.size()][];
+		for (Entry<Bytes, Integer> e : nameOrdinalMap.entrySet()) {
+			names[e.getValue()] = e.getKey().getBytes();
+		}
+		return names;
+	}
+
+	byte[] getValueName(int valueOrdinal) {
+		return this.namedValuesNames[valueOrdinal];
+	}
+
+	byte[] getSignalName(int signalOrdinal) {
+		return this.signalNames[signalOrdinal];
+	}
+
+	byte[] getTransducerName(int transducerOrdinal) {
+		return this.transducerNames[transducerOrdinal];
+	}
+
 	/**
 	 * Instantiate a new {@code Transductor} and bind it to a runtime target.
 	 *
@@ -338,18 +364,6 @@ public final class Model implements AutoCloseable {
 		checkTargetEffectors(trex, boundFx);
 		trex.setEffectors(this.bindParameters(trex, boundFx));
 		return trex;
-	}
-
-	/**
-	 * Get an mproduct effector parameter.
-	 * 
-	 * @param parameterIndex the parameter index
-	 * @return the parameter value
-	 */
-	byte[] getProductParameter(int parameterIndex) {
-		return (byte[])((IParameterizedEffector<?,?>)this.proxyEffectors[
-			this.getEffectorOrdinal(Bytes.encode(this.encoder, "mproduct"))
-		]).getParameter(parameterIndex);
 	}
 
 	@Override
@@ -528,6 +542,18 @@ public final class Model implements AutoCloseable {
 		return strings.toString();
 	}
 
+	byte[] getProductParameter(int parameterIndex) {
+		return (byte[])((IParameterizedEffector<?,?>)this.proxyEffectors[
+			this.getEffectorOrdinal(Bytes.encode(this.encoder, "mproduct"))
+		]).getParameter(parameterIndex);
+	}
+
+	public long[] getSumParameter(int parameterIndex) {
+		return (long[])((IParameterizedEffector<?,?>)this.proxyEffectors[
+			this.getEffectorOrdinal(Bytes.encode(this.encoder, "msum"))
+		]).getParameter(parameterIndex);
+	}
+
 	File getModelPath() {
 		return this.modelPath;
 	}
@@ -559,6 +585,14 @@ public final class Model implements AutoCloseable {
 
 	Map<Bytes,Integer> getNamedValueMap() {
 		return Collections.unmodifiableMap(this.namedValueOrdinalMap);
+	}
+
+	public String showParameter(int effectorOrdinal, int parameterIndex) {
+		if (this.proxyEffectors[effectorOrdinal] instanceof IParameterizedEffector) {
+			IParameterizedEffector<?,?> effector = (IParameterizedEffector<?,?>)this.proxyEffectors[effectorOrdinal];
+			return effector.showParameter(parameterIndex);
+		}
+		return "VOID";
 	}
 
 	int addNamedValue(Bytes valueName) {
@@ -604,10 +638,6 @@ public final class Model implements AutoCloseable {
 	int getTransducerOrdinal(Bytes transducerName) {
 		Integer ordinal = this.transducerOrdinalMap.get(transducerName);
 		return (null != ordinal) ? ordinal.intValue() : -1;
-	}
-
-	Bytes getTransducerName(int transducerOrdinal) {
-		return (transducerOrdinal < this.transducerNameIndex.length) ? this.transducerNameIndex[transducerOrdinal] : null;
 	}
 
 	long getTransducerOffset(int transducerOrdinal) {

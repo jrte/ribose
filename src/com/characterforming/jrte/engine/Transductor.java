@@ -1026,6 +1026,21 @@ S:				do {
 					new Bytes(parameterList[0]).toString(), Base.TYPE_REFERENCE_SIGNAL));
 			}
 		}
+
+		@Override
+		public String showParameter(int parameterIndex) {
+			byte[] bytes = super.getParameter(parameterIndex)[0];
+			int ordinal = Base.isReferenceOrdinal(bytes) ? Base.decodeReferenceOrdinal(Base.TYPE_REFERENCE_SIGNAL, bytes) : -1;
+			if (ordinal >= 0) {
+				bytes = super.getTarget().getModel().getSignalName(ordinal);
+				byte[] name = new byte[bytes.length + 1];
+				System.arraycopy(bytes, 0, name, 1, bytes.length);
+				name[0] = Base.TYPE_REFERENCE_SIGNAL;
+				return Bytes.decode(super.getTarget().getCharsetDecoder(), name, name.length).toString();
+			} else {
+				return "VOID";
+			}
+		}
 	}
 
 	private final class InEffector extends BaseInputOutputEffector {
@@ -1132,6 +1147,25 @@ S:				do {
 		public int invoke(final int parameterIndex) throws EffectorException {
 			return super.getTarget().count(super.getParameter(parameterIndex));
 		}
+
+		@Override
+		public String showParameter(int parameterIndex) {
+			int[] param = super.parameters[parameterIndex];
+			StringBuilder sb= new StringBuilder();
+			if (param[0] < 0) {
+				byte[] name = super.getTarget().getModel().getValueName(-1 * param[0]);
+				byte[] value = new byte[name.length + 1];
+				value[0] = Base.TYPE_REFERENCE_VALUE;
+				System.arraycopy(name, 0, value, 1, name.length);
+				sb.append(Bytes.decode(super.getTarget().getCharsetDecoder(), value, value.length).toString());
+			} else {
+				sb.append(Integer.toString(param[0]));
+			}
+			sb.append(" ");
+			byte[] signal = this.getTarget().getModel().getSignalName(param[1]);
+			sb.append(Bytes.decode(super.getTarget().getCharsetDecoder(), signal, signal.length).toString());
+			return sb.toString();
+		}
 	}
 
 	private final class StartEffector extends BaseParameterizedEffector<Transductor, Integer> {
@@ -1173,6 +1207,20 @@ S:				do {
 		@Override
 		public int invoke(final int parameterIndex) throws EffectorException {
 			return super.getTarget().pushTransducer(super.getParameter(parameterIndex));
+		}
+
+		@Override
+		public String showParameter(int parameterIndex) {
+			int ordinal = super.getParameter(parameterIndex);
+			if (ordinal >= 0) {
+				byte[] bytes = super.getTarget().getModel().getTransducerName(ordinal);
+				byte[] name = new byte[bytes.length + 1];
+				System.arraycopy(bytes, 0, name, 1, bytes.length);
+				name[0] = Base.TYPE_REFERENCE_TRANSDUCER;
+				return Bytes.decode(super.getTarget().getCharsetDecoder(), name, name.length).toString();
+			} else {
+				return "VOID";
+			}
 		}
 	}
 
@@ -1232,6 +1280,63 @@ S:				do {
 			super.setParameter(parameterIndex, byteMap);
 			return super.parameters[parameterIndex];
  		}
+
+		@Override
+		public String showParameter(int parameterIndex) {
+			long[] sum = super.parameters[parameterIndex];
+			StringBuilder sb = new StringBuilder();
+			int bit = 0, startBit = -1;
+			for (int j = 0; j < sum.length; j++) {
+				for (int k = 0; k < 64; k++, bit++) {
+					if (0 == (sum[j] & (1L << k))) {
+						if (startBit >= 0) {
+							if (startBit < (bit-2)) {
+								if (startBit > 32 && startBit <127) {
+									sb.append(String.format(" %c", (char)startBit));
+								} else {
+									sb.append(String.format(" #%x", startBit));
+								}
+								if ((bit - 1) > 32 && (bit - 1) <127) {
+									sb.append(String.format("-%c", (char)(bit-1)));
+								} else {
+									sb.append(String.format("-#%x", (bit-1)));
+								}
+							} else {
+								if (startBit > 32 && startBit <127) {
+									sb.append(String.format(" %c", (char)startBit));
+								} else {
+									sb.append(String.format(" #%x", startBit));
+								}
+							}
+							startBit = -1;
+						}
+					} else if (startBit < 0) {
+						startBit = bit;
+					}
+				}
+			}
+			if (startBit >= 0) {
+				if (bit > (startBit + 1)) {
+					if (startBit > 32 && startBit < 127) {
+						sb.append(String.format(" %c", (char)startBit));
+					} else {
+						sb.append(String.format(" #%x", startBit));
+					}
+					if ((bit - 1) > 32 && (bit - 1) <127) {
+						sb.append(String.format(" %c", (char)(bit - 1)));
+					} else {
+						sb.append(String.format(" #%x", (bit - 1)));
+					}
+				} else {
+					if ((bit - 1) > 32 && (bit - 1) <127) {
+						sb.append(String.format(" %c", (char)(bit - 1)));
+					} else {
+						sb.append(String.format(" #%x", (bit - 1)));
+					}
+				}
+			}
+			return sb.toString();
+		}
 	}
 
 	private final class MproductEffector extends BaseParameterizedEffector<Transductor, byte[]> {
@@ -1263,5 +1368,19 @@ S:				do {
 			super.setParameter(parameterIndex, parameterList[0]);
 			return super.parameters[parameterIndex];
  		}
+
+		@Override
+		public String showParameter(int parameterIndex) {
+			byte[] product = super.parameters[parameterIndex];
+			StringBuilder sb = new StringBuilder();
+			for (int j = 0; j < product.length; j++) {
+				if (32 < product[j] && 127 > product[j]) {
+					sb.append(String.format(" %c", (char)product[j]));
+				} else {
+					sb.append(String.format(" #%x", Byte.toUnsignedInt(product[j])));
+				}
+			}
+			return sb.toString();
+		}
 	}
 }

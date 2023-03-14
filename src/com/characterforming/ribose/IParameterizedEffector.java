@@ -121,6 +121,15 @@ public interface IParameterizedEffector<T extends ITarget, P> extends IEffector<
 	P[] getParameters();
 
 	/**
+	 * Render a parameter object in a printable format
+	 * @param parameterIndex the parameter index
+	 * @return a printable string
+	 */
+	default String showParameter(int parameterIndex) {
+		return Integer.toString(parameterIndex);
+	}
+
+	/**
 	 * Parameterized effector invocation receivews the index of the {@code P}
 	 * instance to apply for the invocation.
 	 *

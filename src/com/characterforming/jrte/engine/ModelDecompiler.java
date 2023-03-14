@@ -43,8 +43,6 @@ public class ModelDecompiler {
 
 	public void decompile(final String transducerName) throws ModelException {
 		Transducer trex = this.model.loadTransducer(this.model.getTransducerOrdinal(Bytes.encode(encoder, transducerName)));
-		int mproductOrdinal = this.model.getEffectorOrdinal(Bytes.encode(this.encoder, "mproduct"));
-		
 		int[] effectorVectors = trex.getEffectorVector();
 		int[] inputEquivalenceIndex = trex.getInputFilter();
 		int[][] transitionMatrix = trex.getTransitionMatrix();
@@ -110,7 +108,9 @@ public class ModelDecompiler {
 			if ((to != from) || (effect != 0)) {
 				System.out.printf("%3d %3d -> %3d", from, equivalent, to);
 				if (effect >= 0) {
-					System.out.printf(" %s", effectorNames[effect]);
+					if (effect > 1) {
+						System.out.printf(" %s", effectorNames[effect]);
+					}
 				} else {
 					for (int e = (-1 * effect); effectorVectors[e] != 0; e++) {
 						if (effectorVectors[e] > 0) {
@@ -118,19 +118,7 @@ public class ModelDecompiler {
 						} else {
 							int effector = -1 * effectorVectors[e++];
 							System.out.printf(" %s[", effectorNames[effector]);
-							if (effector == mproductOrdinal) {
-								byte[] product = this.model.getProductParameter(effectorVectors[e]);
-								for (int j = 0; j < product.length; j++) {
-									if (32 < product[j] && 127 > product[j]) {
-										System.out.printf(" %c", (char)product[j]);
-									} else {
-										System.out.printf(" #%d", Byte.toUnsignedInt(product[j]));
-									}
-								}
-								System.out.printf(" ]");
-							} else {
-								System.out.printf("%d]", effectorVectors[e]);
-							}
+							System.out.printf(" %s ]", this.model.showParameter(effector, effectorVectors[e]));
 						}
 					}
 				}
