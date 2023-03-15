@@ -1,11 +1,12 @@
 # <cycle-start id="4" type="scavenge" contextid="0" timestamp="2021-04-05T23:12:58.597" intervalms="5243.468" />
+next = (utf8 - '<')*;
 
 interval = (
 	'<cycle-start id="' digit+ '" type="scavenge" contextid="' digit+ '" timestamp="' (digit+ ('.:-T':alph))+ digit+ '" '
 	('intervalms="', select[`~interval`] clear)
 	(digit, paste)+ ('.', paste) (digit, paste)+
 	('"', out[`~interval` X_])
-	space* '/>' (utf8 - '<')*
+	space* '/>' next
 );
 
 a0 = (interval$0):alph;
@@ -22,7 +23,7 @@ null = (
 	@	((a0$(0,0))* (a1$(0,,0))* (a2$(0,,,0))*)*
 		(nul$(0,0)) (nul* a0* a1* a2*)* 
 	)
-	(utf8 - '<')*
+	next
 );
 
 Tintervals = nil? (
@@ -49,7 +50,7 @@ interval = (
 				(utf8 - '"')* '"'
 		)
 	)*
-	space* '/>' (utf8 - '<')*
+	space* '/>' next
 )*;
 
 a0 = (interval$0):alph;
@@ -66,16 +67,65 @@ null = (
 	@	((a0$(0,0))* (a1$(0,,0))* (a2$(0,,,0))*)*
 		(nul$(0,0)) (nul* a0* a1* a2*)* 
 	)
-	((utf8 - '>')* nul*)* '>' (utf8 - '<')*
+	next
 );
 
-Sintervals = nil? (
-	((null* interval*)*$(0 1 2))
+intervals = (
+	((interval* null*)*$(0 1 2))
 @	(
 		({a0,nul}$(0,0))* (a1$(0,,0))* ((a2-{X_,Y_})$(0,,,0))*
 		(X_, [[`~`]])* (Y_, [[`nl`]])*
 	)*
-):dfamin;
+);
+
+Sintervals = (nil? intervals):dfamin;
 
 Sintervals$(0,1 2):prsseq `build/automata/Sintervals.pr`;
 Sintervals:save `build/automata/Sintervals.dfa`;
+
+opennil = {
+	('<' {'?','!','/'}),
+	('<af-end'),
+	('<af-start'),
+	('<allocated-bytes'),
+	('<allocation-satisfied'),
+	('<allocation-stats'),
+	('<attribute'),
+	('<cycle-end'),
+	('<exclusive-end'),
+	('<exclusive-start'),
+	('<finalization'),
+	('<gc-end'),
+	('<gc-op'),
+	('<gc-start'),
+	('<initialized'),
+	('<largest-consumer'),
+	('<mem'),
+	('<mem-info'),
+	('<memory-copied'),
+	('<ownableSynchronizers'),
+	('<pending-finalizers'),
+	('<references'),
+	('<remembered-set'),
+	('<response-info'),
+	('<scavenger-info'),
+	('<system'),
+	('<verbosegc'),
+	('<vmarg'),
+	('<vmargs')
+};
+
+interval = (
+	((interval | null)$(0 1 2))
+@	(
+		({a0,nul}$(0,0))* (a1$(0,,0))* ((a2-{X_,Y_})$(0,,,0))*
+		(X_, [[`~`]])* (Y_, [[`nl`]])*
+	)*
+);
+
+Rintervals = (
+	nil? (next (opennil | interval))* next
+):dfamin;
+
+Rintervals$(0,1 2):prsseq `build/automata/Rintervals.pr`;
+Rintervals:save `build/automata/Rintervals.dfa`;

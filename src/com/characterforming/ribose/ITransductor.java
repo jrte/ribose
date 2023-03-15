@@ -369,4 +369,11 @@ public interface ITransductor extends ITarget {
 	 * @return the number of input bytes counted in the most recent run() call.
 	 */
 	long getBytesCount();
+
+ 	/**
+	 * Return the number of {@code nul} signals injected in the most recent run() call.
+	 *
+	 * @return the number of {@code nul} signals injected in the most recent run() call.
+	 */
+	long getErrorCount();
 }

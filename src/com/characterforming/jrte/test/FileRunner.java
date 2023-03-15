@@ -99,7 +99,7 @@ public class FileRunner {
 			rteLogger.log(Level.SEVERE, "Runtime failed, exception thrown.", e);
 		}
 		try {
-			long mproduct = 0, msum = 0, inputs = 0, tjrte = 0, t0 = 0, t1 = 0;
+			long mproduct = 0, msum = 0, errors = 0, inputs = 0, tjrte = 0, t0 = 0, t1 = 0;
 			int loops = 1;
 			if (regex.isEmpty() && (jrteOutEnabled || !regexOutEnabled)) {
 				try (IRuntime ribose = Ribose.loadRiboseModel(new File(modelPath))) {
@@ -118,6 +118,7 @@ public class FileRunner {
 									trex.run();
 									msum += trex.getSumCount();
 									mproduct += trex.getProductCount();
+									errors += trex.getErrorCount();
 									inputs += trex.getBytesCount();
 								} while (trex.status().isRunnable());
 								if (trex.status().isPaused()) {
@@ -125,9 +126,9 @@ public class FileRunner {
 								}
 								t1 = System.nanoTime() - t0;
 								if (i >= 10) {
+									System.out.print(String.format("%4d", t1/(1000000)));
 									tjrte += t1;
 								}
-								System.out.print(String.format("%4d", t1/(1000000)));
 								assert !trex.status().isRunnable();
 								trex.stop();
 								assert trex.status().isStopped();
@@ -135,10 +136,11 @@ public class FileRunner {
 						}
 						inputs = inputs > 0 ? inputs : loops * blen;
 						double mbps = (tjrte > 0) ? (double)((inputs >> 1)*1000) / (double)tjrte : -1;
-						double mps = 100.0 * ((double)msum / (double)inputs);
-						double mpr = 100.0 * ((double)mproduct / (double)inputs);
-						System.out.println(String.format(" : %8.3f mb/s %6.3f%% m+ %6.3f%% m*", mbps, mps, mpr));
-						rtmLogger.log(Level.INFO, String.format("%s\t%8.3f\t%d\t%s", inputPath, mbps, blen, transducerName));
+						double mps = ((double)(100 * msum) / (double)inputs);
+						double mpr = ((double)(100 * mproduct) / (double)inputs);
+						double ekb = ((double)(1024 * errors) / (double)inputs);
+						System.out.println(String.format(" : %8.3f mb/s %7.3f nul/kb %6.3f%% m+ %6.3f%% m*", mbps, ekb, mps, mpr));
+						rtmLogger.log(Level.INFO, String.format("%s\t%8.3f\t%7.3f\t%6.3f\t%6.3f\t%d\t%s", inputPath, mbps, ekb, mps, mpr, blen, transducerName));
 					} else {
 						try (final FileInputStream isr = new FileInputStream(f)) {
 							t0 = System.nanoTime();
@@ -184,8 +186,8 @@ public class FileRunner {
 							}
 						}
 						t1 = System.nanoTime() - t0;
-						System.out.print(String.format("%4d", count > 0 ? t1/1000000 : -1));
 						if (i >= 10) {
+							System.out.print(String.format("%4d", count > 0 ? t1/1000000 : -1));
 							tregex += t1;
 						}
 						assert count > 0;

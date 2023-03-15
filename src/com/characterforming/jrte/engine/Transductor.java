@@ -117,6 +117,7 @@ public final class Transductor implements ITransductor, IOutput {
 	private final Logger rteLogger;
 	private long msumCount;
 	private long mproductCount;
+	private long errorCount;
 	private long byteCount;
 
 	/**
@@ -142,6 +143,7 @@ public final class Transductor implements ITransductor, IOutput {
 		this.matchProductParameters = null;
 		this.msumCount = 0;
 		this.mproductCount = 0;
+		this.errorCount = 0;
 		this.byteCount = 0;
 		this.decoder = Base.newCharsetDecoder();
 		this.encoder = Base.newCharsetEncoder();
@@ -333,6 +335,7 @@ public final class Transductor implements ITransductor, IOutput {
 		long msumCounter = 0, mproductCounter = 0;
 		int token = -1, state = 0, last = -1;
 		Input input = Input.empty;
+		this.errorCount = 0;
 		try {
 T:		do {
 				// start a pushed transducer
@@ -419,6 +422,7 @@ I:			do {
 									}
 								} else {
 									token = nulSignal;
+									++this.errorCount;
 									break;
 								}
 							}
@@ -496,6 +500,7 @@ S:				do {
 							if (token != nulSignal && token != eosSignal) {
 								signalInput = nulSignal;
 								errorInput = token;
+								++this.errorCount;
 							} else {
 								break T;
 							}
@@ -668,6 +673,11 @@ S:				do {
 	@Override // @see com.characterforming.ribose.ITransductor#getProductCount()
 	public long getProductCount() {
 		return this.mproductCount;
+	}
+
+	@Override // @see com.characterforming.ribose.ITransductor#getErrorCount()
+	public long getErrorCount() {
+		return this.errorCount;
 	}
 
 	@Override // @see com.characterforming.ribose.ITransductor#getBytesCount()

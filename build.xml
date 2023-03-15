@@ -354,6 +354,10 @@
 			<jvmarg line="${jargs} -Djrte.out.enabled=false -Dregex.out.enabled=false"/>
 			<arg line="--nil build/Test.model Sintervals ${test.input.dir}/verbosegc.vgc &quot;${regex.nil}&quot;"/>
 		</java>
+		<java fork="true" jvm="${jdk}/bin/java" dir="." classname="com.characterforming.jrte.test.FileRunner" classpathref="testing.classpath" failonerror="true">
+			<jvmarg line="${jargs} -Djrte.out.enabled=false -Dregex.out.enabled=false"/>
+			<arg line="--nil build/Test.model Rintervals ${test.input.dir}/verbosegc.vgc &quot;${regex.nil}&quot;"/>
+		</java>
 		<echo/>
 	</target>
 
@@ -369,15 +373,20 @@
 			<arg value="-c"/>
 			<arg value="etc/sh/FileRunner ${jargs} ${jargs.gc.test}/vgc.regex.gc -Djrte.out.enabled=false -Dregex.out.enabled=true --nil build/Test.model verbosegcregex ${test.input.dir}/verbosegc.vgc &apos;${regex.verbose.gc}&apos;"/>
 		</exec>
+		<echo message="TRun: Tintervals ${test.input.dir}/verbosegc.vgc -> ${build.testenv}/vgc.tintervals.(out,gc)"/>
+		<exec failonerror="true" executable="bash">
+			<arg value="-c"/>
+			<arg value="etc/sh/ribose ${jargs} ${jargs.gc.test}/vgc.tintervals.gc -Djrte.out.enabled=true -Dregex.out.enabled=false --nil build/Test.model Tintervals ${test.input.dir}/verbosegc.vgc ${build.testenv}/vgc.tintervals.out"/>
+		</exec>
 		<echo message="TRun: Sintervals ${test.input.dir}/verbosegc.vgc -> ${build.testenv}/vgc.sintervals.(out,gc)"/>
 		<exec failonerror="true" executable="bash">
 			<arg value="-c"/>
 			<arg value="etc/sh/ribose ${jargs} ${jargs.gc.test}/vgc.sintervals.gc -Djrte.out.enabled=true -Dregex.out.enabled=false --nil build/Test.model Sintervals ${test.input.dir}/verbosegc.vgc ${build.testenv}/vgc.sintervals.out"/>
 		</exec>
-		<echo message="TRun: Tintervals ${test.input.dir}/verbosegc.vgc -> ${build.testenv}/vgc.tintervals.(out,gc)"/>
+		<echo message="TRun: Rintervals ${test.input.dir}/verbosegc.vgc -> ${build.testenv}/vgc.rintervals.(out,gc)"/>
 		<exec failonerror="true" executable="bash">
 			<arg value="-c"/>
-			<arg value="etc/sh/ribose ${jargs} ${jargs.gc.test}/vgc.tintervals.gc -Djrte.out.enabled=true -Dregex.out.enabled=false --nil build/Test.model Tintervals ${test.input.dir}/verbosegc.vgc ${build.testenv}/vgc.tintervals.out"/>
+			<arg value="etc/sh/ribose ${jargs} ${jargs.gc.test}/vgc.rintervals.gc -Djrte.out.enabled=true -Dregex.out.enabled=false --nil build/Test.model Rintervals ${test.input.dir}/verbosegc.vgc ${build.testenv}/vgc.rintervals.out"/>
 		</exec>
 <!-- verbose gc verify -->
 		<fixcrlf srcDir="${build.testenv}" includes="vgc.*.out"/>
@@ -385,15 +394,19 @@
 			<arg line="--lines --bytes ${build.testenv}/vgc.regex.out"/>
 		</exec>
 		<exec failonerror="true" executable="wc">
+			<arg line="--lines --bytes ${build.testenv}/vgc.tintervals.out"/>
+		</exec>
+		<exec failonerror="true" executable="wc">
 			<arg line="--lines --bytes ${build.testenv}/vgc.sintervals.out"/>
 		</exec>
 		<exec failonerror="true" executable="wc">
-			<arg line="--lines --bytes ${build.testenv}/vgc.tintervals.out"/>
+			<arg line="--lines --bytes ${build.testenv}/vgc.rintervals.out"/>
 		</exec>
 		<condition property="intervals.match">
 			<and>
-				<filesmatch file1="${build.testenv}/vgc.regex.out" file2="${build.testenv}/vgc.sintervals.out"/>
 				<filesmatch file1="${build.testenv}/vgc.regex.out" file2="${build.testenv}/vgc.tintervals.out"/>
+				<filesmatch file1="${build.testenv}/vgc.regex.out" file2="${build.testenv}/vgc.sintervals.out"/>
+				<filesmatch file1="${build.testenv}/vgc.regex.out" file2="${build.testenv}/vgc.rintervals.out"/>
 			</and>
 		</condition>
 		<fail unless="intervals.match" message="Not identical: ${build.testenv}/vgc.*.out"/>

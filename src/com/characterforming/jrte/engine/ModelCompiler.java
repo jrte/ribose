@@ -656,9 +656,10 @@ public class ModelCompiler implements ITarget {
 		assertKernelSanity();
 		// redundant state elimination
 		for (int state = 0; state < nStates; state++) {
+			assert (mproductEndpoints[state] != null) || (mproductStateEffects[state] == null);
 			assert (exitEquivalent[state] >= 0) || (mproductStateEffects[state] == null);
 			if (mproductStateEffects[state] != null
-			&& mproductStateEffects[state][1] != exitEquivalent[state]) {
+			&& mproductEndpoints[state][1] != exitEquivalent[state]) {
 				int transition[] = this.kernelMatrix[exitEquivalent[state]][state];
 				if (transition[1] > 0) {
 					transition[0] = state;
