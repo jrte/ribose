@@ -9,6 +9,8 @@ interval = (
 	space* '/>' next
 );
 
+void = (next '<' (utf8 - 'c'))* next;
+
 a0 = (interval$0):alph;
 a1 = (interval$1):alph;
 a2 = (interval$2):alph;
@@ -23,7 +25,7 @@ null = (
 	@	((a0$(0,0))* (a1$(0,,0))* (a2$(0,,,0))*)*
 		(nul$(0,0)) (nul* a0* a1* a2*)* 
 	)
-	next
+	void
 );
 
 Tintervals = nil? (
@@ -67,7 +69,7 @@ null = (
 	@	((a0$(0,0))* (a1$(0,,0))* (a2$(0,,,0))*)*
 		(nul$(0,0)) (nul* a0* a1* a2*)* 
 	)
-	next
+	void
 );
 
 intervals = (

@@ -90,11 +90,17 @@ tab ='\x09';
 nl = '\x0a';
 cr = '\x0d';
 
-# common names for printable 7-bit bytes
+# latin letter case conversion
 letters = {
 	(a,A),(b,B),(c,C),(d,D),(e,E),(f,F),(g,G),(h,H),(i,I),(j,J),(k,K),(l,L),(m,M),
 	(n,N),(o,O),(p,P),(q,Q),(r,R),(s,S),(t,T),(u,U),(v,V),(w,W),(x,X),(y,Y),(z,Z)
 };
+ 
+# common names for printable 7-bit characters and character sets
+lower = letters$0;
+upper = letters$1;
+digit = '0123456789':alph;
+punct = '!\"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~':alph;
 space = ' ';
 comma = ',';
 dot = '.';
@@ -109,22 +115,22 @@ lt = '<';
 gt = '>';
 backslash = '\\';
 solidus = '/';
-quote = '\'';
-digit = '0123456789':alph;
-punct = '!\"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~':alph;
-lower = letters$0;
-upper = letters$1;
+quote = '"';
+apostrophe = '\'';
 alpha = lower | upper;
 alnum = alpha | digit;
 black = alnum | punct;
 white = space | tab;
 print = black | white;
-symbol = alnum | '_';
 notnl = utf8 - nl;
 notcr = utf8 - cr;
+noteol = notnl & notcr;
 
 # all utf8 bytes corresponding to single-byte (ASCII/UNICODE) characters 
-utf7 = {ctrl, punct, space, digit, lower, upper};
+utflo = {ctrl, punct, space, digit, lower, upper};
+
+# all utf8 bytes NOT corresponding to single-byte (ASCII/UNICODE) characters 
+utfhi = utf8 - utflo;
 
 # compose PasteAny with input pattern (P @@ PasteAny) to inject paste after any byte in P
 PasteAny = (byte, paste)*;
@@ -133,7 +139,7 @@ PasteAny = (byte, paste)*;
 PasteUTF8 = utf8* @@ PasteAny;
 
 # restrict PasteAny to exclude nl
-PasteNotNl = (utf8 - '\x0a')* @@ PasteAny;
+PasteToEol = noteol* @@ PasteAny;
 
 # hexadecimal digits
 hexlower = digit | 'abcdef':alph;
@@ -198,10 +204,10 @@ byte-reserved:card;
 `248=byte-reserved`:enum;
 utf8:card;
 `248=utf8`:enum;
-utf7:card;
-`128=utf7`:enum;
-utf8-utf7:card;
-`120=utf8-utf7`:enum;
+utflo:card;
+`128=utflo`:enum;
+utfhi:card;
+`120=utfhi`:enum;
 ctrl:card;
 `33=ctrl`:enum;
 punct:card;
