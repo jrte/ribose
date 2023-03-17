@@ -9,15 +9,15 @@ interval = (
 	space* '/>' next
 );
 
-void = (next '<' (utf8 - 'c'))* next;
-
 a0 = (interval$0):alph;
 a1 = (interval$1):alph;
 a2 = (interval$2):alph;
 
-conjoint = (a0 & a1) | (a0 & a2) | (a1 & a2);
+(`*** Tintervals: tape alphabets are not disjoint`
+	(a0 & a1) | (a0 & a2) | (a1 & a2)
+):enum;
 
-'*** Tintervals tape alphabets must be disjoint' conjoint:enum;
+void = (next '<' (utf8 - 'c'))* next;
 
 null = (
 	(
@@ -59,9 +59,9 @@ a0 = (interval$0):alph;
 a1 = (interval$1):alph;
 a2 = (interval$2):alph;
 
-conjoint = (a0 & a1) | (a0 & a2) | (a1 & a2);
-
-'*** Sintervals tape alphabets must be disjoint' conjoint:enum;
+(`*** Sintervals: tape alphabets are not disjoint`
+	(a0 & a1) | (a0 & a2) | (a1 & a2)
+):enum;
 
 null = (
 	(

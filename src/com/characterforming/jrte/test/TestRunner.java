@@ -107,9 +107,9 @@ public class TestRunner {
 						}
 						t1 = System.nanoTime() - t0;
 						if (i >= 10) {
+							System.out.print(String.format("%4d", t1/1000000));
 							t2 += t1;
 						}
-						System.out.print(String.format("%4d", t1/1000000));
 						assert !trex.status().isRunnable();
 						trex.stop();
 						assert trex.status().isStopped();

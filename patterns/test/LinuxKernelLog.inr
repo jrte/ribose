@@ -33,7 +33,7 @@ field = (
 	(value @@ PasteAny)
 );
 
-fields = ((field || value) space)+;
+fields = ((field || value) space)*;
 iptables = header tag space fields;
 
 a0 = (iptables$0):alph;
