@@ -223,6 +223,38 @@ public interface ITransductor extends ITarget {
 	}
 
 	/**
+	 * Run metrics, per {@link #run()} call.
+	 */
+	public class Metrics {
+		/** Number of bytes of input consumed */
+		public long bytes;
+
+		/** Number of {@code nul} signals injected */
+		public long errors;
+
+		/** Number of bytes comsumed in mproduct traps */
+		public long product;
+
+		/** Number of bytes comsumed in msum traps */
+		public long sum;
+
+		/** Constructor */
+		public Metrics() {
+			this.reset();
+		}
+
+		/**
+		 * Reset all metrics
+		 * 
+		 * @return a reference to the reset metrics
+		 */
+		public Metrics reset() {
+			bytes = errors = product = sum = 0;
+			return this;
+		}
+	}
+
+	/**
 	 * Test the status of the transduction's input and transducer stacks.
 	 *
 	 * A RUNNABLE transduction can be resumed immediately by calling run(). A PAUSED
@@ -311,6 +343,13 @@ public interface ITransductor extends ITarget {
 	ITransductor run() throws RiboseException, DomainErrorException;
 
 	/**
+	 * Return metrics from the most recent {@link #run()} call.
+	 * 
+	 * @return the run metrics
+	 */
+	Metrics metrics();
+
+	/**
 	 * Clear input and transductor stacks and reset all named values to
 	 * an empty state. This resets the transductor to original state
 	 * ready for reuse.
@@ -344,36 +383,4 @@ public interface ITransductor extends ITarget {
 	 * @return the input buffer ({@code bytes}), or a new biffer of equal size if {@code bytes} is marked
 	 */
 	byte[] recycle(byte[] bytes);
-
-	/**
-	 * Return the number of mproduct instrumented transitions counted in the most recent
-	 * run() call. An mproduct transition enters a self-looping state while matching input
-	 * bytes against a literal target string of bytes.
-	 *
-	 * @return the number of mproduct instrumented transitions counted in the most recent run() call.
-	 */
-	long getProductCount();
-
-	/**
-	 * Return the number of msum instrumented transitions counted in the most recent
-	 * run() call. An msum transition enters a self-looping state with &gt;64 self-referencing
-	 * input bytes.
-	 *
-	 * @return the number of msum instrumented transitions counted in the most recent run() call.
-	 */
-	long getSumCount();
-
- 	/**
-	 * Return the number of input bytes counted in the most recent run() call.
-	 *
-	 * @return the number of input bytes counted in the most recent run() call.
-	 */
-	long getBytesCount();
-
- 	/**
-	 * Return the number of {@code nul} signals injected in the most recent run() call.
-	 *
-	 * @return the number of {@code nul} signals injected in the most recent run() call.
-	 */
-	long getErrorCount();
 }

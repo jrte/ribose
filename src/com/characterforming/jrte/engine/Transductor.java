@@ -115,10 +115,7 @@ public final class Transductor implements ITransductor, IOutput {
 	private OutputStream output;
 	private final Logger rtcLogger;
 	private final Logger rteLogger;
-	private long msumCount;
-	private long mproductCount;
-	private long errorCount;
-	private long byteCount;
+	private final ITransductor.Metrics metrics;
 
 	/**
 	 *  Constructor
@@ -141,14 +138,11 @@ public final class Transductor implements ITransductor, IOutput {
 		this.matchProduct = null;
 		this.matchPosition = 0;
 		this.matchProductParameters = null;
-		this.msumCount = 0;
-		this.mproductCount = 0;
-		this.errorCount = 0;
-		this.byteCount = 0;
 		this.decoder = Base.newCharsetDecoder();
 		this.encoder = Base.newCharsetEncoder();
 		this.rtcLogger = Base.getCompileLogger();
 		this.rteLogger = Base.getRuntimeLogger();
+		this.metrics = new ITransductor.Metrics();
 
 		if (this.mode == TargetMode.run) {
 			this.namedValueOrdinalMap = this.model.getNamedValueMap();
@@ -331,11 +325,11 @@ public final class Transductor implements ITransductor, IOutput {
 		final int eosSignal = Signal.eos.signal();
 		final int[] aftereffects = new int[32];
 		TransducerState transducer = null;
+		long msumCounter = 0, mproductCounter = 0, errorCounter = 0;
 		int errorInput = -1, signalInput = -1;
-		long msumCounter = 0, mproductCounter = 0;
 		int token = -1, state = 0, last = -1;
 		Input input = Input.empty;
-		this.errorCount = 0;
+		this.metrics.reset();
 		try {
 T:		do {
 				// start a pushed transducer
@@ -422,7 +416,7 @@ I:			do {
 									}
 								} else {
 									token = nulSignal;
-									++this.errorCount;
+									++errorCounter;
 									break;
 								}
 							}
@@ -500,7 +494,7 @@ S:				do {
 							if (token != nulSignal && token != eosSignal) {
 								signalInput = nulSignal;
 								errorInput = token;
-								++this.errorCount;
+								++errorCounter;
 							} else {
 								break T;
 							}
@@ -646,9 +640,10 @@ S:				do {
 				assert (transducer == this.transducerStack.peek()) || (transducer == this.transducerStack.get(-1));
 				transducer.state = state;
 			}
-			this.byteCount = this.inputStack.getBytesCount();
-			this.mproductCount = mproductCounter;
-			this.msumCount = msumCounter;
+			this.metrics.bytes = this.inputStack.getBytesCount();
+			this.metrics.errors = errorCounter;
+			this.metrics.product = mproductCounter;
+			this.metrics.sum = msumCounter;
 		}
 
 		// Transduction is paused or stopped; if paused it will resume on next call to run()
@@ -665,24 +660,9 @@ S:				do {
 		return this.inputStack.recycle(bytes);
 	}
 
-	@Override // @see com.characterforming.ribose.ITransductor#getSumCount()
-	public long getSumCount() {
-		return this.msumCount;
-	}
-
-	@Override // @see com.characterforming.ribose.ITransductor#getProductCount()
-	public long getProductCount() {
-		return this.mproductCount;
-	}
-
-	@Override // @see com.characterforming.ribose.ITransductor#getErrorCount()
-	public long getErrorCount() {
-		return this.errorCount;
-	}
-
-	@Override // @see com.characterforming.ribose.ITransductor#getBytesCount()
-	public long getBytesCount() {
-		return this.byteCount;
+	@Override // @see com.characterforming.ribose.ITransductor#metrics()
+	public Metrics metrics() {
+		return this.metrics;
 	}
 
 	@Override // @see com.characterforming.ribose.IOutput#getValueOrdinal(Bytes)

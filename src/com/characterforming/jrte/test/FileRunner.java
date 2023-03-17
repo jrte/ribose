@@ -113,13 +113,14 @@ public class FileRunner {
 							if (trex.push(bbuf, (int)blen).status().isWaiting()
 							&& (!nil || (trex.push(Signal.nil).status().isWaiting()))
 							&& (trex.start(Bytes.encode(encoder, transducerName)).status().isRunnable())) {
+								ITransductor.Metrics metrics = trex.metrics().reset();
 								t0 = System.nanoTime();
 								do {
 									trex.run();
-									msum += trex.getSumCount();
-									mproduct += trex.getProductCount();
-									errors += trex.getErrorCount();
-									inputs += trex.getBytesCount();
+									msum += metrics.sum;
+									mproduct += metrics.product;
+									errors += metrics.errors;
+									inputs += metrics.bytes;
 								} while (trex.status().isRunnable());
 								if (trex.status().isPaused()) {
 									trex.push(Signal.eos).run();

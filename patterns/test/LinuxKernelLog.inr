@@ -21,19 +21,19 @@ tag = (space, select[`~tag`]) (('DROPPED' | 'LIMITED' | 'ABORTED') @@ PasteAny);
 
 field = (
 	(
-			('IN=', select[`~in`])
-		|	('OUT=', select[`~out`])
-		|	('MAC=', select[`~macaddress`])
-		|	('SRC=', select[`~srcip`])
-		|	('DST=', select[`~dstip`])
-		|	('SPT=', select[`~srcport`])
-		|	('DPT=', select[`~dstport`])
-		|	('PROTO=', select[`~protocol`])
+		('IN=', select[`~in`])
+	|	('OUT=', select[`~out`])
+	|	('MAC=', select[`~macaddress`])
+	|	('SRC=', select[`~srcip`])
+	|	('DST=', select[`~dstip`])
+	|	('SPT=', select[`~srcport`])
+	|	('DPT=', select[`~dstport`])
+	|	('PROTO=', select[`~protocol`])
 	)
 	(value @@ PasteAny)
 );
 
-fields = ((field || value) space)*;
+fields = ((field || value) space)+;
 iptables = header tag space fields;
 
 a0 = (iptables$0):alph;
@@ -53,18 +53,9 @@ null = (
 	(byte - nl)*
 );
 
-save = out[
-	`~timestamp` '|'
-	`~hostname` '|'
-	`~tag` '|'
-	`~in` '|'
-	`~out` '|'
-	`~macaddress` '|'
-	`~srcip` '|'
-	`~dstip` '|'
-	`~protocol` '|'
-	`~srcport` '|'
-	`~dstport` `\n`
+save = out[`~timestamp` '|' `~hostname` '|' `~tag` '|' `~in` '|' `~out`
+ '|' `~macaddress` '|' `~srcip` '|' `~dstip` '|' `~protocol`
+ '|' `~srcport` '|' `~dstport` `\n`
 ];
 
 continue = clear[`~*`] select[`~timestamp`];
@@ -73,7 +64,7 @@ LinuxKernel = (
 	(nil, continue)
 	(
 		iptables (nl, save continue)
-	|	null (nl, continue)
+	|	null? (nl, continue)
 	)*
 ):dfamin;
 
