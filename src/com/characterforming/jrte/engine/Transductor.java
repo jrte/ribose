@@ -436,6 +436,7 @@ I:			do {
 
 					// trap runs in (nil* paste*)* effector space
 					int action = NUL;
+					int parameter = -1;
 					int index = 0;
 S:				do {
 						last = state;
@@ -454,6 +455,9 @@ S:				do {
 							if (action < NUL) {
 								index = -action;
 								action = effectorVector[index++];
+							} else if (action >= 0x10000) {
+								parameter = action & 0xffff;
+								action = (action >> 16) & 0xffff;
 							}
 							break S;
 						}
@@ -482,99 +486,103 @@ S:				do {
 						if ((action == -MSUM) || (action == -MPRODUCT)) {
 							action = -1 * action;
 						}
-						switch (action) {
-						default:
-							if (action > 0) {
-								effect = this.effectors[action].invoke();
-							} else {
-								effect = ((IParameterizedEffector<?,?>)this.effectors[(-1)*action]).invoke(effectorVector[index++]);
-							}
-							break;
-						case NUL:
-							if (token != nulSignal && token != eosSignal) {
-								signalInput = nulSignal;
-								errorInput = token;
-								++errorCounter;
-							} else {
-								break T;
-							}
-							break;
-						case NIL:
-							break;
-						case PASTE:
-							this.selected.append((byte)token);
-							break;
-						case SELECT:
-							this.selected = this.namedValueHandles[Model.ANONYMOUS_VALUE_ORDINAL];
-							break;
-						case COPY:
-							this.selected.append(this.namedValueHandles[Model.ANONYMOUS_VALUE_ORDINAL]);
-							break;
-						case CUT:
-							this.selected.append(this.namedValueHandles[Model.ANONYMOUS_VALUE_ORDINAL]);
-							this.namedValueHandles[Model.ANONYMOUS_VALUE_ORDINAL].clear();
-							break;
-						case CLEAR:
-							this.selected.clear();
-							break;
-						case COUNT:
-							if (--transducer.countdown[0] <= 0) {
-								signalInput = transducer.countdown[1];
-								transducer.countdown[0] = 0;
-							}
-							break;
-						case IN:
-							this.inputStack.value(this.selected.getValue(), this.selected.getLength());
-							effect = IEffector.RTX_PUSH;
-							break;
-						case OUT:
-							if (this.output != null && this.selected.getLength() > 0) {
-								try {
-									this.output.write(this.selected.getValue(), 0, this.selected.getLength());
-								} catch (IOException e) {
-									throw new EffectorException("Unable to write() to output", e);
+						if (parameter >= 0) {
+							effect = ((IParameterizedEffector<?,?>)this.effectors[action]).invoke(parameter);
+						} else {
+							switch (action) {
+							default:
+								if (action > 0) {
+									effect = this.effectors[action].invoke();
+								} else {
+									effect = ((IParameterizedEffector<?,?>)this.effectors[(-1)*action]).invoke(effectorVector[index++]);
 								}
-							}
-							break;
-						case MARK:
-							this.inputStack.mark();
-							break;
-						case RESET:
-							if (this.inputStack.reset()) {
+								break;
+							case NUL:
+								if (token != nulSignal && token != eosSignal) {
+									signalInput = nulSignal;
+									errorInput = token;
+									++errorCounter;
+								} else {
+									break T;
+								}
+								break;
+							case NIL:
+								break;
+							case PASTE:
+								this.selected.append((byte)token);
+								break;
+							case SELECT:
+								this.selected = this.namedValueHandles[Model.ANONYMOUS_VALUE_ORDINAL];
+								break;
+							case COPY:
+								this.selected.append(this.namedValueHandles[Model.ANONYMOUS_VALUE_ORDINAL]);
+								break;
+							case CUT:
+								this.selected.append(this.namedValueHandles[Model.ANONYMOUS_VALUE_ORDINAL]);
+								this.namedValueHandles[Model.ANONYMOUS_VALUE_ORDINAL].clear();
+								break;
+							case CLEAR:
+								this.selected.clear();
+								break;
+							case COUNT:
+								if (--transducer.countdown[0] <= 0) {
+									signalInput = transducer.countdown[1];
+									transducer.countdown[0] = 0;
+								}
+								break;
+							case IN:
+								this.inputStack.value(this.selected.getValue(), this.selected.getLength());
 								effect = IEffector.RTX_PUSH;
+								break;
+							case OUT:
+								if (this.output != null && this.selected.getLength() > 0) {
+									try {
+										this.output.write(this.selected.getValue(), 0, this.selected.getLength());
+									} catch (IOException e) {
+										throw new EffectorException("Unable to write() to output", e);
+									}
+								}
+								break;
+							case MARK:
+								this.inputStack.mark();
+								break;
+							case RESET:
+								if (this.inputStack.reset()) {
+									effect = IEffector.RTX_PUSH;
+								}
+								break;
+							case PAUSE:
+								effect = IEffector.RTX_PAUSE;
+								break;
+							case STOP:
+								effect = popTransducer();
+								break;
+							case MSUM:
+								if (this.matchMode == Mnone) {
+									this.matchMode = Msum;
+									this.matchSum = this.matchSumParameters[effectorVector[index++]];
+								} else {
+									throw new EffectorException(String.format("Illegal attempt to override match mode %s with MSUM",
+										this.matchMode == Mproduct ? "MPRODUCT" : "MSUM"));
+								}
+								break;
+							case MPRODUCT:
+								if (this.matchMode == Mnone) {
+									this.matchMode = Mproduct;
+									this.matchProduct = this.matchProductParameters[effectorVector[index++]];
+									this.matchPosition = 0;
+								} else {
+									throw new EffectorException(String.format("Illegal attempt to override match mode %s with MPRODUCT",
+										this.matchMode == Mproduct ? "MPRODUCT" : "MSUM"));
+								}
+								break;
 							}
-							break;
-						case PAUSE:
-							effect = IEffector.RTX_PAUSE;
-							break;
-						case STOP:
-							effect = popTransducer();
-							break;
-						case MSUM:
-							if (this.matchMode == Mnone) {
-								this.matchMode = Msum;
-								this.matchSum = this.matchSumParameters[effectorVector[index++]];
-							} else {
-								throw new EffectorException(String.format("Illegal attempt to override match mode %s with MSUM",
-									this.matchMode == Mproduct ? "MPRODUCT" : "MSUM"));
-							}
-							break;
-						case MPRODUCT:
-							if (this.matchMode == Mnone) {
-								this.matchMode = Mproduct;
-								this.matchProduct = this.matchProductParameters[effectorVector[index++]];
-								this.matchPosition = 0;
-							} else {
-								throw new EffectorException(String.format("Illegal attempt to override match mode %s with MPRODUCT",
-									this.matchMode == Mproduct ? "MPRODUCT" : "MSUM"));
-							}
-							break;
 						}
 						if (effect != 0) {
 							aftereffects[++aftereffects[0]] = effect;
 						}
 						// invariant: effector vector at index 0 holds NUL, so singletons (index == 0) always break out of loop here
-						action = effectorVector[index++];
+						action = parameter < 0 ? effectorVector[index++] : NUL;
 					} while (action != NUL);
 
 					// check for transducer or input stack adjustmnent

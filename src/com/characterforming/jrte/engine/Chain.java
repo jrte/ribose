@@ -37,11 +37,18 @@ final class Chain {
 		return this.outS;
 	}
 
-	boolean isScalar() {
-		return this.effectVector.length == 2 && this.effectVector[1] == 0;
-	}
-
 	boolean isEmpty() {
 		return this.effectVector.length == 0;
+	}
+
+	boolean isScalar() {
+		return this.effectVector.length == 2
+		&& this.effectVector[1] == 0;
+	}
+
+	boolean isParameterized() {
+		return this.effectVector.length == 3
+		&& this.effectVector[2] == 0
+		&& this.effectVector[0] < 0;
 	}
 }
