@@ -326,7 +326,7 @@ public final class Transductor implements ITransductor, IOutput {
 		final int[] aftereffects = new int[32];
 		TransducerState transducer = null;
 		long msumCounter = 0, mproductCounter = 0, errorCounter = 0;
-		int errorInput = -1, signalInput = -1;
+		int errorInput = -1, signalInput = 0;
 		int token = -1, state = 0, last = -1;
 		Input input = Input.empty;
 		this.metrics.reset();
@@ -340,17 +340,15 @@ T:		do {
 				state = transducer.state;
 I:			do {
 					// get next input token
-					if (signalInput == 0) {
-						token = Byte.toUnsignedInt(input.array[input.position++]);
-					} else if (signalInput > 0) {
+					if (signalInput > 0) {
 						token = signalInput;
-						signalInput = 0;
+					} else if (input.position < input.limit) {
+						token = Byte.toUnsignedInt(input.array[input.position++]);
 					} else {
-						signalInput = 0;
-						input = this.inputStack.peek();
-						while (input != Input.empty && !input.hasRemaining()) {
+						do {
 							input = this.inputStack.pop();
 						}
+						while (!input.hasRemaining() && input != Input.empty);
 						if (input != Input.empty) {
 							switch (Base.getReferenceType(input.array)) {
 							case Base.TYPE_REFERENCE_SIGNAL:
@@ -378,6 +376,7 @@ I:			do {
 					}
 					
 					// absorb self-referencing (msum) or sequential (mproduct) transitions with nil effect
+					signalInput = 0;
 					switch (this.matchMode) {
 					case Mnone:
 						break;
@@ -390,7 +389,6 @@ I:			do {
 									token = Byte.toUnsignedInt(input.array[input.position++]);
 								} else {
 									msumCounter += (input.position - pos);
-									signalInput = -1;
 									continue I;
 								}
 							}
@@ -411,7 +409,6 @@ I:			do {
 										token = Byte.toUnsignedInt(input.array[input.position++]);
 									} else {
 										this.matchPosition = mpos;
-										signalInput = -1;
 										continue I;
 									}
 								} else {
@@ -429,15 +426,8 @@ I:			do {
 						break;
 					}
 
-					// flag input stack condition if at end of frame
-					if (input.position >= input.limit) {
-						signalInput = -1;
-					}
-
 					// trap runs in (nil* paste*)* effector space
 					int action = NUL;
-					int parameter = -1;
-					int index = 0;
 S:				do {
 						last = state;
 						// filter token to equivalence ordinal and map ordinal and state to next state and action
@@ -452,49 +442,42 @@ S:				do {
 							action = NIL;
 							break;
 						default:
-							if (action < NUL) {
-								index = -action;
-								action = effectorVector[index++];
-							} else if (action >= 0x10000) {
-								parameter = action & 0xffff;
-								action = (action >> 16) & 0xffff;
-							}
 							break S;
 						}
-						if (signalInput == 0) {
+						if (input.position < input.limit) {
 							token = input.array[input.position++];
-							if (input.position >= input.limit) {
-								signalInput = -1;
-							}
 						} else {
-							if (token >= Base.RTE_SIGNAL_BASE) {
-								signalInput = -1;
-							}
-							break S;
+							continue I;
 						}
 					} while (true);
 
-					// continue at top of input loop after a run of singleton (nil* paste*)* nil effects
-					if (index == 0 && action == NIL) {
-						continue;
+					assert action != NIL && action != PASTE;
+
+					int index = 0;
+					int parameter = -1;
+					if (action < 0) {
+						index = -action;
+						action = effectorVector[index++];
+						if (action < 0) {
+							parameter = effectorVector[index++];
+							action *= -1;
+						}
+					} else if (action >= 0x10000) {
+						parameter = action & 0xffff;
+						action >>>= 16;
 					}
 
 					// invoke a vector of effectors and record side effects on transducer and input stacks
 					aftereffects[0] = 0;
 					do {
 						int effect = IEffector.RTX_NONE;
-						if ((action == -MSUM) || (action == -MPRODUCT)) {
-							action = -1 * action;
-						}
-						if (parameter >= 0) {
-							effect = ((IParameterizedEffector<?,?>)this.effectors[action]).invoke(parameter);
-						} else {
+						if ((parameter < 0) || (action == MSUM) || (action == MPRODUCT)) {
 							switch (action) {
 							default:
-								if (action > 0) {
+								if (parameter < 0) {
 									effect = this.effectors[action].invoke();
 								} else {
-									effect = ((IParameterizedEffector<?,?>)this.effectors[(-1)*action]).invoke(effectorVector[index++]);
+									effect = ((IParameterizedEffector<?,?>)this.effectors[action]).invoke(parameter);
 								}
 								break;
 							case NUL:
@@ -560,7 +543,7 @@ S:				do {
 							case MSUM:
 								if (this.matchMode == Mnone) {
 									this.matchMode = Msum;
-									this.matchSum = this.matchSumParameters[effectorVector[index++]];
+									this.matchSum = this.matchSumParameters[parameter];
 								} else {
 									throw new EffectorException(String.format("Illegal attempt to override match mode %s with MSUM",
 										this.matchMode == Mproduct ? "MPRODUCT" : "MSUM"));
@@ -569,7 +552,7 @@ S:				do {
 							case MPRODUCT:
 								if (this.matchMode == Mnone) {
 									this.matchMode = Mproduct;
-									this.matchProduct = this.matchProductParameters[effectorVector[index++]];
+									this.matchProduct = this.matchProductParameters[parameter];
 									this.matchPosition = 0;
 								} else {
 									throw new EffectorException(String.format("Illegal attempt to override match mode %s with MPRODUCT",
@@ -577,12 +560,23 @@ S:				do {
 								}
 								break;
 							}
+						} else {
+							effect = ((IParameterizedEffector<?,?>)this.effectors[action]).invoke(parameter);
 						}
 						if (effect != 0) {
 							aftereffects[++aftereffects[0]] = effect;
 						}
-						// invariant: effector vector at index 0 holds NUL, so singletons (index == 0) always break out of loop here
-						action = parameter < 0 ? effectorVector[index++] : NUL;
+						if (index > 0) {
+							action = effectorVector[index++];
+							if (action < 0) {
+								parameter = effectorVector[index++];
+								action *= -1;
+							} else {
+								parameter = -1;
+							}
+						} else {
+							break;
+						}
 					} while (action != NUL);
 
 					// check for transducer or input stack adjustmnent
@@ -592,7 +586,7 @@ S:				do {
 							switch (aftereffects[i]) {
 							case IEffector.RTX_PUSH:
 							case IEffector.RTX_POP:
-								signalInput = -1;
+								input = Input.empty;
 								break;
 							case IEffector.RTX_START:
 								assert transducer == this.transducerStack.get(this.transducerStack.tos()-1);
