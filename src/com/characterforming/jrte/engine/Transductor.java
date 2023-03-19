@@ -376,6 +376,7 @@ I:			do {
 					}
 					
 					// absorb self-referencing (msum) or sequential (mproduct) transitions with nil effect
+					errorInput = -1;
 					signalInput = 0;
 					switch (this.matchMode) {
 					case Mnone:
@@ -412,8 +413,8 @@ I:			do {
 										continue I;
 									}
 								} else {
+									errorInput = token;
 									token = nulSignal;
-									++errorCounter;
 									break;
 								}
 							}
@@ -481,9 +482,12 @@ S:				do {
 								}
 								break;
 							case NUL:
-								if (token != nulSignal && token != eosSignal) {
+								if ((token != nulSignal && token != eosSignal)
+								|| ((token == nulSignal) && (errorInput >= 0))) {
 									signalInput = nulSignal;
-									errorInput = token;
+									if (errorInput < 0) {
+										errorInput = token;
+									}
 									++errorCounter;
 								} else {
 									break T;
@@ -530,9 +534,7 @@ S:				do {
 								this.inputStack.mark();
 								break;
 							case RESET:
-								if (this.inputStack.reset()) {
-									effect = IEffector.RTX_PUSH;
-								}
+								input = this.inputStack.reset();
 								break;
 							case PAUSE:
 								effect = IEffector.RTX_PAUSE;
@@ -810,6 +812,9 @@ S:				do {
 		top.state = state;
 		last /= top.inputEquivalents;
 		state /= top.inputEquivalents;
+		if (errorInput < 0) {
+			errorInput = Signal.nul.signal();
+		}
 		StringBuilder output = new StringBuilder(256);
 		output.append(String.format("Domain error on (%1$d~%2$d) in %3$s [%4$d]->[%5$d]%6$s,\tTransducer stack:%7$s",
 			errorInput, top.inputFilter[errorInput], top.name, last, state, Base.lineEnd, Base.lineEnd));
