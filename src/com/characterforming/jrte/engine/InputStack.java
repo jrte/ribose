@@ -151,9 +151,8 @@ final class InputStack {
 					assert !Base.isReferenceOrdinal(input.array);
 					this.addMarked(this.stack[this.tos--]);
 					input.copy(this.getMarked());
-					this.bytesPopped += (input.limit - input.position);
-				} else if (input.position == 0) {
-					this.bytesPopped += (input.limit - input.position);
+				} else if (this.tos == 0 && input.position == 0) {
+						this.bytesPopped += (input.limit - input.position);
 				}
 				return input;
 			}
@@ -167,7 +166,6 @@ final class InputStack {
 			assert this.bom != this.tom;
 			assert this.stack[0].array == this.marked[this.bom].array;
 			input = this.push(this.getMarked());
-			this.bytesPopped += (input.limit - input.position);
 			break;
 		case marked:
 			Input marked = this.addMarked(this.stack[0]);

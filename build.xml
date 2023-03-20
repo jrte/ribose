@@ -28,7 +28,7 @@
 
 <project name="ribose-build" default="ci-test" basedir="." xmlns:if="ant:if" xmlns:unless="ant:unless">
   <property environment="env"/>
-	<property name="ribose.version" value="ribose-0.0.1"/>
+	<property name="ribose.version" value="ribose-0.0.2"/>
   <property name="jdk" value="${env.JAVA_HOME}"/>
 	<property name="java.source.dir" value="src"/>
 	<property name="java.test.dir" value="test"/>

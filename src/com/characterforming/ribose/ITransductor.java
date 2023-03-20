@@ -232,11 +232,14 @@ public interface ITransductor extends ITarget {
 		/** Number of {@code nul} signals injected */
 		public long errors;
 
-		/** Number of bytes comsumed in mproduct traps */
+		/** Number of bytes consumed in mproduct traps */
 		public long product;
 
-		/** Number of bytes comsumed in msum traps */
+		/** Number of bytes consumed in msum traps */
 		public long sum;
+
+		/** Number of bytes consumed in mscan traps */
+		public long scan;
 
 		/** Constructor */
 		public Metrics() {
@@ -249,7 +252,7 @@ public interface ITransductor extends ITarget {
 		 * @return a reference to the reset metrics
 		 */
 		public Metrics reset() {
-			bytes = errors = product = sum = 0;
+			bytes = errors = product = sum = scan = 0;
 			return this;
 		}
 	}

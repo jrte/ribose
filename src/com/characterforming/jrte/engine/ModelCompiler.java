@@ -482,16 +482,19 @@ public class ModelCompiler implements ITarget {
 		final int nulEquivalent = this.inputEquivalenceIndex[nulSignal];
 		final int msumOrdinal = this.model.getEffectorOrdinal(Bytes.encode(this.encoder, "msum"));
 		final int mproductOrdinal = this.model.getEffectorOrdinal(Bytes.encode(this.encoder, "mproduct"));
+		final int mscanOrdinal = this.model.getEffectorOrdinal(Bytes.encode(this.encoder, "mscan"));
+		final int[][] msumStateEffects = new int[nStates][];
 		final int[][] mproductStateEffects = new int[nStates][];
 		final int[][] mproductEndpoints = new int[nStates][2];
-		final int[][] msumStateEffects = new int[nStates][];
-		Arrays.fill(mproductStateEffects, null);
+		final int[][] mscanStateEffects = new int[nStates][];
 		Arrays.fill(msumStateEffects, null);
+		Arrays.fill(mproductStateEffects, null);
+		Arrays.fill(mscanStateEffects, null);
 	// msum instrumentation
 		byte[][] equivalentInputs = new byte[nInputs][transitionMatrix.length];
 		int[] equivalenceLengths = new int[nInputs];
 		Arrays.fill(equivalenceLengths, 0);
-		for (int token = 0; token < transitionMatrix.length; token++) {
+		for (int token = 0; token < nulSignal; token++) {
 			int input = this.inputEquivalenceIndex[token];
 			equivalentInputs[input][equivalenceLengths[input]++] = (byte)token;
 		}
@@ -499,16 +502,31 @@ public class ModelCompiler implements ITarget {
 			int selfIndex = 0, selfCount = 0;
 			byte[] selfBytes = new byte[nulSignal];
 			Arrays.fill(selfBytes, (byte)0);
+			boolean[] allBytes = new boolean[nulSignal];
+			Arrays.fill(allBytes, false);
 			for (int input = 0; input < nInputs; input++) {
 				int[] transition = this.kernelMatrix[input][state];
 				if (transition[0] == state && transition[1] == 1) {
 					for (int index = 0; index < equivalenceLengths[input]; index++) {
-						selfBytes[selfIndex++] = equivalentInputs[input][index];
+						selfBytes[selfIndex] = equivalentInputs[input][index];
+						allBytes[Byte.toUnsignedInt(selfBytes[selfIndex])] = true;
+						selfIndex++;
 					}
 					selfCount += equivalenceLengths[input];
 				}
 			}
-			if (selfCount > 64) {
+			if (selfCount >= 255) {
+				assert mscanStateEffects[state] == null;
+				for (int token = 0; token < nulSignal; token++) {
+					if (!allBytes[token]) {
+						byte[][] mscanParameterBytes = { new byte[] { (byte)token } };
+						int mscanParameterIndex = this.model.compileParameters(mscanOrdinal, mscanParameterBytes);
+						mscanStateEffects[state] = new int[] { -1 * mscanOrdinal, mscanParameterIndex, 0 };
+						break;
+					}
+				}
+			} else if (selfCount > 64) {
+				assert msumStateEffects[state] == null;
 				byte[][] msumParameterBytes = { Arrays.copyOf(selfBytes, selfCount) };
 				int msumParameterIndex = this.model.compileParameters(msumOrdinal, msumParameterBytes);
 				msumStateEffects[state] = new int[] { -1 * msumOrdinal, msumParameterIndex, 0 };
@@ -620,9 +638,11 @@ public class ModelCompiler implements ITarget {
 			int[] vector = entry.getKey().getInts();
 			effectVectors[entry.getValue()] = vector;
 		}
-		effectVectors = instrument(msumOrdinal, effectVectors, msumStateEffects);
+		effectVectors = instrumentSumVectors(msumOrdinal, effectVectors, msumStateEffects);
 		assertKernelSanity();
-		effectVectors = instrument(mproductOrdinal, effectVectors, mproductStateEffects, mproductEndpoints);
+		effectVectors = instrumentSumVectors(mscanOrdinal, effectVectors, mscanStateEffects);
+		assertKernelSanity();
+		effectVectors = instrumentProductVectors(mproductOrdinal, effectVectors, mproductStateEffects, mproductEndpoints);
 		assertKernelSanity();
 		int[] effectorVectorPosition = new int[this.effectorVectorMap.size()];
 		Arrays.fill(effectorVectorPosition, -1);
@@ -783,7 +803,7 @@ public class ModelCompiler implements ITarget {
 		return fromState;
 	}
 
-	private int[][] instrument(int msumOrdinal, int[][] effectVectors, int[][] msumEffects) {
+	private int[][] instrumentSumVectors(int msumOrdinal, int[][] effectVectors, int[][] msumEffects) {
 		int nInputs = this.kernelMatrix.length;
 		int nStates = this.kernelMatrix[0].length;
 		for (int input = 0; input < nInputs; input++) {
@@ -824,7 +844,7 @@ public class ModelCompiler implements ITarget {
 		return effectVectors;
 	}
 
-	private int[][] instrument(int mproductOrdinal, int[][] effectVectors, int[][] mproductEffects, int[][] mproductEndpoints) {
+	private int[][] instrumentProductVectors(int mproductOrdinal, int[][] effectVectors, int[][] mproductEffects, int[][] mproductEndpoints) {
 		int nInputs = this.kernelMatrix.length;
 		int nStates = this.kernelMatrix[0].length;
 		for (int input = 0; input < nInputs; input++) {

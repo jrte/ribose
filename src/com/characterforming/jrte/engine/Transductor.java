@@ -91,10 +91,13 @@ public final class Transductor implements ITransductor, IOutput {
 	private static final int MSUM = 16;
 	@SuppressWarnings("unused")
 	private static final int MPRODUCT = 17;
+	@SuppressWarnings("unused")
+	private static final int MSCAN = 18;
 
 	private final int Mnone = 0;
 	private final int Msum = 1;
 	private final int Mproduct = 2;
+	private final int Mscan = 3;
 
 	private final Model model;
 	private final TargetMode mode;
@@ -106,10 +109,9 @@ public final class Transductor implements ITransductor, IOutput {
 	private final InputStack inputStack;
 	private int matchMode;
 	private long[] matchSum;
-	private long[][] matchSumParameters;
 	private byte[] matchProduct;
 	private int matchPosition;
-	private byte[][] matchProductParameters;
+	private byte matchByte;
 	private final CharsetDecoder decoder;
 	private final CharsetEncoder encoder;
 	private OutputStream output;
@@ -134,10 +136,9 @@ public final class Transductor implements ITransductor, IOutput {
 		this.selected = null;
 		this.matchMode = Mnone;
 		this.matchSum = null;
-		this.matchSumParameters = null;
 		this.matchProduct = null;
 		this.matchPosition = 0;
-		this.matchProductParameters = null;
+		this.matchByte = 0;
 		this.decoder = Base.newCharsetDecoder();
 		this.encoder = Base.newCharsetEncoder();
 		this.rtcLogger = Base.getCompileLogger();
@@ -182,8 +183,9 @@ public final class Transductor implements ITransductor, IOutput {
 			/*14*/ new PauseEffector(this),
 			/*15*/ new StopEffector(this),
 			/*16*/ new MsumEffector(this),
-			/*17*/ new MproductEffector(this)
-			};
+			/*17*/ new MproductEffector(this),
+			/*18*/ new MscanEffector(this)
+		};
 	} else if (this.model.getModelVersion().equals(Base.RTE_PREVIOUS)) {
 			return new IEffector<?>[] {
 			/* 0*/ new InlineEffector(this, "0"),
@@ -201,8 +203,11 @@ public final class Transductor implements ITransductor, IOutput {
 			/*12*/ new InlineEffector(this, "reset"),
 			/*13*/ new StartEffector(this),
 			/*14*/ new PauseEffector(this),
-			/*15*/ new StopEffector(this)
-			};
+			/*15*/ new StopEffector(this),
+			/*16*/ new MsumEffector(this),
+			/*17*/ new MproductEffector(this),
+			/*18*/ new MscanEffector(this)
+		};
 		} else {
 			throw new TargetBindingException(String.format("Unsupported ribose model version '%s'.",
 				this.model.getModelVersion()));
@@ -325,7 +330,7 @@ public final class Transductor implements ITransductor, IOutput {
 		final int eosSignal = Signal.eos.signal();
 		final int[] aftereffects = new int[32];
 		TransducerState transducer = null;
-		long msumCounter = 0, mproductCounter = 0, errorCounter = 0;
+		long msumCounter = 0, mproductCounter = 0, mscanCounter = 0, errorCounter = 0;
 		int errorInput = -1, signalInput = 0;
 		int token = -1, state = 0, last = -1;
 		Input input = Input.empty;
@@ -422,6 +427,22 @@ I:			do {
 						}
 						this.matchMode = Mnone;
 						break;
+					case Mscan:
+						if (token < nulSignal) {
+							int pos = input.position;
+							final byte matchByte = this.matchByte;
+							while (token != matchByte) {
+								if (input.position < input.limit) {
+									token = Byte.toUnsignedInt(input.array[input.position++]);
+								} else {
+									mscanCounter += (input.position - pos);
+									continue I;
+								}
+							}
+							mscanCounter += (input.position - pos);
+						}
+						this.matchMode = Mnone;
+						break;
 					default:
 						assert false;
 						break;
@@ -472,7 +493,7 @@ S:				do {
 					aftereffects[0] = 0;
 					do {
 						int effect = IEffector.RTX_NONE;
-						if ((parameter < 0) || (action == MSUM) || (action == MPRODUCT)) {
+						if (parameter < 0) {
 							switch (action) {
 							default:
 								if (parameter < 0) {
@@ -541,25 +562,6 @@ S:				do {
 								break;
 							case STOP:
 								effect = popTransducer();
-								break;
-							case MSUM:
-								if (this.matchMode == Mnone) {
-									this.matchMode = Msum;
-									this.matchSum = this.matchSumParameters[parameter];
-								} else {
-									throw new EffectorException(String.format("Illegal attempt to override match mode %s with MSUM",
-										this.matchMode == Mproduct ? "MPRODUCT" : "MSUM"));
-								}
-								break;
-							case MPRODUCT:
-								if (this.matchMode == Mnone) {
-									this.matchMode = Mproduct;
-									this.matchProduct = this.matchProductParameters[parameter];
-									this.matchPosition = 0;
-								} else {
-									throw new EffectorException(String.format("Illegal attempt to override match mode %s with MPRODUCT",
-										this.matchMode == Mproduct ? "MPRODUCT" : "MSUM"));
-								}
 								break;
 							}
 						} else {
@@ -648,6 +650,7 @@ S:				do {
 			this.metrics.errors = errorCounter;
 			this.metrics.product = mproductCounter;
 			this.metrics.sum = msumCounter;
+			this.metrics.scan = mscanCounter;
 		}
 
 		// Transduction is paused or stopped; if paused it will resume on next call to run()
@@ -720,8 +723,6 @@ S:				do {
 
 	void setEffectors(IEffector<?>[] effectors) {
 		this.effectors = effectors;
-		this.matchSumParameters = (long[][])((IParameterizedEffector<?,?>)this.effectors[MSUM]).getParameters();
-		this.matchProductParameters = (byte[][])((IParameterizedEffector<?,?>)this.effectors[MPRODUCT]).getParameters();
 	}
 
 	void setNamedValueOrdinalMap(Map<Bytes, Integer> namedValueOrdinalMap) {
@@ -1259,8 +1260,14 @@ S:				do {
 
 		@Override
 		public int invoke(final int parameterIndex) throws EffectorException {
-			assert false;
-			throw new EffectorException("The msum(P) effector is inlined");
+			if (super.target.matchMode == Mnone) {
+				super.target.matchMode = Msum;
+				super.target.matchSum = super.parameters[parameterIndex];
+			} else {
+				throw new EffectorException(String.format("Illegal attempt to override match mode %s with MSUM",
+					super.target.matchMode == Mproduct ? "MPRODUCT" : "MSUM"));
+			}
+			return IEffector.RTX_NONE;
 		}
 
 		@Override
@@ -1352,8 +1359,15 @@ S:				do {
 
 		@Override
 		public int invoke(final int parameterIndex) throws EffectorException {
-			assert false;
-			throw new EffectorException("The mproduct(P) effector is inlined");
+			if (super.target.matchMode == Mnone) {
+				super.target.matchMode = Mproduct;
+				super.target.matchProduct = super.parameters[parameterIndex];
+				super.target.matchPosition = 0;
+			} else {
+				throw new EffectorException(String.format("Illegal attempt to override match mode %s with MPRODUCT",
+					super.target.matchMode == Mproduct ? "MPRODUCT" : "MSUM"));
+			}
+			return IEffector.RTX_NONE;
 		}
 
 		@Override
@@ -1382,6 +1396,52 @@ S:				do {
 				}
 			}
 			return sb.toString();
+		}
+	}
+
+	private final class MscanEffector extends BaseParameterizedEffector<Transductor, Byte> {
+		private MscanEffector(final Transductor transductor) {
+			super(transductor, "mscan");
+		}
+
+		@Override
+		public int invoke() throws EffectorException {
+			return IEffector.RTX_NONE;
+		}
+
+		@Override
+		public int invoke(final int parameterIndex) throws EffectorException {
+			if (super.target.matchMode == Mnone) {
+				super.target.matchMode = Mscan;
+				super.target.matchByte = super.parameters[parameterIndex];
+			} else {
+				throw new EffectorException("Illegal attempt to override match mode %s with MSCAN");
+			}
+			return IEffector.RTX_NONE;
+		}
+
+		@Override
+		public void newParameters(int parameterCount) {
+			super.parameters = new Byte[parameterCount];
+		}
+	
+		@Override
+		public Byte compileParameter(final int parameterIndex, final byte[][] parameterList) throws TargetBindingException {
+			if (parameterList.length != 1) {
+				throw new TargetBindingException("The mproduct effector accepts at most one parameter");
+			}
+			super.setParameter(parameterIndex, parameterList[0][0]);
+			return super.parameters[parameterIndex];
+ 		}
+
+		@Override
+		public String showParameter(int parameterIndex) {
+			byte scanbyte = super.parameters[parameterIndex];
+			if (32 < scanbyte && 127 > scanbyte) {
+				return String.format("%c", (char)scanbyte);
+			} else {
+				return String.format("#%x", Byte.toUnsignedInt(scanbyte));
+			}
 		}
 	}
 }
