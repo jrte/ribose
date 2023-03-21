@@ -24,7 +24,7 @@ final class TransducerState {
 	final int[] countdown;
 	int state;
 	int[] inputFilter;
-	int[][] transitionMatrix;
+	long[] transitionMatrix;
 	int[] effectorVector;
 	int inputEquivalents;
 	String name;

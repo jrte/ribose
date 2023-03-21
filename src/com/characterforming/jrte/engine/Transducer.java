@@ -29,17 +29,30 @@ final class Transducer {
 	private final String name;
 	private final String targetName;
 	private final int[] inputFilter;
-	private final int[][] transitionMatrix;
+	private final long[] transitionMatrix;
 	private final int[] effectorVector;
 	int inputEquivalents;
 
-	Transducer(final String name, final String targetName, final int[] inputFilter, final int[][] transitionMatrix, final int[] effectorVector) throws ModelException {
+	Transducer(String name, String targetName, int[] inputFilter, long[] transitionMatrix, int[] effectorVector)
+	throws ModelException {
 		this.name = name;
 		this.targetName = targetName;
 		this.inputFilter = inputFilter;
 		this.transitionMatrix = transitionMatrix;
 		this.effectorVector = effectorVector;
 		this.inputEquivalents = 0;
+	}
+
+	static long transition(int state, int effect) {
+		return ((long)effect << 32) | (long)state;
+	}
+
+	static int state(long transition) {
+		return (int)(transition & 0xffffffff);
+	}
+
+	static int action(long transition) {
+		return (int)(transition >>> 32);
 	}
 
 	String getName() {
@@ -50,7 +63,7 @@ final class Transducer {
 		return this.targetName;
 	}
 
-	int[][] getTransitionMatrix() {
+	long[] getTransitionMatrix() {
 		return this.transitionMatrix;
 	}
 

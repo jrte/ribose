@@ -340,7 +340,7 @@ T:		do {
 				// start a pushed transducer
 				transducer = this.transducerStack.peek();
 				final int[] inputFilter = transducer.inputFilter;
-				final int[][] transitionMatrix = transducer.transitionMatrix;
+				final long[] transitionMatrix = transducer.transitionMatrix;
 				final int[] effectorVector = transducer.effectorVector;
 				state = transducer.state;
 I:			do {
@@ -453,9 +453,9 @@ I:			do {
 S:				do {
 						last = state;
 						// filter token to equivalence ordinal and map ordinal and state to next state and action
-						final int transition[] = transitionMatrix[state + inputFilter[token]];
-						state = transition[0];
-						action = transition[1];
+						final long transition = transitionMatrix[state + inputFilter[token]];
+						state = Transducer.state(transition);
+						action = Transducer.action(transition);
 						if (action == PASTE) {
 							this.selected.append((byte)token);
 						} else if (action != NIL) {
@@ -778,9 +778,9 @@ S:				do {
 			int s = t.state / t.inputEquivalents;
 			output.append(String.format("\t\t%1$20s state:%2$3d; accepting", t.name, s));
 			for (int j = 0; j < top.inputEquivalents; j++) {
-				if (t.transitionMatrix[t.state + j][1] != Transductor.NUL) {
+				if (Transducer.action(t.transitionMatrix[t.state + j]) != Transductor.NUL) {
 					output.append(String.format(" (%1$d)->[%2$d]", j,
-						t.transitionMatrix[t.state + j][0] / t.inputEquivalents));
+						Transducer.state(t.transitionMatrix[t.state + j]) / t.inputEquivalents));
 				}
 			}
 			output.append(Base.lineEnd);

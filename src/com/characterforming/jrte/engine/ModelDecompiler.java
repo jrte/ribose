@@ -45,7 +45,7 @@ public class ModelDecompiler {
 		Transducer trex = this.model.loadTransducer(this.model.getTransducerOrdinal(Bytes.encode(encoder, transducerName)));
 		int[] effectorVectors = trex.getEffectorVector();
 		int[] inputEquivalenceIndex = trex.getInputFilter();
-		int[][] transitionMatrix = trex.getTransitionMatrix();
+		long[] transitionMatrix = trex.getTransitionMatrix();
 		int inputEquivalentCount = trex.getInputEquivalentsCount();
 		Set<Map.Entry<Bytes, Integer>> effectorOrdinalMap = this.model.getEffectorOrdinalMap().entrySet();
 		String[] effectorNames = new String[effectorOrdinalMap.size()];
@@ -102,8 +102,8 @@ public class ModelDecompiler {
 		for (int i = 0; i < transitionMatrix.length; i++) {
 			int from = i / inputEquivalentCount;
 			int equivalent = i % inputEquivalentCount;
-			int to = transitionMatrix[i][0] / inputEquivalentCount;
-			int effect = transitionMatrix[i][1];
+			int to = Transducer.state(transitionMatrix[i]) / inputEquivalentCount;
+			int effect = Transducer.action(transitionMatrix[i]);
 			assert (effect != 0) || (to == from);
 			if ((to != from) || (effect != 0)) {
 				System.out.printf("%3d %3d -> %3d", from, equivalent, to);

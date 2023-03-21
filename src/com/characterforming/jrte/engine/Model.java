@@ -664,7 +664,7 @@ public final class Model implements AutoCloseable {
 							final String name = this.getString();
 							final String targetName = this.getString();
 							final int[] inputFilter = this.getIntArray();
-							final int[][] transitionMatrix = this.getTransitionMatrix();
+							final long[] transitionMatrix = this.getTransitionMatrix();
 							final int[] effectorVector = this.getIntArray();
 							this.transducerObjectIndex[transducerOrdinal] = new Transducer(
 								name, targetName,	inputFilter, transitionMatrix, effectorVector);
@@ -752,22 +752,20 @@ public final class Model implements AutoCloseable {
 		}
 	}
 
-	int[][] getTransitionMatrix() throws ModelException {
-		int[][] matrix;
+	long[] getTransitionMatrix() throws ModelException {
+		long[] matrix;
 		long position = 0;
 		try {
 			position = this.io.getFilePointer();
 			final int rows = this.io.readInt();
 			final int columns = this.io.readInt();
-			matrix = new int[columns * rows][2];
+			matrix = new long[columns * rows];
 			// matrix is an ExS array, column index ranges over E input equivalence ordinals, row index over S states
 			for (int column = 0; column < columns; column++) {
 				for (int row = 0; row < rows; row++) {
-					final int state = column * rows;
-					final int cell = state + row;
 					// Preset to invoke nul() effector on domain error, injects nul signal for next input
-					matrix[cell][0] = state;
-					matrix[cell][1] = 0;
+					final int toState = column * rows;
+					matrix[toState + row] = Transducer.transition(toState, 0);
 				}
 			}
 			for (int row = 0; row < rows; row++) {
@@ -777,7 +775,7 @@ public final class Model implements AutoCloseable {
 					final int fromState = column * rows;
 					final int toState = this.io.readInt() * rows;
 					final int effect = this.io.readInt();
-					matrix[fromState + row] = new int[] { toState, effect };
+					matrix[fromState + row] = Transducer.transition(toState, effect);
 				}
 			}
 		} catch (final IOException e) {
