@@ -281,7 +281,7 @@ public final class Transductor implements ITransductor, IOutput {
 	public ITransductor start(final Bytes transducerName) throws ModelException {
 		if (this.status() != Status.NULL) {
 			this.transducerStack.push(this.model.loadTransducer(this.model.getTransducerOrdinal(transducerName)));
-			this.select(Model.ANONYMOUS_VALUE_ORDINAL);
+			this.selected = this.namedValueHandles[Model.ANONYMOUS_VALUE_ORDINAL];
 			this.clear();
 		}
 		return this;
@@ -742,38 +742,6 @@ S:				do {
 		}
 	}
 
-	private int select(final int selectionIndex) {
-		this.selected = this.namedValueHandles[selectionIndex];
-		return IEffector.RTX_NONE;
-	}
-
-	private int paste(final byte[] bytes, int start, int length) {
-		this.selected.append(bytes);
-		return IEffector.RTX_NONE;
-	}
-
-	private int copy(final int nameIndex) {
-		this.selected.append(this.namedValueHandles[nameIndex]);
-		return IEffector.RTX_NONE;
-	}
-
-	private int cut(final int nameIndex) {
-		this.copy(nameIndex);
-		this.namedValueHandles[nameIndex].clear();
-		return IEffector.RTX_NONE;
-	}
-
-	private int clear(final int nameIndex) {
-		assert (nameIndex >= 0) || (nameIndex == -1);
-		int index = (nameIndex >= 0) ? nameIndex : this.selected.getOrdinal();
-		if (index != Model.CLEAR_ANONYMOUS_VALUE) {
-			this.namedValueHandles[index].clear();
-		} else {
-			clear();
-		}
-		return IEffector.RTX_NONE;
-	}
-
 	private int clear() {
 		for (NamedValue nv : this.namedValueHandles) {
 			nv.clear();
@@ -781,24 +749,7 @@ S:				do {
 		return IEffector.RTX_NONE;
 	}
 
-	private int count(final int[] countdown) {
-		assert countdown.length == 2;
-		TransducerState tos = this.transducerStack.peek();
-		tos.countdown[0] = countdown[0];
-		tos.countdown[1] = countdown[1];
-		return IEffector.RTX_COUNT;
-	}
-
-	private int in(final Integer signal) {
-		return (signal << 16) | IEffector.RTX_SIGNAL;
-	}
-
-	private int in(final byte[][] input) {
-		this.inputStack.put(input);
-		return IEffector.RTX_PUSH;
-	}
-
-private int pushTransducer(final Integer transducerOrdinal) throws EffectorException {
+	private int pushTransducer(final Integer transducerOrdinal) throws EffectorException {
 		try {
 			this.transducerStack.push(this.model.loadTransducer(transducerOrdinal));
 			return IEffector.RTX_START;
@@ -908,13 +859,13 @@ private int pushTransducer(final Integer transducerOrdinal) throws EffectorExcep
 			for (byte[] bytes : super.getParameter(parameterIndex)) {
 				if (Base.getReferenceType(bytes) == Base.TYPE_REFERENCE_VALUE) {
 					int valueOrdinal = Base.decodeReferenceOrdinal(Base.TYPE_REFERENCE_VALUE, bytes);
-					NamedValue value = (NamedValue)super.getTarget().getNamedValue(valueOrdinal);
+					NamedValue value = (NamedValue)getNamedValue(valueOrdinal);
 					assert value != null;
 					if (value != null) {
-						super.getTarget().paste(value.getValue(), 0, value.getLength());
+						selected.append(value.getValue());
 					}
 				} else {
-					super.getTarget().paste(bytes, 0, bytes.length);
+					selected.append(bytes);
 				}
 			}
 			return IEffector.RTX_NONE;
@@ -928,13 +879,17 @@ private int pushTransducer(final Integer transducerOrdinal) throws EffectorExcep
 
 		@Override
 		public int invoke() throws EffectorException {
-			return super.getTarget().select(0);
+			selected = namedValueHandles[Model.ANONYMOUS_VALUE_ORDINAL];
+			return IEffector.RTX_NONE;
 		}
 
 		@Override
 		public int invoke(final int parameterIndex) throws EffectorException {
 			int valueOrdinal = super.getParameter(parameterIndex);
-			return (valueOrdinal != 1) ? super.getTarget().select(valueOrdinal) : IEffector.RTX_NONE;
+			if (valueOrdinal != 1) {
+				selected = namedValueHandles[valueOrdinal];
+			}
+			return IEffector.RTX_NONE;
 		}
 	}
 
@@ -948,11 +903,14 @@ private int pushTransducer(final Integer transducerOrdinal) throws EffectorExcep
 			assert false;
 			return IEffector.RTX_NONE;
 		}
-
+		
 		@Override
 		public int invoke(final int parameterIndex) throws EffectorException {
 			int valueOrdinal = super.getParameter(parameterIndex);
-			return (valueOrdinal != 1) ? super.getTarget().copy(valueOrdinal) : IEffector.RTX_NONE;
+			if (valueOrdinal != 1) {
+				selected.append(namedValueHandles[valueOrdinal]);
+			}
+			return IEffector.RTX_NONE;
 		}
 	}
 
@@ -963,13 +921,17 @@ private int pushTransducer(final Integer transducerOrdinal) throws EffectorExcep
 
 		@Override
 		public int invoke() throws EffectorException {
-			return super.getTarget().cut(0);
+			return this.invoke(0);
 		}
 
 		@Override
 		public int invoke(final int parameterIndex) throws EffectorException {
 			int valueOrdinal = super.getParameter(parameterIndex);
-			return (valueOrdinal != 1) ? super.getTarget().cut(valueOrdinal) : IEffector.RTX_NONE;
+			if (valueOrdinal != 1) {
+				selected.append(namedValueHandles[valueOrdinal]);
+				namedValueHandles[valueOrdinal].clear();
+			}
+			return IEffector.RTX_NONE;
 		}
 	}
 
@@ -980,13 +942,20 @@ private int pushTransducer(final Integer transducerOrdinal) throws EffectorExcep
 
 		@Override
 		public int invoke() throws EffectorException {
-			return super.getTarget().clear(-1);
+			return clear();
 		}
 
 		@Override
 		public int invoke(final int parameterIndex) throws EffectorException {
 			final int nameIndex = super.getParameter(parameterIndex);
-			return super.getTarget().clear(nameIndex);
+			assert (nameIndex >= 0) || (nameIndex == -1);
+			int index = (nameIndex >= 0) ? nameIndex : selected.getOrdinal();
+			if (index != Model.CLEAR_ANONYMOUS_VALUE) {
+				namedValueHandles[index].clear();
+			} else {
+				clear();
+			}
+			return IEffector.RTX_NONE;
 		}
 	}
 
@@ -1002,12 +971,12 @@ private int pushTransducer(final Integer transducerOrdinal) throws EffectorExcep
 
 		@Override
 		public int invoke() throws EffectorException {
-			return super.getTarget().in(Signal.nil.signal());
+			return (Signal.nil.signal() << 16) | IEffector.RTX_SIGNAL;
 		}
 
 		@Override
 		public int invoke(final int parameterIndex) throws EffectorException {
-			return super.getTarget().in(super.getParameter(parameterIndex));
+			return (super.parameters[parameterIndex] << 16) | IEffector.RTX_SIGNAL;
 		}
 
 		@Override
@@ -1018,7 +987,7 @@ private int pushTransducer(final Integer transducerOrdinal) throws EffectorExcep
 			assert !Base.isReferenceOrdinal(parameterList[0]);
 			if (Base.getReferentType(parameterList[0]) == Base.TYPE_REFERENCE_SIGNAL) {
 				final Bytes name = new Bytes(Base.getReferenceName(parameterList[0]));
-				final int ordinal = super.getTarget().getModel().getSignalOrdinal(name);
+				final int ordinal = getModel().getSignalOrdinal(name);
 				if (ordinal >= 0) {
 					super.setParameter(parameterIndex, ordinal);
 				} else {
@@ -1034,8 +1003,8 @@ private int pushTransducer(final Integer transducerOrdinal) throws EffectorExcep
 		@Override
 		public String showParameter(int parameterIndex) {
 			Integer signal = super.getParameter(parameterIndex);
-			byte[] name = super.getTarget().getModel().getSignalName(signal);
-			return Bytes.decode(super.getTarget().getCharsetDecoder(), name, name.length).toString();
+			byte[] name = getModel().getSignalName(signal);
+			return Bytes.decode(getCharsetDecoder(), name, name.length).toString();
 		}
 	}
 
@@ -1051,7 +1020,8 @@ private int pushTransducer(final Integer transducerOrdinal) throws EffectorExcep
 
 		@Override
 		public int invoke(final int parameterIndex) throws EffectorException {
-			return super.getTarget().in(super.getParameter(parameterIndex));
+			inputStack.put(super.getParameter(parameterIndex));
+			return IEffector.RTX_PUSH;
 		}
 	}
 
@@ -1074,7 +1044,7 @@ private int pushTransducer(final Integer transducerOrdinal) throws EffectorExcep
 						if (Base.isReferenceOrdinal(bytes)) {
 							assert Base.getReferenceType(bytes) == Base.TYPE_REFERENCE_VALUE;
 							int ordinal = Base.decodeReferenceOrdinal(Base.TYPE_REFERENCE_VALUE, bytes);
-							NamedValue handle = (NamedValue)super.getTarget().getNamedValue(ordinal);
+							NamedValue handle = (NamedValue)getNamedValue(ordinal);
 							super.target.output.write(handle.getValue(), 0, handle.getLength());
 						} else {
 							super.target.output.write(bytes, 0, bytes.length);
@@ -1108,7 +1078,7 @@ private int pushTransducer(final Integer transducerOrdinal) throws EffectorExcep
 		public int[] compileParameter(final int parameterIndex, final byte[][] parameterList) throws TargetBindingException {
 			if (parameterList.length != 2) {
 				throw new TargetBindingException(String.format("%1$S.%2$S: effector requires two parameters",
-					super.getTarget().getName(), super.getName()));
+					getName(), super.getName()));
 			}
 			int count = -1;
 			assert !Base.isReferenceOrdinal(parameterList[0]) : "Reference ordinal presented for <count> to CountEffector[<count> <signal>]";
@@ -1120,7 +1090,7 @@ private int pushTransducer(final Integer transducerOrdinal) throws EffectorExcep
 					count = -1 * (1 + valueOrdinal);
 				} else {
 					throw new TargetBindingException(String.format("%1$s.%2$s: Named value %3$s is not found",
-						super.getTarget().getName(), super.getName(), valueName.toString()));
+						getName(), super.getName(), valueName.toString()));
 				}
 			} else if (type == Base.TYPE_REFERENCE_NONE) {
 				count = Base.decodeInt(parameterList[0], parameterList[0].length);
@@ -1128,20 +1098,25 @@ private int pushTransducer(final Integer transducerOrdinal) throws EffectorExcep
 			assert !Base.isReferenceOrdinal(parameterList[1]) : "Reference ordinal presented for <signal> to CountEffector[<count> <signal>]";
 			if (Base.getReferentType(parameterList[1]) == Base.TYPE_REFERENCE_SIGNAL) {
 				Bytes signalName = new Bytes(Base.getReferenceName(parameterList[1]));
-				int signalOrdinal = super.getTarget().getModel().getSignalOrdinal(signalName);
+				int signalOrdinal = getModel().getSignalOrdinal(signalName);
 				assert signalOrdinal >= Signal.nul.signal();
 				super.setParameter(parameterIndex, new int[] { count, signalOrdinal });
 				return super.getParameter(parameterIndex);
 			} else {
 				throw new TargetBindingException(String.format("%1$s.%2$s: invalid signal '%3$%s' for count effector",
-					super.getTarget().getName(), super.getName(), Bytes.decode(super.output.getCharsetDecoder(),
+					getName(), super.getName(), Bytes.decode(super.output.getCharsetDecoder(),
 					parameterList[1], parameterList[1].length)));
 			}
 		}
 
 		@Override
 		public int invoke(final int parameterIndex) throws EffectorException {
-			return super.getTarget().count(super.getParameter(parameterIndex));
+			int[] countdown = super.getParameter(parameterIndex);
+			assert countdown.length == 2;
+			TransducerState tos = transducerStack.peek();
+			tos.countdown[0] = countdown[0];
+			tos.countdown[1] = countdown[1];
+			return IEffector.RTX_COUNT;
 		}
 
 		@Override
@@ -1149,17 +1124,17 @@ private int pushTransducer(final Integer transducerOrdinal) throws EffectorExcep
 			int[] param = super.parameters[parameterIndex];
 			StringBuilder sb= new StringBuilder();
 			if (param[0] < 0) {
-				byte[] name = super.getTarget().getModel().getValueName(-1 * param[0]);
+				byte[] name = getModel().getValueName(-1 * param[0]);
 				byte[] value = new byte[name.length + 1];
 				value[0] = Base.TYPE_REFERENCE_VALUE;
 				System.arraycopy(name, 0, value, 1, name.length);
-				sb.append(Bytes.decode(super.getTarget().getCharsetDecoder(), value, value.length).toString());
+				sb.append(Bytes.decode(getCharsetDecoder(), value, value.length).toString());
 			} else {
 				sb.append(Integer.toString(param[0]));
 			}
 			sb.append(" ");
 			byte[] signal = this.getTarget().getModel().getSignalName(param[1]);
-			sb.append(Bytes.decode(super.getTarget().getCharsetDecoder(), signal, signal.length).toString());
+			sb.append(Bytes.decode(getCharsetDecoder(), signal, signal.length).toString());
 			return sb.toString();
 		}
 	}
@@ -1187,7 +1162,7 @@ private int pushTransducer(final Integer transducerOrdinal) throws EffectorExcep
 			assert !Base.isReferenceOrdinal(parameterList[0]);
 			if (Base.getReferentType(parameterList[0]) == Base.TYPE_REFERENCE_TRANSDUCER) {
 				final Bytes name = new Bytes(Base.getReferenceName(parameterList[0]));
-				final int ordinal = super.getTarget().getModel().getTransducerOrdinal(name);
+				final int ordinal = getModel().getTransducerOrdinal(name);
 				if (ordinal >= 0) {
 					super.setParameter(parameterIndex, ordinal);
 				} else {
@@ -1202,18 +1177,18 @@ private int pushTransducer(final Integer transducerOrdinal) throws EffectorExcep
 
 		@Override
 		public int invoke(final int parameterIndex) throws EffectorException {
-			return super.getTarget().pushTransducer(super.getParameter(parameterIndex));
+			return pushTransducer(super.getParameter(parameterIndex));
 		}
 
 		@Override
 		public String showParameter(int parameterIndex) {
 			int ordinal = super.getParameter(parameterIndex);
 			if (ordinal >= 0) {
-				byte[] bytes = super.getTarget().getModel().getTransducerName(ordinal);
+				byte[] bytes = getModel().getTransducerName(ordinal);
 				byte[] name = new byte[bytes.length + 1];
 				System.arraycopy(bytes, 0, name, 1, bytes.length);
 				name[0] = Base.TYPE_REFERENCE_TRANSDUCER;
-				return Bytes.decode(super.getTarget().getCharsetDecoder(), name, name.length).toString();
+				return Bytes.decode(getCharsetDecoder(), name, name.length).toString();
 			} else {
 				return "VOID";
 			}
