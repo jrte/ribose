@@ -587,7 +587,7 @@ S:				do {
 					if (aftereffects[0] != 0) {
 						int breakout = 0;
 						for (int i = 1; i <= aftereffects[0]; i++) {
-							switch (aftereffects[i]) {
+							switch (aftereffects[i] & 0xffff) {
 							case IEffector.RTX_PUSH:
 							case IEffector.RTX_POP:
 								input = Input.empty;
@@ -618,6 +618,10 @@ S:				do {
 							case IEffector.RTX_PAUSE:
 							case IEffector.RTX_STOPPED:
 								breakout = 1;
+								break;
+							case IEffector.RTX_SIGNAL:
+								assert signalInput == 0;
+								signalInput = aftereffects[i] >>> 16;
 								break;
 							default:
 								assert false;
@@ -785,12 +789,16 @@ S:				do {
 		return IEffector.RTX_COUNT;
 	}
 
+	private int in(final Integer signal) {
+		return (signal << 16) | IEffector.RTX_SIGNAL;
+	}
+
 	private int in(final byte[][] input) {
 		this.inputStack.put(input);
 		return IEffector.RTX_PUSH;
 	}
 
-	private int pushTransducer(final Integer transducerOrdinal) throws EffectorException {
+private int pushTransducer(final Integer transducerOrdinal) throws EffectorException {
 		try {
 			this.transducerStack.push(this.model.loadTransducer(transducerOrdinal));
 			return IEffector.RTX_START;
@@ -982,24 +990,19 @@ S:				do {
 		}
 	}
 
-	private final class SignalEffector extends BaseParameterizedEffector<Transductor, byte[][]> {
-		private final byte[][] nil;
-
+	private final class SignalEffector extends BaseParameterizedEffector<Transductor, Integer> {
 		private SignalEffector(final Transductor transductor) {
 			super(transductor, "signal");
-			nil = new byte[][] {
-				Base.encodeReferenceOrdinal(Base.TYPE_REFERENCE_SIGNAL, Base.RTE_SIGNAL_BASE + 1)
-			};
 		}
 
 		@Override
 		public void newParameters(final int parameterCount) {
-			super.parameters = new byte[parameterCount][][];
+			super.parameters = new Integer[parameterCount];
 		}
 
 		@Override
 		public int invoke() throws EffectorException {
-			return super.getTarget().in(nil);
+			return super.getTarget().in(Signal.nil.signal());
 		}
 
 		@Override
@@ -1008,7 +1011,7 @@ S:				do {
 		}
 
 		@Override
-		public byte[][] compileParameter(final int parameterIndex, final byte[][] parameterList) throws TargetBindingException {
+		public Integer compileParameter(final int parameterIndex, final byte[][] parameterList) throws TargetBindingException {
 			if (parameterList.length != 1) {
 				throw new TargetBindingException("The signal effector accepts at most one parameter");
 			}
@@ -1017,8 +1020,7 @@ S:				do {
 				final Bytes name = new Bytes(Base.getReferenceName(parameterList[0]));
 				final int ordinal = super.getTarget().getModel().getSignalOrdinal(name);
 				if (ordinal >= 0) {
-					super.setParameter(parameterIndex,
-						new byte[][] {Base.encodeReferenceOrdinal(Base.TYPE_REFERENCE_SIGNAL, ordinal)});
+					super.setParameter(parameterIndex, ordinal);
 				} else {
 					throw new TargetBindingException(String.format("Null signal reference for signal effector: %s", name.toString()));
 				}
@@ -1031,17 +1033,9 @@ S:				do {
 
 		@Override
 		public String showParameter(int parameterIndex) {
-			byte[] bytes = super.getParameter(parameterIndex)[0];
-			int ordinal = Base.isReferenceOrdinal(bytes) ? Base.decodeReferenceOrdinal(Base.TYPE_REFERENCE_SIGNAL, bytes) : -1;
-			if (ordinal >= 0) {
-				bytes = super.getTarget().getModel().getSignalName(ordinal);
-				byte[] name = new byte[bytes.length + 1];
-				System.arraycopy(bytes, 0, name, 1, bytes.length);
-				name[0] = Base.TYPE_REFERENCE_SIGNAL;
-				return Bytes.decode(super.getTarget().getCharsetDecoder(), name, name.length).toString();
-			} else {
-				return "VOID";
-			}
+			Integer signal = super.getParameter(parameterIndex);
+			byte[] name = super.getTarget().getModel().getSignalName(signal);
+			return Bytes.decode(super.getTarget().getCharsetDecoder(), name, name.length).toString();
 		}
 	}
 

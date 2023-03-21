@@ -76,6 +76,10 @@ public interface IEffector<T extends ITarget> {
 	 * Force immediate and final exit from ITransductor.run().
 	 */
 	static final int RTX_STOPPED = 64;
+	/**
+	 * Inject a signal for immediate transduction in ITransductor.run().
+	 */
+	static final int RTX_SIGNAL = 128;
 
 	/**
 	 * This method is invoked at runtime when triggered by an input transition.
