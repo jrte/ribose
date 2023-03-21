@@ -456,14 +456,9 @@ S:				do {
 						final int transition[] = transitionMatrix[state + inputFilter[token]];
 						state = transition[0];
 						action = transition[1];
-						switch (action) {
-						case NIL:
-							break;
-						case PASTE:
+						if (action == PASTE) {
 							this.selected.append((byte)token);
-							action = NIL;
-							break;
-						default:
+						} else if (action != NIL) {
 							break S;
 						}
 						if (input.position < input.limit) {
