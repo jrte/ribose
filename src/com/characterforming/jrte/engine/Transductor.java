@@ -111,6 +111,8 @@ public final class Transductor implements ITransductor, IOutput {
 	private byte[] matchProduct;
 	private int matchPosition;
 	private byte matchByte;
+	private int errorInput;
+	private int signalInput;
 	private final CharsetDecoder decoder;
 	private final CharsetEncoder encoder;
 	private OutputStream output;
@@ -138,6 +140,8 @@ public final class Transductor implements ITransductor, IOutput {
 		this.matchProduct = null;
 		this.matchPosition = 0;
 		this.matchByte = 0;
+		this.errorInput = -1;
+		this.signalInput = 0;
 		this.decoder = Base.newCharsetDecoder();
 		this.encoder = Base.newCharsetEncoder();
 		this.rtcLogger = Base.getCompileLogger();
@@ -329,11 +333,11 @@ public final class Transductor implements ITransductor, IOutput {
 		final int eosSignal = Signal.eos.signal();
 		final int[] aftereffects = new int[32];
 		TransducerState transducer = null;
-		long msumCounter = 0, mproductCounter = 0, mscanCounter = 0, errorCounter = 0;
-		int errorInput = -1, signalInput = 0;
 		int token = -1, state = 0, last = -1;
 		Input input = Input.empty;
 		this.metrics.reset();
+		this.errorInput = -1;
+		this.signalInput = 0;
 		try {
 T:		do {
 				// start a pushed transducer
@@ -344,106 +348,41 @@ T:		do {
 				state = transducer.state;
 I:			do {
 					// get next input token
-					if (signalInput > 0) {
-						token = signalInput;
+					if (this.signalInput > 0) {
+						token = this.signalInput;
 					} else if (input.position < input.limit) {
 						token = Byte.toUnsignedInt(input.array[input.position++]);
 					} else {
 						do {
 							input = this.inputStack.pop();
 						} while (!input.hasRemaining() && input != Input.empty);
-						if (input != Input.empty) {
-							switch (Base.getReferenceType(input.array)) {
-							case Base.TYPE_REFERENCE_SIGNAL:
-								token = Base.decodeReferenceOrdinal(Base.TYPE_REFERENCE_SIGNAL, input.array);
-								input.position = input.length;
-								break;
-							case Base.TYPE_REFERENCE_VALUE:
-								NamedValue value = this.namedValueHandles[Base.decodeReferenceOrdinal(Base.TYPE_REFERENCE_VALUE, input.array)];
-								input.position = input.length;
-								this.inputStack.pop();
-								input = this.inputStack.push(value.getValue()).limit(value.getLength());
-								token = Byte.toUnsignedInt(input.array[input.position++]);
-								break;
-							case Base.TYPE_REFERENCE_NONE:
-								token = Byte.toUnsignedInt(input.array[input.position++]);
-								break;
-							default:
-								token = nulSignal;
-								assert false;
-								break;
-							}
-						} else {
+						token = (input != Input.empty) ? this.nextToken(input) : -1;
+						if (token < 0) {
 							break T;
 						}
 					}
 					
 					// absorb self-referencing (msum) or sequential (mproduct) transitions with nil effect
-					errorInput = -1;
-					signalInput = 0;
-					switch (this.matchMode) {
-					case Mnone:
-						break;
-					case Msum:
-						if (token < nulSignal) {
-							int pos = input.position;
-							final long[] matchMask = this.matchSum;
-							while (0 != (matchMask[token >> 6] & (1L << (token & 0x3f)))) {
-								if (input.position < input.limit) {
-									token = Byte.toUnsignedInt(input.array[input.position++]);
-								} else {
-									msumCounter += (input.position - pos);
-									continue I;
-								}
-							}
-							msumCounter += (input.position - pos);
+					this.errorInput = -1;
+					this.signalInput = 0;
+					if (this.matchMode != Mnone && token < nulSignal) {
+						switch (this.matchMode) {
+						case Msum:
+							token = sumTrap(input, token);
+							break;
+						case Mproduct:
+							token = productTrap(input, token);
+							break;
+						case Mscan:
+							token = scanTrap(input, token);
+							break;
+						default:
+							assert false;
+							break;
 						}
-						this.matchMode = Mnone;
-						break;
-					case Mproduct:
-						if (token < nulSignal) {
-							final byte[] match = this.matchProduct;
-							int mpos = this.matchPosition, mlen = match.length;
-							assert mpos <= mlen;
-							while (mpos < mlen) {
-								if (token == Byte.toUnsignedInt(match[mpos++])) {
-									if (mpos == mlen) {
-										break;
-									} else if (input.position < input.limit) {
-										token = Byte.toUnsignedInt(input.array[input.position++]);
-									} else {
-										this.matchPosition = mpos;
-										continue I;
-									}
-								} else {
-									errorInput = token;
-									token = nulSignal;
-									break;
-								}
-							}
-							mproductCounter += mpos;
+						if (token < 0) {
+							continue I;
 						}
-						this.matchMode = Mnone;
-						break;
-					case Mscan:
-						if (token < nulSignal) {
-							int pos = input.position;
-							final byte matchByte = this.matchByte;
-							while (token != matchByte) {
-								if (input.position < input.limit) {
-									token = Byte.toUnsignedInt(input.array[input.position++]);
-								} else {
-									mscanCounter += (input.position - pos);
-									continue I;
-								}
-							}
-							mscanCounter += (input.position - pos);
-						}
-						this.matchMode = Mnone;
-						break;
-					default:
-						assert false;
-						break;
 					}
 
 					// trap runs in (nil* paste*)* effector space
@@ -497,12 +436,12 @@ S:				do {
 								break;
 							case NUL:
 								if ((token != nulSignal && token != eosSignal)
-								|| ((token == nulSignal) && (errorInput >= 0))) {
-									signalInput = nulSignal;
-									if (errorInput < 0) {
-										errorInput = token;
+								|| ((token == nulSignal) && (this.errorInput >= 0))) {
+									this.signalInput = nulSignal;
+									if (this.errorInput < 0) {
+										this.errorInput = token;
 									}
-									++errorCounter;
+									++this.metrics.errors;
 								} else {
 									break T;
 								}
@@ -527,7 +466,7 @@ S:				do {
 								break;
 							case COUNT:
 								if (--transducer.countdown[0] <= 0) {
-									signalInput = transducer.countdown[1];
+									this.signalInput = transducer.countdown[1];
 									transducer.countdown[0] = 0;
 								}
 								break;
@@ -536,7 +475,7 @@ S:				do {
 								effect = IEffector.RTX_PUSH;
 								break;
 							case OUT:
-								if (this.output != null && this.selected.getLength() > 0) {
+								if (this.output != null) {
 									try {
 										this.output.write(this.selected.getValue(), 0, this.selected.getLength());
 									} catch (IOException e) {
@@ -603,7 +542,7 @@ S:				do {
 									transducer.countdown[0] = (int)this.getNamedValue((-1 * transducer.countdown[0]) - 1).asInteger();
 								}
 								if (transducer.countdown[0] <= 0) {
-									signalInput = transducer.countdown[1];
+									this.signalInput = transducer.countdown[1];
 									transducer.countdown[0] = 0;
 								}
 								break;
@@ -612,8 +551,8 @@ S:				do {
 								breakout = 1;
 								break;
 							case IEffector.RTX_SIGNAL:
-								assert signalInput == 0;
-								signalInput = aftereffects[i] >>> 16;
+								assert this.signalInput == 0;
+								this.signalInput = aftereffects[i] >>> 16;
 								break;
 							default:
 								assert false;
@@ -630,7 +569,7 @@ S:				do {
 			} while (this.status().isRunnable());
 
 			if (token == nulSignal) {
-				throw new DomainErrorException(this.getErrorInput(last, state, errorInput));
+				throw new DomainErrorException(this.getErrorInput(last, state));
 			} else if (token == eosSignal) {
 				this.inputStack.pop();
 				assert this.inputStack.isEmpty();
@@ -638,15 +577,11 @@ S:				do {
 
 		} finally {
 			// Prepare to pause (or stop) transduction
+			this.metrics.bytes = this.inputStack.getBytesCount();
 			if (!this.transducerStack.isEmpty()) {
 				assert (transducer == this.transducerStack.peek()) || (transducer == this.transducerStack.get(-1));
 				transducer.state = state;
 			}
-			this.metrics.bytes = this.inputStack.getBytesCount();
-			this.metrics.errors = errorCounter;
-			this.metrics.product = mproductCounter;
-			this.metrics.sum = msumCounter;
-			this.metrics.scan = mscanCounter;
 		}
 
 		// Transduction is paused or stopped; if paused it will resume on next call to run()
@@ -711,6 +646,94 @@ S:				do {
 		this.effectors = effectors;
 	}
 
+	int nextToken(Input input) {
+		int token = -1;
+		switch (Base.getReferenceType(input.array)) {
+		case Base.TYPE_REFERENCE_SIGNAL:
+			token = Base.decodeReferenceOrdinal(Base.TYPE_REFERENCE_SIGNAL, input.array);
+			input.position = input.length;
+			break;
+		case Base.TYPE_REFERENCE_VALUE:
+			NamedValue value = this.namedValueHandles[Base.decodeReferenceOrdinal(Base.TYPE_REFERENCE_VALUE, input.array)];
+			input.position = input.length;
+			this.inputStack.pop();
+			input = this.inputStack.push(value.getValue()).limit(value.getLength());
+			token = Byte.toUnsignedInt(input.array[input.position++]);
+			break;
+		case Base.TYPE_REFERENCE_NONE:
+			token = Byte.toUnsignedInt(input.array[input.position++]);
+			break;
+		default:
+			token = Signal.nul.signal();
+			assert false;
+			break;
+		}
+		return token;
+	}
+
+	int sumTrap(Input input, int token) {
+		if (token < Signal.nul.signal()) {
+			int pos = input.position;
+			final long[] matchMask = this.matchSum;
+			while (0 != (matchMask[token >> 6] & (1L << (token & 0x3f)))) {
+				if (input.position < input.limit) {
+					token = Byte.toUnsignedInt(input.array[input.position++]);
+				} else {
+					this.metrics.sum += (input.position - pos);
+					return -1;
+				}
+			}
+			this.metrics.sum += (input.position - pos);
+		}
+		this.matchMode = Mnone;
+		return token;
+	}
+
+	int productTrap(Input input, int token) {
+		if (token < Signal.nul.signal()) {
+			final byte[] match = this.matchProduct;
+			int mpos = this.matchPosition, mlen = match.length;
+			assert mpos <= mlen;
+			while (mpos < mlen) {
+				if (token == Byte.toUnsignedInt(match[mpos++])) {
+					if (mpos == mlen) {
+						break;
+					} else if (input.position < input.limit) {
+						token = Byte.toUnsignedInt(input.array[input.position++]);
+					} else {
+						this.matchPosition = mpos;
+						return -1;
+					}
+				} else {
+					this.errorInput = token;
+					token = Signal.nul.signal();
+					break;
+				}
+			}
+			this.metrics.product += mpos;
+		}
+		this.matchMode = Mnone;
+		return token;
+	}
+
+	int scanTrap(Input input, int token) {
+		if (token < Signal.nul.signal()) {
+			int pos = input.position;
+			final byte matchByte = this.matchByte;
+			while (token != matchByte) {
+				if (input.position < input.limit) {
+					token = Byte.toUnsignedInt(input.array[input.position++]);
+				} else {
+					this.metrics.scan += (input.position - pos);
+					return -1;
+				}
+			}
+			this.metrics.scan += (input.position - pos);
+		}
+		this.matchMode = Mnone;
+		return token;
+	}
+
 	void setNamedValueOrdinalMap(Map<Bytes, Integer> namedValueOrdinalMap) {
 		this.namedValueOrdinalMap = namedValueOrdinalMap;
 		if (this.namedValueOrdinalMap.size() > 0) {
@@ -749,17 +772,17 @@ S:				do {
 		}
 	}
 
-	private String getErrorInput(int last, int state, int errorInput) {
+	private String getErrorInput(int last, int state) {
 		TransducerState top = this.transducerStack.peek();
 		top.state = state;
 		last /= top.inputEquivalents;
 		state /= top.inputEquivalents;
-		if (errorInput < 0) {
-			errorInput = Signal.nul.signal();
+		if (this.errorInput < 0) {
+			this.errorInput = Signal.nul.signal();
 		}
 		StringBuilder output = new StringBuilder(256);
 		output.append(String.format("Domain error on (%1$d~%2$d) in %3$s [%4$d]->[%5$d]%6$s,\tTransducer stack:%7$s",
-			errorInput, top.inputFilter[errorInput], top.name, last, state, Base.lineEnd, Base.lineEnd));
+			this.errorInput, top.inputFilter[this.errorInput], top.name, last, state, Base.lineEnd, Base.lineEnd));
 		for (int i = this.transducerStack.tos(); i >= 0; i--) {
 			TransducerState t = this.transducerStack.get(i);
 			int s = t.state / t.inputEquivalents;
