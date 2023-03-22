@@ -113,6 +113,7 @@ public final class TRun extends BaseTarget {
 		final String inputPath = arg < argc ? args[arg++] : "-";
 		final String outputPath = arg < argc ? args[arg++] : null;
 
+		final boolean outputEnabled = System.getProperty("jrte.out.enabled", "true").equals("true");
 		final CharsetEncoder encoder = Base.newCharsetEncoder();
 		final Logger rteLogger = Base.getRuntimeLogger();
 		final Logger rtmLogger = Base.getMetricsLogger();
@@ -126,9 +127,9 @@ public final class TRun extends BaseTarget {
 			System.out.println("No ribose model file found at " + modelPath);
 			System.exit(1);
 		}
-		final File outputFile = outputPath != null ? new File(outputPath) : null;
 		OutputStream os = System.out;
-		if (outputFile != null) {
+		if (outputEnabled && outputPath != null) {
+			File outputFile = new File(outputPath);
 			if (outputFile.exists()) {
 				outputFile.delete();
 			}
@@ -137,7 +138,7 @@ public final class TRun extends BaseTarget {
 			} catch (FileNotFoundException e) {
 				System.out.println("No path to output file at " + outputPath);
 				System.exit(1);
-				}
+			}
 		}
 
 		int exitCode = 1;
@@ -150,7 +151,7 @@ public final class TRun extends BaseTarget {
 					Bytes transducer = Bytes.encode(encoder, transducerName);
 					ITarget runTarget = (ITarget) Class.forName(targetName).getDeclaredConstructor().newInstance();
 					long t0 = System.nanoTime();
-					if (ribose.transduce(runTarget, transducer, nil ? Signal.nil : null, isr, osw)) {
+					if (ribose.transduce(runTarget, transducer, nil ? Signal.nil : null, isr, outputEnabled ? osw : null)) {
 						if (input != null) {
 							long clen = input.length();
 							double t1 = System.nanoTime() - t0;
