@@ -24,7 +24,6 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.CharsetDecoder;
 import java.nio.charset.CharsetEncoder;
-import java.util.Arrays;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.logging.Level;
@@ -241,13 +240,13 @@ public final class Transductor implements ITransductor, IOutput {
 
 	@Override // @see com.characterforming.ribose.ITransductor#status()
 	public Status status() {
-		if (this.effectors != null) {
-			boolean hasInput = this.inputStack != null && !this.inputStack.isEmpty();
-			boolean hasTransducer = this.transducerStack != null && !this.transducerStack.isEmpty();
-			if (hasTransducer) {
-				return hasInput ? Status.RUNNABLE : Status.PAUSED;
+		if (this.mode == TargetMode.run) {
+			assert this.inputStack != null;
+			assert this.transducerStack != null;
+			if (this.transducerStack.isEmpty()) {
+				return this.inputStack.isEmpty() ? Status.STOPPED : Status.WAITING;
 			} else {
-				return hasInput ? Status.WAITING : Status.STOPPED;
+				return this.inputStack.isEmpty() ? Status.PAUSED : Status.RUNNABLE;
 			}
 		} else {
 			return Status.NULL;
@@ -352,8 +351,7 @@ I:			do {
 					} else {
 						do {
 							input = this.inputStack.pop();
-						}
-						while (!input.hasRemaining() && input != Input.empty);
+						} while (!input.hasRemaining() && input != Input.empty);
 						if (input != Input.empty) {
 							switch (Base.getReferenceType(input.array)) {
 							case Base.TYPE_REFERENCE_SIGNAL:
@@ -480,8 +478,8 @@ S:				do {
 							action *= -1;
 						}
 					} else if (action >= 0x10000) {
-						parameter = action & 0xffff;
-						action >>>= 16;
+						parameter = Transducer.parameter(action);
+						action = Transducer.effector(action);
 					}
 
 					// invoke a vector of effectors and record side effects on transducer and input stacks
@@ -567,11 +565,10 @@ S:				do {
 						}
 						if (index > 0) {
 							action = effectorVector[index++];
+							parameter = -1;
 							if (action < 0) {
-								parameter = effectorVector[index++];
 								action *= -1;
-							} else {
-								parameter = -1;
+								parameter = effectorVector[index++];
 							}
 						} else {
 							break;
@@ -704,16 +701,6 @@ S:				do {
 	public INamedValue getSelectedValue() {
 		assert this.selected != null;
 		return this.selected;
-	}
-
-	byte[] copyNamedValue(final int nameIndex) {
-		NamedValue value = this.namedValueHandles[nameIndex];
-		assert value != null;
-		if (value != null && value.getValue() != null) {
-			return Arrays.copyOf(value.getValue(), this.namedValueHandles[nameIndex].getLength());
-		} else {
-			return Model.EMPTY;
-		}
 	}
 
 	Model getModel() {

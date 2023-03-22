@@ -108,8 +108,8 @@ public class ModelDecompiler {
 			if ((to != from) || (effect != 0)) {
 				System.out.printf("%3d %3d -> %3d", from, equivalent, to);
 				if (effect >= 0x10000) {
-					int effector = effect >>> 16;
-					int parameter = effect & 0xffff;
+					int effector = Transducer.effector(effect);
+					int parameter = Transducer.parameter(effect);
 					System.out.printf(" %s[", effectorNames[effector]);
 					System.out.printf(" %s ]", this.model.showParameter(effector, parameter));
 				} else if (effect >= 0) {

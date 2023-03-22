@@ -345,7 +345,7 @@ public class ModelCompiler implements ITarget {
 							} else if (chain.isScalar()) {
 								transitionMatrix[inputOrdinal][rteState][1] = effectVector[0];
 							} else if (chain.isParameterized()) {
-								transitionMatrix[inputOrdinal][rteState][1] = ((-1 * effectVector[0]) << 16) | effectVector[1];
+								transitionMatrix[inputOrdinal][rteState][1] = Transducer.action(-1 * effectVector[0], effectVector[1]);
 							} else {
 								Ints vector = new Ints(effectVector);
 								Integer vectorOrdinal = target.effectorVectorMap.get(vector);

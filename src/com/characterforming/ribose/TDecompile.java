@@ -64,7 +64,7 @@ import com.characterforming.ribose.base.ModelException;
  *   2   0 -&gt;   0 paste out signal[4]
  *   2   4 -&gt;   2 select[4] cut[0] select[5] copy[0] select[3] cut[1]</pre>
  */
-public class TDecompile {
+public final class TDecompile {
   public static void main(final String[] args) throws ModelException {
     if (args.length != 2) {
       System.out.println("Usage: requires two arguments - (1) path to model file (2) name of transducer to decompile");

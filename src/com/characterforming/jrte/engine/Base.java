@@ -37,7 +37,7 @@ import com.characterforming.ribose.base.Bytes;
  *
  * @author Kim Briggs
  */
-public class Base {
+public final class Base {
 	/** previous and current version strings */
 	public static final String RTE_VERSION = "ribose-0.0.2";
 	public static final String RTE_PREVIOUS = "ribose-0.0.1";

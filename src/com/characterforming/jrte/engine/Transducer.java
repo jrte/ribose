@@ -43,16 +43,28 @@ final class Transducer {
 		this.inputEquivalents = 0;
 	}
 
-	static long transition(int state, int effect) {
-		return ((long)effect << 32) | (long)state;
+	static long transition(int state, int action) {
+		return ((long)action << 32) | (long)state;
 	}
 
 	static int state(long transition) {
-		return (int)(transition & 0xffffffff);
+		return (int)(transition & (long)0xffffffff);
 	}
 
 	static int action(long transition) {
 		return (int)(transition >>> 32);
+	}
+
+	static int action(int effect, int parameter) {
+		return  (effect << 16) | parameter;
+	}
+
+	static int effector(int action) {
+		return action >>> 16;
+	}
+
+	static int parameter(int action) {
+		return action & 0xffff;
 	}
 
 	String getName() {

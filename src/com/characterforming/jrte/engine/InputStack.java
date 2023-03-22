@@ -41,10 +41,10 @@ final class InputStack {
 	private int bom, tom;
 	private long bytesPopped;
 	
-	class MarkStack extends LinkedList<Input> {
+	final class MarkStack extends LinkedList<Input> {
 		private static final long serialVersionUID = 1L;
 	}
-	class FreeStack extends LinkedList<byte[]> {
+	final class FreeStack extends LinkedList<byte[]> {
 		private static final long serialVersionUID = 1L;
 	}
 	

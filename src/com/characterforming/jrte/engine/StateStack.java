@@ -20,7 +20,7 @@
 
 package com.characterforming.jrte.engine;
 
-class StateStack {
+final class StateStack {
   private final int[] stack;
   private int tos;
 

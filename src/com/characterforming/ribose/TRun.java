@@ -64,7 +64,7 @@ import com.characterforming.ribose.base.TargetBindingException;
  * constructor can use used. Default output is System.out.
  *
  */
-public class TRun extends BaseTarget {
+public final class TRun extends BaseTarget {
 	/**
 	 * Constructor
 	 */

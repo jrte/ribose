@@ -1,4 +1,7 @@
 quiet
+inline com.characterforming.jrte.engine.Base::decodeReferenceOrdinal
+inline com.characterforming.jrte.engine.Transductor::clear
+inline com.characterforming.jrte.engine.Transductor::status
 inline com.characterforming.jrte.engine.TransductorStack::stackcheck
 inline com.characterforming.jrte.engine.TransductorStack::push
 inline com.characterforming.jrte.engine.TransductorStack::peek
@@ -12,3 +15,7 @@ inline com.characterforming.jrte.engine.InputStack::value
 inline com.characterforming.jrte.engine.InputStack::signal
 inline com.characterforming.jrte.engine.NamedValue::append
 inline com.characterforming.jrte.engine.NamedValue::growValue
+inline com.characterforming.jrte.engine.Transducer::state
+inline com.characterforming.jrte.engine.Transducer::action
+inline com.characterforming.jrte.engine.Transducer::effector
+inline com.characterforming.jrte.engine.Transducer::parameter
