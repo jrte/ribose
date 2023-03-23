@@ -48,38 +48,20 @@ public interface IEffector<T extends ITarget> {
 	 * return only {@code RTX_NONE} (to continue transduction normally).
 	 */
 	static final int RTX_NONE = 0;
-	/**
-	 * Transducer pushed onto the transducer stack.
-	 */
+	/** Transducer pushed onto the transducer stack. */
 	static final int RTX_START = 1;
-	/**
-	 * Transducer stack popped.
-	 */
+	/** Transducer stack popped. */
 	static final int RTX_STOP = 2;
-	/**
-	 * Input (or signal) pushed onto the input stack.
-	 */
-	static final int RTX_PUSH = 4;
-	/**
-	 * Input stack popped.
-	 */
-	static final int RTX_POP = 8;
-	/**
-	 * Counter for the current transducer decremented to 0.
-	 */
-	static final int RTX_COUNT = 16;
-	/**
-	 * Force immediate and resumable exit from ITransductor.run().
-	 */
-	static final int RTX_PAUSE = 32;
-	/**
-	 * Force immediate and final exit from ITransductor.run().
-	 */
-	static final int RTX_STOPPED = 64;
-	/**
-	 * Inject a signal for immediate transduction in ITransductor.run().
-	 */
-	static final int RTX_SIGNAL = 128;
+	/** Input (or signal) pushed onto the input stack. */
+	static final int RTX_INPUT = 4;
+	/** Counter for the current transducer decremented to 0. */
+	static final int RTX_COUNT = 8;
+	/** Force immediate and resumable exit from ITransductor.run(). */
+	static final int RTX_PAUSE = 16;
+	/** Force immediate and final exit from ITransductor.run(). */
+	static final int RTX_STOPPED = 32;
+	/** Inject a signal for immediate transduction in ITransductor.run(). */
+	static final int RTX_SIGNAL = 64;
 
 	/**
 	 * This method is invoked at runtime when triggered by an input transition.

@@ -331,7 +331,6 @@ public final class Transductor implements ITransductor, IOutput {
 		}
 		final int nulSignal = Signal.nul.signal();
 		final int eosSignal = Signal.eos.signal();
-		final int[] aftereffects = new int[32];
 		TransducerState transducer = null;
 		int token = -1, state = 0, last = -1;
 		Input input = Input.empty;
@@ -362,7 +361,7 @@ I:			do {
 						}
 					}
 					
-					// absorb self-referencing (msum) or sequential (mproduct) transitions with nil effect
+					// absorb self-referencing (msum,mscan) or sequential (mproduct) transitions with nil effect
 					this.errorInput = -1;
 					this.signalInput = 0;
 					if (this.matchMode != Mnone && token < nulSignal) {
@@ -422,18 +421,10 @@ S:				do {
 					}
 
 					// invoke a vector of effectors and record side effects on transducer and input stacks
-					aftereffects[0] = 0;
+					int aftereffects = 0;
 					do {
-						int effect = IEffector.RTX_NONE;
 						if (parameter < 0) {
 							switch (action) {
-							default:
-								if (parameter < 0) {
-									effect = this.effectors[action].invoke();
-								} else {
-									effect = ((IParameterizedEffector<?,?>)this.effectors[action]).invoke(parameter);
-								}
-								break;
 							case NUL:
 								if ((token != nulSignal && token != eosSignal)
 								|| ((token == nulSignal) && (this.errorInput >= 0))) {
@@ -472,7 +463,7 @@ S:				do {
 								break;
 							case IN:
 								this.inputStack.value(this.selected.getValue(), this.selected.getLength());
-								effect = IEffector.RTX_PUSH;
+								aftereffects |= IEffector.RTX_INPUT;
 								break;
 							case OUT:
 								if (this.output != null) {
@@ -490,17 +481,17 @@ S:				do {
 								input = this.inputStack.reset();
 								break;
 							case PAUSE:
-								effect = IEffector.RTX_PAUSE;
+								aftereffects |= IEffector.RTX_PAUSE;
 								break;
 							case STOP:
-								effect = popTransducer();
+								aftereffects |= popTransducer();
+								break;
+							default:
+								aftereffects |= this.effectors[action].invoke();
 								break;
 							}
 						} else {
-							effect = ((IParameterizedEffector<?,?>)this.effectors[action]).invoke(parameter);
-						}
-						if (effect != 0) {
-							aftereffects[++aftereffects[0]] = effect;
+							aftereffects |= ((IParameterizedEffector<?,?>)this.effectors[action]).invoke(parameter);
 						}
 						if (index > 0) {
 							action = effectorVector[index++];
@@ -515,53 +506,33 @@ S:				do {
 					} while (action != NUL);
 
 					// check for transducer or input stack adjustmnent
-					if (aftereffects[0] != 0) {
-						int breakout = 0;
-						for (int i = 1; i <= aftereffects[0]; i++) {
-							switch (aftereffects[i] & 0xffff) {
-							case IEffector.RTX_PUSH:
-							case IEffector.RTX_POP:
-								input = Input.empty;
-								break;
-							case IEffector.RTX_START:
-								assert transducer == this.transducerStack.get(this.transducerStack.tos()-1);
-								transducer.state = state;
-								if (breakout == 0) {
-									breakout = -1;
-								}
-								break;
-							case IEffector.RTX_STOP:
-								if (breakout == 0) {
-									breakout = -1;
-								}
-								break;
-							case IEffector.RTX_COUNT:
-								assert (transducer == this.transducerStack.get(this.transducerStack.tos()))
-								|| (transducer == this.transducerStack.get(this.transducerStack.tos()-1));
-								if (transducer.countdown[0] < 0) {
-									transducer.countdown[0] = (int)this.getNamedValue((-1 * transducer.countdown[0]) - 1).asInteger();
-								}
-								if (transducer.countdown[0] <= 0) {
-									this.signalInput = transducer.countdown[1];
-									transducer.countdown[0] = 0;
-								}
-								break;
-							case IEffector.RTX_PAUSE:
-							case IEffector.RTX_STOPPED:
-								breakout = 1;
-								break;
-							case IEffector.RTX_SIGNAL:
+					if (aftereffects != 0) {
+						if (0 != (aftereffects & IEffector.RTX_INPUT)) {
+							input = Input.empty;
+						}
+						if (0 != (aftereffects & IEffector.RTX_START)) {
+							assert transducer == this.transducerStack.get(this.transducerStack.tos()-1);
+							transducer.state = state;
+						}
+						if (0 != (aftereffects & IEffector.RTX_SIGNAL)) {
+							assert this.signalInput == 0;
+							this.signalInput = aftereffects >>> 16;
+						}
+						if (0 != (aftereffects & IEffector.RTX_COUNT)) {
+							assert (transducer == this.transducerStack.get(this.transducerStack.tos()))
+							|| (transducer == this.transducerStack.get(this.transducerStack.tos()-1));
+							if (transducer.countdown[0] < 0) {
+								transducer.countdown[0] = (int)this.getNamedValue((-1 * transducer.countdown[0]) - 1).asInteger();
+							}
+							if (transducer.countdown[0] <= 0) {
 								assert this.signalInput == 0;
-								this.signalInput = aftereffects[i] >>> 16;
-								break;
-							default:
-								assert false;
-								break;
+								this.signalInput = transducer.countdown[1];
+								transducer.countdown[0] = 0;
 							}
 						}
-						if (breakout > 0) {
+						if (0 != (aftereffects & (IEffector.RTX_PAUSE | IEffector.RTX_STOPPED))) {
 							break T;
-						} else if (breakout < 0) {
+						} else if (0 != (aftereffects & (IEffector.RTX_START | IEffector.RTX_STOP))) {
 							break;
 						}
 					}
@@ -1026,7 +997,7 @@ S:				do {
 		@Override
 		public int invoke(final int parameterIndex) throws EffectorException {
 			inputStack.put(super.getParameter(parameterIndex));
-			return IEffector.RTX_PUSH;
+			return IEffector.RTX_INPUT;
 		}
 	}
 
