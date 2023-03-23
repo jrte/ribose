@@ -457,6 +457,7 @@ S:				do {
 								break;
 							case COUNT:
 								if (--transducer.countdown[0] <= 0) {
+									assert this.signalInput == 0;
 									this.signalInput = transducer.countdown[1];
 									transducer.countdown[0] = 0;
 								}

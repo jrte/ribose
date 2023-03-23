@@ -373,20 +373,20 @@
 			<arg value="-c"/>
 			<arg value="etc/sh/FileRunner ${jargs} ${jargs.gc.test}/vgc.regex.gc -Djrte.out.enabled=false -Dregex.out.enabled=true --nil build/Test.model verbosegcregex ${test.input.dir}/verbosegc.vgc &apos;${regex.verbosegc}&apos;"/>
 		</exec>
-		<echo message="TRun: Tintervals ${test.input.dir}/verbosegc.vgc -> ${build.testenv}/vgc.tintervals.(out,gc)"/>
-		<exec failonerror="true" executable="bash">
+		<echo message="Ribose: Tintervals ${test.input.dir}/verbosegc.vgc -> ${build.testenv}/vgc.tintervals.(out,gc)"/>
+		<exec failonerror="true" executable="bash" output="${build.testenv}/vgc.tintervals.out">
 			<arg value="-c"/>
-			<arg value="etc/sh/ribose ${jargs} ${jargs.gc.test}/vgc.tintervals.gc -Djrte.out.enabled=true -Dregex.out.enabled=false --nil build/Test.model Tintervals ${test.input.dir}/verbosegc.vgc ${build.testenv}/vgc.tintervals.out"/>
+			<arg value="etc/sh/FileRunner ${jargs} ${jargs.gc.test}/vgc.tintervals.gc -Djrte.out.enabled=true -Dregex.out.enabled=false --nil build/Test.model Tintervals ${test.input.dir}/verbosegc.vgc"/>
 		</exec>
-		<echo message="TRun: Sintervals ${test.input.dir}/verbosegc.vgc -> ${build.testenv}/vgc.sintervals.(out,gc)"/>
-		<exec failonerror="true" executable="bash">
+		<echo message="Ribose: Sintervals ${test.input.dir}/verbosegc.vgc -> ${build.testenv}/vgc.sintervals.(out,gc)"/>
+		<exec failonerror="true" executable="bash" output="${build.testenv}/vgc.sintervals.out">
 			<arg value="-c"/>
-			<arg value="etc/sh/ribose ${jargs} ${jargs.gc.test}/vgc.sintervals.gc -Djrte.out.enabled=true -Dregex.out.enabled=false --nil build/Test.model Sintervals ${test.input.dir}/verbosegc.vgc ${build.testenv}/vgc.sintervals.out"/>
+			<arg value="etc/sh/FileRunner ${jargs} ${jargs.gc.test}/vgc.sintervals.gc -Djrte.out.enabled=true -Dregex.out.enabled=false --nil build/Test.model Sintervals ${test.input.dir}/verbosegc.vgc"/>
 		</exec>
-		<echo message="TRun: Rintervals ${test.input.dir}/verbosegc.vgc -> ${build.testenv}/vgc.rintervals.(out,gc)"/>
-		<exec failonerror="true" executable="bash">
+		<echo message="Ribose: Rintervals ${test.input.dir}/verbosegc.vgc -> ${build.testenv}/vgc.rintervals.(out,gc)"/>
+		<exec failonerror="true" executable="bash" output="${build.testenv}/vgc.rintervals.out">
 			<arg value="-c"/>
-			<arg value="etc/sh/ribose ${jargs} ${jargs.gc.test}/vgc.rintervals.gc -Djrte.out.enabled=true -Dregex.out.enabled=false --nil build/Test.model Rintervals ${test.input.dir}/verbosegc.vgc ${build.testenv}/vgc.rintervals.out"/>
+			<arg value="etc/sh/FileRunner ${jargs} ${jargs.gc.test}/vgc.rintervals.gc -Djrte.out.enabled=true -Dregex.out.enabled=false --nil build/Test.model Rintervals ${test.input.dir}/verbosegc.vgc"/>
 		</exec>
 <!-- verbose gc verify -->
 		<fixcrlf srcDir="${build.testenv}" includes="vgc.*.out"/>
@@ -422,20 +422,20 @@
 			<arg value="-c"/>
 			<arg value="etc/sh/FileRunner ${jargs} ${jargs.gc.test}/linuxkernelregex.gc -Djrte.out.enabled=false -Dregex.out.enabled=true --nil build/Test.model linuxkernelregex ${test.input.dir}/kern-10.log &apos;${regex.linuxkernel}&apos;"/>
 		</exec>
-		<echo message="TRun: LinuxKernel ${test.input.dir}/kern-10.log -> ${build.testenv}/linuxkernel.(out,gc)"/>
-		<exec failonerror="true" executable="bash">
+		<echo message="Ribose: LinuxKernel ${test.input.dir}/kern-10.log -> ${build.testenv}/linuxkernel.(out,gc)"/>
+		<exec failonerror="true" executable="bash" output="${build.testenv}/linuxkernel.out">
 			<arg value="-c"/>
-			<arg value="etc/sh/ribose ${jargs} ${jargs.gc.test}/linuxkernel.gc -Djrte.out.enabled=true -Dregex.out.enabled=false --nil build/Test.model LinuxKernel ${test.input.dir}/kern-10.log ${build.testenv}/linuxkernel.out"/>
+			<arg value="etc/sh/FileRunner ${jargs} ${jargs.gc.test}/linuxkernel.gc -Djrte.out.enabled=true -Dregex.out.enabled=false --nil build/Test.model LinuxKernel ${test.input.dir}/kern-10.log"/>
 		</exec>
-		<echo message="TRun: LinuxKernelLoose ${test.input.dir}/kern-10.log -> ${build.testenv}/linuxkernelloose.(out,gc)"/>
-		<exec failonerror="true" executable="bash">
+		<echo message="Ribose: LinuxKernelLoose ${test.input.dir}/kern-10.log -> ${build.testenv}/linuxkernelloose.(out,gc)"/>
+		<exec failonerror="true" executable="bash" output="${build.testenv}/linuxkernelloose.out">
 			<arg value="-c"/>
-			<arg value="etc/sh/ribose ${jargs} ${jargs.gc.test}/linuxkernelloose.gc -Djrte.out.enabled=true -Dregex.out.enabled=false --nil build/Test.model LinuxKernelLoose ${test.input.dir}/kern-10.log ${build.testenv}/linuxkernelloose.out"/>
+			<arg value="etc/sh/FileRunner ${jargs} ${jargs.gc.test}/linuxkernelloose.gc -Djrte.out.enabled=true -Dregex.out.enabled=false --nil build/Test.model LinuxKernelLoose ${test.input.dir}/kern-10.log"/>
 		</exec>
-		<echo message="TRun: LinuxKernelStrict ${test.input.dir}/kern-10.log -> ${build.testenv}/linuxkernelstrict.(out,gc)"/>
-		<exec failonerror="true" executable="bash">
+		<echo message="Ribose: LinuxKernelStrict ${test.input.dir}/kern-10.log -> ${build.testenv}/linuxkernelstrict.(out,gc)"/>
+		<exec failonerror="true" executable="bash" output="${build.testenv}/linuxkernelstrict.out">
 			<arg value="-c"/>
-			<arg value="etc/sh/ribose ${jargs} ${jargs.gc.test}/linuxkernelstrict.gc -Djrte.out.enabled=true -Dregex.out.enabled=false --nil build/Test.model LinuxKernelStrict ${test.input.dir}/kern-10.log ${build.testenv}/linuxkernelstrict.out"/>
+			<arg value="etc/sh/FileRunner ${jargs} ${jargs.gc.test}/linuxkernelstrict.gc -Djrte.out.enabled=true -Dregex.out.enabled=false --nil build/Test.model LinuxKernelStrict ${test.input.dir}/kern-10.log"/>
 		</exec>
 <!-- linux kernel verify -->
 		<fixcrlf srcDir="${build.testenv}" includes="linuxkernel*.out"/>
@@ -462,7 +462,7 @@
 		<echo message="Identical: ${build.testenv}/linuxkernel*.out"/>
 	</target>
 
-	<target name="test" depends="clean-test,test-env,test-basic,test-testrunner,test-filerunner,test-output-equivalence">
+	<target name="test-heap-metrics" depends="test-output-equivalence">
 <!-- verbose gc log transduction G1 pause metrics (megabytes) -->
 		<echo message="G1 evacuation pause metrics (megabytes)"/>
 		<exec failonerror="true" executable="bash">
@@ -489,6 +489,8 @@
 			<arg value="grep -o -H 'total [0-9]*K, used [0-9]*K' ${build.testenv}/linuxkernel*.gc"/>
 		</exec>
 	</target>
+
+	<target name="test" depends="clean-test,test-env,test-basic,test-testrunner,test-filerunner,test-output-equivalence,test-heap-metrics"/>
 
 	<target name="env" if="linux">
 		<echo message="os (/proc/version)"/>

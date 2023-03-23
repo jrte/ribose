@@ -21,6 +21,7 @@
 
 package com.characterforming.jrte.test;
 
+import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -145,10 +146,13 @@ public class FileRunner {
 						System.out.println(String.format(" : %8.3f mb/s %7.3f nul/kb %6.3f%% m+ %6.3f%% m* %6.3f%% m-", mbps, ekb, mps, mpr, msc));
 						rtmLogger.log(Level.INFO, String.format("%s\t%8.3f\t%7.3f\t%6.3f\t%6.3f\t%6.3f\t%d\t%s", inputPath, mbps, ekb, mps, mpr, msc, blen, transducerName));
 					} else {
-						try (final FileInputStream isr = new FileInputStream(f)) {
+						try (
+							final FileInputStream isr = new FileInputStream(f);
+							final BufferedOutputStream osw = new BufferedOutputStream(System.out, Base.getOutBufferSize())
+						) {
 							t0 = System.nanoTime();
 							if (nil) {
-								ribose.transduce(runTarget, Bytes.encode(encoder, transducerName), Signal.nil, isr, System.out);
+								ribose.transduce(runTarget, Bytes.encode(encoder, transducerName), Signal.nil, isr, osw);
 							} else {
 								ribose.transduce(runTarget, Bytes.encode(encoder, transducerName), isr, System.out);
 							}
