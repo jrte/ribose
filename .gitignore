@@ -16,5 +16,6 @@ java_pid*
 .vscode/
 .classpath
 .project
+.sign-off
 TRun.*
 regression.*
