@@ -97,9 +97,10 @@ public final class Transductor implements ITransductor, IOutput {
 	private final int Msum = 1;
 	private final int Mproduct = 2;
 	private final int Mscan = 3;
-
+	
 	private final Model model;
 	private final TargetMode mode;
+	private TransducerState transducer;
 	private IEffector<?>[] effectors;
 	private NamedValue selected;
 	private NamedValue[] namedValueHandles;
@@ -112,7 +113,6 @@ public final class Transductor implements ITransductor, IOutput {
 	private int matchPosition;
 	private byte matchByte;
 	private int errorInput;
-	private int signalInput;
 	private final CharsetDecoder decoder;
 	private final CharsetEncoder encoder;
 	private OutputStream output;
@@ -131,6 +131,7 @@ public final class Transductor implements ITransductor, IOutput {
 		this.model = model;
 		this.mode = mode;
 		this.effectors = null;
+		this.transducer = null;
 		this.namedValueHandles = null;
 		this.namedValueOrdinalMap = null;
 		this.output = System.getProperty("jrte.out.enabled", "true").equals("true") ? System.out : null;
@@ -141,7 +142,6 @@ public final class Transductor implements ITransductor, IOutput {
 		this.matchPosition = 0;
 		this.matchByte = 0;
 		this.errorInput = -1;
-		this.signalInput = 0;
 		this.decoder = Base.newCharsetDecoder();
 		this.encoder = Base.newCharsetEncoder();
 		this.rtcLogger = Base.getCompileLogger();
@@ -331,24 +331,22 @@ public final class Transductor implements ITransductor, IOutput {
 		}
 		final int nulSignal = Signal.nul.signal();
 		final int eosSignal = Signal.eos.signal();
-		TransducerState transducer = null;
-		int token = -1, state = 0, last = -1;
+		int token = -1, state = 0, last = -1, signal = 0;
 		Input input = Input.empty;
-		this.metrics.reset();
 		this.errorInput = -1;
-		this.signalInput = 0;
+		this.metrics.reset();
 		try {
 T:		do {
 				// start a pushed transducer
-				transducer = this.transducerStack.peek();
-				final int[] inputFilter = transducer.inputFilter;
-				final long[] transitionMatrix = transducer.transitionMatrix;
-				final int[] effectorVector = transducer.effectorVector;
-				state = transducer.state;
+				this.transducer = this.transducerStack.peek();
+				final int[] inputFilter = this.transducer.inputFilter;
+				final long[] transitionMatrix = this.transducer.transitionMatrix;
+				final int[] effectorVector = this.transducer.effectorVector;
+				state = this.transducer.state;
 I:			do {
 					// get next input token
-					if (this.signalInput > 0) {
-						token = this.signalInput;
+					if (signal > 0) {
+						token = signal;
 					} else if (input.position < input.limit) {
 						token = Byte.toUnsignedInt(input.array[input.position++]);
 					} else {
@@ -362,8 +360,8 @@ I:			do {
 					}
 					
 					// absorb self-referencing (msum,mscan) or sequential (mproduct) transitions with nil effect
+					signal = 0;
 					this.errorInput = -1;
-					this.signalInput = 0;
 					if (this.matchMode != Mnone && token < nulSignal) {
 						switch (this.matchMode) {
 						case Msum:
@@ -388,7 +386,6 @@ I:			do {
 					int action = NUL;
 S:				do {
 						last = state;
-						// filter token to equivalence ordinal and map ordinal and state to next state and action
 						final long transition = transitionMatrix[state + inputFilter[token]];
 						state = Transducer.state(transition);
 						action = Transducer.action(transition);
@@ -428,11 +425,11 @@ S:				do {
 							case NUL:
 								if ((token != nulSignal && token != eosSignal)
 								|| ((token == nulSignal) && (this.errorInput >= 0))) {
-									this.signalInput = nulSignal;
 									if (this.errorInput < 0) {
 										this.errorInput = token;
 									}
 									++this.metrics.errors;
+									signal = nulSignal;
 								} else {
 									break T;
 								}
@@ -456,10 +453,10 @@ S:				do {
 								this.selected.clear();
 								break;
 							case COUNT:
-								if (--transducer.countdown[0] <= 0) {
-									assert this.signalInput == 0;
-									this.signalInput = transducer.countdown[1];
-									transducer.countdown[0] = 0;
+								if (--this.transducer.countdown[0] <= 0) {
+									assert signal == 0;
+									signal = this.transducer.countdown[1];
+									this.transducer.countdown[0] = 0;
 								}
 								break;
 							case IN:
@@ -468,11 +465,7 @@ S:				do {
 								break;
 							case OUT:
 								if (this.output != null) {
-									try {
-										this.output.write(this.selected.getValue(), 0, this.selected.getLength());
-									} catch (IOException e) {
-										throw new EffectorException("Unable to write() to output", e);
-									}
+									this.output.write(this.selected.getValue(), 0, this.selected.getLength());
 								}
 								break;
 							case MARK:
@@ -512,24 +505,12 @@ S:				do {
 							input = Input.empty;
 						}
 						if (0 != (aftereffects & IEffector.RTX_START)) {
-							assert transducer == this.transducerStack.get(this.transducerStack.tos()-1);
-							transducer.state = state;
+							assert this.transducer == this.transducerStack.get(this.transducerStack.tos()-1);
+							this.transducer.state = state;
 						}
 						if (0 != (aftereffects & IEffector.RTX_SIGNAL)) {
-							assert this.signalInput == 0;
-							this.signalInput = aftereffects >>> 16;
-						}
-						if (0 != (aftereffects & IEffector.RTX_COUNT)) {
-							assert (transducer == this.transducerStack.get(this.transducerStack.tos()))
-							|| (transducer == this.transducerStack.get(this.transducerStack.tos()-1));
-							if (transducer.countdown[0] < 0) {
-								transducer.countdown[0] = (int)this.getNamedValue((-1 * transducer.countdown[0]) - 1).asInteger();
-							}
-							if (transducer.countdown[0] <= 0) {
-								assert this.signalInput == 0;
-								this.signalInput = transducer.countdown[1];
-								transducer.countdown[0] = 0;
-							}
+							assert signal == 0;
+							signal = aftereffects >>> 16;
 						}
 						if (0 != (aftereffects & (IEffector.RTX_PAUSE | IEffector.RTX_STOPPED))) {
 							break T;
@@ -546,7 +527,8 @@ S:				do {
 				this.inputStack.pop();
 				assert this.inputStack.isEmpty();
 			}
-
+		} catch (IOException e) {
+			throw new EffectorException("Unable to write() to output", e);
 		} finally {
 			// Prepare to pause (or stop) transduction
 			this.metrics.bytes = this.inputStack.getBytesCount();
@@ -1042,13 +1024,32 @@ S:				do {
 		}
 
 		@Override
-		public void newParameters(final int parameterCount) {
-			super.parameters = new int[parameterCount][];
+		public int invoke() throws EffectorException {
+			throw new EffectorException(String.format("Cannot invoke inline effector '%1$s'", super.getName()));
 		}
 
 		@Override
-		public int invoke() throws EffectorException {
-			throw new EffectorException(String.format("Cannot invoke inline effector '%1$s'", super.getName()));
+		public int invoke(final int parameterIndex) throws EffectorException {
+			int[] countdown = super.getParameter(parameterIndex);
+			assert countdown.length == 2;
+			TransducerState tos = transducerStack.peek();
+			tos.countdown[0] = countdown[0];
+			tos.countdown[1] = countdown[1];
+			assert (transducer == transducerStack.get(transducerStack.tos()))
+			|| (transducer == transducerStack.get(transducerStack.tos()-1));
+			if (transducer.countdown[0] < 0) {
+				transducer.countdown[0] = (int)getNamedValue((-1 * transducer.countdown[0]) - 1).asInteger();
+			}
+			if (transducer.countdown[0] <= 0) {
+				transducer.countdown[0] = 0;
+				return (transducer.countdown[1] << 16) | IEffector.RTX_SIGNAL;
+			}
+			return IEffector.RTX_NONE;
+		}
+
+		@Override
+		public void newParameters(final int parameterCount) {
+			super.parameters = new int[parameterCount][];
 		}
 
 		@Override
@@ -1084,16 +1085,6 @@ S:				do {
 					getName(), super.getName(), Bytes.decode(super.output.getCharsetDecoder(),
 					parameterList[1], parameterList[1].length)));
 			}
-		}
-
-		@Override
-		public int invoke(final int parameterIndex) throws EffectorException {
-			int[] countdown = super.getParameter(parameterIndex);
-			assert countdown.length == 2;
-			TransducerState tos = transducerStack.peek();
-			tos.countdown[0] = countdown[0];
-			tos.countdown[1] = countdown[1];
-			return IEffector.RTX_COUNT;
 		}
 
 		@Override

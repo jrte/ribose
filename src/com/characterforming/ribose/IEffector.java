@@ -54,14 +54,12 @@ public interface IEffector<T extends ITarget> {
 	static final int RTX_STOP = 2;
 	/** Input (or signal) pushed onto the input stack. */
 	static final int RTX_INPUT = 4;
-	/** Counter for the current transducer decremented to 0. */
-	static final int RTX_COUNT = 8;
 	/** Force immediate and resumable exit from ITransductor.run(). */
-	static final int RTX_PAUSE = 16;
+	static final int RTX_PAUSE = 8;
 	/** Force immediate and final exit from ITransductor.run(). */
-	static final int RTX_STOPPED = 32;
+	static final int RTX_STOPPED = 16;
 	/** Inject a signal for immediate transduction in ITransductor.run(). */
-	static final int RTX_SIGNAL = 64;
+	static final int RTX_SIGNAL = 32;
 
 	/**
 	 * This method is invoked at runtime when triggered by an input transition.
