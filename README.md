@@ -355,27 +355,14 @@ Clone the ribose repo and run `ant ribose` to build the ribose library and API (
 
 The `TRun` target is coupled with the transductor effectors and is sufficient for basic ribose runtime models containing only transductions that write output though the `out[...]` effector. Specialized `ITarget` implementations can express additional effectors that capture transduction output in simple value objects for assimilation into the target, which may also interact with other domain objects. In any case, to build a ribose model for a collection of transduction patterns, emulate the procedure for building `Test.model` (see the `compile-test-patterns` and `package-test-patterns` targets in `build.xml`).
 
-Shell scripts are available in `etc/sh` to support compiling patterns, packaging transducers into models, and running transductions from ribose models:
+Shell scripts for compiling patterns, packaging transducers into ribose models, and running transductions are available in `etc/sh`:
 
 - _patterns_: compile ginr patterns from a containing folder to DFAs
 - _compile_: compile ginr DFAs to ribose transducers and package transducers into a ribose model
 - _ribose_: start a ribose transducer on a runtime transductor to transduce an input file
 
-To learn how to use ribose models in the JVM runtime build ribose and see the javadoc pages in `javadoc/` or `jars/ribose-0.0.1-api.jar`.
+To learn how to use ribose models in the JVM runtime build ribose and see the javadoc pages in `javadoc/`.
 
 For some background reading and a historical perspective visit the [ribose wiki](https://github.com/jrte/ribose/wiki).
 
-The current version of ribose is packaged in `jars/ribose-0.0.1.jar`.
-
 See [LICENSE](https://github.com/jrte/ribose/raw/master/LICENSE) for ribose licensing details.
-
----
-![YourKit](https://www.yourkit.com/images/yklogo.png)
-
-The jrte project uses YourKit to identify and eliminate bottlenecks and turbulence in stream processing workflows and to reduce object creation to a bare minimum while maintaining high throughput.
-
-YourKit supports open source projects with innovative and intelligent tools
-for monitoring and profiling Java and .NET applications.
-YourKit is the creator of <a href="https://www.yourkit.com/java/profiler/">YourKit Java Profiler</a>,
-<a href="https://www.yourkit.com/.net/profiler/">YourKit .NET Profiler</a>,
-and <a href="https://www.yourkit.com/youmonitor/">YourKit YouMonitor</a>.
