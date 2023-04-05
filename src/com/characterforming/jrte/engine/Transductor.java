@@ -109,10 +109,11 @@ public final class Transductor implements ITransductor, IOutput {
 	private final InputStack inputStack;
 	private int matchMode;
 	private long[] matchSum;
-	private byte[] matchProduct;
+	private int[] matchProduct;
 	private int matchPosition;
-	private byte matchByte;
+	private int matchByte;
 	private int errorInput;
+	private int signalLimit;
 	private final CharsetDecoder decoder;
 	private final CharsetEncoder encoder;
 	private OutputStream output;
@@ -142,6 +143,7 @@ public final class Transductor implements ITransductor, IOutput {
 		this.matchPosition = 0;
 		this.matchByte = 0;
 		this.errorInput = -1;
+		this.signalLimit = this.model.getSignalLimit();
 		this.decoder = Base.newCharsetDecoder();
 		this.encoder = Base.newCharsetEncoder();
 		this.rtcLogger = Base.getCompileLogger();
@@ -511,6 +513,7 @@ S:				do {
 						if (0 != (aftereffects & IEffector.RTX_SIGNAL)) {
 							assert signal == 0;
 							signal = aftereffects >>> 16;
+							assert signal > 255 && signal < this.signalLimit;
 						}
 						if (0 != (aftereffects & (IEffector.RTX_PAUSE | IEffector.RTX_STOPPED))) {
 							break T;
@@ -622,17 +625,17 @@ S:				do {
 
 	int sumTrap(Input input, int token) {
 		if (token < Signal.nul.signal()) {
-			int pos = input.position;
+			int anchor = input.position;
 			final long[] matchMask = this.matchSum;
 			while (0 != (matchMask[token >> 6] & (1L << (token & 0x3f)))) {
 				if (input.position < input.limit) {
 					token = Byte.toUnsignedInt(input.array[input.position++]);
 				} else {
-					this.metrics.sum += (input.position - pos);
+					this.metrics.sum += (input.position - anchor);
 					return -1;
 				}
 			}
-			this.metrics.sum += (input.position - pos);
+			this.metrics.sum += (input.position - anchor);
 		}
 		this.matchMode = Mnone;
 		return token;
@@ -640,11 +643,11 @@ S:				do {
 
 	int productTrap(Input input, int token) {
 		if (token < Signal.nul.signal()) {
-			final byte[] match = this.matchProduct;
+			final int[] match = this.matchProduct;
 			int mpos = this.matchPosition, mlen = match.length;
 			assert mpos <= mlen;
 			while (mpos < mlen) {
-				if (token == Byte.toUnsignedInt(match[mpos++])) {
+				if (token == match[mpos++]) {
 					if (mpos == mlen) {
 						break;
 					} else if (input.position < input.limit) {
@@ -668,7 +671,7 @@ S:				do {
 	int scanTrap(Input input, int token) {
 		if (token < Signal.nul.signal()) {
 			int pos = input.position;
-			final byte matchByte = this.matchByte;
+			final int matchByte = this.matchByte;
 			while (token != matchByte) {
 				if (input.position < input.limit) {
 					token = Byte.toUnsignedInt(input.array[input.position++]);
@@ -925,12 +928,12 @@ S:				do {
 
 		@Override
 		public int invoke() throws EffectorException {
-			return (Signal.nil.signal() << 16) | IEffector.RTX_SIGNAL;
+			return IEffector.rtx(Signal.nil.signal());
 		}
 
 		@Override
 		public int invoke(final int parameterIndex) throws EffectorException {
-			return (super.parameters[parameterIndex] << 16) | IEffector.RTX_SIGNAL;
+			return IEffector.rtx(super.parameters[parameterIndex]);
 		}
 
 		@Override
@@ -1035,9 +1038,8 @@ S:				do {
 			if (transducer.countdown[0] < 0) {
 				transducer.countdown[0] = (int)getNamedValue((-1 * transducer.countdown[0]) - 1).asInteger();
 			}
-			if (transducer.countdown[0] <= 0) {
-				transducer.countdown[0] = 0;
-				return (transducer.countdown[1] << 16) | IEffector.RTX_SIGNAL;
+			if (transducer.countdown[0] == 0) {
+				return IEffector.rtx(transducer.countdown[1]);
 			}
 			return IEffector.RTX_NONE;
 		}
@@ -1279,7 +1281,7 @@ S:				do {
 		}
 	}
 
-	private final class MproductEffector extends BaseParameterizedEffector<Transductor, byte[]> {
+	private final class MproductEffector extends BaseParameterizedEffector<Transductor, int[]> {
 		private MproductEffector(final Transductor transductor) {
 			super(transductor, "mproduct");
 		}
@@ -1304,34 +1306,39 @@ S:				do {
 
 		@Override
 		public void newParameters(int parameterCount) {
-			super.parameters = new byte[parameterCount][];
+			super.parameters = new int[parameterCount][];
 		}
 	
 		@Override
-		public byte[] compileParameter(final int parameterIndex, final byte[][] parameterList) throws TargetBindingException {
+		public int[] compileParameter(final int parameterIndex, final byte[][] parameterList) throws TargetBindingException {
 			if (parameterList.length != 1) {
 				throw new TargetBindingException("The mproduct effector accepts at most one parameter");
 			}
-			super.setParameter(parameterIndex, parameterList[0]);
+			byte[] b = parameterList[0];
+			int[] p = new int[b.length];
+			for (int i = 0; i < p.length; i++) {
+				p[i] = Byte.toUnsignedInt(b[i]);
+			}
+			super.setParameter(parameterIndex, p);
 			return super.parameters[parameterIndex];
  		}
 
 		@Override
 		public String showParameter(int parameterIndex) {
-			byte[] product = super.parameters[parameterIndex];
+			int[] product = super.parameters[parameterIndex];
 			StringBuilder sb = new StringBuilder();
 			for (int j = 0; j < product.length; j++) {
 				if (32 < product[j] && 127 > product[j]) {
 					sb.append(String.format(" %c", (char)product[j]));
 				} else {
-					sb.append(String.format(" #%x", Byte.toUnsignedInt(product[j])));
+					sb.append(String.format(" #%x", product[j]));
 				}
 			}
 			return sb.toString();
 		}
 	}
 
-	private final class MscanEffector extends BaseParameterizedEffector<Transductor, Byte> {
+	private final class MscanEffector extends BaseParameterizedEffector<Transductor, Integer> {
 		private MscanEffector(final Transductor transductor) {
 			super(transductor, "mscan");
 		}
@@ -1354,25 +1361,25 @@ S:				do {
 
 		@Override
 		public void newParameters(int parameterCount) {
-			super.parameters = new Byte[parameterCount];
+			super.parameters = new Integer[parameterCount];
 		}
 	
 		@Override
-		public Byte compileParameter(final int parameterIndex, final byte[][] parameterList) throws TargetBindingException {
+		public Integer compileParameter(final int parameterIndex, final byte[][] parameterList) throws TargetBindingException {
 			if (parameterList.length != 1) {
 				throw new TargetBindingException("The mproduct effector accepts at most one parameter");
 			}
-			super.setParameter(parameterIndex, parameterList[0][0]);
+			super.setParameter(parameterIndex, Byte.toUnsignedInt(parameterList[0][0]));
 			return super.parameters[parameterIndex];
  		}
 
 		@Override
 		public String showParameter(int parameterIndex) {
-			byte scanbyte = super.parameters[parameterIndex];
+			int scanbyte = super.parameters[parameterIndex];
 			if (32 < scanbyte && 127 > scanbyte) {
 				return String.format("%c", (char)scanbyte);
 			} else {
-				return String.format("#%x", Byte.toUnsignedInt(scanbyte));
+				return String.format("#%x", scanbyte);
 			}
 		}
 	}

@@ -35,17 +35,28 @@ import com.characterforming.ribose.base.TargetBindingException;
  * transductions. Parameterized effectors implementing {@link IParameterizedEffector} may
  * also be included in ribose targets. The ribose {@link ITransductor} implmentation
  * also presents a core suite of base effectors that are accessible to all targets.
+ * <br><br>
+ * All effectors return an integer {@code RTX} code (see RTX_*, below), which is a bit
+ * map of special conditions. RTX bits are additive and accumulate as the effect vector is
+ * executed for a transition. Most RTX bits reflect the action of base effectors. Effectors
+ * that do not affect the {@link ITransductor} transducer stack or input stack should
+ * return only {@code RTX_NONE} (to continue transduction normally) or a signal encoded
+ * with {@code RTX_SIGNAL} using {@link IEffector#rtx(int)}.
+ * <br><br>
+ * Care should be taken to ensure that at most one effector in any effect vector
+ * may return an encoded signal. The built-in {@code count} and {@code signal}
+ * effectors and any domain-specific target effectors that return encoded signals
+ * should never appear in combination within a single effector vector, and this
+ * condition can be checked in the pattern domain. An {@code EffectorException}
+ * will be thrown from {@link ITransductor#run()} if the decoded signal is out
+ * of range, but mixed signals that remain in range will go undetected (or force
+ * a domain error and transition on {@code nul}).
  * @param <T> The effector target type
  * @author Kim Briggs
  */
 public interface IEffector<T extends ITarget> {
 
 	/**
-	 * RTX bits are additive and accumulate as the effect vector is
-	 * executed for a transition. Most RTX bits reflect the action
-	 * of base effectors. Effectors that do not affect the
-	 * {@link ITransductor} transducer stack or input stack should
-	 * return only {@code RTX_NONE} (to continue transduction normally).
 	 */
 	static final int RTX_NONE = 0;
 	/** Transducer pushed onto the transducer stack. */
@@ -95,6 +106,21 @@ public interface IEffector<T extends ITarget> {
 	 * @return The effector name.
 	 */
 	Bytes getName();
+
+	/**
+	 * Encode a signal with an {@link IEffector#RTX_SIGNAL} value to return from 
+	 * an effctor {@link IEffector#invoke()} or {@link IParameterizedEffector#invoke(int)}
+	 * method. The transductor will decode and inject {@code signal} into the 
+	 * input stream for immediate transduction. Since the return values from successive
+	 * invocations of effectors in a vector are OR'd together the decoded final value
+	 * may be out of range of the models defined signals.
+	 * 
+	 * @param signal the signal value (&gt;255, &lt;256+#signals) to encode
+	 * @return signal &lt;&lt; 16 | {@code IEffector.RTX_SIGNAL}
+	 */
+	static int rtx(int signal) {
+		return (signal << 16) | RTX_SIGNAL;
+	}
 
 	/**
 	 * Test two effector instances for functional equivalence. Effector

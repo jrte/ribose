@@ -30,7 +30,9 @@ import com.characterforming.ribose.base.TargetBindingException;
  * arrays of bytes. Compiled parameter values are referenced by their index in
  * the resulting array. At runtime, the {@link #invoke(int)} method is called
  * with the parameter index to indicate which instance of <b>P</b> to apply
- * to the invocation.
+ * to the invocation. This method returns an {@link IEffector} {@code RTX} value
+ * as for {@link IEffector#invoke()}; see the javadoc comments for {@link IEffector}
+ * for instructions regarding {@code RTX} codes.
  * <br><br>
  * Parameterized effectors are required to construct an array <b>P[]</b> of parameter
  * instances when a ribose model is compiled and again when a ribose model is loaded
