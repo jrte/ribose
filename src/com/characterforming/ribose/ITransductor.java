@@ -29,11 +29,11 @@ import com.characterforming.ribose.base.RiboseException;
 import com.characterforming.ribose.base.Signal;
 
 /**
- * Interface for runtime transductors. A transductor binds an IInput stack,
- * transducer stack, and an ITarget instance. When the {@link run()} method
- * is called the transductor will read input and invoke the effectors triggered
- * by each input transition until {@link status()} {@code !=} {@link Status#RUNNABLE}.
- * Then one of the following conditions is satisfied:
+ * Interface for runtime transductors. A transductor binds an {link ITarget} instance
+ * to an input stack and a transducer stack. When the {@link run()} method is called
+ * the transductor will read input and invoke the effectors triggered by each input
+ * transition until {@link status()} {@code !=} {@link Status#RUNNABLE}. Then one of
+ * the following conditions is satisfied:
  * <br><br>
  * <ul>
  * <li>the input stack is empty or the {@code pause} effector is invoked ({@link Status#PAUSED})
@@ -99,7 +99,7 @@ import com.characterforming.ribose.base.Signal;
  * }
  * </pre>
  * Domain errors (inputs with no transition defined) are handled by emitting a
- * {@code} nul signal, giving the transduction an opportunity to handle it with an
+ * {@code nul} signal, giving the transduction an opportunity to handle it with an
  * explicit transition on {@code nul}. Typically this involves searching without effect
  * for a synchronization pattern and resuming with effect after synchronizing. If
  * {@code nul} is not handled a {@code DomainErrorException} is thrown, with one exception,
@@ -278,9 +278,9 @@ public interface ITransductor extends ITarget {
 	 * called on this stream is {@code write(byte[] data, int offset, int length)}.
 	 * Caller is responsible for conducting all other stream operations.
 	 *
-	 * The default output stream is set to {@code System.out}. This may filter output
+	 * The default output stream is set to {@code System.out}, which may filter output
 	 * to convert line endings, flush frequently, etc. For raw binary output (including
-	 * UTF-8 text) use a {@code BufferedOutputStream}.
+	 * UTF-8 text) with buffering use a {@code BufferedOutputStream}.
 	 *
 	 * @param output the output stream to write to
 	 * @return The previous output stream
@@ -346,7 +346,21 @@ public interface ITransductor extends ITarget {
 	ITransductor run() throws RiboseException, DomainErrorException;
 
 	/**
-	 * Return metrics from the most recent {@link #run()} call.
+	 * Return a new or unmarked byte[] buffer if the previous buffer ({@code bytes})
+	 * is marked in the input stack, else return the unmarked {@code bytes} buffer.
+	 * 
+	 * Byte arrays passed as input to the transductor when a mark is set are retained
+	 * by the transductor and MUST NOT be subsequently reused as input containers until
+	 * they have been recovered by a call to this method.
+	 *
+	 * @param bytes a recently used input buffer
+	 * @return the given buffer ({@code bytes}), or a new biffer of equal size if {@code bytes} is marked
+	 */
+	byte[] recycle(byte[] bytes);
+
+	/**
+	 * Return metrics from the most recent {@link #run()} call. Metrics are 
+	 * preserved until the {@code run()} method is called again.
 	 * 
 	 * @return the run metrics
 	 */
@@ -355,35 +369,11 @@ public interface ITransductor extends ITarget {
 	/**
 	 * Clear input and transductor stacks and reset all named values to
 	 * an empty state. This resets the transductor to original state
-	 * ready for reuse.
+	 * ready for reuse, but preserves metrics.
 	 *
 	 * @return this ITransductor
 	 * @throws RiboseException if transductor is proxy for parameter compilation
 	 * @see #status()
 	 */
 	ITransductor stop() throws RiboseException;
-
-	/**
-	 * Check whether the input stack is marked. Byte arrays passed as input
-	 * to the transductor after a mark is set are retained by the transductor
-	 * and MUST NOT be subsequently reused as input containers. They will be
-	 * released for garbase collection when the input stack is reset to the
-	 * mark or the mark is cleared.
-	 *
-	 * Call this method after calling run() if status().hasInput() returns
-	 * false and do not reuse any data buffers that were passed as input()
-	 * since marking commenced.
-	 *
-	 * @return true if a mark is set
-	 */
-	boolean hasMark();
-
-	/**
-	 * Return a new or unmarked byte[] buffer if the previous buffer ({@code bytes})
-	 * is marked in the input stack, else return the unmarked {@code bytes} buffer.
-	 *
-	 * @param bytes a recently used input buffer
-	 * @return the input buffer ({@code bytes}), or a new biffer of equal size if {@code bytes} is marked
-	 */
-	byte[] recycle(byte[] bytes);
 }

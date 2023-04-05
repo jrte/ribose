@@ -542,11 +542,6 @@ S:				do {
 		return this;
 	}
 
-	@Override // @see com.characterforming.ribose.ITransductor#hasMark()
-	public boolean hasMark() {
-		return this.inputStack.hasMark();
-	}
-
 	@Override // @see com.characterforming.ribose.ITransductor#recycle()
 	public byte[] recycle(byte[] bytes) {
 		return this.inputStack.recycle(bytes);
