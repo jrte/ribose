@@ -31,7 +31,6 @@ final class TransducerState {
 
 	TransducerState() {
 		this.countdown = new int[] {0, 0};
-		this.reset();
 	}
 
 	TransducerState transducer(Transducer transducer) {

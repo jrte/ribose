@@ -532,28 +532,6 @@ public final class Model implements AutoCloseable {
 		return this.effectorOrdinalMap.getOrDefault(bytes, -1);
 	}
 
-	String parameterToString(final byte[][] parameterBytes) {
-		final StringBuilder strings = new StringBuilder();
-		for (final byte[] bytes : parameterBytes) {
-			strings.append('[');
-			strings.append(Bytes.decode(this.decoder, bytes, bytes.length));
-			strings.append(']');
-		}
-		return strings.toString();
-	}
-
-	byte[] getProductParameter(int parameterIndex) {
-		return (byte[])((IParameterizedEffector<?,?>)this.proxyEffectors[
-			this.getEffectorOrdinal(Bytes.encode(this.encoder, "mproduct"))
-		]).getParameter(parameterIndex);
-	}
-
-	public long[] getSumParameter(int parameterIndex) {
-		return (long[])((IParameterizedEffector<?,?>)this.proxyEffectors[
-			this.getEffectorOrdinal(Bytes.encode(this.encoder, "msum"))
-		]).getParameter(parameterIndex);
-	}
-
 	File getModelPath() {
 		return this.modelPath;
 	}
@@ -640,46 +618,34 @@ public final class Model implements AutoCloseable {
 		return (null != ordinal) ? ordinal.intValue() : -1;
 	}
 
-	long getTransducerOffset(int transducerOrdinal) {
-		return (transducerOrdinal < this.transducerOffsetIndex.length)
-		? this.transducerOffsetIndex[transducerOrdinal]
-		: null;
-	}
-
-	Transducer getTransducer(int transducerOrdinal) {
-		synchronized (this.transducerObjectIndex) {
-			return (transducerOrdinal < this.transducerObjectIndex.length)
-			?	this.transducerObjectIndex[transducerOrdinal]
-			: null;
-		}
-	}
-
 	Transducer loadTransducer(final Integer transducerOrdinal) throws ModelException {
-		if ((0 <= transducerOrdinal) && (transducerOrdinal < this.transducerOrdinalMap.size())) {
-			try {
-				if (this.transducerObjectIndex[transducerOrdinal] == null) {
+		if (0 <= transducerOrdinal && transducerOrdinal < this.transducerObjectIndex.length) {
+			Transducer t = this.transducerObjectIndex[transducerOrdinal];
+			if (t == null) {
+				try {
 					synchronized (this.transducerObjectIndex) {
-						if (this.transducerObjectIndex[transducerOrdinal] == null) {
+						t = this.transducerObjectIndex[transducerOrdinal];;
+						if (t == null) {
 							this.io.seek(transducerOffsetIndex[transducerOrdinal]);
 							final String name = this.getString();
-							final String targetName = this.getString();
-							final int[] inputFilter = this.getIntArray();
-							final long[] transitionMatrix = this.getTransitionMatrix();
-							final int[] effectorVector = this.getIntArray();
-							this.transducerObjectIndex[transducerOrdinal] = new Transducer(
-								name, targetName,	inputFilter, transitionMatrix, effectorVector);
+							final String target = this.getString();
+							final int[] inputs = this.getIntArray();
+							final long[] transitions = this.getTransitionMatrix();
+							final int[] effects = this.getIntArray();
+							t = new Transducer(name, target,	inputs, transitions, effects);
+							this.transducerObjectIndex[transducerOrdinal] = t;
 						}
 					}
-				}
-				return this.transducerObjectIndex[transducerOrdinal];
-			} catch (final IOException e) {
-				throw new ModelException(
-					String.format("RuntimeModel.loadTransducer(ordinal:%d) caught an IOException after seek to %d",
+				} catch (final IOException e) {
+					throw new ModelException(
+						String.format("RuntimeModel.loadTransducer(ordinal:%d) caught an IOException after seek to %d",
 						transducerOrdinal, transducerOffsetIndex[transducerOrdinal]), e);
+				}
 			}
+			return t;
 		} else {
 			throw new ModelException(String.format("RuntimeModel.loadTransducer(ordinal:%d) ordinal out of range [0,%d)",
-				transducerOrdinal, this.transducerOrdinalMap.size()));
+				transducerOrdinal, this.transducerObjectIndex.length));
 		}
 	}
 

@@ -186,7 +186,7 @@ public final class Transductor implements ITransductor, IOutput {
 			/*12*/ new InlineEffector(this, "reset"),
 			/*13*/ new StartEffector(this),
 			/*14*/ new PauseEffector(this),
-			/*15*/ new StopEffector(this),
+			/*15*/ new InlineEffector(this, "stop"),
 			/*16*/ new MsumEffector(this),
 			/*17*/ new MproductEffector(this),
 			/*18*/ new MscanEffector(this)
@@ -208,7 +208,7 @@ public final class Transductor implements ITransductor, IOutput {
 			/*12*/ new InlineEffector(this, "reset"),
 			/*13*/ new StartEffector(this),
 			/*14*/ new PauseEffector(this),
-			/*15*/ new StopEffector(this),
+			/*15*/ new InlineEffector(this, "stop"),
 			/*16*/ new MsumEffector(this),
 			/*17*/ new MproductEffector(this),
 			/*18*/ new MscanEffector(this)
@@ -490,7 +490,7 @@ E:				do {
 								aftereffects |= IEffector.RTX_PAUSE;
 								break;
 							case STOP:
-								aftereffects |= popTransducer();
+								aftereffects |= this.transducerStack.pop() == null ? IEffector.RTX_STOPPED : IEffector.RTX_STOP;
 								break;
 							default:
 								aftereffects |= this.effectors[action].invoke();
@@ -698,24 +698,6 @@ E:				do {
 			nv.clear();
 		}
 		return IEffector.RTX_NONE;
-	}
-
-	private int pushTransducer(final Integer transducerOrdinal) throws EffectorException {
-		try {
-			this.transducerStack.push(this.model.loadTransducer(transducerOrdinal));
-			return IEffector.RTX_START;
-		} catch (final ModelException e) {
-			throw new EffectorException(String.format("The start effector failed to load %1$s", this.model.getTransducerName(transducerOrdinal)), e);
-		}
-	}
-
-	private int popTransducer() {
-		this.transducerStack.pop();
-		if (this.transducerStack.isEmpty()) {
-			return IEffector.RTX_STOPPED;
-		} else {
-			return IEffector.RTX_STOP;
-		}
 	}
 
 	private String getErrorInput(int last, int state) {
@@ -1136,7 +1118,13 @@ E:				do {
 
 		@Override
 		public int invoke(final int parameterIndex) throws EffectorException {
-			return pushTransducer(super.getParameter(parameterIndex));
+			try {
+				super.target.transducerStack.push(super.target.model.loadTransducer(super.getParameter(parameterIndex)));
+			} catch (final ModelException e) {
+				throw new EffectorException(String.format("The start effector failed to load %1$s", 
+					super.target.model.getTransducerName(super.getParameter(parameterIndex))), e);
+			}
+			return IEffector.RTX_START;
 		}
 
 		@Override
@@ -1162,17 +1150,6 @@ E:				do {
 		@Override
 		public int invoke() throws EffectorException {
 			return IEffector.RTX_PAUSE;
-		}
-	}
-
-	private final class StopEffector extends BaseEffector<Transductor> {
-		private StopEffector(final Transductor transductor) {
-			super(transductor, "stop");
-		}
-
-		@Override
-		public int invoke() throws EffectorException {
-			return this.getTarget().popTransducer();
 		}
 	}
 

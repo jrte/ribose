@@ -19,3 +19,4 @@ inline com.characterforming.jrte.engine.Transducer::state
 inline com.characterforming.jrte.engine.Transducer::action
 inline com.characterforming.jrte.engine.Transducer::effector
 inline com.characterforming.jrte.engine.Transducer::parameter
+inline com.characterforming.jrte.engine.Model::loadTransducer

@@ -47,6 +47,9 @@ final class TransducerStack {
 		this.tos += 1;
 		if (this.tos >= this.stack.length) {
 			this.stack = Arrays.copyOf(this.stack, (this.tos * 5) >> 2);
+			for (int pos = this.tos; pos < this.stack.length; pos++) {
+				this.stack[pos] = new TransducerState();
+			}
 		}
 		return this.stack[this.tos];
 	}
@@ -84,13 +87,7 @@ final class TransducerStack {
 	 * @return The item on top of the stack after the pop
 	 */
 	TransducerState pop() {
-		if (!this.isEmpty()) {
-			this.peek().reset();
-		}
-		if (this.tos >= 0) {
-			--this.tos;
-		}
-		return this.peek();
+		return this.tos-- > 0 ? this.stack[this.tos] : null;
 	}
 
 	/**
