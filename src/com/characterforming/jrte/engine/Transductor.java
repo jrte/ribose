@@ -331,12 +331,12 @@ public final class Transductor implements ITransductor, IOutput {
 		if (this.status() == Status.NULL) {
 			return this.stop();
 		}
+		this.metrics.reset();
 		final int nulSignal = Signal.nul.signal();
 		final int eosSignal = Signal.eos.signal();
 		int token = -1, state = 0, last = -1, signal = 0;
 		Input input = Input.empty;
 		this.errorInput = -1;
-		this.metrics.reset();
 		try {
 T:		do {
 				// start a pushed transducer
@@ -356,6 +356,7 @@ I:			do {
 							input = this.inputStack.pop();
 						} while (!input.hasRemaining() && input != Input.empty);
 						token = this.nextToken(input);
+						input = this.inputStack.peek();
 						if (token < 0) {
 							break T;
 						}
