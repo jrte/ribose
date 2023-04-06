@@ -268,8 +268,9 @@ public final class Transductor implements ITransductor, IOutput {
 
 	@Override // @see com.characterforming.ribose.ITransductor#push(byte[], int)
 	public ITransductor push(final byte[] input, int limit) {
+		assert input.length >= limit;
 		if (this.status() != Status.NULL) {
-			this.inputStack.push(input).limit(limit);
+			this.inputStack.push(input, limit);
 		}
 		return this;
 	}
@@ -472,7 +473,7 @@ E:				do {
 								}
 								break;
 							case IN:
-								this.inputStack.value(this.selected.getValue(), this.selected.getLength());
+								this.inputStack.push(this.selected.getValue(), this.selected.getLength());
 								aftereffects |= IEffector.RTX_INPUT;
 								break;
 							case OUT:
@@ -606,7 +607,7 @@ E:				do {
 			NamedValue handle = this.namedValueHandles[Base.decodeReferenceOrdinal(Base.TYPE_REFERENCE_VALUE, input.array)];
 			input.position = input.length;
 			this.inputStack.pop();
-			Input value = this.inputStack.push(handle.getValue()).limit(handle.getLength());
+			Input value = this.inputStack.push(handle.getValue(), handle.getLength());
 			return Byte.toUnsignedInt(value.array[value.position++]);
 		case Base.TYPE_REFERENCE_NONE:
 			return input.array != null ? Byte.toUnsignedInt(input.array[input.position++]) : -1;

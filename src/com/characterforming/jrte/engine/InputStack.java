@@ -72,10 +72,12 @@ final class InputStack {
 	 * 
 	 * @param data The data to push for immediate transduction
 	 */
-	Input push(byte[] data) {
+	Input push(byte[] data, int limit) {
+		assert data.length >= limit;
 		Input top = this.stackcheck();
 		top.array = data;
-		top.limit = top.length = top.array.length;
+		top.length = data.length;
+		top.limit = limit;
 		top.position = 0;
 		top.mark = -1;
 		return top;
@@ -101,7 +103,7 @@ final class InputStack {
 	public void put(byte[][] data) {
 		int i = data.length;
 		while (--i >= 0) {
-			this.push(data[i]);
+			this.push(data[i], data[i].length);
 		}
 	}
 
@@ -111,17 +113,8 @@ final class InputStack {
 	 * @param signal The signal ordinal
 	 */
 	void signal(int signal) {
-		this.push(this.signals[signal - Base.RTE_SIGNAL_BASE]);
-	}
-
-	/**
-	 * Push a value onto the stack 
-	 *
-	 * @param value The value ordinal
-	 */
-	void value(byte[] value, int length) {
-		Input top = this.push(value);
-		top.limit = top.length = length;
+		byte[] data = this.signals[signal - Base.RTE_SIGNAL_BASE];
+		this.push(data, data.length);
 	}
 
 	/**
