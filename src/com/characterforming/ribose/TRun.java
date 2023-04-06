@@ -174,6 +174,7 @@ public final class TRun extends BaseTarget {
 				}
 			}
 		} finally {
+			Base.endLogging();
 			System.exit(exitCode);
 		}
 	}

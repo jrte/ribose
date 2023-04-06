@@ -172,6 +172,36 @@ public final class Base {
 	}
 
 	/**
+	 * Finalize all loggers
+	 */
+	public static void endLogging() {
+		if (Base.rtcLogger != null) {
+			Handler[] handlers = Base.rtcLogger.getHandlers();
+			for (Handler h : handlers) {
+				if (h instanceof FileHandler) {
+					h.close();
+				}
+			}
+		}
+		if (Base.rteLogger != null) {
+			Handler[] handlers = Base.rteLogger.getHandlers();
+			for (Handler h : handlers) {
+				if (h instanceof FileHandler) {
+					h.close();
+				}
+			}
+		}
+		if (Base.rtmLogger != null) {
+			Handler[] handlers = Base.rtmLogger.getHandlers();
+			for (Handler h : handlers) {
+				if (h instanceof FileHandler) {
+					h.close();
+				}
+			}
+		}
+	}
+
+	/**
 	 * Instantiate a new {@code CharsetDecoder}. All textual data in ribose models
 	 * are represented in encoded form (eg, UTF-8 byte arrays).
 	 *
@@ -217,7 +247,7 @@ public final class Base {
 	 * @return true if {@code bytes} encodes a reference ordinal
 	 */
 	static public boolean isReferenceOrdinal(final byte bytes[]) {
-		return (bytes.length == 4) && (bytes[0] == TYPE_ORDINAL_INDICATOR);
+		return (bytes != null) && (bytes.length == 4) && (bytes[0] == TYPE_ORDINAL_INDICATOR);
 	}
 
 	/**

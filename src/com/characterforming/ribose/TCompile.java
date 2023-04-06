@@ -156,6 +156,7 @@ public final class TCompile extends ModelCompiler {
 			if (exitCode != 0) {
 				System.out.println("Runtime compilation failed, see log for details.");
 			}
+			Base.endLogging();
 		}
 		System.exit(exitCode);
 	}

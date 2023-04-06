@@ -22,6 +22,7 @@
 
 import java.io.File;
 
+import com.characterforming.jrte.engine.Base;
 import com.characterforming.jrte.engine.ModelDecompiler;
 import com.characterforming.ribose.base.ModelException;
 
@@ -78,5 +79,6 @@ public final class TDecompile {
     String transducerName = args[1];
     ModelDecompiler decompiler = new ModelDecompiler(modelFile);
     decompiler.decompile(transducerName);
+    Base.endLogging();
   }
 }

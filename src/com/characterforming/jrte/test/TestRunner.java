@@ -123,6 +123,7 @@ public class TestRunner {
 			System.out.println("Runtime exception thrown.");
 			rteLogger.log(Level.SEVERE, "Runtime failed, exception thrown.", e);
 		} finally {
+			Base.endLogging();
 			System.exit(exitCode);
 		}
 	}

@@ -355,7 +355,7 @@ I:			do {
 						do {
 							input = this.inputStack.pop();
 						} while (!input.hasRemaining() && input != Input.empty);
-						token = (input != Input.empty) ? this.nextToken(input) : -1;
+						token = this.nextToken(input);
 						if (token < 0) {
 							break T;
 						}
@@ -407,22 +407,31 @@ S:				do {
 
 					int index = 0;
 					int parameter = -1;
-					if (action < 0) {
-						index = -action;
-						action = effectorVector[index++];
-						if (action < 0) {
-							parameter = effectorVector[index++];
-							action *= -1;
-						}
-					} else if (action >= 0x10000) {
+					if (action >= 0x10000) {
 						parameter = Transducer.parameter(action);
 						action = Transducer.effector(action);
+						assert parameter >= 0;
+					} else if (action < 0) {
+						index = -action;
 					}
 
-					// invoke a vector of effectors and record side effects on transducer and input stacks
+					// invoke a scalar effector or vector of effectors and record side effects on transducer and input stacks
 					int aftereffects = 0;
-					do {
-						if (parameter < 0) {
+E:				do {
+						if (index > 0) {
+							action = effectorVector[index++];
+							if (action < 0) {
+								parameter = effectorVector[index++];
+								action *= -1;
+							} else if (action != NUL) {
+								parameter = -1;
+							} else {
+								break E;
+							}
+						}
+						if (parameter >= 0) {
+							aftereffects |= ((IParameterizedEffector<?,?>)this.effectors[action]).invoke(parameter);
+						} else {
 							switch (action) {
 							case NUL:
 								if ((token != nulSignal && token != eosSignal)
@@ -486,22 +495,10 @@ S:				do {
 								aftereffects |= this.effectors[action].invoke();
 								break;
 							}
-						} else {
-							aftereffects |= ((IParameterizedEffector<?,?>)this.effectors[action]).invoke(parameter);
 						}
-						if (index > 0) {
-							action = effectorVector[index++];
-							parameter = -1;
-							if (action < 0) {
-								action *= -1;
-								parameter = effectorVector[index++];
-							}
-						} else {
-							break;
-						}
-					} while (action != NUL);
+					} while (index > 0);
 
-					// check for transducer or input stack adjustmnent
+					// check for transducer or input stack adjustment
 					if (aftereffects != 0) {
 						if (0 != (aftereffects & IEffector.RTX_INPUT)) {
 							input = Input.empty;
@@ -518,7 +515,7 @@ S:				do {
 								assert this.transducer == this.transducerStack.get(this.transducerStack.tos() - 1);
 								this.transducer.state = state;
 							}
-							break;
+							break I;
 						}
 					}
 				} while (this.status().isRunnable());
@@ -599,33 +596,28 @@ S:				do {
 	}
 
 	int nextToken(Input input) {
-		int token = -1;
+		assert input.array != null || input == Input.empty;
 		switch (Base.getReferenceType(input.array)) {
 		case Base.TYPE_REFERENCE_SIGNAL:
-			token = Base.decodeReferenceOrdinal(Base.TYPE_REFERENCE_SIGNAL, input.array);
 			input.position = input.length;
-			break;
+			return Base.decodeReferenceOrdinal(Base.TYPE_REFERENCE_SIGNAL, input.array);
 		case Base.TYPE_REFERENCE_VALUE:
-			NamedValue value = this.namedValueHandles[Base.decodeReferenceOrdinal(Base.TYPE_REFERENCE_VALUE, input.array)];
+			NamedValue handle = this.namedValueHandles[Base.decodeReferenceOrdinal(Base.TYPE_REFERENCE_VALUE, input.array)];
 			input.position = input.length;
 			this.inputStack.pop();
-			input = this.inputStack.push(value.getValue()).limit(value.getLength());
-			token = Byte.toUnsignedInt(input.array[input.position++]);
-			break;
+			Input value = this.inputStack.push(handle.getValue()).limit(handle.getLength());
+			return Byte.toUnsignedInt(value.array[value.position++]);
 		case Base.TYPE_REFERENCE_NONE:
-			token = Byte.toUnsignedInt(input.array[input.position++]);
-			break;
+			return input.array != null ? Byte.toUnsignedInt(input.array[input.position++]) : -1;
 		default:
-			token = Signal.nul.signal();
 			assert false;
-			break;
+			return -1;
 		}
-		return token;
 	}
 
 	int sumTrap(Input input, int token) {
 		if (token < Signal.nul.signal()) {
-			int anchor = input.position;
+			final int anchor = input.position;
 			final long[] matchMask = this.matchSum;
 			while (0 != (matchMask[token >> 6] & (1L << (token & 0x3f)))) {
 				if (input.position < input.limit) {
@@ -644,7 +636,8 @@ S:				do {
 	int productTrap(Input input, int token) {
 		if (token < Signal.nul.signal()) {
 			final int[] match = this.matchProduct;
-			int mpos = this.matchPosition, mlen = match.length;
+			final int mlen = match.length;
+			int mpos = this.matchPosition;
 			assert mpos <= mlen;
 			while (mpos < mlen) {
 				if (token == match[mpos++]) {
@@ -670,17 +663,17 @@ S:				do {
 
 	int scanTrap(Input input, int token) {
 		if (token < Signal.nul.signal()) {
-			int pos = input.position;
+			final int anchor = input.position;
 			final int matchByte = this.matchByte;
 			while (token != matchByte) {
 				if (input.position < input.limit) {
 					token = Byte.toUnsignedInt(input.array[input.position++]);
 				} else {
-					this.metrics.scan += (input.position - pos);
+					this.metrics.scan += (input.position - anchor);
 					return -1;
 				}
 			}
-			this.metrics.scan += (input.position - pos);
+			this.metrics.scan += (input.position - anchor);
 		}
 		this.matchMode = Mnone;
 		return token;
