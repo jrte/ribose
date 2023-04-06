@@ -29,41 +29,45 @@ import com.characterforming.ribose.base.TargetBindingException;
  * method to the transductor. Effectors are invoked at runtime in response to
  * state transitions in a running transduction. They are typically implemented
  * as anonymous inner classes within a specialized {@link ITarget} implementation
- * class.
- * <br><br>
- * Simple effectors present an {@link invoke()} method that is called from running
+ * class. Simple effectors present an {@link invoke()} method that is called from running
  * transductions. Parameterized effectors implementing {@link IParameterizedEffector} may
  * also be included in ribose targets. The ribose {@link ITransductor} implmentation
  * also presents a core suite of base effectors that are accessible to all targets.
  * <br><br>
- * All effectors return an integer {@code RTX} code (see RTX_*, below), which is a bit
+ * All effectors return an integer <a href="#field.summary"> RTX</a> code, which is a bit
  * map of special conditions. RTX bits are additive and accumulate as the effect vector is
  * executed for a transition. Most RTX bits reflect the action of base effectors. Effectors
  * that do not affect the {@link ITransductor} transducer stack or input stack should
  * return only {@code RTX_NONE} (to continue transduction normally) or a signal encoded
- * with {@code RTX_SIGNAL} using {@link IEffector#rtx(int)}.
+ * with {@code RTX_SIGNAL} using {@link IEffector#rtx(int)}. Care should be taken to ensure
+ * that at most one effector in any effect vector may return an encoded signal. The built-in
+ * {@code count} and {@code signal} effectors and any domain-specific target effectors
+ * that return encoded signals should never appear in combination within a single effector
+ * vector, and this condition can be checked in the pattern domain. An {@code AssertionError}
+ * will be thrown from {@link ITransductor#run()} if the decoded signal is out of range
+ * and assertions are enabled in the JVM, but mixed signals that remain in range will go
+ * undetected (or force a domain error and transition on {@code nul}).
  * <br><br>
- * Care should be taken to ensure that at most one effector in any effect vector
- * may return an encoded signal. The built-in {@code count} and {@code signal}
- * effectors and any domain-specific target effectors that return encoded signals
- * should never appear in combination within a single effector vector, and this
- * condition can be checked in the pattern domain. An {@code EffectorException}
- * will be thrown from {@link ITransductor#run()} if the decoded signal is out
- * of range, but mixed signals that remain in range will go undetected (or force
- * a domain error and transition on {@code nul}).
+ * To verify that transducer <b>T</b> from a model using signalling effectors in 
+ * <b>S</b>={{@code count}, {@code signal}, {@code ...}} satisfies this signalling
+ * contraint:
+ * <br><br><pre> (T$(0 1)) &amp; (T$(0 1):alph)*S(T$1:alph)*S(T$(0 1):alph)*</pre>
+ * must be empty. In general, range contraints on the effector set can be 
+ * expressed as patterns to be tested against transducer patterns in the design
+ * stage, before they are submitted for compilation to ginr FSTs and inclusion
+ * in ribose models.
  * @param <T> The effector target type
  * @author Kim Briggs
  */
 public interface IEffector<T extends ITarget> {
 
-	/**
-	 */
+	/** No aftereffect */
 	static final int RTX_NONE = 0;
 	/** Transducer pushed onto the transducer stack. */
 	static final int RTX_START = 1;
 	/** Transducer stack popped. */
 	static final int RTX_STOP = 2;
-	/** Input (or signal) pushed onto the input stack. */
+	/** Input pushed onto the input stack. */
 	static final int RTX_INPUT = 4;
 	/** Force immediate and resumable exit from ITransductor.run(). */
 	static final int RTX_PAUSE = 8;
@@ -112,8 +116,9 @@ public interface IEffector<T extends ITarget> {
 	 * an effctor {@link IEffector#invoke()} or {@link IParameterizedEffector#invoke(int)}
 	 * method. The transductor will decode and inject {@code signal} into the 
 	 * input stream for immediate transduction. Since the return values from successive
-	 * invocations of effectors in a vector are OR'd together the decoded final value
-	 * may be out of range of the models defined signals.
+	 * invocations of effectors in a vector triggered by a state transition are OR'd
+	 * together the decoded final value may be out of range of the model's defined signals
+	 * if &gt;1 effectors return values with encoded signals.
 	 * 
 	 * @param signal the signal value (&gt;255, &lt;256+#signals) to encode
 	 * @return signal &lt;&lt; 16 | {@code IEffector.RTX_SIGNAL}

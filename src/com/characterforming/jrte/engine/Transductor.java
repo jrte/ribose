@@ -506,10 +506,6 @@ S:				do {
 						if (0 != (aftereffects & IEffector.RTX_INPUT)) {
 							input = Input.empty;
 						}
-						if (0 != (aftereffects & IEffector.RTX_START)) {
-							assert this.transducer == this.transducerStack.get(this.transducerStack.tos()-1);
-							this.transducer.state = state;
-						}
 						if (0 != (aftereffects & IEffector.RTX_SIGNAL)) {
 							assert signal == 0;
 							signal = aftereffects >>> 16;
@@ -518,6 +514,10 @@ S:				do {
 						if (0 != (aftereffects & (IEffector.RTX_PAUSE | IEffector.RTX_STOPPED))) {
 							break T;
 						} else if (0 != (aftereffects & (IEffector.RTX_START | IEffector.RTX_STOP))) {
+							if (IEffector.RTX_START == (aftereffects & (IEffector.RTX_START | IEffector.RTX_STOP))) {
+								assert this.transducer == this.transducerStack.get(this.transducerStack.tos() - 1);
+								this.transducer.state = state;
+							}
 							break;
 						}
 					}
