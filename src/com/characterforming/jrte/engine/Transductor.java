@@ -406,104 +406,12 @@ S:				do {
 					} while (true);
 
 					assert action != NIL && action != PASTE;
-
-					int index = 0;
-					int parameter = -1;
-					if (action >= 0x10000) {
-						parameter = Transducer.parameter(action);
-						action = Transducer.effector(action);
-						assert parameter >= 0;
-					} else if (action < 0) {
-						index = -action;
-					}
-
-					// invoke a scalar effector or vector of effectors and record side effects on transducer and input stacks
-					int aftereffects = 0;
-E:				do {
-						if (index > 0) {
-							action = effectorVector[index++];
-							if (action < 0) {
-								parameter = effectorVector[index++];
-								action *= -1;
-							} else if (action != NUL) {
-								parameter = -1;
-							} else {
-								break E;
-							}
-						}
-						if (parameter >= 0) {
-							aftereffects |= ((IParameterizedEffector<?,?>)this.effectors[action]).invoke(parameter);
-						} else {
-							switch (action) {
-							case NUL:
-								if ((token != nulSignal && token != eosSignal)
-								|| ((token == nulSignal) && (this.errorInput >= 0))) {
-									if (this.errorInput < 0) {
-										this.errorInput = token;
-									}
-									++this.metrics.errors;
-									signal = nulSignal;
-								} else {
-									break T;
-								}
-								break;
-							case NIL:
-								break;
-							case PASTE:
-								this.selected.append((byte)token);
-								break;
-							case SELECT:
-								this.selected = this.namedValueHandles[Model.ANONYMOUS_VALUE_ORDINAL];
-								break;
-							case COPY:
-								this.selected.append(this.namedValueHandles[Model.ANONYMOUS_VALUE_ORDINAL]);
-								break;
-							case CUT:
-								this.selected.append(this.namedValueHandles[Model.ANONYMOUS_VALUE_ORDINAL]);
-								this.namedValueHandles[Model.ANONYMOUS_VALUE_ORDINAL].clear();
-								break;
-							case CLEAR:
-								this.selected.clear();
-								break;
-							case COUNT:
-								if (--this.transducer.countdown[0] <= 0) {
-									assert signal == 0;
-									signal = this.transducer.countdown[1];
-									this.transducer.countdown[0] = 0;
-								}
-								break;
-							case IN:
-								this.inputStack.push(this.selected.getValue(), this.selected.getLength());
-								aftereffects |= IEffector.RTX_INPUT;
-								break;
-							case OUT:
-								if (this.output != null) {
-									this.output.write(this.selected.getValue(), 0, this.selected.getLength());
-								}
-								break;
-							case MARK:
-								this.inputStack.mark();
-								break;
-							case RESET:
-								input = this.inputStack.reset();
-								break;
-							case PAUSE:
-								aftereffects |= IEffector.RTX_PAUSE;
-								break;
-							case STOP:
-								aftereffects |= this.transducerStack.pop() == null ? IEffector.RTX_STOPPED : IEffector.RTX_STOP;
-								break;
-							default:
-								aftereffects |= this.effectors[action].invoke();
-								break;
-							}
-						}
-					} while (index > 0);
-
-					// check for transducer or input stack adjustment
+					
+					// effect action and check for transducer or input stack adjustment
+					int aftereffects = effect(effectorVector, action, token);
 					if (aftereffects != 0) {
 						if (0 != (aftereffects & IEffector.RTX_INPUT)) {
-							input = Input.empty;
+							input = this.inputStack.peek();
 						}
 						if (0 != (aftereffects & IEffector.RTX_SIGNAL)) {
 							assert signal == 0;
@@ -542,6 +450,103 @@ E:				do {
 
 		// Transduction is paused or stopped; if paused it will resume on next call to run()
 		return this;
+	}
+
+	// invoke a scalar effector or vector of effectors and record side effects on transducer and input stacks
+	private int effect(int[] effectorVector, int action, int token) throws IOException, EffectorException {
+		int index = 0;
+		int parameter = -1;
+		if (action >= 0x10000) {
+			parameter = Transducer.parameter(action);
+			action = Transducer.effector(action);
+			assert parameter >= 0;
+		} else if (action < 0) {
+			index = -action;
+		}
+		int aftereffects = 0;
+E:	do {
+			if (index > 0) {
+				action = effectorVector[index++];
+				if (action < 0) {
+					parameter = effectorVector[index++];
+					action *= -1;
+				} else if (action != NUL) {
+					parameter = -1;
+				} else {
+					break E;
+				}
+			}
+			if (parameter >= 0) {
+				aftereffects |= ((IParameterizedEffector<?,?>)this.effectors[action]).invoke(parameter);
+			} else {
+				switch (action) {
+				case NUL:
+					if ((token != Signal.nul.signal() && token != Signal.eos.signal())
+					|| ((token == Signal.nul.signal()) && (this.errorInput >= 0))) {
+						if (this.errorInput < 0) {
+							this.errorInput = token;
+						}
+						++this.metrics.errors;
+						aftereffects |= IEffector.rtxSignal(Signal.nul.signal());
+					} else {
+						aftereffects |= IEffector.RTX_STOPPED;
+					}
+					break;
+				case NIL:
+					assert false;
+					break;
+				case PASTE:
+					this.selected.append((byte)token);
+					break;
+				case SELECT:
+					this.selected = this.namedValueHandles[Model.ANONYMOUS_VALUE_ORDINAL];
+					break;
+				case COPY:
+					this.selected.append(this.namedValueHandles[Model.ANONYMOUS_VALUE_ORDINAL]);
+					break;
+				case CUT:
+					this.selected.append(this.namedValueHandles[Model.ANONYMOUS_VALUE_ORDINAL]);
+					this.namedValueHandles[Model.ANONYMOUS_VALUE_ORDINAL].clear();
+					break;
+				case CLEAR:
+					this.selected.clear();
+					break;
+				case COUNT:
+					if (--this.transducer.countdown[0] <= 0) {
+						this.transducer.countdown[0] = 0;
+						aftereffects |= IEffector.rtxSignal(this.transducer.countdown[1]);
+					}
+					break;
+				case IN:
+					this.inputStack.push(this.selected.getValue(), this.selected.getLength());
+					aftereffects |= IEffector.RTX_INPUT;
+					break;
+				case OUT:
+					if (this.output != null) {
+						this.output.write(this.selected.getValue(), 0, this.selected.getLength());
+					}
+					break;
+				case MARK:
+					this.inputStack.mark();
+					break;
+				case RESET:
+					this.inputStack.reset();
+					aftereffects |= IEffector.RTX_INPUT;
+					break;
+				case PAUSE:
+					aftereffects |= IEffector.RTX_PAUSE;
+					break;
+				case STOP:
+					aftereffects |= this.transducerStack.pop() == null ? IEffector.RTX_STOPPED : IEffector.RTX_STOP;
+					break;
+				default:
+					aftereffects |= this.effectors[action].invoke();
+					break;
+				}
+			}
+		} while (index > 0);
+
+		return aftereffects;
 	}
 
 	@Override // @see com.characterforming.ribose.ITransductor#recycle()
@@ -905,12 +910,12 @@ E:				do {
 
 		@Override
 		public int invoke() throws EffectorException {
-			return IEffector.rtx(Signal.nil.signal());
+			return IEffector.rtxSignal(Signal.nil.signal());
 		}
 
 		@Override
 		public int invoke(final int parameterIndex) throws EffectorException {
-			return IEffector.rtx(super.parameters[parameterIndex]);
+			return IEffector.rtxSignal(super.parameters[parameterIndex]);
 		}
 
 		@Override
@@ -1005,20 +1010,12 @@ E:				do {
 
 		@Override
 		public int invoke(final int parameterIndex) throws EffectorException {
-			int[] countdown = super.getParameter(parameterIndex);
-			assert countdown.length == 2;
 			TransducerState tos = transducerStack.peek();
-			tos.countdown[0] = countdown[0];
+			assert (super.target.transducer == tos) || (super.target.transducer == super.target.transducerStack.get(super.target.transducerStack.tos()-1));
+			int[] countdown = super.getParameter(parameterIndex);
 			tos.countdown[1] = countdown[1];
-			assert (transducer == transducerStack.get(transducerStack.tos()))
-			|| (transducer == transducerStack.get(transducerStack.tos()-1));
-			if (transducer.countdown[0] < 0) {
-				transducer.countdown[0] = (int)getNamedValue((-1 * transducer.countdown[0]) - 1).asInteger();
-			}
-			if (transducer.countdown[0] == 0) {
-				return IEffector.rtx(transducer.countdown[1]);
-			}
-			return IEffector.RTX_NONE;
+			tos.countdown[0] = countdown[0] < 0 ? (int)getNamedValue((-1 * countdown[0]) - 1).asInteger() : countdown[0];
+			return transducer.countdown[0] == 0 ? IEffector.rtxSignal(countdown[1]) : IEffector.RTX_NONE;
 		}
 
 		@Override

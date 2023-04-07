@@ -39,7 +39,7 @@ import com.characterforming.ribose.base.TargetBindingException;
  * executed for a transition. Most RTX bits reflect the action of base effectors. Effectors
  * that do not affect the {@link ITransductor} transducer stack or input stack should
  * return only {@code RTX_NONE} (to continue transduction normally) or a signal encoded
- * with {@code RTX_SIGNAL} using {@link IEffector#rtx(int)}. Care should be taken to ensure
+ * with {@code RTX_SIGNAL} using {@link IEffector#rtxSignal(int)}. Care should be taken to ensure
  * that at most one effector in any effect vector may return an encoded signal. The built-in
  * {@code count} and {@code signal} effectors and any domain-specific target effectors
  * that return encoded signals should never appear in combination within a single effector
@@ -123,7 +123,7 @@ public interface IEffector<T extends ITarget> {
 	 * @param signal the signal value (&gt;255, &lt;256+#signals) to encode
 	 * @return signal &lt;&lt; 16 | {@code IEffector.RTX_SIGNAL}
 	 */
-	static int rtx(int signal) {
+	static int rtxSignal(int signal) {
 		return (signal << 16) | RTX_SIGNAL;
 	}
 
