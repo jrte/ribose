@@ -700,9 +700,7 @@ E:	do {
 	}
 
 	private int clear() {
-		for (NamedValue nv : this.namedValueHandles) {
-			nv.clear();
-		}
+		for (NamedValue nv : this.namedValueHandles) nv.clear();
 		return IEffector.RTX_NONE;
 	}
 
@@ -1167,8 +1165,8 @@ E:	do {
 				super.target.matchMode = Msum;
 				super.target.matchSum = super.parameters[parameterIndex];
 			} else {
-				throw new EffectorException(String.format("Illegal attempt to override match mode %s with MSUM",
-					super.target.matchMode == Mproduct ? "MPRODUCT" : "MSUM"));
+				throw new EffectorException(String.format("Illegal attempt to override match mode %d with MSUM=%d",
+					super.target.matchMode, Msum));
 			}
 			return IEffector.RTX_NONE;
 		}
@@ -1267,8 +1265,8 @@ E:	do {
 				super.target.matchProduct = super.parameters[parameterIndex];
 				super.target.matchPosition = 0;
 			} else {
-				throw new EffectorException(String.format("Illegal attempt to override match mode %s with MPRODUCT",
-					super.target.matchMode == Mproduct ? "MPRODUCT" : "MSUM"));
+				throw new EffectorException(String.format("Illegal attempt to override match mode %d with MPRODUCT=%d",
+					super.target.matchMode, Mproduct));
 			}
 			return IEffector.RTX_NONE;
 		}
@@ -1323,7 +1321,8 @@ E:	do {
 				super.target.matchMode = Mscan;
 				super.target.matchByte = super.parameters[parameterIndex];
 			} else {
-				throw new EffectorException("Illegal attempt to override match mode %s with MSCAN");
+				throw new EffectorException(String.format("Illegal attempt to override match mode %d with MSCAN=%d",
+					super.target.matchMode, Mscan));
 			}
 			return IEffector.RTX_NONE;
 		}
