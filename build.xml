@@ -230,7 +230,7 @@
 		<delete file="build/Test.model"/>
 		<delete file="build/Test.map"/>
 		<exec failonerror="true" executable="bash">
-			<arg line="etc/sh/compile --target com.characterforming.jrte.test.TestTarget ${build.automata} build/Test.model"/>
+			<arg line="etc/sh/compile --target com.characterforming.jrte.test.TestTarget --target-path ${jars.dir}/${ribose.version}-test.jar ${build.automata} build/Test.model"/>
 		</exec>
 		<fixcrlf file="build/Test.map" eol="lf"/>
 	</target>
@@ -301,19 +301,19 @@
 		<echo>Fibonacci:</echo>
 		<exec failonerror="true" executable="bash">
 			<arg value="-c"/>
-			<arg value="etc/sh/ribose ${jargs} --nil build/Test.model Fibonacci ${test.input.dir}/fib.txt"/>
+			<arg value="etc/sh/ribose ${jargs} --target-path ${jars.dir}/${ribose.version}-test.jar --nil build/Test.model Fibonacci ${test.input.dir}/fib.txt"/>
 		</exec>
 		<echo/>
 		<echo>DateExtractor:</echo>
 		<exec failonerror="true" executable="bash">
 			<arg value="-c"/>
-			<arg value="etc/sh/ribose ${jargs} --nil build/Test.model DateExtractor ${test.input.dir}/dates.txt"/>
+			<arg value="etc/sh/ribose ${jargs} --target-path ${jars.dir}/${ribose.version}-test.jar --nil build/Test.model DateExtractor ${test.input.dir}/dates.txt"/>
 		</exec>
 		<echo/>
 		<echo>ValuesTest:</echo>
 		<exec failonerror="true" executable="bash">
 			<arg value="-c"/>
-			<arg value="etc/sh/ribose ${jargs} -Djrte.out.enabled=true --nil build/Test.model ValuesTest ${test.input.dir}/values.txt"/>
+			<arg value="etc/sh/ribose ${jargs} -Djrte.out.enabled=true --target-path ${jars.dir}/${ribose.version}-test.jar --nil build/Test.model ValuesTest ${test.input.dir}/values.txt"/>
 		</exec>
 		<echo/>
 	</target>
@@ -537,13 +537,13 @@
 		<exec failonerror="true" executable="bash" output="${build.testenv}/linuxkernel.jit">
 			<arg value="-c"/>
 			<arg value="etc/sh/ribose ${jargs} ${jargs.jit.diagnostic} -Djrte.out.enabled=false -Dregex.out.enabled=false
-				--nil build/Test.model LinuxKernel ${test.input.dir}/kern-10.log"/>
+				--target-path ${jars.dir}/${ribose.version}-test.jar --nil build/Test.model LinuxKernel ${test.input.dir}/kern-10.log"/>
 		</exec>
 		<echo message="TRun: Sintervals ${test.input.dir}/verbosegc.vgc -> ${build.testenv}/sintervals.jit"/>
 		<exec failonerror="true" executable="bash" output="${build.testenv}/sintervals.jit">
 			<arg value="-c"/>
 			<arg value="etc/sh/ribose ${jargs} ${jargs.jit.diagnostic} -Djrte.out.enabled=false -Dregex.out.enabled=false
-				--nil build/Test.model Sintervals ${test.input.dir}/verbosegc.vgc"/>
+				--target-path ${jars.dir}/${ribose.version}-test.jar --nil build/Test.model Sintervals ${test.input.dir}/verbosegc.vgc"/>
 		</exec>
 	</target>
 

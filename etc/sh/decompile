@@ -1,5 +1,11 @@
 #! /bin/bash
-target="com.characterforming.ribose.TRun"
+version=$(cat version)
+jars="$(dirname $(readlink -f $0))/../../jars"
+path=$jars/$(cat version).jar
+if (($#>1)) && [[ "$1" == "--target-path" ]]; then
+	path="$path:$(readlink -f $2)"
+	shift 2
+fi
 if (($#==2)); then
 	if [[ -f "$1" ]]; then
 		model="$1"
@@ -9,8 +15,8 @@ if (($#==2)); then
 	fi
 	transducer="$2"
 else 
-	echo "Usage: decompile <model-file-path> <transducer>"
+	echo "Usage: decompile [--target-path <target-classpath>] <model-file-path> <transducer>"
 	echo "Decompile ribose transducer from model in <model-file-path>."
 	exit 1
 fi	
-${JAVA_HOME}/bin/java -ea -cp jars/$(cat version).jar com.characterforming.ribose.TDecompile "$model" "$transducer"
+${JAVA_HOME}/bin/java -ea -cp "$path" com.characterforming.ribose.TDecompile "$model" "$transducer"
