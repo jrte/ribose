@@ -95,10 +95,10 @@ class NamedValue implements INamedValue {
 		char chars[] = null;
 		ByteBuffer in = ByteBuffer.wrap(this.value, 0, this.getLength());
 		CharBuffer out = CharBuffer.allocate(this.getLength());
-		CoderResult result = this.decoder.decode(in, out, true);
+		CoderResult result = this.decoder.reset().decode(in, out, true);
 		assert !result.isOverflow() && !result.isError();
 		if (!result.isOverflow() && !result.isError()) {
-			chars = new char[out.length()];
+			chars = new char[out.flip().length()];
 			out.get(chars);
 		}
 		return chars;
@@ -111,45 +111,39 @@ class NamedValue implements INamedValue {
 	
 	@Override // @see com.characterforming.ribose.INamedValue#asInteger()
 	public long asInteger() {
-		long integer = 0;
+		long value = 0;
 		long sign = (this.value[0] == '-') ? -1 : 1;
-		for (int i = ((sign > 0) ? 0 : 1); i < this.length; i++) {
+		for (int i = sign > 0 ? 0 : 1; i < this.length; i++) {
 			if (Character.getType(this.value[i]) == Character.DECIMAL_DIGIT_NUMBER) {
-				integer *= 10;
-				integer += (this.value[i] - 48);
+				value = (10 * value) + (this.value[i] - 48);
 			} else {
 				throw new NumberFormatException(String.format(
 					"Not a numeric value '%1$s'", this.toString())); 
 			}
 		}
-		return sign * integer;
+		return sign * value;
 	}
 	
 	@Override // @see com.characterforming.ribose.INamedValue#asReal()
 	public double asReal() {
-		int mark = 0;
-		long sign = (this.value[0] == '-') ? -1 : 1;
-		int index[] = new int[] {(sign > 0) ? 0 : 1, 0};
-		int parts[] = new int[] {0, 0};
-		while (index[0] < this.length) {
-			if (Character.getType(this.value[index[0]]) == Character.DECIMAL_DIGIT_NUMBER) {
-				parts[index[1]] *= 10;
-				parts[index[1]] += (this.value[index[0]] - 48);
-			} else if (this.value[index[0]] == '.') {
-				mark = index[0];
-				index[1] = 1;
+		long value = 0;
+		boolean mark = false;
+		double fraction = (this.value[0] == '-') ? -1.0 : 1.0;
+		for (int i = fraction < 0.0 ? 1 : 0; i < this.length; i++) {
+			byte digit = this.value[i];
+			if (Character.getType(digit) == Character.DECIMAL_DIGIT_NUMBER) {
+				value = (10 * value) + (digit - 48);
+				if (mark) {
+					fraction /= 10.0;
+				}
+			} else if (digit == '.') {
+				mark = true;
 			} else {
 				throw new NumberFormatException(String.format(
 					"Not a floating point value '%1$s'", this.toString())); 
 			}
-			index[0] += 1;
 		}
-		double real = parts[0];
-		if (this.length > mark) {
-			double fraction = 1.0 / Math.pow(10, this.length - mark);
-			real += parts[1] * fraction;
-		}
-		return sign * real;
+		return fraction * (double)value;
 	}
 
 	void clear() {
@@ -191,6 +185,6 @@ class NamedValue implements INamedValue {
 
 	@Override // @see java.lang.Object#toString()
 	public String toString() {
-		return String.format("%s:%s", this.name.toString(), this.asString());
+		return Bytes.decode(this.decoder, value, length).toString();
 	}
 }

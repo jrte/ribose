@@ -226,11 +226,11 @@
 		</uptodate>
 	</target>
 
-	<target name="package-test-patterns" depends="check-package-test-patterns" unless="patterns.packaged">
+	<target name="package-test-patterns" depends="package-test,check-package-test-patterns" unless="patterns.packaged">
 		<delete file="build/Test.model"/>
 		<delete file="build/Test.map"/>
 		<exec failonerror="true" executable="bash">
-			<arg line="etc/sh/compile --target com.characterforming.ribose.TRun ${build.automata} build/Test.model"/>
+			<arg line="etc/sh/compile --target com.characterforming.jrte.test.TestTarget ${build.automata} build/Test.model"/>
 		</exec>
 		<fixcrlf file="build/Test.map" eol="lf"/>
 	</target>
@@ -285,6 +285,7 @@
 				<include name="dates.txt"/>
 				<include name="fib.txt"/>
 				<include name="kern-10.log"/>
+				<include name="values.txt"/>
 				<include name="verbosegc.vgc"/>
 			</patternset>
 		</unzip>
@@ -300,13 +301,19 @@
 		<echo>Fibonacci:</echo>
 		<exec failonerror="true" executable="bash">
 			<arg value="-c"/>
-			<arg value="etc/sh/ribose --nil build/Test.model Fibonacci ${test.input.dir}/fib.txt"/>
+			<arg value="etc/sh/ribose ${jargs} --nil build/Test.model Fibonacci ${test.input.dir}/fib.txt"/>
 		</exec>
 		<echo/>
 		<echo>DateExtractor:</echo>
 		<exec failonerror="true" executable="bash">
 			<arg value="-c"/>
-			<arg value="etc/sh/ribose --nil build/Test.model DateExtractor ${test.input.dir}/dates.txt"/>
+			<arg value="etc/sh/ribose ${jargs} --nil build/Test.model DateExtractor ${test.input.dir}/dates.txt"/>
+		</exec>
+		<echo/>
+		<echo>ValuesTest:</echo>
+		<exec failonerror="true" executable="bash">
+			<arg value="-c"/>
+			<arg value="etc/sh/ribose ${jargs} -Djrte.out.enabled=true --nil build/Test.model ValuesTest ${test.input.dir}/values.txt"/>
 		</exec>
 		<echo/>
 	</target>
@@ -542,6 +549,10 @@
 
 	<target name="debug" depends="test-env">
 		<echo message="Nothing to debug"/>
+		<java fork="true" jvm="${jdk}/bin/java" dir="." classname="com.characterforming.jrte.test.TestRunner" classpathref="testing.classpath" output="${build.testenv}/testrunner.jit" failonerror="true">
+			<jvmarg line="${jargs} ${jargs.jit.diagnostic} -Djrte.out.enabled=false -Dregex.out.enabled=false"/>
+			<arg line="build/Test.model 1"/>
+		</java>
 	</target>
 
 </project>

@@ -17,5 +17,7 @@ else
 	echo "Compiles automata from <dfa-directory-path> into <model-file-path>."
 	echo "Default target is com.characterforming.ribose.TRun."
 	exit 1
-fi	
-${JAVA_HOME}/bin/java -ea -cp jars/$(cat version).jar com.characterforming.ribose.TCompile --target $target "$dfadir" "$model"
+fi
+version=$(cat version)
+jars="$(dirname $(readlink -f $0))/../../jars"
+${JAVA_HOME}/bin/java -ea -cp $jars/$version.jar:$jars/$version-test.jar com.characterforming.ribose.TCompile --target $target "$dfadir" "$model"

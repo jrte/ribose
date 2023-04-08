@@ -1,0 +1,23 @@
+ValuesTest = (
+	(nil, clear)
+	(
+		(dash, paste)? (digit, paste)*
+		(
+			(digit, paste)+ (space, integer paste out clear)
+		|	(dot, paste) (digit, paste)* (space, real paste out clear)
+		| ((black - {digit,dash,dot}), paste) (black, paste) (space, string paste out clear)
+		)
+		(fail, out[` FAIL`])?
+	)*
+	(dash, paste)? (digit, paste)*
+	(
+		(digit, paste)+ (nl|eos, integer out in[nl])
+	|	(dot, paste) (digit, paste)* (nl|eos, real out in[nl])
+	| ((black - {digit,dash,dot}), paste) (black, paste) (nl|eos, string out in[nl])
+	)
+	(fail, out[` FAIL`])?
+	(nl, out[nl])
+):dfamin;
+
+ValuesTest$(0,1):prsseq `build/automata/ValuesTest.pr`;
+ValuesTest:save `build/automata/ValuesTest.dfa`;

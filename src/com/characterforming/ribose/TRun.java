@@ -33,10 +33,8 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import com.characterforming.jrte.engine.Base;
-import com.characterforming.ribose.base.BaseTarget;
 import com.characterforming.ribose.base.Bytes;
 import com.characterforming.ribose.base.Signal;
-import com.characterforming.ribose.base.TargetBindingException;
 
 /**
  * Provides a {@link TRun#main(String[])} method to run a transduction using a ribose
@@ -64,25 +62,7 @@ import com.characterforming.ribose.base.TargetBindingException;
  * constructor can use used. Default output is System.out.
  *
  */
-public final class TRun extends BaseTarget {
-	/**
-	 * Constructor
-	 */
-	public TRun() {
-		super();
-	}
-
-	@Override // ITarget#getEffectors()
-	public IEffector<?>[] getEffectors() throws TargetBindingException {
-		// This is just a proxy for Transductor.getEffectors()
-		return new IEffector<?>[] { };
-	}
-
-	@Override // ITarget#getName()
-	public String getName() {
-		return this.getClass().getSimpleName();
-	}
-
+public final class TRun {
 	/**
 	 * Opens a text transduction model built with {@link TRun} as model target class
 	 * and runs a transduction on an input file, optionally pushing a {@code nil}
@@ -99,12 +79,10 @@ public final class TRun extends BaseTarget {
 		int argc = args.length;
 		final boolean nil = (argc > 0) ? (args[0].compareTo("--nil") == 0) : false;
 		int arg = nil ? 1 : 0;
-		final String targetName = (argc > (arg + 1) && args[arg].compareTo("--target") == 0)
-		? args[++arg] : TRun.class.getName();
 		arg += (arg > (nil ? 1 : 0)) ? 1 : 0;
 		if ((argc - arg) != 3 && (argc - arg) != 4) {
-			System.out.println("Usage: java -cp <classpath> [-Djrte.out.enabled=false] [--nil] [--target <target-classname>] <model-path> <transducer-name> <input-path>|'-' [<output-path>]");
-			System.out.println("Default target is com.characterforming.ribose.TRun, default output System.out is used unless <output-path> specified.");
+			System.out.println("Usage: java -cp <classpath> [-Djrte.out.enabled=false] [--nil] <model-path> <transducer-name> <input-path>|'-' [<output-path>]");
+			System.out.println("Default output System.out is used unless <output-path> specified.");
 			System.out.println("Use '-' for input-path to read from System.in");
 			System.exit(1);
 		}
@@ -112,7 +90,7 @@ public final class TRun extends BaseTarget {
 		final String transducerName = args[arg++];
 		final String inputPath = arg < argc ? args[arg++] : "-";
 		final String outputPath = arg < argc ? args[arg++] : null;
-
+		
 		final boolean outputEnabled = System.getProperty("jrte.out.enabled", "true").equals("true");
 		final CharsetEncoder encoder = Base.newCharsetEncoder();
 		final Logger rteLogger = Base.getRuntimeLogger();
@@ -149,7 +127,7 @@ public final class TRun extends BaseTarget {
 			) {
 				if (ribose != null) {
 					Bytes transducer = Bytes.encode(encoder, transducerName);
-					ITarget runTarget = (ITarget) Class.forName(targetName).getDeclaredConstructor().newInstance();
+					ITarget runTarget = (ITarget) Class.forName(ribose.getTargetClassname()).getDeclaredConstructor().newInstance();
 					long t0 = System.nanoTime();
 					if (ribose.transduce(runTarget, transducer, nil ? Signal.nil : null, isr, outputEnabled ? osw : null)) {
 						if (input != null) {

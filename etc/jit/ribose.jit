@@ -2,10 +2,10 @@ quiet
 inline com.characterforming.jrte.engine.Base::decodeReferenceOrdinal
 inline com.characterforming.jrte.engine.Transductor::clear
 inline com.characterforming.jrte.engine.Transductor::status
-inline com.characterforming.jrte.engine.TransductorStack::stackcheck
-inline com.characterforming.jrte.engine.TransductorStack::push
-inline com.characterforming.jrte.engine.TransductorStack::peek
-inline com.characterforming.jrte.engine.TransductorStack::pop
+inline com.characterforming.jrte.engine.TransducerStack::stackcheck
+inline com.characterforming.jrte.engine.TransducerStack::push
+inline com.characterforming.jrte.engine.TransducerStack::peek
+inline com.characterforming.jrte.engine.TransducerStack::pop
 inline com.characterforming.jrte.engine.InputStack::stackcheck
 inline com.characterforming.jrte.engine.InputStack::push
 inline com.characterforming.jrte.engine.InputStack::peek

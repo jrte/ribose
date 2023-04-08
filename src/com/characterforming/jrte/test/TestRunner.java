@@ -33,7 +33,6 @@ import com.characterforming.ribose.IRuntime;
 import com.characterforming.ribose.ITransductor;
 import com.characterforming.ribose.ITransductor.Status;
 import com.characterforming.ribose.Ribose;
-import com.characterforming.ribose.TRun;
 import com.characterforming.ribose.base.Bytes;
 import com.characterforming.ribose.base.RiboseException;
 import com.characterforming.ribose.base.Signal;
@@ -87,8 +86,7 @@ public class TestRunner {
 		};
 		final CharsetEncoder encoder = Base.newCharsetEncoder();
 		try (final IRuntime ribose = Ribose.loadRiboseModel(new File(modelPath))) {
-			final TRun runTarget = new TRun();
-			final ITransductor trex = ribose.newTransductor(runTarget);
+			final ITransductor trex = ribose.newTransductor(new TestTarget());
 			for (final String test : tests) {
 				long t0 = 0, t1 = 0, t2 = 0;
 				System.out.format("%20s: ", test);

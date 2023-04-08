@@ -105,6 +105,13 @@ public interface IRuntime extends AutoCloseable{
 	ITransductor newTransductor(ITarget target) throws ModelException;
 
 	/**
+	 * Get the fully qualified name of the model target
+	 * 
+	 * @return the fully qualified name of the model target
+	 */
+	String getTargetClassname();
+
+	/**
 	 * Close the runtime model and file.
 	 *
 	 * @throws ModelException on error

@@ -79,7 +79,7 @@ public final class Bytes {
 		assert 0 <= length && length <= bytes.length;
 		int size = Math.max(Math.min(length, bytes.length), 0);
 		try {
-			return decoder.decode(ByteBuffer.wrap(bytes, 0, size));
+			return decoder.reset().decode(ByteBuffer.wrap(bytes, 0, size));
 		} catch (CharacterCodingException e) {
 			System.err.println("NamedValue.decode(CharsetDecoder, byte[], int, int): " + e.getMessage());
 			assert false;

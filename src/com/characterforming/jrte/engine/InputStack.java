@@ -25,6 +25,8 @@ import java.util.LinkedList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import com.characterforming.ribose.IEffector;
+
 /**
  * @author Kim Briggs
  */
@@ -220,9 +222,9 @@ final class InputStack {
 	 * Reset position in marked frame to a mark point. The reset will be 
 	 * effected if/when the marked frame is/becomes top frame. 
 	 * 
-	 * @return true if reset effected immediately
+	 * @return {@link IEffector#RTX_INPUT} if reset effected immediately
 	 */
-	Input reset() {
+	int reset() {
 		if (this.markState == InputStack.marked) {
 			assert this.tos >= 0;
 			Input bos = this.stack[0];
@@ -231,7 +233,9 @@ final class InputStack {
 				bos.position = bos.mark;
 				bos.mark = -1;
 				this.markState = InputStack.clear;
-				return bos;
+				if (this.tos == 0) {
+					return IEffector.RTX_INPUT;
+				}
 			} else {
 				assert bos.mark == -1;
 				assert this.bom != this.tom;
@@ -239,11 +243,12 @@ final class InputStack {
 				if (this.tos == 0) {
 					this.tos = -1;
 					this.addMarked(bos).position = 0;
-					return this.push(this.getMarked());
+					this.push(this.getMarked());
+					return IEffector.RTX_INPUT;
 				}
 			}
 		}
-		return this.peek();
+		return IEffector.RTX_NONE;
 	}
 
 	/**

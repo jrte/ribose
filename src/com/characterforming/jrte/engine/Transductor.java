@@ -405,16 +405,13 @@ S:				do {
 						}
 					} while (true);
 
-					assert action != NIL && action != PASTE;
-					
 					// effect action and check for transducer or input stack adjustment
 					int aftereffects = effect(effectorVector, action, token);
-					if (aftereffects != 0) {
+					if (aftereffects != IEffector.RTX_NONE) {
 						if (0 != (aftereffects & IEffector.RTX_INPUT)) {
 							input = this.inputStack.peek();
 						}
 						if (0 != (aftereffects & IEffector.RTX_SIGNAL)) {
-							assert signal == 0;
 							signal = aftereffects >>> 16;
 							assert signal > 255 && signal < this.signalLimit;
 						}
@@ -431,6 +428,9 @@ S:				do {
 				} while (this.status().isRunnable());
 			} while (this.status().isRunnable());
 
+			if (this.output != null) {
+				this.output.flush();
+			}
 			if (token == nulSignal) {
 				throw new DomainErrorException(this.getErrorInput(last, state));
 			} else if (token == eosSignal) {
@@ -446,14 +446,81 @@ S:				do {
 				assert (transducer == this.transducerStack.peek()) || (transducer == this.transducerStack.get(-1));
 				transducer.state = state;
 			}
-		}
+}
 
 		// Transduction is paused or stopped; if paused it will resume on next call to run()
 		return this;
 	}
 
+	@Override // @see com.characterforming.ribose.ITransductor#recycle()
+	public byte[] recycle(byte[] bytes) {
+		return this.inputStack.recycle(bytes);
+	}
+
+	@Override // @see com.characterforming.ribose.ITransductor#metrics()
+	public Metrics metrics() {
+		return this.metrics;
+	}
+
+	@Override // @see com.characterforming.ribose.IOutput#getValueOrdinal(Bytes)
+	public int getValueOrdinal(final Bytes valueName) {
+		if (this.namedValueOrdinalMap.containsKey(valueName)) {
+			return this.namedValueOrdinalMap.get(valueName);
+		}
+		return -1;
+	}
+
+	@Override // @see com.characterforming.ribose.IOutput#getSelectedOrdinal()
+	public int getSelectedOrdinal() {
+		assert this.selected != null;
+		return (this.selected != null) ? this.selected.getOrdinal() : -1;
+	}
+
+	@Override // @see com.characterforming.ribose.IOutput#getNamedValue(int)
+	public INamedValue getNamedValue(final int nameOrdinal) {
+		assert this.namedValueHandles != null;
+		if (this.namedValueHandles != null && nameOrdinal < this.namedValueHandles.length) {
+			return this.namedValueHandles[nameOrdinal];
+		} else {
+			return null;
+		}
+	}
+
+	@Override // @see com.characterforming.ribose.IOutput#getNamedValue(String)
+	public INamedValue getNamedValue(final Bytes valueName) {
+		return this.getNamedValue(this.getValueOrdinal(valueName));
+	}
+
+	@Override // @see com.characterforming.ribose.IOutput#getSelectedValue()
+	public INamedValue getSelectedValue() {
+		assert this.selected != null;
+		return this.selected;
+	}
+
+	Model getModel() {
+		return this.model;
+	}
+
+	void setEffectors(IEffector<?>[] effectors) {
+		this.effectors = effectors;
+	}
+
+	void setNamedValueOrdinalMap(Map<Bytes, Integer> namedValueOrdinalMap) {
+		this.namedValueOrdinalMap = namedValueOrdinalMap;
+		if (this.namedValueOrdinalMap.size() > 0) {
+			this.namedValueHandles = new NamedValue[this.namedValueOrdinalMap.size()];
+			for (final Entry<Bytes, Integer> entry : this.namedValueOrdinalMap.entrySet()) {
+				final int valueIndex = entry.getValue();
+				byte[] valueBuffer = new byte[INITIAL_NAMED_VALUE_BYTES];
+				this.namedValueHandles[valueIndex] = new NamedValue(entry.getKey(), valueIndex, valueBuffer, 0);
+			}
+			this.selected = this.namedValueHandles[Model.ANONYMOUS_VALUE_ORDINAL];
+		}
+	}
+
 	// invoke a scalar effector or vector of effectors and record side effects on transducer and input stacks
-	private int effect(int[] effectorVector, int action, int token) throws IOException, EffectorException {
+	private int effect(int[] effectorVector, int action, int token)
+	throws IOException, EffectorException {
 		int index = 0;
 		int parameter = -1;
 		if (action >= 0x10000) {
@@ -463,7 +530,7 @@ S:				do {
 		} else if (action < 0) {
 			index = -action;
 		}
-		int aftereffects = 0;
+		int aftereffects = IEffector.RTX_NONE;
 E:	do {
 			if (index > 0) {
 				action = effectorVector[index++];
@@ -530,8 +597,7 @@ E:	do {
 					this.inputStack.mark();
 					break;
 				case RESET:
-					this.inputStack.reset();
-					aftereffects |= IEffector.RTX_INPUT;
+					aftereffects |= this.inputStack.reset();
 					break;
 				case PAUSE:
 					aftereffects |= IEffector.RTX_PAUSE;
@@ -549,60 +615,7 @@ E:	do {
 		return aftereffects;
 	}
 
-	@Override // @see com.characterforming.ribose.ITransductor#recycle()
-	public byte[] recycle(byte[] bytes) {
-		return this.inputStack.recycle(bytes);
-	}
-
-	@Override // @see com.characterforming.ribose.ITransductor#metrics()
-	public Metrics metrics() {
-		return this.metrics;
-	}
-
-	@Override // @see com.characterforming.ribose.IOutput#getValueOrdinal(Bytes)
-	public int getValueOrdinal(final Bytes valueName) {
-		if (this.namedValueOrdinalMap.containsKey(valueName)) {
-			return this.namedValueOrdinalMap.get(valueName);
-		}
-		return -1;
-	}
-
-	@Override // @see com.characterforming.ribose.IOutput#getSelectedOrdinal()
-	public int getSelectedOrdinal() {
-		assert this.selected != null;
-		return (this.selected != null) ? this.selected.getOrdinal() : -1;
-	}
-
-	@Override // @see com.characterforming.ribose.IOutput#getNamedValue(int)
-	public INamedValue getNamedValue(final int nameOrdinal) {
-		assert this.namedValueHandles != null;
-		if (this.namedValueHandles != null && nameOrdinal < this.namedValueHandles.length) {
-			return this.namedValueHandles[nameOrdinal];
-		} else {
-			return null;
-		}
-	}
-
-	@Override // @see com.characterforming.ribose.IOutput#getNamedValue(String)
-	public INamedValue getNamedValue(final Bytes valueName) {
-		return this.getNamedValue(this.getValueOrdinal(valueName));
-	}
-
-	@Override // @see com.characterforming.ribose.IOutput#getSelectedValue()
-	public INamedValue getSelectedValue() {
-		assert this.selected != null;
-		return this.selected;
-	}
-
-	Model getModel() {
-		return this.model;
-	}
-
-	void setEffectors(IEffector<?>[] effectors) {
-		this.effectors = effectors;
-	}
-
-	int nextToken(Input input) {
+	private int nextToken(Input input) {
 		assert input.array != null || input == Input.empty;
 		switch (Base.getReferenceType(input.array)) {
 		case Base.TYPE_REFERENCE_SIGNAL:
@@ -622,7 +635,7 @@ E:	do {
 		}
 	}
 
-	int sumTrap(Input input, int token) {
+	private int sumTrap(Input input, int token) {
 		if (token < Signal.nul.signal()) {
 			final int anchor = input.position;
 			final long[] matchMask = this.matchSum;
@@ -640,7 +653,7 @@ E:	do {
 		return token;
 	}
 
-	int productTrap(Input input, int token) {
+	private int productTrap(Input input, int token) {
 		if (token < Signal.nul.signal()) {
 			final int[] match = this.matchProduct;
 			final int mlen = match.length;
@@ -668,7 +681,7 @@ E:	do {
 		return token;
 	}
 
-	int scanTrap(Input input, int token) {
+	private int scanTrap(Input input, int token) {
 		if (token < Signal.nul.signal()) {
 			final int anchor = input.position;
 			final int matchByte = this.matchByte;
@@ -684,19 +697,6 @@ E:	do {
 		}
 		this.matchMode = Mnone;
 		return token;
-	}
-
-	void setNamedValueOrdinalMap(Map<Bytes, Integer> namedValueOrdinalMap) {
-		this.namedValueOrdinalMap = namedValueOrdinalMap;
-		if (this.namedValueOrdinalMap.size() > 0) {
-			this.namedValueHandles = new NamedValue[this.namedValueOrdinalMap.size()];
-			for (final Entry<Bytes, Integer> entry : this.namedValueOrdinalMap.entrySet()) {
-				final int valueIndex = entry.getValue();
-				byte[] valueBuffer = new byte[INITIAL_NAMED_VALUE_BYTES];
-				this.namedValueHandles[valueIndex] = new NamedValue(entry.getKey(), valueIndex, valueBuffer, 0);
-			}
-			this.selected = this.namedValueHandles[Model.ANONYMOUS_VALUE_ORDINAL];
-		}
 	}
 
 	private int clear() {

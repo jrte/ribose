@@ -994,4 +994,8 @@ public final class Model implements AutoCloseable {
 	void setDeleteOnClose(boolean deleteOnClose) {
 		this.deleteOnClose = deleteOnClose;
 	}
+
+	public String getTargetClassname() {
+		return this.proxyTarget.getClass().getName();
+	}
 }

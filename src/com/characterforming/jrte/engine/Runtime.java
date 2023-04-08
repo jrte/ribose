@@ -138,4 +138,9 @@ public final class Runtime implements IRuntime {
 		this.rteLogger.log(Level.SEVERE, String.format("Exception in Runtime.transduce(%1$s, %2$s, ...)",
 			target.getClass().getSimpleName(), transducer.toString()), e);
 	}
+
+	@Override
+	public String getTargetClassname() {
+		return this.model.getTargetClassname();
+	}
 }

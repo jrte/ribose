@@ -39,7 +39,6 @@ import com.characterforming.jrte.engine.Base;
 import com.characterforming.ribose.IRuntime;
 import com.characterforming.ribose.ITransductor;
 import com.characterforming.ribose.Ribose;
-import com.characterforming.ribose.TRun;
 import com.characterforming.ribose.base.Bytes;
 import com.characterforming.ribose.base.RiboseException;
 import com.characterforming.ribose.base.Signal;
@@ -94,7 +93,7 @@ public class FileRunner {
 		try (final FileInputStream isr = new FileInputStream(f)) {
 			blen = isr.read(bbuf, 0, (int)blen);
 			assert blen == bbuf.length;
-			charInput = decoder.decode(ByteBuffer.wrap(bbuf, 0, bbuf.length));
+			charInput = decoder.reset().decode(ByteBuffer.wrap(bbuf, 0, bbuf.length));
 		} catch (Exception e) {
 			System.out.println("Runtime exception thrown.");
 			rteLogger.log(Level.SEVERE, "Runtime failed, exception thrown.", e);
@@ -104,7 +103,7 @@ public class FileRunner {
 			int loops = 1;
 			if (regex.isEmpty() && (jrteOutEnabled || !regexOutEnabled)) {
 				try (IRuntime ribose = Ribose.loadRiboseModel(new File(modelPath))) {
-					TRun runTarget = new TRun();
+					TestTarget runTarget = new TestTarget();
 					ITransductor trex = ribose.newTransductor(runTarget);
 					if (!jrteOutEnabled) {
 						System.out.print(String.format("%20s: ", transducerName));

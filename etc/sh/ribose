@@ -11,20 +11,20 @@ if [[ "$1" == "--nil" ]]; then
   shift
 fi
 if (($#!=3 && $# != 4)); then
-	echo 'Usage: ribose [<vm-arg> ...] [--nil] <model-file> <transducer> <input-file>|'-' [<output-file>]'
+	echo "Usage: ribose [<vm-arg> ...] [--nil] <model-file> <transducer> <input-file>|'-' [<output-file>]"
  	echo "Use (vm-args) '-Djrte.out.enabled=false' and/or '-Dregex.out.enabled=false' to mute output."
-  echo 'Use '-' for input-path to read from System.in; default output stream is System.out.'
+  echo "Use '-' for input-path to read from System.in; default output stream is System.out."
 else
+  version=$(cat version)
   jars="$(dirname $(readlink -f $0))/../../jars"
-  java="${JAVA_HOME}/bin/java -cp $jars/$(cat version).jar"
+  java="${JAVA_HOME}/bin/java -cp $jars/$version.jar:$jars/$version-test.jar $vmargs com.characterforming.ribose.TRun"
 	model="$1"
 	transducer="$2"
 	input="$3"
-  shift 3
-  if (($#>0)); then
-    $java $vmargs com.characterforming.ribose.TRun $nil "$model" "$transducer" "$input" $*
+  if (($#>3)); then
+    $java $nil "$model" "$transducer" "$input" "$4"
   else
-    $java $vmargs com.characterforming.ribose.TRun $nil "$model" "$transducer" "$input"
+    $java $nil "$model" "$transducer" "$input"
   fi
 fi
 #set +x
