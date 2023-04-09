@@ -406,7 +406,7 @@ S:				do {
 					} while (true);
 
 					// effect action and check for transducer or input stack adjustment
-					int aftereffects = effect(effectorVector, action, token);
+					int aftereffects = effect(action, token, effectorVector);
 					if (aftereffects != IEffector.RTX_NONE) {
 						if (0 != (aftereffects & IEffector.RTX_INPUT)) {
 							input = this.inputStack.peek();
@@ -415,13 +415,14 @@ S:				do {
 							signal = aftereffects >>> 16;
 							assert signal > 255 && signal < this.signalLimit;
 						}
+						int s = aftereffects & (IEffector.RTX_START | IEffector.RTX_STOP);
+						if (s == IEffector.RTX_START) {
+							assert this.transducer == this.transducerStack.get(this.transducerStack.tos() - 1);
+							this.transducer.state = state;
+						}
 						if (0 != (aftereffects & (IEffector.RTX_PAUSE | IEffector.RTX_STOPPED))) {
 							break T;
-						} else if (0 != (aftereffects & (IEffector.RTX_START | IEffector.RTX_STOP))) {
-							if (IEffector.RTX_START == (aftereffects & (IEffector.RTX_START | IEffector.RTX_STOP))) {
-								assert this.transducer == this.transducerStack.get(this.transducerStack.tos() - 1);
-								this.transducer.state = state;
-							}
+						} else if (s != 0) {
 							break I;
 						}
 					}
@@ -446,7 +447,7 @@ S:				do {
 				assert (transducer == this.transducerStack.peek()) || (transducer == this.transducerStack.get(-1));
 				transducer.state = state;
 			}
-}
+		}
 
 		// Transduction is paused or stopped; if paused it will resume on next call to run()
 		return this;
@@ -519,7 +520,7 @@ S:				do {
 	}
 
 	// invoke a scalar effector or vector of effectors and record side effects on transducer and input stacks
-	private int effect(int[] effectorVector, int action, int token)
+	private int effect(int action, int token, int[] effectorVector)
 	throws IOException, EffectorException {
 		int index = 0;
 		int parameter = -1;
