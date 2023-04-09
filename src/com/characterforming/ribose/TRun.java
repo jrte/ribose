@@ -38,14 +38,13 @@ import com.characterforming.ribose.base.Signal;
 
 /**
  * Provides a {@link TRun#main(String[])} method to run a transduction using a ribose
- * model. {@code TRun} also serves as a target class for building basic UTF-8 text or
- * other byte stream transduction models that use only base ribose effectors.
- * To build a basic transduction model, compile with ginr a set of ribose-conformant
- * ginr patterns, saving automata (*.dfa) to be compiled into the model into a
- * directory. Then run {@link TCompile} with {@link TRun} as target class to package
- * the automata in the directory into a ribose model. To build a model for a specialized
- * {@link ITarget} implementation class, run {@link TCompile} specifying the specialized
- * target class for the model.
+ * model. The model target class must provide a default constructor capable of instantiating
+ * both proxy and live target instances. A proxy instance of the model target class is 
+ * instantiated to precompile effector parameters. A live target instance is instantiated
+ * and bound to the transduction. See the {@link ITarget} documentation for details
+ * regarding proxy and live targets in the ribose runtime. The {@code --target-path}
+ * argument need not be specified if the model target is {@link com.characterforming.ribose.base.BaseTarget}.
+ * Default output is System.out.
  * <br><br>
  * <table style="font-size:12px">
  * <caption style="text-align:left"><b>TRun usage</b></caption>
@@ -58,12 +57,6 @@ import com.characterforming.ribose.base.Signal;
  * <tr><td style="text-align:right"><i>output</i></td><td>The path to the output file.</td></tr>
  * </table>
  * <br>
- * A proxy instance of the model target class will be instantiated to precompile effector 
- * parameters. A live target instance will be  instantiated and bound to the transduction.
- * See the {@link ITarget} documentation for details regarding proxy and live targets in
- * the ribose runtime. The {@code --target-path} argument need not be specified if the model target
- * is {@link com.characterforming.ribose.base.BaseTarget}. Default output is System.out.
- *
  */
 public final class TRun {
 	/**

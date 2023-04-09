@@ -3,8 +3,16 @@
  * <br><br>
  * A collection of related ribose patterns are compiled to automata by ginr. The automata
  * ({@code *.dfa}) files are saved to directory and the ribose model compiler packages them
- * into a ribose model ({@code *.model}) file for use in the ribose runtime. The ribose
- * model compiler {@link TCompile} can be run from the command line using
+ * into a ribose model ({@code *.model}) file for use in the ribose runtime. An {@link ITarget}
+ * implementation class is bound to the model when it is compiled. The default 
+ * {@link com.characterforming.ribose.base.BaseTarget} class provides access to the built-in
+ * effectors described in the {@link ITransductor} documentation, whuch should be sufficient
+ * for regular and context-free transductions that only write transduction output through
+ * the {@code out} effector. Domain-specific {@code ITarget} implementations implicitly
+ * include these built-in effectors and may define additional specialized effectors that
+ * assimilate transduction output into the target domain. 
+ * <br><br>
+ * The ribose model compiler {@link TCompile} can be run from the command line using
  * {@link TCompile#main(String[])} to build a ribose model specifying an {@link ITarget}
  * implementation class (eg, {@link com.characterforming.ribose.base.BaseTarget}) as
  * target class, the path to the automata directory and the path and name of the file
@@ -13,9 +21,8 @@
  * {@link com.characterforming.ribose.base.BaseTarget} class will be used as target
  * if {@code --target} and {@code --target-path} are not specified. In any case, a proxy 
  * instance of the model target class will be instantiated, using its default constructor,
- * to precompile effector parameters. See the {@link ITarget} documentation for details\
+ * to precompile effector parameters. See the {@link ITarget} documentation for details
  * regarding this process.
-
  * <br><br>
  * <table style="font-size:12px">
  * <caption style="text-align:left"><b>TCompile usage</b></caption>
@@ -26,20 +33,17 @@
  * <tr><td style="text-align:right"><i>model</i></td><td>The path to the file to contain the compiled model.</td></tr>
  * </table>
  * <br>
- * {@link com.characterforming.ribose.base.BaseTarget} implements a simple target presenting
- * the base ribose effectors which can be used to build models that do not require specialized
- * targets and effectors. {@link TRun} presents a {@link TRun#main(String[])} method to load
- * compiled ribose models and run transductions from the command line. Use {@link TRun#main(String[])}
- * to load a ribose model for a target class and run transductions on a UTF-8 input streams.
- * Output from the {@code out[..]} effector is written as UTF-8 byte stream unless
- * {@code -Djrte.out.enabled=false} is selected in the java command options. This option
- * is provided to allow benchmarking to proceed without incurring delays and heap
- * overhead relating to the I/O subsystem. TRun can be used with any model as long as the
- * model target class has a nullary runtime constructor. The {@code --target-path} argument
- * need not be specified if the model target is {@link com.characterforming.ribose.base.BaseTarget}.
- * The target class must have a default (nullary) constructor. A proxy instance of the model
- * target class will be instantiated to precompile effector parameters. A live target instance
- * will be  instantiated and bound to the transduction. See the {@link ITarget} documentation
+ * For {@link com.characterforming.ribose.base.BaseTarget} the default (nullary) constructor of the
+ * target class, which the model compiler requires for proxy target instantiation, is also used for
+ * live target instantiation in the ribose runtime. For any {@link ITarget} implementation capable of
+ * live target instantiation from the default constructor {@link TRun#main(String[])} can be run to
+ * load a target model and transduce a UTF-8 input stream. Output from the {@code out[..]} effector
+ * is written as UTF-8 byte stream unless {@code -Djrte.out.enabled=false} is selected in the java
+ * command options (allowing benchmarking to proceed without I/O overhead). The {@code --target-path}
+ * argument need not be specified if the model target is {@link com.characterforming.ribose.base.BaseTarget}.
+ * In any case, the target class must have a default constructor for both proxy and live target
+ * instances. A proxy instance will be instantiated to precompile effector parameters and live 
+ * instance will be instantiated and bound to the transduction. See the {@link ITarget} documentation
  * for details regarding proxy and live targets in the ribose runtime. Default output is System.out.
  * <br><br>
  * <table style="font-size:12px">
@@ -53,14 +57,14 @@
  * <tr><td style="text-align:right"><i>output</i></td><td>The path to the output file (default is {@code System.out}).</td></tr>
  * </table>
  * <br>
- * The model compiler reduces the {@code NxM} transition matrix ({@code N}&ge;{@code 260} input bytes or 
- * signals, {@code M} states) for ginr transducer <b>H</b> to an {@code Nx1} input equivalence
- * transducer <b>F</b> mapping byte and signal ordinals to input equivalence class index
- * {@code e}&lt;{@code K}&le;{@code N} and a {@code KxM} kernel transducer <b>G</b> equivalent
- * to <b>H</b> modulo <b>F*</b> (so <b>H</b>(x)&nbsp;=&nbsp;<b>(G&deg;F*)</b>(x)). The ribose
- * transducer decompiler {@link TDecompile} can be used to list the input equivalence map and
- * kernel transitions for any compiled transducer. It can be run from the command line using
- * {@link TDecompile#main(String[])} specifying the containing model and the transducer
+ * The model compiler reduces the {@code NxM} transition matrix ({@code N}&ge;{@code 260} input
+ * bytes or signals, {@code M} states) for ginr transducer <b>H</b> to an {@code Nx1} input
+ * equivalence transducer <b>F</b> mapping byte and signal ordinals to input equivalence class
+ * index {@code e}&lt;{@code K}&le;{@code N} and a {@code KxM} kernel transducer <b>G</b> 
+ * equivalent to <b>H</b> modulo <b>F*</b> (so <b>H</b>(x)&nbsp;=&nbsp;<b>(G&deg;F*)</b>(x)).
+ * The ribose transducer decompiler {@link TDecompile} can be used to list the input equivalence
+ * map and kernel transitions for any compiled transducer. It can be run from the command line
+ * using {@link TDecompile#main(String[])} specifying the containing model and the transducer
  * to decompile.
  * <br><br>
  * <table style="font-size:12px">
@@ -72,15 +76,18 @@
  * </table>
  * <br>
  * To use ribose in an application or service, call {@link Ribose#loadRiboseModel(File)}
- * to load an {@link IRuntime} instance from a compiled ribose model. Use {@link IRuntime#newTransductor(ITarget)}
- * to bind targets to ribose transductors, which encapsulate runtime transductions. The
- * {@link IRuntime#transduce(ITarget, Bytes, java.io.InputStream, java.io.OutputStream)}
- * method offers generic support for setting up and running stream-oriented transductions.
- * For more fine-grained control of transductions, apply {@link ITransductor} methods
- * directly to set up inputs and transducers and run transductions. Transductions and
- * the involved objects (transductor, target, effectors, values) are assumed to be
- * single-threaded. Concurrent transductions should run on separate threads, although
- * a single thread can safely multiplex over &gt;1 live transductors.
+ * to load an {@link IRuntime} instance from a compiled ribose model. In this context 
+ * live targets are instantiated externally (a proxy target in instantiated from the
+ * default constructor of a model's target class when the model is loaded into the ribose
+ * runtime). The {@link IRuntime#transduce(ITarget, Bytes, java.io.InputStream, java.io.OutputStream)}
+ * method offers generic support for setting up and running a stream-oriented transduction
+ * with a live target instance. For more fine-grained transduction control, use
+ * {@link IRuntime#newTransductor(ITarget)} to bind a live target to a transductor
+ * and apply {@link ITransductor} methods directly to set up inputs and transducers
+ * and run transductions. Transductions and the involved objects (transductor, target,
+ * effectors, values) are assumed to be single-threaded. Concurrent transductions should
+ * run on separate threads, although a single thread can safely multiplex over &gt;1 live
+ * transductors.
  *
  * @author Kim Briggs
  * @see IRuntime#transduce(ITarget, Bytes, java.io.InputStream, java.io.OutputStream)
