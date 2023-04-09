@@ -45,12 +45,18 @@ import com.characterforming.ribose.base.TargetBindingException;
  * effector parameters from the praxy target in the model.
  * <br><br>
  * The main method runs the ribose runtime compiler to build a runtime model for a target 
- * class from a collection of ginr automata generated from ribose patterns.
+ * class from a collection of ginr automata generated from ribose patterns. The default 
+ * {@link com.characterforming.ribose.base.BaseTarget} class will be used as target if
+ * {@code --target} and {@code --target-path} are not specified. In any case, a proxy 
+ * instance of the model target class will be instantiated, using its default constructor,
+ * to precompile effector parameters. See the {@link ITarget} documentation for details
+ * regarding this process.
  * <br><br>
  * <table style="font-size:12px">
  * <caption style="text-align:left"><b>TCompile usage</b></caption>
  * <tr><td style="text-align:right"><b>java</b></td><td>-cp ribose-&lt;version&gt;.jar com.characterforming.ribose.TCompile --target <i>classname automata model</i></td></tr>
  * <tr><td style="text-align:right">--target <i>classname</i></td><td>Fully qualified name of the model target class.</td></tr>
+ * <tr><td style="text-align:right">--target-path <i>paths:to:jars</i></td><td>Classpath containing jars for target class and dependencies.</td></tr>
  * <tr><td style="text-align:right"><i>automata</i></td><td>The path to the directory containing automata (*.dfa) to include in the model.</td></tr>
  * <tr><td style="text-align:right"><i>model</i></td><td>The path to the file to contain the compiled model.</td></tr>
  * </table>

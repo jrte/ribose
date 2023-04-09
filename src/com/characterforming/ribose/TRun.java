@@ -50,16 +50,19 @@ import com.characterforming.ribose.base.Signal;
  * <table style="font-size:12px">
  * <caption style="text-align:left"><b>TRun usage</b></caption>
  * <tr><td style="text-align:right"><b>java</b></td><td>-cp ribose-&lt;version&gt;.jar com.characterforming.ribose.TRun [--nil] [--target <i>classname</i>] <i>model transducer input [output]</i></td></tr>
+ * <tr><td style="text-align:right">--target-path <i>paths:to:jars</i></td><td>Classpath containing jars for target class and dependencies.</td></tr>
  * <tr><td style="text-align:right">--nil</td><td>Push {@link com.characterforming.ribose.base.Signal#nil} to start the transduction (recommended).</td></tr>
- * <tr><td style="text-align:right">--target <i>classname</i></td><td>Fully qualified name of the target class (must have nullary constructor), else use {@code TRun}.</td></tr>
  * <tr><td style="text-align:right"><i>model</i></td><td>The path to the model file containing the transducer.</td></tr>
  * <tr><td style="text-align:right"><i>transducer</i></td><td>The name of the transducer to start the transduction.</td></tr>
  * <tr><td style="text-align:right"><i>input</i></td><td>The path to the input file.</td></tr>
  * <tr><td style="text-align:right"><i>output</i></td><td>The path to the output file.</td></tr>
  * </table>
  * <br>
- * Default target is {@link TRun} but any {@link ITarget} implementation with a nullary
- * constructor can use used. Default output is System.out.
+ * A proxy instance of the model target class will be instantiated to precompile effector 
+ * parameters. A live target instance will be  instantiated and bound to the transduction.
+ * See the {@link ITarget} documentation for details regarding proxy and live targets in
+ * the ribose runtime. The {@code --target-path} argument need not be specified if the model target
+ * is {@link com.characterforming.ribose.base.BaseTarget}. Default output is System.out.
  *
  */
 public final class TRun {

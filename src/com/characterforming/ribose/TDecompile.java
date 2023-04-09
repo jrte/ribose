@@ -39,10 +39,12 @@ import com.characterforming.ribose.base.ModelException;
  * <table style="font-size:12px">
  * <caption style="text-align:left"><b>TDecompile usage</b></caption>
  * <tr><td style="text-align:right"><b>java</b></td><td>-cp ribose-&lt;version&gt;.jar com.characterforming.ribose.TDecompile <i>model transducer</i></td></tr>
+ * <tr><td style="text-align:right">--target-path <i>paths:to:jars</i></td><td>Classpath containing jars for target class and dependencies.</td></tr>
  * <tr><td style="text-align:right"><i>model</i></td><td>The path to the model file containing the transducer.</td></tr>
  * <tr><td style="text-align:right"><i>transducer</i></td><td>The name of the transducer to decompile.</td></tr>
  * </table>
  * <hr>
+ * The {@code --target-path} argument is not required if the model target class is {@link com.characterforming.ribose.base.BaseTarget}.
  * <pre>
  * $ java -ea -cp jars/ribose-0.0.1.jar com.characterforming.ribose.TDecompile build/Test.model Fibonacci
  * 

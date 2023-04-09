@@ -6,33 +6,47 @@
  * into a ribose model ({@code *.model}) file for use in the ribose runtime. The ribose
  * model compiler {@link TCompile} can be run from the command line using
  * {@link TCompile#main(String[])} to build a ribose model specifying an {@link ITarget}
- * implementation class (eg, {@link TRun}) as target class, the path to the automata directory
- * and the path and name of the file to contain the compiled model. The compiler is also
- * accessible in the JVM using {@link Ribose#compileRiboseModel(Class, File, File)}.
+ * implementation class (eg, {@link com.characterforming.ribose.base.BaseTarget}) as
+ * target class, the path to the automata directory and the path and name of the file
+ * to contain the compiled model. The compiler is also accessible in the JVM using
+ * {@link Ribose#compileRiboseModel(Class, File, File)}. The  default
+ * {@link com.characterforming.ribose.base.BaseTarget} class will be used as target
+ * if {@code --target} and {@code --target-path} are not specified. In any case, a proxy 
+ * instance of the model target class will be instantiated, using its default constructor,
+ * to precompile effector parameters. See the {@link ITarget} documentation for details\
+ * regarding this process.
+
  * <br><br>
  * <table style="font-size:12px">
  * <caption style="text-align:left"><b>TCompile usage</b></caption>
  * <tr><td style="text-align:right"><b>java</b></td><td>-cp ribose-&lt;version&gt;.jar com.characterforming.ribose.TCompile --target <i>classname automata model</i></td></tr>
  * <tr><td style="text-align:right">--target <i>classname</i></td><td>Fully qualified name of the model target class.</td></tr>
+ * <tr><td style="text-align:right">--target-path <i>paths:to:jars</i></td><td>Classpath containing jars for target class and dependencies.</td></tr>
  * <tr><td style="text-align:right"><i>automata</i></td><td>The path to the directory containing automata (*.dfa) to include in the model.</td></tr>
  * <tr><td style="text-align:right"><i>model</i></td><td>The path to the file to contain the compiled model.</td></tr>
  * </table>
  * <br>
- * {@link TRun} implements a simple target presenting the base ribose effectors
- * which can be used to build models that do not require specialized targets and effectors.
- * It also presents a {@link TRun#main(String[])} method to load compiled ribose models
- * and run transductions from the command line. Use {@link TRun#main(String[])} to load
- * a ribose model for a target class and run transductions on a UTF-8 input streams. Output
- * from the {@code out[..]} effector is written as UTF-8 byte stream unless
+ * {@link com.characterforming.ribose.base.BaseTarget} implements a simple target presenting
+ * the base ribose effectors which can be used to build models that do not require specialized
+ * targets and effectors. {@link TRun} presents a {@link TRun#main(String[])} method to load
+ * compiled ribose models and run transductions from the command line. Use {@link TRun#main(String[])}
+ * to load a ribose model for a target class and run transductions on a UTF-8 input streams.
+ * Output from the {@code out[..]} effector is written as UTF-8 byte stream unless
  * {@code -Djrte.out.enabled=false} is selected in the java command options. This option
  * is provided to allow benchmarking to proceed without incurring delays and heap
- * overhead relating to the I/O subsystem.
+ * overhead relating to the I/O subsystem. TRun can be used with any model as long as the
+ * model target class has a nullary runtime constructor. The {@code --target-path} argument
+ * need not be specified if the model target is {@link com.characterforming.ribose.base.BaseTarget}.
+ * The target class must have a default (nullary) constructor. A proxy instance of the model
+ * target class will be instantiated to precompile effector parameters. A live target instance
+ * will be  instantiated and bound to the transduction. See the {@link ITarget} documentation
+ * for details regarding proxy and live targets in the ribose runtime. Default output is System.out.
  * <br><br>
  * <table style="font-size:12px">
  * <caption style="text-align:left"><b>TRun usage</b></caption>
  * <tr><td style="text-align:right"><b>java</b></td><td>-cp ribose-&lt;version&gt;.jar com.characterforming.ribose.TRun [--nil] [--target <i>classname</i>] <i>model transducer input|- [output]</i></td></tr>
+ * <tr><td style="text-align:right">--target-path <i>paths:to:jars</i></td><td>Classpath containing jars for target class and dependencies.</td></tr>
  * <tr><td style="text-align:right">--nil</td><td>Push {@link com.characterforming.ribose.base.Signal#nil} to start the transduction (recommended).</td></tr>
- * <tr><td style="text-align:right">--target <i>classname</i></td><td>Fully qualified name of a target class with a nullary constructor (default is {@link TRun}).</td></tr>
  * <tr><td style="text-align:right"><i>model</i></td><td>The path to the model file containing the transducer.</td></tr>
  * <tr><td style="text-align:right"><i>transducer</i></td><td>The name of the transducer to start the transduction.</td></tr>
  * <tr><td style="text-align:right"><i>input</i></td><td>The path to the input file (use {@code -} to read {@code System.in}).</td></tr>
@@ -52,6 +66,7 @@
  * <table style="font-size:12px">
  * <caption style="text-align:left"><b>TDecompile usage</b></caption>
  * <tr><td style="text-align:right"><b>java</b></td><td>-cp ribose-&lt;version&gt;.jar com.characterforming.ribose.TDecompile <i>model transducer</i></td></tr>
+ * <tr><td style="text-align:right">--target-path <i>paths:to:jars</i></td><td>Classpath containing jars for target class and dependencies.</td></tr>
  * <tr><td style="text-align:right"><i>model</i></td><td>The path to the file to contain the compiled model.</td></tr>
  * <tr><td style="text-align:right"><i>transducer</i></td><td>The name of the transducer to decompile.</td></tr>
  * </table>
