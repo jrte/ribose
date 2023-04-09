@@ -1,0 +1,20 @@
+#! /bin/bash
+if (($#==0)) || [[ ! -d "$1" ]]; then
+	echo "Usage: size <path-to-automata-directory> transducer ..."
+	exit 1
+fi
+pushd $1 >/dev/nul
+shift
+for t in $*; do 
+	echo -en "$t\t"
+	if [[ -f $t.dfa ]]; then
+		grep -aE '^[0-9]*[[:space:]][0-9]*[[:space:]]0' $t.dfa>/tmp/x
+		w=$(cat /tmp/x|wc -l)
+		y=$(cut -f 1 /tmp/x|sort -u|wc -l)
+		z=$(cut -f 5 /tmp/x|sort -u|wc -l)
+		echo -e "$y\t$z\t$((y*z))\t$w\t=(100*$w)/$((y*z))"
+	else
+		echo -e "-1\t-1\t-1\t-1\t-1"
+	fi
+done
+popd >/dev/nul
