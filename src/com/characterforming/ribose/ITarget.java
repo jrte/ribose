@@ -53,7 +53,7 @@ import com.characterforming.ribose.base.TargetBindingException;
  * the same target instance. Each transduction is assumed to be a single-threaded
  * process. Explicit synchronization is required to ensure safety if multiple threads
  * are allowed to access transduction artifacts ({@link ITransductor}, {@link ITarget},
- * {@link IEffector}, {@link INamedValue}).
+ * {@link IEffector}, {@link IField}).
  * <br><br>
  * Targets need not be monolithic. In fact, every ribose transduction involves a
  * composite target comprised of the {@link ITransductor} implementation class, which

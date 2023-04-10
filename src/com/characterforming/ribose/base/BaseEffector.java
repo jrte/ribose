@@ -30,7 +30,7 @@ import com.characterforming.ribose.ITarget;
 
 /**
  * Base {@link IEffector} implementation class provides subclasses with access
- * to the transduction target and an output view to enable named value extraction. 
+ * to the transduction target and an output view to enable field extraction. 
  * The {@link invoke()} method must be implemented by subclasses.
  * 
  * @param <T> The effector target type
@@ -40,7 +40,7 @@ public abstract class BaseEffector<T extends ITarget> implements IEffector<T> {
 
 	/** Effector access to the target that it is bound to */
 	protected final T target;
-	/** Effector view of Transductor loggers, UTF-8 codecs and named values. */
+	/** Effector view of Transductor loggers, UTF-8 codecs and fields. */
 	protected IOutput output;
 
 	private CharsetDecoder decoder;

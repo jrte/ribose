@@ -85,14 +85,14 @@ public interface IEffector<T extends ITarget> {
 	int invoke() throws EffectorException;
 
 	/**
-	 * Receive an IOutput view of transduction loggers and named values. Named
-	 * values are arrays of bytes extracted from transduction input. Effectors will
+	 * Receive an IOutput view of transduction loggers and fields. Fields are
+	 * arrays of bytes extracted from transduction input. Effectors will
 	 * typically select and hold a {@link java.util.logging.Logger} and a subset
-	 * of {@link INamedValue} fields of interest here and extract value data in
+	 * of {@link IField} fields of interest here and extract field data in
 	 * {@link #invoke()} for assimilation into the target.
 	 *
-	 * @param output A object that provides a view or transduction runtime values
-	 * @throws TargetBindingException if value names can't be resolved
+	 * @param output A object that provides a view of transduction runtime fields
+	 * @throws TargetBindingException if field names can't be resolved
 	 */
 	void setOutput(IOutput output) throws TargetBindingException;
 

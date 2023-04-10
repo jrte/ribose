@@ -26,13 +26,13 @@ import com.characterforming.ribose.base.Bytes;
 import com.characterforming.ribose.base.TargetBindingException;
 
 /**
- * Provides loggers, UTF-8 codecs and a view of named values (data extracted by the transduction)
+ * Provides loggers, UTF-8 codecs and a view of fields (data extracted by the transduction)
  * to {@link IEffector}. Effectors receive their {@code IOutput} instance via
- * {@link IEffector#setOutput(IOutput)} when they are first bound to a transductor. Values can be
- * accessed by name or ordinal number. There is an anonymous named value that can be accessed
- * by name (``) or ordinal number (0). Named values are referenced with a value type prefix
+ * {@link IEffector#setOutput(IOutput)} when they are first bound to a transductor. Fields can be
+ * accessed by name or ordinal number. There is an anonymous field that can be accessed
+ * by empty name (`~`) or ordinal number (0). Fields are referenced with a field type prefix
  * <b>~</b> in ribose transducer patterns and without the type prefic internally. For example,
- * a `~date` parameter in a ribose pattern would be accessed with {@link getNamedValue(Bytes)}.
+ * a `~date` parameter in a ribose pattern would be accessed with {@link getField(Bytes)}.
  * <br><br>
  * All effectors receive identical instances of loggers and codecs, which are shared by
  * the transductor and its effectors. The compiler logger is exposed here for use by
@@ -59,42 +59,42 @@ public interface IOutput {
 	Logger getRteLogger();
 
 	/**
-	 * Get a named value by name
+	 * Get a field by name
 	 *
-	 * @param valueName The name of the value (UTF-8 bytes)
-	 * @return a named value instance or null
+	 * @param fieldName The name of the field (UTF-8 bytes)
+	 * @return a field instance or null
 	 * @throws TargetBindingException on error
 	 */
-	INamedValue getNamedValue(Bytes valueName) throws TargetBindingException;
+	IField getField(Bytes fieldName) throws TargetBindingException;
 
 	/**
-	 * Get the numeric index for a defined named value
+	 * Get the numeric index for a defined field
 	 *
-	 * @param valueName The name of the value (UTF-8 bytes)
-	 * @return The numeric index of the value
+	 * @param fieldName The name of the field (UTF-8 bytes)
+	 * @return The numeric index of the field
 	 * @throws TargetBindingException on error
 	 */
-	int getValueOrdinal(Bytes valueName) throws TargetBindingException;
+	int getFieldOrdinal(Bytes fieldName) throws TargetBindingException;
 
 	/**
-	 * Get a copy of the current value for a named value
+	 * Get a copy of the current value for a field
 	 *
-	 * @param valueOrdinal The numeric index of the named value to get
-	 * @return The named value wrapped in an {@link INamedValue} instance
+	 * @param fieldOrdinal The numeric index of the field to get
+	 * @return The specified field
 	 */
-	INamedValue getNamedValue(int valueOrdinal);
+	IField getField(int fieldOrdinal);
 
 	/**
-	 * Get the numeric index for the current selected named value
+	 * Get the numeric index for the current selected field
 	 *
-	 * @return The numeric index of the selected value
+	 * @return The numeric index of the selected field
 	 */
 	int getSelectedOrdinal();
 
 	/**
-	 * Get a copy of the current selected value
+	 * Get a copy of the current selected field
 	 *
-	 * @return The selected value wrapped in an {@link INamedValue} instance
+	 * @return The selected field
 	 */
-	INamedValue getSelectedValue();
+	IField getSelectedField();
 }

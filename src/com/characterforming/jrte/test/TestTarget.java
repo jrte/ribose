@@ -1,7 +1,7 @@
 package com.characterforming.jrte.test;
 
 import com.characterforming.ribose.IEffector;
-import com.characterforming.ribose.INamedValue;
+import com.characterforming.ribose.IField;
 import com.characterforming.ribose.base.BaseEffector;
 import com.characterforming.ribose.base.BaseTarget;
 import com.characterforming.ribose.base.EffectorException;
@@ -37,15 +37,15 @@ public class TestTarget extends BaseTarget {
 
 		@Override
 		public int invoke() throws EffectorException {
-			INamedValue value = super.output.getSelectedValue();
-			String string = value.toString();
+			IField field = super.output.getSelectedField();
+			String string = field.toString();
 			long integer = 0;
 			try {
 				integer = Long.parseLong(string);
 			} catch (NumberFormatException e) {
 				return IEffector.rtxSignal(fail);
 			}
-			return integer == value.asInteger() ? IEffector.RTX_NONE : IEffector.rtxSignal(fail);
+			return integer == field.asInteger() ? IEffector.RTX_NONE : IEffector.rtxSignal(fail);
 		}
 	}
 
@@ -56,15 +56,15 @@ public class TestTarget extends BaseTarget {
 
 		@Override
 		public int invoke() throws EffectorException {
-			INamedValue value = super.output.getSelectedValue();
-			String string = value.toString();
+			IField field = super.output.getSelectedField();
+			String string = field.toString();
 			double real = 0.0;
 			try {
 				real = Double.parseDouble(string);
 			} catch (NumberFormatException e) {
 				return IEffector.rtxSignal(fail);			
 			}
-			return real == value.asReal() ? IEffector.RTX_NONE : IEffector.rtxSignal(fail);
+			return real == field.asReal() ? IEffector.RTX_NONE : IEffector.rtxSignal(fail);
 		}
 	}
 
@@ -75,8 +75,8 @@ public class TestTarget extends BaseTarget {
 
 		@Override
 		public int invoke() throws EffectorException {
-			INamedValue value = super.output.getSelectedValue();
-			return value.toString().equals(value.asString()) ? IEffector.RTX_NONE : IEffector.rtxSignal(fail);
+			IField field = super.output.getSelectedField();
+			return field.toString().equals(field.asString()) ? IEffector.RTX_NONE : IEffector.rtxSignal(fail);
 		}
 	}
 }

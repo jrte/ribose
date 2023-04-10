@@ -36,7 +36,7 @@ final class InputStack {
 	private static final int reset = 2;
 	private final Logger logger;
 	private final byte[][] signals;
-	private final byte[][] values;
+	private final byte[][] fields;
 	private Input[] stack;
 	private int tos;
 	private int markLimit;
@@ -52,15 +52,15 @@ final class InputStack {
 		private static final long serialVersionUID = 1L;
 	}
 	
-	InputStack(final int initialSize, final int signalCount, final int valueCount) {
+	InputStack(final int initialSize, final int signalCount, final int fieldCount) {
 		this.logger = Base.getCompileLogger();
 		this.signals = new byte[signalCount][]; 
 		for (int i = 0; i < signalCount; i++) {
 			this.signals[i] = Base.encodeReferenceOrdinal(Base.TYPE_REFERENCE_SIGNAL, Base.RTE_SIGNAL_BASE + i);
 		}
-		this.values = new byte[valueCount][]; 
-		for (int i = 0; i < valueCount; i++) {
-			this.values[i] = Base.encodeReferenceOrdinal(Base.TYPE_REFERENCE_VALUE, i);
+		this.fields = new byte[fieldCount][]; 
+		for (int i = 0; i < fieldCount; i++) {
+			this.fields[i] = Base.encodeReferenceOrdinal(Base.TYPE_REFERENCE_FIELD, i);
 		}
 		this.stack = Input.stack(initialSize);
 		this.markList = Input.stack(initialSize);

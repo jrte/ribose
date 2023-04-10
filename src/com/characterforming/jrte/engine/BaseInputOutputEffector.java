@@ -33,7 +33,7 @@ abstract class BaseInputOutputEffector extends BaseParameterizedEffector<Transdu
 	 * Constructor
 	 *
 	 * @param transductor The transductor target that binds the effector
-	 * @param name the value name
+	 * @param name the field name
 	 */
 	protected BaseInputOutputEffector(Transductor transductor, String name) {
 		super(transductor, name);
@@ -62,14 +62,14 @@ abstract class BaseInputOutputEffector extends BaseParameterizedEffector<Transdu
 		for (int i = 0; i < parameterList.length; i++) {
 			assert !Base.isReferenceOrdinal(parameterList[i]);
 			byte type = Base.getReferentType(parameterList[i]);
-			if (type == Base.TYPE_REFERENCE_VALUE) {
-				final Bytes valueName = new Bytes(Base.getReferenceName(parameterList[i]));
-				final Integer valueOrdinal = super.target.getValueOrdinal(valueName);
-				if (valueOrdinal < 0) {
-					throw new TargetBindingException(String.format("%1$s.%2$s: value name '%3$s' not enumerated for parameter compilation",
-						super.target.getName(), super.getName().toString(), valueName.toString()));
+			if (type == Base.TYPE_REFERENCE_FIELD) {
+				final Bytes fieldName = new Bytes(Base.getReferenceName(parameterList[i]));
+				final Integer fieldOrdinal = super.target.getFieldOrdinal(fieldName);
+				if (fieldOrdinal < 0) {
+					throw new TargetBindingException(String.format("%1$s.%2$s: field name '%3$s' not enumerated for parameter compilation",
+						super.target.getName(), super.getName().toString(), fieldName.toString()));
 				}
-				parameter[i] = Base.encodeReferenceOrdinal(Base.TYPE_REFERENCE_VALUE, valueOrdinal);
+				parameter[i] = Base.encodeReferenceOrdinal(Base.TYPE_REFERENCE_FIELD, fieldOrdinal);
 			} else if (type == Base.TYPE_REFERENCE_SIGNAL) {
 				throw new TargetBindingException(String.format("%1$s.%2$s: signal is not an acceptable parameter",
 					super.target.getName(), super.getName().toString()));
@@ -88,15 +88,15 @@ abstract class BaseInputOutputEffector extends BaseParameterizedEffector<Transdu
 	public String showParameter(int parameterIndex) {
 		StringBuilder sb = new StringBuilder(256);
 		for (byte[] bytes : super.parameters[parameterIndex]) {
-			int ordinal = Base.isReferenceOrdinal(bytes) ? Base.decodeReferenceOrdinal(Base.TYPE_REFERENCE_VALUE, bytes) : -1;
+			int ordinal = Base.isReferenceOrdinal(bytes) ? Base.decodeReferenceOrdinal(Base.TYPE_REFERENCE_FIELD, bytes) : -1;
 			if (ordinal >= 0) {
 				if (sb.length() > 0) {
 					sb.append(' ');
 				}
-				bytes = super.target.getModel().getValueName(ordinal);
+				bytes = super.target.getModel().getFieldName(ordinal);
 				byte[] name = new byte[bytes.length + 1];
 				System.arraycopy(bytes, 0, name, 1, bytes.length);
-				name[0] = Base.TYPE_REFERENCE_VALUE;
+				name[0] = Base.TYPE_REFERENCE_FIELD;
 				sb.append(Bytes.decode(super.getDecoder(), name, name.length));
 			} else {
 				for (int i = 0; i < bytes.length; i++) {

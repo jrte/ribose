@@ -29,7 +29,7 @@ import java.util.logging.Logger;
 
 import com.characterforming.jrte.engine.Model.TargetMode;
 import com.characterforming.ribose.IEffector;
-import com.characterforming.ribose.INamedValue;
+import com.characterforming.ribose.IField;
 import com.characterforming.ribose.IOutput;
 import com.characterforming.ribose.IParameterizedEffector;
 import com.characterforming.ribose.IRuntime;
@@ -62,8 +62,8 @@ import com.characterforming.ribose.base.TargetBindingException;
  */
 public final class Transductor implements ITransductor, IOutput {
 	static final int INITIAL_STACK_SIZE = 8;
-	static final int INITIAL_NAMED_VALUE_BYTES = 256;
-	static final int INITIAL_NAMED_VALUE_BUFFERS = 256;
+	static final int INITIAL_FIELD_VALUE_BYTES = 256;
+	static final int INITIAL_FIELD_VALUE_BUFFERS = 256;
 
 	/* enumeration of base effectors, all below inlined in run(), except (*) */
 	private static final int NUL = 0;
@@ -100,9 +100,9 @@ public final class Transductor implements ITransductor, IOutput {
 	private final TargetMode mode;
 	private TransducerState transducer;
 	private IEffector<?>[] effectors;
-	private NamedValue selected;
-	private NamedValue[] namedValueHandles;
-	private Map<Bytes, Integer> namedValueOrdinalMap;
+	private Field selected;
+	private Field[] fieldHandles;
+	private Map<Bytes, Integer> fieldOrdinalMap;
 	private final TransducerStack transducerStack;
 	private final InputStack inputStack;
 	private int matchMode;
@@ -129,8 +129,8 @@ public final class Transductor implements ITransductor, IOutput {
 		this.mode = mode;
 		this.effectors = null;
 		this.transducer = null;
-		this.namedValueHandles = null;
-		this.namedValueOrdinalMap = null;
+		this.fieldHandles = null;
+		this.fieldOrdinalMap = null;
 		this.output = System.getProperty("jrte.out.enabled", "true").equals("true") ? System.out : null;
 		this.selected = null;
 		this.matchMode = Mnone;
@@ -145,15 +145,15 @@ public final class Transductor implements ITransductor, IOutput {
 		this.metrics = new ITransductor.Metrics();
 
 		if (this.mode == TargetMode.run) {
-			this.namedValueOrdinalMap = this.model.getNamedValueMap();
-			this.namedValueHandles = new NamedValue[this.namedValueOrdinalMap.size()];
-			for (final Entry<Bytes, Integer> entry : this.namedValueOrdinalMap.entrySet()) {
-				final int valueIndex = entry.getValue();
-				byte[] valueBuffer = new byte[INITIAL_NAMED_VALUE_BYTES];
-				this.namedValueHandles[valueIndex] = new NamedValue(entry.getKey(), valueIndex, valueBuffer, 0);
+			this.fieldOrdinalMap = this.model.getFieldMap();
+			this.fieldHandles = new Field[this.fieldOrdinalMap.size()];
+			for (final Entry<Bytes, Integer> entry : this.fieldOrdinalMap.entrySet()) {
+				final int fieldIndex = entry.getValue();
+				byte[] fieldBuffer = new byte[INITIAL_FIELD_VALUE_BYTES];
+				this.fieldHandles[fieldIndex] = new Field(entry.getKey(), fieldIndex, fieldBuffer, 0);
 			}
-			this.selected = this.namedValueHandles[Model.ANONYMOUS_VALUE_ORDINAL];
-			this.inputStack = new InputStack(INITIAL_STACK_SIZE, this.model.getSignalCount(), this.namedValueHandles.length);
+			this.selected = this.fieldHandles[Model.ANONYMOUS_FIELD_ORDINAL];
+			this.inputStack = new InputStack(INITIAL_STACK_SIZE, this.model.getSignalCount(), this.fieldHandles.length);
 			this.transducerStack = new TransducerStack(INITIAL_STACK_SIZE);
 		} else {
 			this.inputStack = null;
@@ -271,7 +271,7 @@ public final class Transductor implements ITransductor, IOutput {
 	public ITransductor start(final Bytes transducerName) throws ModelException {
 		if (this.status() != Status.NULL) {
 			this.transducerStack.push(this.model.loadTransducer(this.model.getTransducerOrdinal(transducerName)));
-			this.selected = this.namedValueHandles[Model.ANONYMOUS_VALUE_ORDINAL];
+			this.selected = this.fieldHandles[Model.ANONYMOUS_FIELD_ORDINAL];
 			this.clear();
 		}
 		return this;
@@ -293,11 +293,11 @@ public final class Transductor implements ITransductor, IOutput {
 				this.transducerStack.pop();
 			}
 		}
-		if (this.namedValueHandles != null) {
-			this.selected = this.namedValueHandles[Model.ANONYMOUS_VALUE_ORDINAL];
-			for (NamedValue value : this.namedValueHandles) {
-				if (value != null) {
-					value.clear();
+		if (this.fieldHandles != null) {
+			this.selected = this.fieldHandles[Model.ANONYMOUS_FIELD_ORDINAL];
+			for (Field field : this.fieldHandles) {
+				if (field != null) {
+					field.clear();
 				}
 			}
 		}
@@ -450,9 +450,9 @@ S:				do {
 	}
 
 	@Override // @see com.characterforming.ribose.IOutput#getValueOrdinal(Bytes)
-	public int getValueOrdinal(final Bytes valueName) {
-		if (this.namedValueOrdinalMap.containsKey(valueName)) {
-			return this.namedValueOrdinalMap.get(valueName);
+	public int getFieldOrdinal(final Bytes fieldName) {
+		if (this.fieldOrdinalMap.containsKey(fieldName)) {
+			return this.fieldOrdinalMap.get(fieldName);
 		}
 		return -1;
 	}
@@ -463,23 +463,23 @@ S:				do {
 		return (this.selected != null) ? this.selected.getOrdinal() : -1;
 	}
 
-	@Override // @see com.characterforming.ribose.IOutput#getNamedValue(int)
-	public INamedValue getNamedValue(final int nameOrdinal) {
-		assert this.namedValueHandles != null;
-		if (this.namedValueHandles != null && nameOrdinal < this.namedValueHandles.length) {
-			return this.namedValueHandles[nameOrdinal];
+	@Override // @see com.characterforming.ribose.IOutput#getField(int)
+	public IField getField(final int fieldOrdinal) {
+		assert this.fieldHandles != null;
+		if (this.fieldHandles != null && fieldOrdinal < this.fieldHandles.length) {
+			return this.fieldHandles[fieldOrdinal];
 		} else {
 			return null;
 		}
 	}
 
-	@Override // @see com.characterforming.ribose.IOutput#getNamedValue(String)
-	public INamedValue getNamedValue(final Bytes valueName) {
-		return this.getNamedValue(this.getValueOrdinal(valueName));
+	@Override // @see com.characterforming.ribose.IOutput#getField(String)
+	public IField getField(final Bytes fieldName) {
+		return this.getField(this.getFieldOrdinal(fieldName));
 	}
 
 	@Override // @see com.characterforming.ribose.IOutput#getSelectedValue()
-	public INamedValue getSelectedValue() {
+	public IField getSelectedField() {
 		assert this.selected != null;
 		return this.selected;
 	}
@@ -492,16 +492,16 @@ S:				do {
 		this.effectors = effectors;
 	}
 
-	void setNamedValueOrdinalMap(Map<Bytes, Integer> namedValueOrdinalMap) {
-		this.namedValueOrdinalMap = namedValueOrdinalMap;
-		if (this.namedValueOrdinalMap.size() > 0) {
-			this.namedValueHandles = new NamedValue[this.namedValueOrdinalMap.size()];
-			for (final Entry<Bytes, Integer> entry : this.namedValueOrdinalMap.entrySet()) {
-				final int valueIndex = entry.getValue();
-				byte[] valueBuffer = new byte[INITIAL_NAMED_VALUE_BYTES];
-				this.namedValueHandles[valueIndex] = new NamedValue(entry.getKey(), valueIndex, valueBuffer, 0);
+	void setFieldOrdinalMap(Map<Bytes, Integer> fieldOrdinalMap) {
+		this.fieldOrdinalMap = fieldOrdinalMap;
+		if (this.fieldOrdinalMap.size() > 0) {
+			this.fieldHandles = new Field[this.fieldOrdinalMap.size()];
+			for (final Entry<Bytes, Integer> entry : this.fieldOrdinalMap.entrySet()) {
+				final int fieldIndex = entry.getValue();
+				byte[] fieldBuffer = new byte[INITIAL_FIELD_VALUE_BYTES];
+				this.fieldHandles[fieldIndex] = new Field(entry.getKey(), fieldIndex, fieldBuffer, 0);
 			}
-			this.selected = this.namedValueHandles[Model.ANONYMOUS_VALUE_ORDINAL];
+			this.selected = this.fieldHandles[Model.ANONYMOUS_FIELD_ORDINAL];
 		}
 	}
 
@@ -551,14 +551,14 @@ E:	do {
 					this.selected.append((byte)token);
 					break;
 				case SELECT:
-					this.selected = this.namedValueHandles[Model.ANONYMOUS_VALUE_ORDINAL];
+					this.selected = this.fieldHandles[Model.ANONYMOUS_FIELD_ORDINAL];
 					break;
 				case COPY:
-					this.selected.append(this.namedValueHandles[Model.ANONYMOUS_VALUE_ORDINAL]);
+					this.selected.append(this.fieldHandles[Model.ANONYMOUS_FIELD_ORDINAL]);
 					break;
 				case CUT:
-					this.selected.append(this.namedValueHandles[Model.ANONYMOUS_VALUE_ORDINAL]);
-					this.namedValueHandles[Model.ANONYMOUS_VALUE_ORDINAL].clear();
+					this.selected.append(this.fieldHandles[Model.ANONYMOUS_FIELD_ORDINAL]);
+					this.fieldHandles[Model.ANONYMOUS_FIELD_ORDINAL].clear();
 					break;
 				case CLEAR:
 					this.selected.clear();
@@ -606,12 +606,12 @@ E:	do {
 		case Base.TYPE_REFERENCE_SIGNAL:
 			input.position = input.length;
 			return Base.decodeReferenceOrdinal(Base.TYPE_REFERENCE_SIGNAL, input.array);
-		case Base.TYPE_REFERENCE_VALUE:
-			NamedValue handle = this.namedValueHandles[Base.decodeReferenceOrdinal(Base.TYPE_REFERENCE_VALUE, input.array)];
+		case Base.TYPE_REFERENCE_FIELD:
+			Field handle = this.fieldHandles[Base.decodeReferenceOrdinal(Base.TYPE_REFERENCE_FIELD, input.array)];
 			input.position = input.length;
 			this.inputStack.pop();
-			Input value = this.inputStack.push(handle.getValue(), handle.getLength());
-			return Byte.toUnsignedInt(value.array[value.position++]);
+			Input field = this.inputStack.push(handle.getValue(), handle.getLength());
+			return Byte.toUnsignedInt(field.array[field.position++]);
 		case Base.TYPE_REFERENCE_NONE:
 			return input.array != null ? Byte.toUnsignedInt(input.array[input.position++]) : -1;
 		default:
@@ -685,7 +685,7 @@ E:	do {
 	}
 
 	private int clear() {
-		for (NamedValue nv : this.namedValueHandles) nv.clear();
+		for (Field nv : this.fieldHandles) nv.clear();
 		return IEffector.RTX_NONE;
 	}
 
@@ -779,12 +779,12 @@ E:	do {
 		@Override
 		public int invoke(final int parameterIndex) throws EffectorException {
 			for (byte[] bytes : super.getParameter(parameterIndex)) {
-				if (Base.getReferenceType(bytes) == Base.TYPE_REFERENCE_VALUE) {
-					int valueOrdinal = Base.decodeReferenceOrdinal(Base.TYPE_REFERENCE_VALUE, bytes);
-					NamedValue value = (NamedValue)getNamedValue(valueOrdinal);
-					assert value != null;
-					if (value != null) {
-						selected.append(value.getValue());
+				if (Base.getReferenceType(bytes) == Base.TYPE_REFERENCE_FIELD) {
+					int fieldOrdinal = Base.decodeReferenceOrdinal(Base.TYPE_REFERENCE_FIELD, bytes);
+					Field field = (Field)getField(fieldOrdinal);
+					assert field != null;
+					if (field != null) {
+						selected.append(field.getValue());
 					}
 				} else {
 					selected.append(bytes);
@@ -794,28 +794,28 @@ E:	do {
 		}
 	}
 
-	private final class SelectEffector extends BaseNamedValueEffector {
+	private final class SelectEffector extends BaseFieldEffector {
 		private SelectEffector(final Transductor transductor) {
 			super(transductor, "select");
 		}
 
 		@Override
 		public int invoke() throws EffectorException {
-			selected = namedValueHandles[Model.ANONYMOUS_VALUE_ORDINAL];
+			selected = fieldHandles[Model.ANONYMOUS_FIELD_ORDINAL];
 			return IEffector.RTX_NONE;
 		}
 
 		@Override
 		public int invoke(final int parameterIndex) throws EffectorException {
-			int valueOrdinal = super.getParameter(parameterIndex);
-			if (valueOrdinal != 1) {
-				selected = namedValueHandles[valueOrdinal];
+			int fieldOrdinal = super.getParameter(parameterIndex);
+			if (fieldOrdinal != 1) {
+				selected = fieldHandles[fieldOrdinal];
 			}
 			return IEffector.RTX_NONE;
 		}
 	}
 
-	private final class CopyEffector extends BaseNamedValueEffector {
+	private final class CopyEffector extends BaseFieldEffector {
 		private CopyEffector(final Transductor transductor) {
 			super(transductor, "copy");
 		}
@@ -828,15 +828,15 @@ E:	do {
 		
 		@Override
 		public int invoke(final int parameterIndex) throws EffectorException {
-			int valueOrdinal = super.getParameter(parameterIndex);
-			if (valueOrdinal != 1) {
-				selected.append(namedValueHandles[valueOrdinal]);
+			int fieldOrdinal = super.getParameter(parameterIndex);
+			if (fieldOrdinal != 1) {
+				selected.append(fieldHandles[fieldOrdinal]);
 			}
 			return IEffector.RTX_NONE;
 		}
 	}
 
-	private final class CutEffector extends BaseNamedValueEffector {
+	private final class CutEffector extends BaseFieldEffector {
 		private CutEffector(final Transductor transductor) {
 			super(transductor, "cut");
 		}
@@ -848,16 +848,16 @@ E:	do {
 
 		@Override
 		public int invoke(final int parameterIndex) throws EffectorException {
-			int valueOrdinal = super.getParameter(parameterIndex);
-			if (valueOrdinal != 1) {
-				selected.append(namedValueHandles[valueOrdinal]);
-				namedValueHandles[valueOrdinal].clear();
+			int fieldOrdinal = super.getParameter(parameterIndex);
+			if (fieldOrdinal != 1) {
+				selected.append(fieldHandles[fieldOrdinal]);
+				fieldHandles[fieldOrdinal].clear();
 			}
 			return IEffector.RTX_NONE;
 		}
 	}
 
-	private final class ClearEffector extends BaseNamedValueEffector {
+	private final class ClearEffector extends BaseFieldEffector {
 		private ClearEffector(final Transductor transductor) {
 			super(transductor, "clear");
 		}
@@ -872,8 +872,8 @@ E:	do {
 			final int nameIndex = super.getParameter(parameterIndex);
 			assert (nameIndex >= 0) || (nameIndex == -1);
 			int index = (nameIndex >= 0) ? nameIndex : selected.getOrdinal();
-			if (index != Model.CLEAR_ANONYMOUS_VALUE) {
-				namedValueHandles[index].clear();
+			if (index != Model.CLEAR_ANONYMOUS_FIELD) {
+				fieldHandles[index].clear();
 			} else {
 				clear();
 			}
@@ -964,10 +964,10 @@ E:	do {
 				for (final byte[] bytes : super.getParameter(parameterIndex)) {
 					try {
 						if (Base.isReferenceOrdinal(bytes)) {
-							assert Base.getReferenceType(bytes) == Base.TYPE_REFERENCE_VALUE;
-							int ordinal = Base.decodeReferenceOrdinal(Base.TYPE_REFERENCE_VALUE, bytes);
-							NamedValue handle = (NamedValue)getNamedValue(ordinal);
-							super.target.output.write(handle.getValue(), 0, handle.getLength());
+							assert Base.getReferenceType(bytes) == Base.TYPE_REFERENCE_FIELD;
+							int ordinal = Base.decodeReferenceOrdinal(Base.TYPE_REFERENCE_FIELD, bytes);
+							Field field = (Field)getField(ordinal);
+							super.target.output.write(field.getValue(), 0, field.getLength());
 						} else {
 							super.target.output.write(bytes, 0, bytes.length);
 						}
@@ -997,7 +997,7 @@ E:	do {
 			assert (super.target.transducer == tos) || (super.target.transducer == super.target.transducerStack.get(super.target.transducerStack.tos()-1));
 			int[] countdown = super.getParameter(parameterIndex);
 			tos.countdown[1] = countdown[1];
-			tos.countdown[0] = countdown[0] < 0 ? (int)namedValueHandles[(-1 * countdown[0]) - 1].asInteger() : countdown[0];
+			tos.countdown[0] = countdown[0] < 0 ? (int)fieldHandles[(-1 * countdown[0]) - 1].asInteger() : countdown[0];
 			return transducer.countdown[0] == 0 ? IEffector.rtxSignal(countdown[1]) : IEffector.RTX_NONE;
 		}
 
@@ -1015,14 +1015,14 @@ E:	do {
 			int count = -1;
 			assert !Base.isReferenceOrdinal(parameterList[0]) : "Reference ordinal presented for <count> to CountEffector[<count> <signal>]";
 			byte type = Base.getReferentType(parameterList[0]);
-			if (type == Base.TYPE_REFERENCE_VALUE) {
-				Bytes valueName = new Bytes(Base.getReferenceName(parameterList[0]));
-				int valueOrdinal = super.target.getValueOrdinal(valueName);
-				if (valueOrdinal >= 0) {
-					count = -1 * (1 + valueOrdinal);
+			if (type == Base.TYPE_REFERENCE_FIELD) {
+				Bytes fieldName = new Bytes(Base.getReferenceName(parameterList[0]));
+				int fieldOrdinal = super.target.getFieldOrdinal(fieldName);
+				if (fieldOrdinal >= 0) {
+					count = -1 * (1 + fieldOrdinal);
 				} else {
-					throw new TargetBindingException(String.format("%1$s.%2$s: Named value %3$s is not found",
-						getName(), super.getName(), valueName.toString()));
+					throw new TargetBindingException(String.format("%1$s.%2$s: Field %3$s is not found",
+						getName(), super.getName(), fieldName.toString()));
 				}
 			} else if (type == Base.TYPE_REFERENCE_NONE) {
 				count = Base.decodeInt(parameterList[0], parameterList[0].length);
@@ -1046,11 +1046,11 @@ E:	do {
 			int[] param = super.parameters[parameterIndex];
 			StringBuilder sb= new StringBuilder();
 			if (param[0] < 0) {
-				byte[] name = getModel().getValueName(-1 * param[0]);
-				byte[] value = new byte[name.length + 1];
-				value[0] = Base.TYPE_REFERENCE_VALUE;
-				System.arraycopy(name, 0, value, 1, name.length);
-				sb.append(Bytes.decode(super.getDecoder(), value, value.length).toString());
+				byte[] name = getModel().getFieldName(-1 * param[0]);
+				byte[] field = new byte[name.length + 1];
+				field[0] = Base.TYPE_REFERENCE_FIELD;
+				System.arraycopy(name, 0, field, 1, name.length);
+				sb.append(Bytes.decode(super.getDecoder(), field, field.length).toString());
 			} else {
 				sb.append(Integer.toString(param[0]));
 			}

@@ -50,8 +50,8 @@ import com.characterforming.ribose.base.TargetBindingException;
  * {@code --target} and {@code --target-path} are not specified. In any case, a proxy 
  * instance of the model target class will be instantiated, using its default constructor,
  * to precompile effector parameters. See the {@link ITarget} documentation for details
- * regarding this process. The compiled model contains compiled transducers, signals, named
- * values, effectors and effector parameters. The model map is a text file listing the 
+ * regarding this process. The compiled model contains compiled transducers, signals, 
+ * fields, effectors and effector parameters. The model map is a text file listing the 
  * names and ordinal enumerators for these artifacts. {@link TDecompile} can be used in
  * conjunction with the model map to assist with debugging transducers in the ribose runtime.
  * <br><br>

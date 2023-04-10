@@ -53,11 +53,11 @@ import com.characterforming.ribose.base.TargetBindingException;
  * @author Kim Briggs
  */
 public final class Model implements AutoCloseable {
-	static final int ANONYMOUS_VALUE_ORDINAL = 0;
-	static final int CLEAR_ANONYMOUS_VALUE = 1;
+	static final int ANONYMOUS_FIELD_ORDINAL = 0;
+	static final int CLEAR_ANONYMOUS_FIELD = 1;
 	static final byte[] EMPTY = {};
-	static final byte[] ANONYMOUS_VALUE_NAME = Model.EMPTY;
-	static final byte[] ALL_VALUE_NAME = { '*' };
+	static final byte[] ANONYMOUS_FIELD_NAME = Model.EMPTY;
+	static final byte[] ALL_FIELDS_NAME = { '*' };
 
 	public enum TargetMode {
 		none, compile, run;
@@ -70,7 +70,7 @@ public final class Model implements AutoCloseable {
 	private final CharsetEncoder encoder = Base.newCharsetEncoder();
 	private final CharsetDecoder decoder = Base.newCharsetDecoder();
 	private HashMap<Bytes, Integer> signalOrdinalMap;
-	private HashMap<Bytes, Integer> namedValueOrdinalMap;
+	private HashMap<Bytes, Integer> fieldOrdinalMap;
 	private HashMap<Bytes, Integer> transducerOrdinalMap;
 	private HashMap<Bytes, Integer> effectorOrdinalMap;
 	private ArrayList<HashMap<BytesArray, Integer>> effectorParametersMaps;
@@ -84,7 +84,7 @@ public final class Model implements AutoCloseable {
 
 	private RandomAccessFile io;
 	private boolean deleteOnClose;
-	private byte[][] namedValuesNames;
+	private byte[][] fieldsNames;
 	private byte[][] signalNames;
 	private byte[][] transducerNames;
 
@@ -143,7 +143,7 @@ public final class Model implements AutoCloseable {
 
 	public void initialize(TargetMode targetMode) throws ModelException {
 		this.proxyTransductor = new Transductor(this, targetMode);
-		this.proxyTransductor.setNamedValueOrdinalMap(this.namedValueOrdinalMap);
+		this.proxyTransductor.setFieldOrdinalMap(this.fieldOrdinalMap);
 		IEffector<?>[] trexFx = this.proxyTransductor.getEffectors();
 		IEffector<?>[] targetFx = this.proxyTarget.getEffectors();
 		this.proxyEffectors = new IEffector<?>[trexFx.length + targetFx.length];
@@ -176,7 +176,7 @@ public final class Model implements AutoCloseable {
 		assert this.ioMode.equals("rw");
 		this.signalOrdinalMap = new HashMap<Bytes, Integer>(256);
 		this.transducerOrdinalMap = new HashMap<Bytes, Integer>(256);
-		this.namedValueOrdinalMap = new HashMap<Bytes, Integer>(256);
+		this.fieldOrdinalMap = new HashMap<Bytes, Integer>(256);
 		for (int ordinal = 0; ordinal < Base.RTE_SIGNAL_BASE; ordinal++) {
 			Bytes name = new Bytes(new byte[] { 0, (byte) ordinal });
 			this.signalOrdinalMap.put(name, ordinal);
@@ -186,8 +186,8 @@ public final class Model implements AutoCloseable {
 			this.signalOrdinalMap.put(signal.key(), signal.signal());
 		}
 		assert this.signalOrdinalMap.size() == (Base.RTE_SIGNAL_BASE + Signal.values().length);
-		this.namedValueOrdinalMap.put(new Bytes(Model.ANONYMOUS_VALUE_NAME), Model.ANONYMOUS_VALUE_ORDINAL);
-		this.namedValueOrdinalMap.put(new Bytes(Model.ALL_VALUE_NAME), Model.CLEAR_ANONYMOUS_VALUE);
+		this.fieldOrdinalMap.put(new Bytes(Model.ANONYMOUS_FIELD_NAME), Model.ANONYMOUS_FIELD_ORDINAL);
+		this.fieldOrdinalMap.put(new Bytes(Model.ALL_FIELDS_NAME), Model.CLEAR_ANONYMOUS_FIELD);
 		this.transducerObjectIndex = new Transducer[256];
 		this.transducerOffsetIndex = new long[256];
 		this.transducerNameIndex = new Bytes[256];
@@ -208,7 +208,7 @@ public final class Model implements AutoCloseable {
 			long indexPosition = this.io.getFilePointer();
 			assert indexPosition == this.io.length();
 			this.putOrdinalMap(signalOrdinalMap);
-			this.putOrdinalMap(namedValueOrdinalMap);
+			this.putOrdinalMap(fieldOrdinalMap);
 			this.putOrdinalMap(effectorOrdinalMap);
 			this.putOrdinalMap(transducerOrdinalMap);
 			int transducerCount = this.transducerOrdinalMap.size();
@@ -223,10 +223,10 @@ public final class Model implements AutoCloseable {
 			saveMapFile(mapFile);
 			setDeleteOnClose(false);
 			String msg = String.format(
-				"%1$s: target class %2$s%3$s%4$d transducers; %5$d effectors; %6$d named values; %7$d signal ordinals%8$s",
+				"%1$s: target class %2$s%3$s%4$d transducers; %5$d effectors; %6$d fields; %7$d signal ordinals%8$s",
 				this.modelPath.getPath(), this.proxyTarget.getClass().getName(), Base.lineEnd,
 				this.transducerOrdinalMap.size() - 1, this.effectorOrdinalMap.size(),
-				this.namedValueOrdinalMap.size(), this.getSignalCount(), Base.lineEnd);
+				this.fieldOrdinalMap.size(), this.getSignalCount(), Base.lineEnd);
 			this.rtcLogger.log(Level.INFO, msg);
 		} catch (IOException e) {
 			throw new ModelException(
@@ -274,11 +274,11 @@ public final class Model implements AutoCloseable {
 			this.seek(indexPosition);
 			this.signalOrdinalMap = this.getOrdinalMap();
 			this.signalNames = this.getValueNames(this.signalOrdinalMap);
-			this.namedValueOrdinalMap = this.getOrdinalMap();
-			this.namedValuesNames = this.getValueNames(this.namedValueOrdinalMap);
+			this.fieldOrdinalMap = this.getOrdinalMap();
+			this.fieldsNames = this.getValueNames(this.fieldOrdinalMap);
 			this.effectorOrdinalMap = this.getOrdinalMap();
 			this.transducerOrdinalMap = this.getOrdinalMap();
-			this.transducerNames = this.getValueNames(this.namedValueOrdinalMap);
+			this.transducerNames = this.getValueNames(this.fieldOrdinalMap);
 			this.initialize(TargetMode.run);
 			assert this.effectorOrdinalMap.size() == this.proxyEffectors.length;
 			if (!this.transducerOrdinalMap.containsKey(Bytes.encode(this.encoder, this.proxyTarget.getName()))) {
@@ -324,8 +324,8 @@ public final class Model implements AutoCloseable {
 		return names;
 	}
 
-	byte[] getValueName(int valueOrdinal) {
-		return this.namedValuesNames[valueOrdinal];
+	byte[] getFieldName(int fieldOrdinal) {
+		return this.fieldsNames[fieldOrdinal];
 	}
 
 	byte[] getSignalName(int signalOrdinal) {
@@ -411,12 +411,12 @@ public final class Model implements AutoCloseable {
 			for (int i = 0; i < effectorIndex.length; i++) {
 				mapWriter.println("effector\t" + effectorIndex[i] + "\t" + i);
 			}
-			Bytes[] valueIndex = new Bytes[this.namedValueOrdinalMap.size()];
-			for (Map.Entry<Bytes, Integer> m : this.namedValueOrdinalMap.entrySet()) {
-				valueIndex[m.getValue()] = m.getKey();
+			Bytes[] fieldIndex = new Bytes[this.fieldOrdinalMap.size()];
+			for (Map.Entry<Bytes, Integer> m : this.fieldOrdinalMap.entrySet()) {
+				fieldIndex[m.getValue()] = m.getKey();
 			}
-			for (int i = 0; i < valueIndex.length; i++) {
-				mapWriter.println("value\t" + valueIndex[i] + "\t" + i);
+			for (int i = 0; i < fieldIndex.length; i++) {
+				mapWriter.println("field\t" + fieldIndex[i] + "\t" + i);
 			}
 			mapWriter.flush();
 		} catch (final IOException e) {
@@ -561,8 +561,8 @@ public final class Model implements AutoCloseable {
 		return this.signalOrdinalMap.get(name);
 	}
 
-	Map<Bytes,Integer> getNamedValueMap() {
-		return Collections.unmodifiableMap(this.namedValueOrdinalMap);
+	Map<Bytes,Integer> getFieldMap() {
+		return Collections.unmodifiableMap(this.fieldOrdinalMap);
 	}
 
 	public String showParameter(int effectorOrdinal, int parameterIndex) {
@@ -573,11 +573,11 @@ public final class Model implements AutoCloseable {
 		return "VOID";
 	}
 
-	int addNamedValue(Bytes valueName) {
-		Integer ordinal = this.namedValueOrdinalMap.get(valueName);
+	int addField(Bytes fieldName) {
+		Integer ordinal = this.fieldOrdinalMap.get(fieldName);
 		if (ordinal == null) {
-			ordinal = this.namedValueOrdinalMap.size();
-			this.namedValueOrdinalMap.put(valueName, ordinal);
+			ordinal = this.fieldOrdinalMap.size();
+			this.fieldOrdinalMap.put(fieldName, ordinal);
 		}
 		return ordinal;
 	}

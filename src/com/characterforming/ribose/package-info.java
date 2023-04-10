@@ -1,5 +1,8 @@
 /**
- * Component interfaces and runnable classes for the ribose model compiler and runtime.
+ * Component interfaces and runnable classes for the ribose model compiler and runtime. The
+ * {@link Ribose} class provides static methods for compiling and loading ribose models in
+ * the Java VM. The runnable classes {@link TCompile} and {@link TRun} enable model compilation
+ * and transduction to be run from the shell.
  * <br><br>
  * A collection of related ribose patterns are compiled to automata by ginr. The automata
  * ({@code *.dfa}) files are saved to directory and the ribose model compiler packages them
@@ -13,14 +16,13 @@
  * assimilate transduction output into the target domain. 
  * <br><br>
  * The ribose model compiler {@link TCompile} can be run from the command line using
- * {@link TCompile#main(String[])} to build a ribose model specifying an {@link ITarget}
- * implementation class (eg, {@link com.characterforming.ribose.base.BaseTarget}) as
- * target class, the path to the automata directory and the path and name of the file
- * to contain the compiled model. The compiler is also accessible in the JVM using
- * {@link Ribose#compileRiboseModel(Class, File, File)}. The  default
- * {@link com.characterforming.ribose.base.BaseTarget} class will be used as target
- * if {@code --target} and {@code --target-path} are not specified. In any case, a proxy 
- * instance of the model target class will be instantiated, using its default constructor,
+ * {@link TCompile#main(String[])} specifying an {@link ITarget} implementation class
+ * (eg, {@link com.characterforming.ribose.base.BaseTarget}) as target class, the path
+ * to the automata directory and the path and name of the file to contain the compiled
+ * model. The compiler is also accessible in the JVM using {@link Ribose#compileRiboseModel(Class, File, File)}.
+ * The  default {@link com.characterforming.ribose.base.BaseTarget} class will be used as
+ * target if {@code --target} and {@code --target-path} are not specified. In any case, a
+ * proxy instance of the model target class will be instantiated, using its default constructor,
  * to precompile effector parameters. See the {@link ITarget} documentation for details
  * regarding this process.
  * <br><br>
@@ -57,10 +59,10 @@
  * <tr><td style="text-align:right"><i>output</i></td><td>The path to the output file (default is {@code System.out}).</td></tr>
  * </table>
  * <br>
- * The model compiler reduces the {@code NxM} transition matrix ({@code N}&ge;{@code 260} input
- * bytes or signals, {@code M} states) for ginr transducer <b>H</b> to an {@code Nx1} input
- * equivalence transducer <b>F</b> mapping byte and signal ordinals to input equivalence class
- * index {@code e}&lt;{@code K}&le;{@code N} and a {@code KxM} kernel transducer <b>G</b> 
+ * The model compiler reduces the NxM transition matrix (N&ge;260 input
+ * bytes or signals, M states) for ginr transducer <b>H</b> to an Nx1 input
+ * equivalence transducer <b>F</b> mapping byte and signal ordinals to K&lt;N
+ * input equivalence classes and a KxM kernel transducer <b>G</b> 
  * equivalent to <b>H</b> modulo <b>F*</b> (so <b>H</b>(x)&nbsp;=&nbsp;<b>(G&deg;F*)</b>(x)).
  * The ribose transducer decompiler {@link TDecompile} can be used to list the input equivalence
  * map and kernel transitions for any compiled transducer. It can be run from the command line
@@ -85,7 +87,7 @@
  * {@link IRuntime#newTransductor(ITarget)} to bind a live target to a transductor
  * and apply {@link ITransductor} methods directly to set up inputs and transducers
  * and run transductions. Transductions and the involved objects (transductor, target,
- * effectors, values) are assumed to be single-threaded. Concurrent transductions should
+ * effectors, fields) are assumed to be single-threaded. Concurrent transductions should
  * run on separate threads, although a single thread can safely multiplex over &gt;1 live
  * transductors.
  *

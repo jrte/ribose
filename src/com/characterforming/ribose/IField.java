@@ -23,29 +23,29 @@ package com.characterforming.ribose;
 import com.characterforming.ribose.base.Bytes;
 
 /**
- * Snapshot wrapper for volatile named values accessible in {@link IOutput}
- * views. These correspond to {@code `~value`} references in transducer patterns.
+ * Snapshot wrapper for volatile fields accessible in {@link IOutput}
+ * views. These correspond to {@code `~field`} references in transducer patterns.
  * Effector instances receive an {@link IOutput} instance to provide access
- * to runtime named values held by the transductor. These contain direct 
- * references to the transduction value buffers and their length and content
- * will change according to transductor actions. Named value semantics
+ * to runtime fields held by the transductor. These contain direct 
+ * references to the transduction field buffers and their length and content
+ * will change according to transductor actions. Field semantics
  * are guaranteed to be stable only as long as the transducer stack is
  * not pushed or popped.
  * 
  * @author Kim Briggs
  */
-public interface INamedValue {
+public interface IField {
 	/**
-	 * Get the value name
+	 * Get the field name
 	 * 
-	 * @return The value name
+	 * @return The field name
 	 */
 	Bytes getName();
 
 	/**
-	 * Get the value ordinal.
+	 * Get the field ordinal.
 	 * 
-	 * @return The value index
+	 * @return The field index
 	 */
 	int getOrdinal();
 
@@ -66,7 +66,7 @@ public interface INamedValue {
 	/**
 	 * Get a copy of the value, trimmed to actual length.
 	 * 
-	 * @return A copy of the contents of the value array
+	 * @return A trimmed copy of the contents of the value array
 	 */
 	byte[] copyValue();
 	

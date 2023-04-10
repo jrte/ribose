@@ -81,7 +81,7 @@ public final class Bytes {
 		try {
 			return decoder.reset().decode(ByteBuffer.wrap(bytes, 0, size));
 		} catch (CharacterCodingException e) {
-			System.err.println("NamedValue.decode(CharsetDecoder, byte[], int, int): " + e.getMessage());
+			System.err.println("Bytes.decode(CharsetDecoder, byte[], int, int): " + e.getMessage());
 			assert false;
 		}
 		return CharBuffer.wrap(Bytes.EMPTY_CHARS);
@@ -113,7 +113,7 @@ public final class Bytes {
 			buffer.get(b, 0, b.length);
 			bytes = new Bytes(b);
 		} catch (CharacterCodingException e) {
-			System.err.println("NamedValue.encode(CharsetEncoder,CharBuffer): " + e.getMessage());
+			System.err.println("Bytes.encode(CharsetEncoder,CharBuffer): " + e.getMessage());
 			assert false;
 		}
 		return bytes;

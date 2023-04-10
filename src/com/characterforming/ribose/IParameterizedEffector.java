@@ -40,9 +40,9 @@ import com.characterforming.ribose.base.TargetBindingException;
  * set the size of the parameter array and then call {@link #compileParameter(int, byte[][])}
  * for each parameter list. In ribose transducer patterns parameters are presented
  * to effectors on tape 2 (the paramter tape) as a list of one or more backquoted
- * tokens, eg {@code out[`~value` `,`]}. Parameter tokens may contain text, which
+ * tokens, eg {@code out[`~field` `,`]}. Parameter tokens may contain text, which
  * ginr encodes as UTF-8 bytes, binary data encoded using {@code \xHH} hexadecimal
- * representation for unprintable bytes, or named values (`~value`), transducer
+ * representation for unprintable bytes, or fields (`~field`), transducer
  * names (`@transducer`) or signals (`!signal`). In compiled ribose models parameters
  * are rendered as arrays of byte arrays ({@code byte[][]}) to be presented to
  * {@link #compileParameter(int, byte[][])}. The effector implementation must compile
@@ -51,8 +51,8 @@ import com.characterforming.ribose.base.TargetBindingException;
  * For example, a {@code date[]} effector might accept date format strings as parameters
  * and compile them to {@code DateFormat} instances in its paramter array. At runtime,
  * the date effector will be invoked with an integer indicating the index of the
- * date formatter to be applied to render the UTF-8 bytes in the selected named value
- * ({@link IOutput#getSelectedValue()}) canonically as a long integer.
+ * date formatter to be applied to render the UTF-8 bytes in the selected field
+ * ({@link IOutput#getSelectedField()}) canonically as a long integer.
  * <br><br>
  * In runtime contexts the effector is invoked in a proxy target to precompile
  * its parameters as above. The precompiled parameters are passed on to the
@@ -89,10 +89,8 @@ public interface IParameterizedEffector<T extends ITarget, P> extends IEffector<
 	 * class must call {@link #setParameter(int, Object)} to set the result in
 	 * the P[] array instantiated in the base class by {@link #newParameters(int)}.
 	 *
-	 * @param parameterIndex The array index in the parameters array P[] to set
-	 *           with the parameter value
-	 * @param parameterList An array of parameters, where each parameter is an
-	 *           array of bytes.
+	 * @param parameterIndex The array index in the parameters array P[] to set with the parameter value
+	 * @param parameterList An array of parameters, where each parameter is an array of bytes.
 	 * @return the compiled parameter value object
 	 * @throws TargetBindingException on error
 	 */
@@ -101,8 +99,7 @@ public interface IParameterizedEffector<T extends ITarget, P> extends IEffector<
 	/**
 	 * Set a precompiled parameter value.
 	 *
-	 * @param parameterIndex The array index in the parameters array P[] to set
-	 *           with the parameter value
+	 * @param parameterIndex The array index in the parameters array P[] to set with the parameter value
 	 * @param parameter the parameter value to set
 	 */
 	void setParameter(int parameterIndex, Object parameter);

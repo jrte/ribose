@@ -26,16 +26,16 @@ import java.nio.charset.CharsetDecoder;
 import java.nio.charset.CoderResult;
 import java.util.Arrays;
 
-import com.characterforming.ribose.INamedValue;
+import com.characterforming.ribose.IField;
 import com.characterforming.ribose.base.Bytes;
 
 /**
- * Wrapper for named value snapshots.
+ * Wrapper for field snapshots.
  * 
  * @author Kim Briggs
  */
-class NamedValue implements INamedValue {
-	private static final int INITIAL_NAMED_VALUE_BYTES = 256;
+class Field implements IField {
+	private static final int INITIAL_FIELD_VALUE_BYTES = 256;
 	
 	private final Bytes name;
 	private final int ordinal;
@@ -49,9 +49,9 @@ class NamedValue implements INamedValue {
 	 * Constructor
 	 * @param charset
 	 */
-	NamedValue(Bytes name, int ordinal, byte[] value, int length) {
+	Field(Bytes name, int ordinal, byte[] value, int length) {
 		if (value == null) {
-			value = new byte[Math.min(INITIAL_NAMED_VALUE_BYTES, length)];
+			value = new byte[Math.min(INITIAL_FIELD_VALUE_BYTES, length)];
 		}
 		assert value.length >= length;
 		this.decoder = Base.newCharsetDecoder();
@@ -61,36 +61,36 @@ class NamedValue implements INamedValue {
 		this.length = length;
 	}
 
-	NamedValue(NamedValue namedValue) {
-		this.name = namedValue.name;
-		this.ordinal = namedValue.ordinal;
-		this.length = namedValue.length;
+	Field(Field field) {
+		this.name = field.name;
+		this.ordinal = field.ordinal;
+		this.length = field.length;
 		this.value = new byte[this.length];
 		this.decoder = Base.newCharsetDecoder();
-		System.arraycopy(namedValue.value, 0, this.value, 0, namedValue.length);
+		System.arraycopy(field.value, 0, this.value, 0, field.length);
 	}
 
-	@Override // @see com.characterforming.ribose.INamedValue#getName()
+	@Override // @see com.characterforming.ribose.IField#getName()
 	public Bytes getName() {
 		return this.name;
 	}
 
-	@Override // @see com.characterforming.ribose.INamedValue#getOrdinal()
+	@Override // @see com.characterforming.ribose.IField#getOrdinal()
 	public int getOrdinal() {
 		return this.ordinal;
 	}
 
-	@Override // @see com.characterforming.ribose.INamedValue#getLength()
+	@Override // @see com.characterforming.ribose.IField#getLength()
 	public int getLength() {
 		return this.length;
 	}
 	
-	@Override // @see com.characterforming.ribose.INamedValue#copyValue()
+	@Override // @see com.characterforming.ribose.IField#copyValue()
 	public byte[] copyValue() {
 		return Arrays.copyOf(this.value, this.length);
 	}
 
-	@Override // @see com.characterforming.ribose.INamedValue#decodeValue()
+	@Override // @see com.characterforming.ribose.IField#decodeValue()
 	public char[] decodeValue() {
 		char chars[] = null;
 		ByteBuffer in = ByteBuffer.wrap(this.value, 0, this.getLength());
@@ -104,12 +104,12 @@ class NamedValue implements INamedValue {
 		return chars;
 	}
 
-	@Override // @see com.characterforming.ribose.INamedValue#asString()
+	@Override // @see com.characterforming.ribose.IField#asString()
 	public String asString() {
 		return new String(this.decodeValue());
 	}
 	
-	@Override // @see com.characterforming.ribose.INamedValue#asInteger()
+	@Override // @see com.characterforming.ribose.IField#asInteger()
 	public long asInteger() {
 		long value = 0;
 		long sign = (this.value[0] == '-') ? -1 : 1;
@@ -124,7 +124,7 @@ class NamedValue implements INamedValue {
 		return sign * value;
 	}
 	
-	@Override // @see com.characterforming.ribose.INamedValue#asReal()
+	@Override // @see com.characterforming.ribose.IField#asReal()
 	public double asReal() {
 		long value = 0;
 		boolean mark = false;
@@ -168,7 +168,7 @@ class NamedValue implements INamedValue {
 		this.length += next.length;
 	}
 
-	void append(NamedValue next) {
+	void append(Field next) {
 		assert this.value != null;
 		growValue(next.length);
 		System.arraycopy(next.value, 0, this.value, this.length, next.length);

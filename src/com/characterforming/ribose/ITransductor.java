@@ -43,7 +43,7 @@ import com.characterforming.ribose.base.Signal;
  * </ul>
  * <br>
  * The {@code stop()} method should be called before starting a new transduction,
- * to ensure that the transducer and input stacks and all values are cleared. The
+ * to ensure that the transducer and input stacks and all fields are cleared. The
  * {@code stop()} method will throw a {@code RiboseException} when it is called on
  * a proxy (instantiated for parameter compilation only) or otherwise
  * nonfunctional transductor. This condition can be checked at any time by testing
@@ -123,25 +123,25 @@ import com.characterforming.ribose.base.Signal;
  * <tr><th style="text-align:right">syntax</th><th style="text-align:left">semantics</th></tr>
  * <tr><td style="text-align:right"><i>nul</i></td><td>Signal <b>nul</b> to indicate no transition defined for current input</td></tr>
  * <tr><td style="text-align:right"><i>nil</i></td><td>Does nothing</td></tr>
- * <tr><td style="text-align:right"><i>paste</i></td><td>Append current input to selected named value</td></tr>
- * <tr><td style="text-align:right"><i>paste[(`~name`|`...`)+]</i></td><td>Append literal data and/or named values to selected named value</td></tr>
- * <tr><td style="text-align:right"><i>select</i></td><td>Select the anonymous named value</td></tr>
- * <tr><td style="text-align:right"><i>select[`~name`]</i></td><td>Select a named value</td></tr>
- * <tr><td style="text-align:right"><i>copy</i></td><td>Copy the anonymous named value into selected named value</td></tr>
- * <tr><td style="text-align:right"><i>copy[`~name`]</i></td><td>Copy a named value into selected named value</td></tr>
- * <tr><td style="text-align:right"><i>cut</i></td><td>Cut the anonymous named value into selected named value</td></tr>
- * <tr><td style="text-align:right"><i>cut[`~name`]</i></td><td>Cut a named value into selected named value</td></tr>
- * <tr><td style="text-align:right"><i>clear</i></td><td>Clear the selected named value</td></tr>
- * <tr><td style="text-align:right"><i>clear[`~*`]</i></td><td>Clear all named values </td></tr>
- * <tr><td style="text-align:right"><i>clear[`~name`]</i></td><td>Clear a specific named value </td></tr>
+ * <tr><td style="text-align:right"><i>paste</i></td><td>Append current input to selected field</td></tr>
+ * <tr><td style="text-align:right"><i>paste[(`~name`|`...`)+]</i></td><td>Append literal data and/or fields to selected field</td></tr>
+ * <tr><td style="text-align:right"><i>select</i></td><td>Select the anonymous field</td></tr>
+ * <tr><td style="text-align:right"><i>select[`~name`]</i></td><td>Select a field</td></tr>
+ * <tr><td style="text-align:right"><i>copy</i></td><td>Copy the anonymous field into selected field</td></tr>
+ * <tr><td style="text-align:right"><i>copy[`~name`]</i></td><td>Copy a field into selected field</td></tr>
+ * <tr><td style="text-align:right"><i>cut</i></td><td>Cut the anonymous field into selected field</td></tr>
+ * <tr><td style="text-align:right"><i>cut[`~name`]</i></td><td>Cut a field into selected field</td></tr>
+ * <tr><td style="text-align:right"><i>clear</i></td><td>Clear the selected field</td></tr>
+ * <tr><td style="text-align:right"><i>clear[`~*`]</i></td><td>Clear all fields </td></tr>
+ * <tr><td style="text-align:right"><i>clear[`~name`]</i></td><td>Clear a specific field </td></tr>
  * <tr><td style="text-align:right"><i>count</i></td><td>Decrement the active counter and signal when counter drops to zero</td></tr>
- * <tr><td style="text-align:right"><i>count[(`~name`|`digit+`) `!signal`]</i></td><td>Set up a counter and signal from an initial numeric literal or named value</td></tr>
+ * <tr><td style="text-align:right"><i>count[(`~name`|`digit+`) `!signal`]</i></td><td>Set up a counter and signal from an initial numeric literal or field</td></tr>
  * <tr><td style="text-align:right"><i>signal</i></td><td>Equivalent to <i>signal[`!nil`]</i></td></tr>
- * <tr><td style="text-align:right"><i>signal[`!signal`]</i></td><td>Push a signal onto the input stack</td></tr>
- * <tr><td style="text-align:right"><i>in</i></td><td>Push the currently selected named value onto the input stack</td></tr>
- * <tr><td style="text-align:right"><i>in[(`~name`|`...`)+]</i></td><td>Push a concatenation of literal data and/or named values onto the input stack</td></tr>
- * <tr><td style="text-align:right"><i>out</i></td><td>Write the selected value onto the output stream</td></tr>
- * <tr><td style="text-align:right"><i>out[(`~name`|`...`)+]</i></td><td>Write literal data and/or named values onto the output stream</td></tr>
+ * <tr><td style="text-align:right"><i>signal[`!signal`]</i></td><td>Inject a signal into the input stream for immediate transduction</td></tr>
+ * <tr><td style="text-align:right"><i>in</i></td><td>Push the currently selected field onto the input stack</td></tr>
+ * <tr><td style="text-align:right"><i>in[(`~name`|`...`)+]</i></td><td>Push a concatenation of literal data and/or fields onto the input stack</td></tr>
+ * <tr><td style="text-align:right"><i>out</i></td><td>Write the selected field onto the output stream</td></tr>
+ * <tr><td style="text-align:right"><i>out[(`~name`|`...`)+]</i></td><td>Write literal data and/or fields onto the output stream</td></tr>
  * <tr><td style="text-align:right"><i>mark</i></td><td>Mark a position in the input stream</td></tr>
  * <tr><td style="text-align:right"><i>reset</i></td><td>Reset position to most recent mark (if any)</td></tr>
  * <tr><td style="text-align:right"><i>start[`@transducer`]</i></td><td>Push a transducer onto the transducer stack</td></tr>
@@ -367,7 +367,7 @@ public interface ITransductor extends ITarget {
 	Metrics metrics();
 
 	/**
-	 * Clear input and transductor stacks and reset all named values to
+	 * Clear input and transductor stacks and reset all fields to
 	 * an empty state. This resets the transductor to original state
 	 * ready for reuse, but preserves metrics.
 	 *

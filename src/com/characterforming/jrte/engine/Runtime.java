@@ -38,7 +38,7 @@ import com.characterforming.ribose.base.Signal;
 /**
  * Ribose runtime loads a target model and instantiates runtime transductors. A model
  * is a binding of a target class and a collection of ribose transducers and supporting
- * signals and named values. A transductor is a capability to run transductions. A
+ * signals and fields. A transductor is a capability to run transductions. A
  * transduction is a process mapping serial input through a nesting of transducers
  * on a transductor's input and transducer stacks.
  *

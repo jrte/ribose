@@ -44,7 +44,7 @@ public final class Base {
 
 	/** '.dfa', filename suffix for saved ginr automata */
 	public static final String AUTOMATON_FILE_SUFFIX = ".dfa";
-	/** (65536), least upper bound for transducer/effectors/value/signal enumerators */
+	/** (65536), least upper bound for transducer/effectors/field/signal enumerators */
 	public static final int MAX_ORDINAL = Short.MAX_VALUE;
 	/** (256 = {@code !nul}), least signal ordinal value */
 	public static final int RTE_SIGNAL_BASE = 256;
@@ -55,8 +55,8 @@ public final class Base {
 	public static final byte TYPE_REFERENCE_TRANSDUCER = '@';
 	/** type decoration for ginr tokens representing signals in ribose patterns */
 	public static final byte TYPE_REFERENCE_SIGNAL = '!';
-	/** type decoration for ginr tokens representing values in ribose patterns */
-	public static final byte TYPE_REFERENCE_VALUE = '~';
+	/** type decoration for ginr tokens representing fields in ribose patterns */
+	public static final byte TYPE_REFERENCE_FIELD = '~';
 	/** null value for type decoration */
 	public static final byte TYPE_REFERENCE_NONE = (byte)0x0;
 
@@ -240,7 +240,7 @@ public final class Base {
 	}
 
 	/**
-	 * Check for reference ordinal (a 4-byte encoding of a value, signal
+	 * Check for reference ordinal (a 4-byte encoding of a field, signal
 	 * or transducer ordinal).
 	 *
 	 * @param bytes Encoded reference ordinal
@@ -265,7 +265,7 @@ public final class Base {
 			switch (bytes[1]) {
 			case TYPE_REFERENCE_TRANSDUCER:
 			case TYPE_REFERENCE_SIGNAL:
-			case TYPE_REFERENCE_VALUE:
+			case TYPE_REFERENCE_FIELD:
 				return bytes[1];
 			default:
 				break;
@@ -289,7 +289,7 @@ public final class Base {
 		switch (bytes[0]) {
 		case TYPE_REFERENCE_TRANSDUCER:
 		case TYPE_REFERENCE_SIGNAL:
-		case TYPE_REFERENCE_VALUE:
+		case TYPE_REFERENCE_FIELD:
 			return bytes[0];
 		default:
 			break;
@@ -307,7 +307,7 @@ public final class Base {
 		switch (getReferentType(reference)) {
 		case TYPE_REFERENCE_TRANSDUCER:
 		case TYPE_REFERENCE_SIGNAL:
-		case TYPE_REFERENCE_VALUE:
+		case TYPE_REFERENCE_FIELD:
 			byte[] name = new byte[reference.length - 1];
 			System.arraycopy(reference, 1, name, 0, name.length);
 			return name;
@@ -330,7 +330,7 @@ public final class Base {
 			switch (bytes[1]) {
 			case TYPE_REFERENCE_TRANSDUCER:
 			case TYPE_REFERENCE_SIGNAL:
-			case TYPE_REFERENCE_VALUE:
+			case TYPE_REFERENCE_FIELD:
 				return (Byte.toUnsignedInt(bytes[2]) << 8) | Byte.toUnsignedInt(bytes[3]);
 			default:
 				break;

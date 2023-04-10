@@ -26,20 +26,20 @@ import com.characterforming.ribose.base.EffectorException;
 import com.characterforming.ribose.base.TargetBindingException;
 
 /**
- * Base class for parameterized named value effectors, which are invoked with
- * value name parameters. The setParamater(int, charset, byte[][]), invoke(), and
+ * Base class for parameterized field effectors, which are invoked with
+ * field name parameters. The setParamater(int, charset, byte[][]), invoke(), and
  * invoke(int) methods must be implemented by subclasses.
  * 
  * @author Kim Briggs
  */
-abstract class BaseNamedValueEffector extends BaseParameterizedEffector<Transductor, Integer> {
+abstract class BaseFieldEffector extends BaseParameterizedEffector<Transductor, Integer> {
 	/**
 	 * Constructor
 	 * 
 	 * @param transductor The transductor target that binds the effector  
-	 * @param name the value name
+	 * @param name the field name
 	 */
-	protected BaseNamedValueEffector(final Transductor transductor, final String name) {
+	protected BaseFieldEffector(final Transductor transductor, final String name) {
 		super(transductor, name);
 	}
 
@@ -65,22 +65,22 @@ abstract class BaseNamedValueEffector extends BaseParameterizedEffector<Transduc
 			throw new TargetBindingException(String.format("%1$s.%2$s: effector accepts exactly one parameter", 
 				super.target.getName(), super.getName()));
 		}
-		final Bytes valueName = new Bytes(parameterList[0], 1, parameterList[0].length - 1);
-		final Integer valueOrdinal = super.target.getValueOrdinal(valueName);
-		if (valueOrdinal < 0) {
-			throw new TargetBindingException(String.format("%1$s.%2$s: value name '%3$s' not enumerated for parameter compilation", 
-				super.target.getName(), super.getName().toString(), valueName.toString()));
+		final Bytes fieldName = new Bytes(parameterList[0], 1, parameterList[0].length - 1);
+		final Integer fieldOrdinal = super.target.getFieldOrdinal(fieldName);
+		if (fieldOrdinal < 0) {
+			throw new TargetBindingException(String.format("%1$s.%2$s: field name '%3$s' not enumerated for parameter compilation", 
+				super.target.getName(), super.getName().toString(), fieldName.toString()));
 		}
-		super.setParameter(parameterIndex, valueOrdinal);
-		return valueOrdinal;
+		super.setParameter(parameterIndex, fieldOrdinal);
+		return fieldOrdinal;
 	}
 
 	@Override
 	public String showParameter(int parameterIndex) {
-		byte[] name = super.target.getModel().getValueName(super.parameters[parameterIndex]);
-		byte[] value = new byte[name.length + 1];
-		value[0] = Base.TYPE_REFERENCE_VALUE;
-		System.arraycopy(name, 0, value, 1, name.length);
-		return Bytes.decode(super.getDecoder(), value, value.length).toString();
+		byte[] name = super.target.getModel().getFieldName(super.parameters[parameterIndex]);
+		byte[] field = new byte[name.length + 1];
+		field[0] = Base.TYPE_REFERENCE_FIELD;
+		System.arraycopy(name, 0, field, 1, name.length);
+		return Bytes.decode(super.getDecoder(), field, field.length).toString();
 	}
 }

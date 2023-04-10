@@ -27,15 +27,15 @@ effector	mscan	18
 effector	header	19
 effector	transition	20
 effector	automaton	21
-value		0
-value	*	1
-value	version	2
-value	tapes	3
-value	transitions	4
-value	states	5
-value	symbols	6
-value	from	7
-value	to	8
-value	tape	9
-value	length	10
-value	symbol	11
+field		0
+field	*	1
+field	version	2
+field	tapes	3
+field	transitions	4
+field	states	5
+field	symbols	6
+field	from	7
+field	to	8
+field	tape	9
+field	length	10
+field	symbol	11

@@ -38,7 +38,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import com.characterforming.ribose.IEffector;
-import com.characterforming.ribose.INamedValue;
+import com.characterforming.ribose.IField;
 import com.characterforming.ribose.IOutput;
 import com.characterforming.ribose.IRuntime;
 import com.characterforming.ribose.ITarget;
@@ -161,7 +161,7 @@ public class ModelCompiler implements ITarget {
 	}
 
 	class HeaderEffector extends BaseEffector<ModelCompiler> {
-		INamedValue fields[];
+		IField fields[];
 
 		HeaderEffector(ModelCompiler automaton) {
 			super(automaton, "header");
@@ -172,12 +172,12 @@ public class ModelCompiler implements ITarget {
 		void setOutput(IOutput output) throws TargetBindingException {
 			assert target.model != null;
 			super.setOutput(output);
-			fields = new INamedValue[] {
-				super.output.getNamedValue(Bytes.encode(super.getEncoder(), "version")),
-				super.output.getNamedValue(Bytes.encode(super.getEncoder(), "tapes")),
-				super.output.getNamedValue(Bytes.encode(super.getEncoder(), "transitions")),
-				super.output.getNamedValue(Bytes.encode(super.getEncoder(), "states")),
-				super.output.getNamedValue(Bytes.encode(super.getEncoder(), "symbols"))
+			fields = new IField[] {
+				super.output.getField(Bytes.encode(super.getEncoder(), "version")),
+				super.output.getField(Bytes.encode(super.getEncoder(), "tapes")),
+				super.output.getField(Bytes.encode(super.getEncoder(), "transitions")),
+				super.output.getField(Bytes.encode(super.getEncoder(), "states")),
+				super.output.getField(Bytes.encode(super.getEncoder(), "symbols"))
 			};
 		}
 
@@ -224,7 +224,7 @@ public class ModelCompiler implements ITarget {
 	}
 
 	class TransitionEffector extends BaseEffector<ModelCompiler> {
-		INamedValue fields[];
+		IField fields[];
 
 		TransitionEffector(ModelCompiler automaton) {
 			super(automaton, "transition");
@@ -235,11 +235,11 @@ public class ModelCompiler implements ITarget {
 		void setOutput(IOutput output) throws TargetBindingException {
 			assert target.model != null;
 			super.setOutput(output);
-			fields = new INamedValue[] {
-				super.output.getNamedValue(Bytes.encode(super.getEncoder(), "from")),
-				super.output.getNamedValue(Bytes.encode(super.getEncoder(), "to")),
-				super.output.getNamedValue(Bytes.encode(super.getEncoder(), "tape")),
-				super.output.getNamedValue(Bytes.encode(super.getEncoder(), "symbol"))
+			fields = new IField[] {
+				super.output.getField(Bytes.encode(super.getEncoder(), "from")),
+				super.output.getField(Bytes.encode(super.getEncoder(), "to")),
+				super.output.getField(Bytes.encode(super.getEncoder(), "tape")),
+				super.output.getField(Bytes.encode(super.getEncoder(), "symbol"))
 			};
 		}
 
@@ -1027,8 +1027,8 @@ public class ModelCompiler implements ITarget {
 			case Base.TYPE_REFERENCE_TRANSDUCER:
 				type = "transducer";
 				break;
-			case Base.TYPE_REFERENCE_VALUE:
-				type = "value name";
+			case Base.TYPE_REFERENCE_FIELD:
+				type = "field";
 				break;
 			case Base.TYPE_REFERENCE_SIGNAL:
 				type = "signal";
@@ -1057,8 +1057,8 @@ public class ModelCompiler implements ITarget {
 			case Base.TYPE_REFERENCE_TRANSDUCER:
 				this.model.addTransducer(token);
 				break;
-			case Base.TYPE_REFERENCE_VALUE:
-				this.model.addNamedValue(token);
+			case Base.TYPE_REFERENCE_FIELD:
+				this.model.addField(token);
 				break;
 			case Base.TYPE_REFERENCE_SIGNAL:
 				this.model.addSignal(token);
