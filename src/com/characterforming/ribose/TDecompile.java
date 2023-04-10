@@ -70,7 +70,13 @@ import com.characterforming.ribose.base.ModelException;
 public final class TDecompile {
   public static void main(final String[] args) throws ModelException {
     if (args.length != 2) {
-      System.out.println("Usage: requires two arguments - (1) path to model file (2) name of transducer to decompile");
+      System.out.println();
+			System.out.println("Usage: java [jvm-options] com.characterforming.ribose.TDecompile [--target-path <classpath>] model transducer");
+			System.out.println("   --target-path    -- <classpath> for jars containing model target class and dependencies");
+			System.out.println("   model            -- path to model file");
+			System.out.println("   transducer       -- name of transducer to decompile");
+			System.out.println("The model target class must have a default constructor and be included in the classpath.");
+			System.out.println();
       System.exit(1);
     }
     File modelFile = new File(args[0]);

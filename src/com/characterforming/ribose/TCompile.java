@@ -44,13 +44,16 @@ import com.characterforming.ribose.base.TargetBindingException;
  * to serve as a live target during compilation of other ribose models, pulling precompiled 
  * effector parameters from the praxy target in the model.
  * <br><br>
- * The main method runs the ribose runtime compiler to build a runtime model for a target 
- * class from a collection of ginr automata generated from ribose patterns. The default 
- * {@link com.characterforming.ribose.base.BaseTarget} class will be used as target if
+ * The main method runs the ribose runtime compiler to build a runtime model and model map
+ * for a target class from a collection of ginr automata generated from ribose patterns. The
+ * default {@link com.characterforming.ribose.base.BaseTarget} class will be used as target if
  * {@code --target} and {@code --target-path} are not specified. In any case, a proxy 
  * instance of the model target class will be instantiated, using its default constructor,
  * to precompile effector parameters. See the {@link ITarget} documentation for details
- * regarding this process.
+ * regarding this process. The compiled model contains compiled transducers, signals, named
+ * values, effectors and effector parameters. The model map is a text file listing the 
+ * names and ordinal enumerators for these artifacts. {@link TDecompile} can be used in
+ * conjunction with the model map to assist with debugging transducers in the ribose runtime.
  * <br><br>
  * <table style="font-size:12px">
  * <caption style="text-align:left"><b>TCompile usage</b></caption>
@@ -62,15 +65,17 @@ import com.characterforming.ribose.base.TargetBindingException;
  * </table>
  * <br><br>
  * The compiler model and map files ({@code TCompile.model, TCompile.map}) must be rebuilt when
- * new effectors are added to the {@code Transductor} class. New effectors must be appended to 
- * the existing enumeration so that models not yet updated can be supported in the updated runtime.
- * To do this increment the ribose version string {@code Base.RTE_VERSION} and set {@code Base.RTE_PREVIOUS}
- * to the previous {@code Base.RTE_VERSION} string. Then modify {@code Transductor.getEffectors()}
- * to include the new effectors for {@code Base.RTE_VERSION} and the previous version effectors for 
+ * new effectors are added to the {@code Transductor} class. Otherwise, the compiler model is not
+ * affected by changes to the effector sets of other, domain-specific target classes. New
+ * {@code Transductor} effectors must be appended to the existing enumeration so that models not
+ * yet updated can be supported in the updated runtime. To do this increment the ribose version
+ * string {@code Base.RTE_VERSION} and set {@code Base.RTE_PREVIOUS} to the previous 
+ * {@code Base.RTE_VERSION} string. Then modify {@code Transductor.getEffectors()} to include 
+ * the new effectors for {@code Base.RTE_VERSION} and the previous version effectors for 
  * {@code Base.RTE_PREVIOUS}. Run the compiler compiler to update {@code TCompile.model, TCompile.map}
  * and you're done. Other existing ribose models built by the previous version will still run with
- * the new transductor effectors included but must be recompiled to update to the new model version. 
-*/
+ * the new transductor effectors included but must be recompiled to update to the new model version.
+ */
 public final class TCompile extends ModelCompiler {
 	/**
 	 * Constructor (as proxy target for compilation of TCompile.model)
@@ -121,7 +126,7 @@ public final class TCompile extends ModelCompiler {
 			try {
 				targetClass = Class.forName(targetClassname);
 			} catch (Exception e) {
-				rtcLogger.log(Level.SEVERE, String.format("target-class '%1$s' could not be instantiated as model target", targetClassname), e);
+				rtcLogger.log(Level.SEVERE, String.format("target '%1$s' could not be instantiated as model target", targetClassname), e);
 				argsOk = false;
 			}
 			if (!ginrAutomataDirectory.isDirectory()) {
@@ -136,11 +141,12 @@ public final class TCompile extends ModelCompiler {
 	
 		if (!argsOk) {
 			System.out.println();
-			System.out.println("Usage: java [jvm-options] com.characterforming.ribose.TCompile --target <target-class> <ginr-output-dir> <model-path>");
-			System.out.println("   target-class     -- fully qualified name of class implementing ITarget");
-			System.out.println("   ginr-output-dir  -- path to directory containing transducer automata compiled by ginr");
+			System.out.println("Usage: java [jvm-options] com.characterforming.ribose.TCompile --target <classname> --target-path <classpath> <automata-path> <model-path>");
+			System.out.println("   --target         -- fully qualified <classname> of the target class (implements ITarget)");
+			System.out.println("   --target-path    -- <classpath> for jars containing target class and dependencies");
+			System.out.println("   automata-path    -- path to directory containing transducer automata compiled by ginr");
 			System.out.println("   model-path       -- path for output model file");
-			System.out.println("The <target-class> container must be included in the classpath.");
+			System.out.println("The target class must have a default constructor and be included in the classpath.");
 			System.out.println();
 			System.exit(1);
 		}

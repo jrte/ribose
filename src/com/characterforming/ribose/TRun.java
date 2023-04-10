@@ -77,9 +77,16 @@ public final class TRun {
 		int arg = nil ? 1 : 0;
 		arg += (arg > (nil ? 1 : 0)) ? 1 : 0;
 		if ((argc - arg) != 3 && (argc - arg) != 4) {
-			System.out.println("Usage: java -cp <classpath> [-Djrte.out.enabled=false] [--nil] <model-path> <transducer-name> <input-path>|'-' [<output-path>]");
-			System.out.println("Default output System.out is used unless <output-path> specified.");
-			System.out.println("Use '-' for input-path to read from System.in");
+			System.out.println();
+			System.out.println("Usage: java [jvm-options] com.characterforming.ribose.TRun [--target-path <classpath>] [--nil] model transducer input [output]");
+			System.out.println("   --target-path    -- <classpath> for jars containing model target class and dependencies");
+			System.out.println("   --nil            -- push a <i>nil</i> signal to start the transduction (recommended)");
+			System.out.println("   model            -- path to model file");
+			System.out.println("   transducer       -- name of transducer to run");
+			System.out.println("   input            -- path to input file (or - to read System.in)");
+			System.out.println("   output           -- path to UTF-8 output file (optional, default is System.out)");
+			System.out.println("The model target class must have a default constructor and be included in the classpath.");
+			System.out.println();
 			System.exit(1);
 		}
 		final String modelPath = args[arg++];

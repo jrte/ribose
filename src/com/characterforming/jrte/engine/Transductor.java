@@ -22,8 +22,6 @@ package com.characterforming.jrte.engine;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.nio.charset.CharsetDecoder;
-import java.nio.charset.CharsetEncoder;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.logging.Level;
@@ -113,9 +111,7 @@ public final class Transductor implements ITransductor, IOutput {
 	private int matchPosition;
 	private int matchByte;
 	private int errorInput;
-	private int signalLimit;
-	private final CharsetDecoder decoder;
-	private final CharsetEncoder encoder;
+	private final int signalLimit;
 	private OutputStream output;
 	private final Logger rtcLogger;
 	private final Logger rteLogger;
@@ -144,8 +140,6 @@ public final class Transductor implements ITransductor, IOutput {
 		this.matchByte = 0;
 		this.errorInput = -1;
 		this.signalLimit = this.model.getSignalLimit();
-		this.decoder = Base.newCharsetDecoder();
-		this.encoder = Base.newCharsetEncoder();
 		this.rtcLogger = Base.getCompileLogger();
 		this.rteLogger = Base.getRuntimeLogger();
 		this.metrics = new ITransductor.Metrics();
@@ -217,16 +211,6 @@ public final class Transductor implements ITransductor, IOutput {
 			throw new TargetBindingException(String.format("Unsupported ribose model version '%s'.",
 				this.model.getModelVersion()));
 		}
-	}
-
-	@Override // @see com.characterforming.ribose.ITarget#getCharsetDecoder()
-	public CharsetDecoder getCharsetDecoder() {
-		return this.decoder;
-	}
-
-	@Override // @see com.characterforming.ribose.ITarget#getCharsetEncoder()
-	public CharsetEncoder getCharsetEncoder() {
-		return this.encoder;
 	}
 
 	@Override // @see com.characterforming.ribose.IOutput#rtcLogger()
@@ -551,11 +535,9 @@ E:	do {
 			} else {
 				switch (action) {
 				case NUL:
-					if ((token != Signal.nul.signal() && token != Signal.eos.signal())
-					|| ((token == Signal.nul.signal()) && (this.errorInput >= 0))) {
-						if (this.errorInput < 0) {
-							this.errorInput = token;
-						}
+					if ((token != Signal.nul.signal() && token != Signal.eos.signal())) {
+						assert this.errorInput < 0;
+						this.errorInput = token;
 						++this.metrics.errors;
 						aftereffects |= IEffector.rtxSignal(Signal.nul.signal());
 					} else {
@@ -944,7 +926,7 @@ E:	do {
 		public String showParameter(int parameterIndex) {
 			Integer signal = super.getParameter(parameterIndex);
 			byte[] name = getModel().getSignalName(signal);
-			return Bytes.decode(getCharsetDecoder(), name, name.length).toString();
+			return Bytes.decode(super.getDecoder(), name, name.length).toString();
 		}
 	}
 
@@ -1054,7 +1036,7 @@ E:	do {
 				return super.getParameter(parameterIndex);
 			} else {
 				throw new TargetBindingException(String.format("%1$s.%2$s: invalid signal '%3$%s' for count effector",
-					getName(), super.getName(), Bytes.decode(super.output.getCharsetDecoder(),
+					getName(), super.getName(), Bytes.decode(super.getDecoder(),
 					parameterList[1], parameterList[1].length)));
 			}
 		}
@@ -1068,13 +1050,13 @@ E:	do {
 				byte[] value = new byte[name.length + 1];
 				value[0] = Base.TYPE_REFERENCE_VALUE;
 				System.arraycopy(name, 0, value, 1, name.length);
-				sb.append(Bytes.decode(getCharsetDecoder(), value, value.length).toString());
+				sb.append(Bytes.decode(super.getDecoder(), value, value.length).toString());
 			} else {
 				sb.append(Integer.toString(param[0]));
 			}
 			sb.append(" ");
 			byte[] signal = this.getTarget().getModel().getSignalName(param[1]);
-			sb.append(Bytes.decode(getCharsetDecoder(), signal, signal.length).toString());
+			sb.append(Bytes.decode(super.getDecoder(), signal, signal.length).toString());
 			return sb.toString();
 		}
 	}
@@ -1134,7 +1116,7 @@ E:	do {
 				byte[] name = new byte[bytes.length + 1];
 				System.arraycopy(bytes, 0, name, 1, bytes.length);
 				name[0] = Base.TYPE_REFERENCE_TRANSDUCER;
-				return Bytes.decode(getCharsetDecoder(), name, name.length).toString();
+				return Bytes.decode(super.getDecoder(), name, name.length).toString();
 			} else {
 				return "VOID";
 			}

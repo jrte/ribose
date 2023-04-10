@@ -173,11 +173,11 @@ public class ModelCompiler implements ITarget {
 			assert target.model != null;
 			super.setOutput(output);
 			fields = new INamedValue[] {
-				super.output.getNamedValue(Bytes.encode(super.output.getCharsetEncoder(), "version")),
-				super.output.getNamedValue(Bytes.encode(super.output.getCharsetEncoder(), "tapes")),
-				super.output.getNamedValue(Bytes.encode(super.output.getCharsetEncoder(), "transitions")),
-				super.output.getNamedValue(Bytes.encode(super.output.getCharsetEncoder(), "states")),
-				super.output.getNamedValue(Bytes.encode(super.output.getCharsetEncoder(), "symbols"))
+				super.output.getNamedValue(Bytes.encode(super.getEncoder(), "version")),
+				super.output.getNamedValue(Bytes.encode(super.getEncoder(), "tapes")),
+				super.output.getNamedValue(Bytes.encode(super.getEncoder(), "transitions")),
+				super.output.getNamedValue(Bytes.encode(super.getEncoder(), "states")),
+				super.output.getNamedValue(Bytes.encode(super.getEncoder(), "symbols"))
 			};
 		}
 
@@ -236,10 +236,10 @@ public class ModelCompiler implements ITarget {
 			assert target.model != null;
 			super.setOutput(output);
 			fields = new INamedValue[] {
-				super.output.getNamedValue(Bytes.encode(super.output.getCharsetEncoder(), "from")),
-				super.output.getNamedValue(Bytes.encode(super.output.getCharsetEncoder(), "to")),
-				super.output.getNamedValue(Bytes.encode(super.output.getCharsetEncoder(), "tape")),
-				super.output.getNamedValue(Bytes.encode(super.output.getCharsetEncoder(), "symbol"))
+				super.output.getNamedValue(Bytes.encode(super.getEncoder(), "from")),
+				super.output.getNamedValue(Bytes.encode(super.getEncoder(), "to")),
+				super.output.getNamedValue(Bytes.encode(super.getEncoder(), "tape")),
+				super.output.getNamedValue(Bytes.encode(super.getEncoder(), "symbol"))
 			};
 		}
 

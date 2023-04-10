@@ -56,7 +56,7 @@ abstract class BaseInputOutputEffector extends BaseParameterizedEffector<Transdu
 	public byte[][] compileParameter(final int parameterIndex, final byte[][] parameterList) throws TargetBindingException {
 		if (parameterList.length < 1) {
 			throw new TargetBindingException(String.format("%1$s.%2$s: effector requires at least one parameter",
-				super.getTarget().getName(), super.getName()));
+				super.target.getName(), super.getName()));
 		}
 		final byte[][] parameter = new byte[parameterList.length][];
 		for (int i = 0; i < parameterList.length; i++) {
@@ -64,18 +64,18 @@ abstract class BaseInputOutputEffector extends BaseParameterizedEffector<Transdu
 			byte type = Base.getReferentType(parameterList[i]);
 			if (type == Base.TYPE_REFERENCE_VALUE) {
 				final Bytes valueName = new Bytes(Base.getReferenceName(parameterList[i]));
-				final Integer valueOrdinal = super.getTarget().getValueOrdinal(valueName);
+				final Integer valueOrdinal = super.target.getValueOrdinal(valueName);
 				if (valueOrdinal < 0) {
 					throw new TargetBindingException(String.format("%1$s.%2$s: value name '%3$s' not enumerated for parameter compilation",
-						super.getTarget().getName(), super.getName().toString(), valueName.toString()));
+						super.target.getName(), super.getName().toString(), valueName.toString()));
 				}
 				parameter[i] = Base.encodeReferenceOrdinal(Base.TYPE_REFERENCE_VALUE, valueOrdinal);
 			} else if (type == Base.TYPE_REFERENCE_SIGNAL) {
 				throw new TargetBindingException(String.format("%1$s.%2$s: signal is not an acceptable parameter",
-					super.getTarget().getName(), super.getName().toString()));
+					super.target.getName(), super.getName().toString()));
 			} else if (type == Base.TYPE_REFERENCE_TRANSDUCER) {
 				throw new TargetBindingException(String.format("%1$s.%2$s: transducer is not an acceptable parameter",
-					super.getTarget().getName(), super.getName().toString()));
+					super.target.getName(), super.getName().toString()));
 			} else {
 				parameter[i] = parameterList[i];
 			}
@@ -93,11 +93,11 @@ abstract class BaseInputOutputEffector extends BaseParameterizedEffector<Transdu
 				if (sb.length() > 0) {
 					sb.append(' ');
 				}
-				bytes = super.getTarget().getModel().getValueName(ordinal);
+				bytes = super.target.getModel().getValueName(ordinal);
 				byte[] name = new byte[bytes.length + 1];
 				System.arraycopy(bytes, 0, name, 1, bytes.length);
 				name[0] = Base.TYPE_REFERENCE_VALUE;
-				sb.append(Bytes.decode(super.getTarget().getCharsetDecoder(), name, name.length));
+				sb.append(Bytes.decode(super.getDecoder(), name, name.length));
 			} else {
 				for (int i = 0; i < bytes.length; i++) {
 					if (sb.length() > 0) {

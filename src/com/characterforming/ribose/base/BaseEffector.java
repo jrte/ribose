@@ -20,6 +20,9 @@
 
 package com.characterforming.ribose.base;
 
+import java.nio.charset.CharsetDecoder;
+import java.nio.charset.CharsetEncoder;
+
 import com.characterforming.jrte.engine.Base;
 import com.characterforming.ribose.IEffector;
 import com.characterforming.ribose.IOutput;
@@ -40,6 +43,8 @@ public abstract class BaseEffector<T extends ITarget> implements IEffector<T> {
 	/** Effector view of Transductor loggers, UTF-8 codecs and named values. */
 	protected IOutput output;
 
+	private CharsetDecoder decoder;
+	private CharsetEncoder encoder;
 	private final Bytes name;
 	
 	/**
@@ -52,6 +57,8 @@ public abstract class BaseEffector<T extends ITarget> implements IEffector<T> {
 		this.name = Bytes.encode(Base.newCharsetEncoder(), name);
 		this.target = target;
 		this.output = null;
+		this.decoder = null;
+		this.encoder = null;
 	}
 	
 	@Override // @see com.characterforming.ribose.base.IEffector#setOutput(IOutput)
@@ -75,5 +82,19 @@ public abstract class BaseEffector<T extends ITarget> implements IEffector<T> {
 	@Override // @see java.lang.Object#toString()
 	public String toString() {
 		return this.name.toString();
+	}
+
+	protected CharsetDecoder getDecoder() {
+		if (this.decoder == null) {
+			this.decoder = Base.newCharsetDecoder();
+		}
+		return this.decoder;
+	}
+
+	protected CharsetEncoder getEncoder() {
+		if (this.encoder == null) {
+			this.encoder = Base.newCharsetEncoder();
+		}
+		return this.encoder;
 	}
 }

@@ -20,8 +20,6 @@
 
 package com.characterforming.ribose;
 
-import java.nio.charset.CharsetDecoder;
-import java.nio.charset.CharsetEncoder;
 import java.util.logging.Logger;
 
 import com.characterforming.ribose.base.Bytes;
@@ -59,20 +57,6 @@ public interface IOutput {
 	 * @return runtime Logger instance
 	 */
 	Logger getRteLogger();
-
-	/**
-	 * Get the transductor {@code Charset} decoder instance (shared by tranductor and all bound effectors)
-	 *
-	 * @return the transductor decoder instance
-	 */
-	CharsetDecoder getCharsetDecoder();
-
-	/**
-	 * Get the transductor {@code Charset} ebcoder instance (shared by tranductor and all bound effectors)
-	 *
-	 * @return the transductor encoder instance
-	 */
-	CharsetEncoder getCharsetEncoder();
 
 	/**
 	 * Get a named value by name

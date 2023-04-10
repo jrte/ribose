@@ -63,13 +63,13 @@ abstract class BaseNamedValueEffector extends BaseParameterizedEffector<Transduc
 	public Integer compileParameter(final int parameterIndex, final byte[][] parameterList) throws TargetBindingException {
 		if (parameterList.length != 1) {
 			throw new TargetBindingException(String.format("%1$s.%2$s: effector accepts exactly one parameter", 
-				super.getTarget().getName(), super.getName()));
+				super.target.getName(), super.getName()));
 		}
 		final Bytes valueName = new Bytes(parameterList[0], 1, parameterList[0].length - 1);
-		final Integer valueOrdinal = super.getTarget().getValueOrdinal(valueName);
+		final Integer valueOrdinal = super.target.getValueOrdinal(valueName);
 		if (valueOrdinal < 0) {
 			throw new TargetBindingException(String.format("%1$s.%2$s: value name '%3$s' not enumerated for parameter compilation", 
-				super.getTarget().getName(), super.getName().toString(), valueName.toString()));
+				super.target.getName(), super.getName().toString(), valueName.toString()));
 		}
 		super.setParameter(parameterIndex, valueOrdinal);
 		return valueOrdinal;
@@ -77,10 +77,10 @@ abstract class BaseNamedValueEffector extends BaseParameterizedEffector<Transduc
 
 	@Override
 	public String showParameter(int parameterIndex) {
-		byte[] name = super.getTarget().getModel().getValueName(super.parameters[parameterIndex]);
+		byte[] name = super.target.getModel().getValueName(super.parameters[parameterIndex]);
 		byte[] value = new byte[name.length + 1];
 		value[0] = Base.TYPE_REFERENCE_VALUE;
 		System.arraycopy(name, 0, value, 1, name.length);
-		return Bytes.decode(super.getTarget().getCharsetDecoder(), value, value.length).toString();
+		return Bytes.decode(super.getDecoder(), value, value.length).toString();
 	}
 }

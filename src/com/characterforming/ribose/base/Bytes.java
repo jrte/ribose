@@ -108,7 +108,7 @@ public final class Bytes {
 	public static Bytes encode(CharsetEncoder encoder, final CharBuffer chars) {
 		Bytes bytes = null;
 		try {
-			ByteBuffer buffer = encoder.encode(chars);
+			ByteBuffer buffer = encoder.reset().encode(chars);
 			byte b[] = new byte[buffer.limit()];
 			buffer.get(b, 0, b.length);
 			bytes = new Bytes(b);
