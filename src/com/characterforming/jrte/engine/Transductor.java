@@ -1006,7 +1006,7 @@ E:	do {
 			assert (super.target.transducer == tos) || (super.target.transducer == super.target.transducerStack.get(super.target.transducerStack.tos()-1));
 			int[] countdown = super.getParameter(parameterIndex);
 			tos.countdown[1] = countdown[1];
-			tos.countdown[0] = countdown[0] < 0 ? (int)fieldHandles[(-1 * countdown[0]) - 1].asInteger() : countdown[0];
+			tos.countdown[0] = countdown[0] < 0 ? (int)getField(-1-countdown[0]).asInteger() : countdown[0];
 			return transducer.countdown[0] == 0 ? IEffector.rtxSignal(countdown[1]) : IEffector.RTX_NONE;
 		}
 
