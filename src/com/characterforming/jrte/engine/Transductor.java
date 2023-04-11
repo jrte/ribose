@@ -22,6 +22,7 @@ package com.characterforming.jrte.engine;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.Arrays;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.logging.Level;
@@ -942,7 +943,17 @@ E:	do {
 
 		@Override
 		public int invoke(final int parameterIndex) throws EffectorException {
-			inputStack.put(super.getParameter(parameterIndex));
+			byte[][] parameters = super.getParameter(parameterIndex);
+			byte[][] frames = parameters;
+			for (int i = 0; i < parameters.length; i++) {
+				if (Base.getReferenceType(parameters[i]) == Base.TYPE_REFERENCE_FIELD) {
+					if (frames == parameters) {
+						frames = Arrays.copyOf(parameters, parameters.length);
+					}
+					frames[i] = getField(Base.decodeReferenceOrdinal(Base.TYPE_REFERENCE_FIELD, frames[i])).copyValue();
+				}
+			}
+			inputStack.put(frames);
 			return IEffector.RTX_INPUT;
 		}
 	}
@@ -963,10 +974,8 @@ E:	do {
 			if (super.target.output != null) {
 				for (final byte[] bytes : super.getParameter(parameterIndex)) {
 					try {
-						if (Base.isReferenceOrdinal(bytes)) {
-							assert Base.getReferenceType(bytes) == Base.TYPE_REFERENCE_FIELD;
-							int ordinal = Base.decodeReferenceOrdinal(Base.TYPE_REFERENCE_FIELD, bytes);
-							Field field = (Field)getField(ordinal);
+						if (Base.getReferenceType(bytes) == Base.TYPE_REFERENCE_FIELD) {
+							Field field = (Field)getField(Base.decodeReferenceOrdinal(Base.TYPE_REFERENCE_FIELD, bytes));
 							super.target.output.write(field.getValue(), 0, field.getLength());
 						} else {
 							super.target.output.write(bytes, 0, bytes.length);
