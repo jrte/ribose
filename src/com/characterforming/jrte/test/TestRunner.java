@@ -94,14 +94,14 @@ public class TestRunner {
 				for (int i = 0; i < 20; i++) {
 					assert trex.status() == Status.STOPPED;
 					if (trex.push(abytes, abytes.length).status().isWaiting()
-					&& trex.push(Signal.nil).status().isWaiting()
+					&& trex.signal(Signal.nil).status().isWaiting()
 					&& (trex.start(transducer).status().isRunnable())) {
 						t0 = System.nanoTime();
 						do {
 							trex.run();
 						} while (trex.status().isRunnable());
 						if (trex.status().isPaused()) {
-							trex.push(Signal.eos).run();
+							trex.signal(Signal.eos).run();
 						}
 						t1 = System.nanoTime() - t0;
 						if (i >= 10) {

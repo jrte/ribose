@@ -80,7 +80,7 @@ import com.characterforming.ribose.base.Signal;
  * ITransductor trex = runtime.newTransductor(liveTarget);
  * byte[] data = new byte[64 * 1024];
  * int limit = input.read(data,data.length);
- * if (trex.stop().push(data,limit).push(Signal.nil).start(transducer).status().isRunnable()) {
+ * if (trex.stop().push(data,limit).signal(Signal.nil).start(transducer).status().isRunnable()) {
  *   do {
  *     if (trex.run().status().isPaused()) {
  *       data = trex.recycle(data);
@@ -93,7 +93,7 @@ import com.characterforming.ribose.base.Signal;
  *     }
  *   } while (trex.status().isRunnable());
  *   if (trex.status().isPaused()) {
- *     trex.push(Signal.eos).run();
+ *     trex.signal(Signal.eos).run();
  *   }
  *   trex.stop();
  * }
@@ -124,24 +124,24 @@ import com.characterforming.ribose.base.Signal;
  * <tr><td style="text-align:right"><i>nul</i></td><td>Signal <b>nul</b> to indicate no transition defined for current input</td></tr>
  * <tr><td style="text-align:right"><i>nil</i></td><td>Does nothing</td></tr>
  * <tr><td style="text-align:right"><i>paste</i></td><td>Append current input to selected field</td></tr>
- * <tr><td style="text-align:right"><i>paste[(`~name`|`...`)+]</i></td><td>Append literal data and/or fields to selected field</td></tr>
+ * <tr><td style="text-align:right"><i>paste[(`~field`|`...`)+]</i></td><td>Append literal data and/or fields to selected field</td></tr>
  * <tr><td style="text-align:right"><i>select</i></td><td>Select the anonymous field</td></tr>
- * <tr><td style="text-align:right"><i>select[`~name`]</i></td><td>Select a field</td></tr>
+ * <tr><td style="text-align:right"><i>select[`~field`]</i></td><td>Select a field</td></tr>
  * <tr><td style="text-align:right"><i>copy</i></td><td>Copy the anonymous field into selected field</td></tr>
- * <tr><td style="text-align:right"><i>copy[`~name`]</i></td><td>Copy a field into selected field</td></tr>
+ * <tr><td style="text-align:right"><i>copy[`~field`]</i></td><td>Copy a field into selected field</td></tr>
  * <tr><td style="text-align:right"><i>cut</i></td><td>Cut the anonymous field into selected field</td></tr>
- * <tr><td style="text-align:right"><i>cut[`~name`]</i></td><td>Cut a field into selected field</td></tr>
+ * <tr><td style="text-align:right"><i>cut[`~field`]</i></td><td>Cut a field into selected field</td></tr>
  * <tr><td style="text-align:right"><i>clear</i></td><td>Clear the selected field</td></tr>
  * <tr><td style="text-align:right"><i>clear[`~*`]</i></td><td>Clear all fields </td></tr>
- * <tr><td style="text-align:right"><i>clear[`~name`]</i></td><td>Clear a specific field </td></tr>
+ * <tr><td style="text-align:right"><i>clear[`~field`]</i></td><td>Clear a specific field </td></tr>
  * <tr><td style="text-align:right"><i>count</i></td><td>Decrement the active counter and signal when counter drops to zero</td></tr>
- * <tr><td style="text-align:right"><i>count[(`~name`|`digit+`) `!signal`]</i></td><td>Set up a counter and signal from an initial numeric literal or field</td></tr>
+ * <tr><td style="text-align:right"><i>count[(`~field`|`digit+`) `!signal`]</i></td><td>Set up a counter and signal from an initial numeric literal or field</td></tr>
  * <tr><td style="text-align:right"><i>signal</i></td><td>Equivalent to <i>signal[`!nil`]</i></td></tr>
  * <tr><td style="text-align:right"><i>signal[`!signal`]</i></td><td>Inject a signal into the input stream for immediate transduction</td></tr>
  * <tr><td style="text-align:right"><i>in</i></td><td>Push the currently selected field onto the input stack</td></tr>
- * <tr><td style="text-align:right"><i>in[(`~name`|`...`)+]</i></td><td>Push a concatenation of literal data and/or fields onto the input stack</td></tr>
+ * <tr><td style="text-align:right"><i>in[(`~field`|`...`)+]</i></td><td>Push a concatenation of literal data and/or fields onto the input stack</td></tr>
  * <tr><td style="text-align:right"><i>out</i></td><td>Write the selected field onto the output stream</td></tr>
- * <tr><td style="text-align:right"><i>out[(`~name`|`...`)+]</i></td><td>Write literal data and/or fields onto the output stream</td></tr>
+ * <tr><td style="text-align:right"><i>out[(`~field`|`...`)+]</i></td><td>Write literal data and/or fields onto the output stream</td></tr>
  * <tr><td style="text-align:right"><i>mark</i></td><td>Mark a position in the input stream</td></tr>
  * <tr><td style="text-align:right"><i>reset</i></td><td>Reset position to most recent mark (if any)</td></tr>
  * <tr><td style="text-align:right"><i>start[`@transducer`]</i></td><td>Push a transducer onto the transducer stack</td></tr>
@@ -301,12 +301,12 @@ public interface ITransductor extends ITarget {
 	ITransductor push(byte[] input, int limit);
 
 	/**
-	 * Push a signal onto the transductor's input stack to trigger next transition.
+	 * Push a signal onto the transductor's input stack to trigger initial transition.
 	 *
 	 * @param signal the signal to push
 	 * @return this ITransductor
 	 */
-	ITransductor push(Signal signal);
+	ITransductor signal(Signal signal);
 
 	/**
 	 * Push a transducer onto the transductor's transducer stack and set its state

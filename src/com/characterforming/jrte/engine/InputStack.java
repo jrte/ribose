@@ -35,7 +35,6 @@ final class InputStack {
 	private static final int marked = 1;
 	private static final int reset = 2;
 	private final Logger logger;
-	private final byte[][] signals;
 	private Input[] stack;
 	private int tos;
 	private int markLimit;
@@ -53,10 +52,6 @@ final class InputStack {
 	
 	InputStack(final int initialSize, final int signalCount, final int fieldCount) {
 		this.logger = Base.getCompileLogger();
-		this.signals = new byte[signalCount][]; 
-		for (int i = 0; i < signalCount; i++) {
-			this.signals[i] = Base.encodeReferenceOrdinal(Base.TYPE_REFERENCE_SIGNAL, Base.RTE_SIGNAL_BASE + i);
-		}
 		this.stack = Input.stack(initialSize);
 		this.markList = Input.stack(initialSize);
 		this.markState = InputStack.clear;
@@ -104,16 +99,6 @@ final class InputStack {
 		while (--i >= 0) {
 			this.push(data[i], data[i].length);
 		}
-	}
-
-	/**
-	 * Push a signal onto the stack 
-	 * 
-	 * @param signal The signal ordinal
-	 */
-	void signal(int signal) {
-		byte[] data = this.signals[signal - Base.RTE_SIGNAL_BASE];
-		this.push(data, data.length);
 	}
 
 	/**
@@ -259,10 +244,9 @@ final class InputStack {
 		}
 		final boolean empty = this.bom == this.tom;
 		final int tom = this.nextMarked(this.tom);
-		final int start = empty ? 0 : tom;
 		final int bom = this.nextMarked(this.bom);
 		final int end = empty ? this.markList.length : bom;
-		for (int i = start; i != end; i = empty ? (i + 1) : this.nextMarked(i)) {
+		for (int i = empty ? 0 : tom; i != end; i = empty ? i + 1 : this.nextMarked(i)) {
 			if (this.markList[i].array != null) {
 				if (!resident(this.markList[i].array)) {
 					bytes = this.markList[i].array;

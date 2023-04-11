@@ -96,7 +96,7 @@ public final class Transductor implements ITransductor, IOutput {
 	private final int Msum = 1;
 	private final int Mproduct = 2;
 	private final int Mscan = 3;
-	
+	private Signal prologue;
 	private final Model model;
 	private final TargetMode mode;
 	private TransducerState transducer;
@@ -128,6 +128,7 @@ public final class Transductor implements ITransductor, IOutput {
 		super();
 		this.model = model;
 		this.mode = mode;
+		this.prologue = null;
 		this.effectors = null;
 		this.transducer = null;
 		this.fieldHandles = null;
@@ -261,9 +262,9 @@ public final class Transductor implements ITransductor, IOutput {
 	}
 
 	@Override // @see com.characterforming.ribose.ITransductor#push(Signal)
-	public ITransductor push(Signal signal) {
+	public ITransductor signal(Signal signal) {
 		if (this.status() != Status.NULL) {
-			this.inputStack.signal(signal.signal());
+			this.prologue = signal;
 		}
 		return this;
 	}
@@ -320,8 +321,10 @@ public final class Transductor implements ITransductor, IOutput {
 		this.metrics.reset();
 		final int nulSignal = Signal.nul.signal();
 		final int eosSignal = Signal.eos.signal();
-		int token = -1, state = 0, last = -1, signal = 0;
+		int signal = this.prologue != null ? this.prologue.signal() : -1;
+		int token = -1, state = 0, last = -1;
 		Input input = Input.empty;
+		this.prologue = null;
 		this.errorInput = -1;
 		try {
 T:		do {
@@ -341,9 +344,9 @@ I:			do {
 						do {
 							input = this.inputStack.pop();
 						} while (!input.hasRemaining() && input != Input.empty);
-						token = this.nextToken(input);
-						input = this.inputStack.peek();
-						if (token < 0) {
+						if (input.position < input.limit) {
+							token = Byte.toUnsignedInt(input.array[input.position++]);
+						} else {
 							break T;
 						}
 					}
@@ -430,8 +433,7 @@ S:				do {
 		} finally {
 			// Prepare to pause (or stop) transduction
 			this.metrics.bytes = this.inputStack.getBytesCount();
-			if (!this.transducerStack.isEmpty()) {
-				assert (transducer == this.transducerStack.peek()) || (transducer == this.transducerStack.get(-1));
+			if (transducer == this.transducerStack.peek()) {
 				transducer.state = state;
 			}
 		}
@@ -599,26 +601,6 @@ E:	do {
 		} while (index > 0);
 
 		return aftereffects;
-	}
-
-	private int nextToken(Input input) {
-		assert input.array != null || input == Input.empty;
-		switch (Base.getReferenceType(input.array)) {
-		case Base.TYPE_REFERENCE_SIGNAL:
-			input.position = input.length;
-			return Base.decodeReferenceOrdinal(Base.TYPE_REFERENCE_SIGNAL, input.array);
-		case Base.TYPE_REFERENCE_FIELD:
-			Field handle = this.fieldHandles[Base.decodeReferenceOrdinal(Base.TYPE_REFERENCE_FIELD, input.array)];
-			input.position = input.length;
-			this.inputStack.pop();
-			Input field = this.inputStack.push(handle.getValue(), handle.getLength());
-			return Byte.toUnsignedInt(field.array[field.position++]);
-		case Base.TYPE_REFERENCE_NONE:
-			return input.array != null ? Byte.toUnsignedInt(input.array[input.position++]) : -1;
-		default:
-			assert false;
-			return -1;
-		}
 	}
 
 	private int sumTrap(Input input, int token) {

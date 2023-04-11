@@ -418,9 +418,9 @@ public class ModelCompiler implements ITarget {
 			this.stateMaps = (HashMap<Integer, Integer>[])new HashMap<?,?>[3];
 			this.stateTransitionMap = new HashMap<Integer, ArrayList<Transition>>(size >> 3);
 			Bytes automaton = Bytes.encode(this.encoder, "Automaton");
-			if (this.transductor.stop().push(bytes, size).push(Signal.nil).start(automaton).status().isRunnable()) {
+			if (this.transductor.stop().push(bytes, size).signal(Signal.nil).start(automaton).status().isRunnable()) {
 				if (this.transductor.run().status().isPaused()) {
-					this.transductor.push(Signal.eos).run();
+					this.transductor.signal(Signal.eos).run();
 				}
 			}
 			assert !this.transductor.status().isRunnable();

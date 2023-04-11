@@ -87,7 +87,7 @@ public final class Runtime implements IRuntime {
 			if (read > 0) {
 				ITransductor trex = newTransductor(target);
 				if (trex.push(bytes, read).status().isWaiting()
-				&& ((prologue == null) || (trex.push(prologue).status().isWaiting()))
+				&& ((prologue == null) || (trex.signal(prologue).status().isWaiting()))
 				&& (trex.start(transducer).status().isRunnable())) {
 					trex.output(out);
 					do {
@@ -104,7 +104,7 @@ public final class Runtime implements IRuntime {
 						}
 					} while (trex.status().isRunnable());
 					if (trex.status().isPaused()) {
-						trex.push(Signal.eos).run();
+						trex.signal(Signal.eos).run();
 					}
 					assert !trex.status().isRunnable();
 					trex.stop();

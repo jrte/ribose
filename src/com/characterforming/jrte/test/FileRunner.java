@@ -111,7 +111,7 @@ public class FileRunner {
 						for (int i = 0; i < loops; i++) {
 							assert trex.status().isStopped();
 							if (trex.push(bbuf, (int)blen).status().isWaiting()
-							&& (!nil || (trex.push(Signal.nil).status().isWaiting()))
+							&& (!nil || (trex.signal(Signal.nil).status().isWaiting()))
 							&& (trex.start(Bytes.encode(encoder, transducerName)).status().isRunnable())) {
 								ITransductor.Metrics metrics = trex.metrics().reset();
 								t0 = System.nanoTime();
@@ -124,7 +124,7 @@ public class FileRunner {
 									inputs += metrics.bytes;
 								} while (trex.status().isRunnable());
 								if (trex.status().isPaused()) {
-									trex.push(Signal.eos).run();
+									trex.signal(Signal.eos).run();
 								}
 								t1 = System.nanoTime() - t0;
 								if (i >= 10) {
