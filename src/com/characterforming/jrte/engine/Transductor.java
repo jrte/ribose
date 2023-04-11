@@ -338,23 +338,21 @@ I:			do {
 					// get next input token
 					if (signal > 0) {
 						token = signal;
+						signal = 0;
 					} else if (input.position < input.limit) {
-						token = Byte.toUnsignedInt(input.array[input.position++]);
+						token = 0xff & (int)input.array[input.position++];
 					} else {
 						do {
 							input = this.inputStack.pop();
-						} while (!input.hasRemaining() && input != Input.empty);
-						if (input.position < input.limit) {
-							token = Byte.toUnsignedInt(input.array[input.position++]);
-						} else {
-							break T;
-						}
+							if (input == Input.empty) {
+								break T;
+							}
+						} while (input.position >= input.limit);
+						token = 0xff & (int)input.array[input.position++];
 					}
 					
 					// absorb self-referencing (msum,mscan) or sequential (mproduct) transitions with nil effect
-					signal = 0;
-					this.errorInput = -1;
-					if (this.matchMode != Mnone && token < nulSignal) {
+					if (token < nulSignal && this.matchMode != Mnone) {
 						switch (this.matchMode) {
 						case Msum:
 							token = sumTrap(input, token);
@@ -539,7 +537,6 @@ E:	do {
 				switch (action) {
 				case NUL:
 					if ((token != Signal.nul.signal() && token != Signal.eos.signal())) {
-						assert this.errorInput < 0;
 						this.errorInput = token;
 						++this.metrics.errors;
 						aftereffects |= IEffector.rtxSignal(Signal.nul.signal());
@@ -677,12 +674,10 @@ E:	do {
 		top.state = state;
 		last /= top.inputEquivalents;
 		state /= top.inputEquivalents;
-		if (this.errorInput < 0) {
-			this.errorInput = Signal.nul.signal();
-		}
 		StringBuilder output = new StringBuilder(256);
 		output.append(String.format("Domain error on (%1$d~%2$d) in %3$s [%4$d]->[%5$d]%6$s,\tTransducer stack:%7$s",
-			this.errorInput, top.inputFilter[this.errorInput], top.name, last, state, Base.lineEnd, Base.lineEnd));
+			this.errorInput, this.errorInput >= 0 ? top.inputFilter[this.errorInput] : this.errorInput, 
+			top.name, last, state, Base.lineEnd, Base.lineEnd));
 		for (int i = this.transducerStack.tos(); i >= 0; i--) {
 			TransducerState t = this.transducerStack.get(i);
 			int s = t.state / t.inputEquivalents;
