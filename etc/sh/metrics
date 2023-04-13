@@ -1,0 +1,18 @@
+#! /bin/bash
+tsv=""
+loops=10
+jrte=$(dirname $(readlink -f $0))/../..
+if [[ "$1" == "--tsv" ]]; then
+	tsv="--tsv"
+	shift
+fi
+if (($#==1)); then
+	loops=$1
+	shift
+fi
+for t in LinuxKernelStrict LinuxKernelLoose LinuxKernelNil LinuxKernel; do 
+	etc/sh/bench $tsv $loops $jrte/build/Test.model $t $jrte/build/testenv/inputs/kern-10.log
+done
+for t in Tintervals Sintervals Rintervals; do 
+	etc/sh/bench $tsv $loops $jrte/build/Test.model $t $jrte/build/testenv/inputs/verbosegc.vgc
+done
