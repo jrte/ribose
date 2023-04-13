@@ -549,10 +549,6 @@
 
 	<target name="debug" depends="test-env">
 		<echo message="Nothing to debug"/>
-		<java fork="true" jvm="${jdk}/bin/java" dir="." classname="com.characterforming.jrte.test.TestRunner" classpathref="testing.classpath" output="${build.testenv}/testrunner.jit" failonerror="true">
-			<jvmarg line="${jargs} ${jargs.jit.diagnostic} -Djrte.out.enabled=false -Dregex.out.enabled=false"/>
-			<arg line="build/Test.model 1"/>
-		</java>
 	</target>
 
 </project>

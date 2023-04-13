@@ -92,6 +92,9 @@ public final class Transductor implements ITransductor, IOutput {
 	@SuppressWarnings("unused")
 	private static final int MSCAN = 18;
 
+	private static final int nulSignal = Signal.nul.signal();
+	private static final int eosSignal = Signal.eos.signal();
+
 	private final int Mnone = 0;
 	private final int Msum = 1;
 	private final int Mproduct = 2;
@@ -304,7 +307,6 @@ public final class Transductor implements ITransductor, IOutput {
 			}
 		}
 		this.matchMode = Mnone;
-		this.matchPosition = 0;
 		if (this.status() == Status.NULL) {
 			RiboseException rtx = new RiboseException("run: Transduction is MODEL and inoperable");
 			this.rteLogger.log(Level.SEVERE, rtx.getMessage(), rtx);
@@ -319,13 +321,13 @@ public final class Transductor implements ITransductor, IOutput {
 			return this.stop();
 		}
 		this.metrics.reset();
-		final int nulSignal = Signal.nul.signal();
-		final int eosSignal = Signal.eos.signal();
-		int signal = this.prologue != null ? this.prologue.signal() : -1;
-		int token = -1, state = 0, last = -1;
-		Input input = Input.empty;
-		this.prologue = null;
 		this.errorInput = -1;
+		int token = -1, state = 0, last = -1, signal = 0;
+		if (this.prologue != null) {
+			signal = this.prologue.signal();
+			this.prologue = null;
+		}
+		Input input = Input.empty;
 		try {
 T:		do {
 				// start a pushed transducer
@@ -352,7 +354,7 @@ I:			do {
 					}
 					
 					// absorb self-referencing (msum,mscan) or sequential (mproduct) transitions with nil effect
-					if (token < nulSignal && this.matchMode != Mnone) {
+					if (this.matchMode != Mnone && token < nulSignal) {
 						switch (this.matchMode) {
 						case Msum:
 							token = sumTrap(input, token);
@@ -373,7 +375,7 @@ I:			do {
 					}
 
 					// trap runs in (nil* paste*)* effector space
-					int action = NUL;
+					int action;
 S:				do {
 						last = state;
 						final long transition = transitionMatrix[state + inputFilter[token]];
@@ -404,8 +406,8 @@ S:				do {
 							}
 						}
 						int s = aftereffects & (IEffector.RTX_START | IEffector.RTX_STOP);
-						if (s == IEffector.RTX_START) {
-							assert this.transducer == this.transducerStack.get(this.transducerStack.tos() - 1);
+						if (s == IEffector.RTX_START
+						&& this.transducer == this.transducerStack.get(this.transducerStack.tos() - 1)) {
 							this.transducer.state = state;
 						}
 						if (0 != (aftereffects & (IEffector.RTX_PAUSE | IEffector.RTX_STOPPED))) {
@@ -516,15 +518,15 @@ S:				do {
 			action = Transducer.effector(action);
 			assert parameter >= 0;
 		} else if (action < 0) {
-			index = -action;
+			index = 0 - action;
 		}
 		int aftereffects = IEffector.RTX_NONE;
 E:	do {
 			if (index > 0) {
 				action = effectorVector[index++];
 				if (action < 0) {
+					action = 0 - action;
 					parameter = effectorVector[index++];
-					action *= -1;
 				} else if (action != NUL) {
 					parameter = -1;
 				} else {
@@ -536,10 +538,10 @@ E:	do {
 			} else {
 				switch (action) {
 				case NUL:
-					if ((token != Signal.nul.signal() && token != Signal.eos.signal())) {
-						this.errorInput = token;
+					if ((token != nulSignal && token != eosSignal)) {
 						++this.metrics.errors;
-						aftereffects |= IEffector.rtxSignal(Signal.nul.signal());
+						this.errorInput = token;
+						aftereffects |= IEffector.rtxSignal(nulSignal);
 					} else {
 						aftereffects |= IEffector.RTX_STOPPED;
 					}
@@ -601,65 +603,59 @@ E:	do {
 	}
 
 	private int sumTrap(Input input, int token) {
-		if (token < Signal.nul.signal()) {
-			final int anchor = input.position;
-			final long[] matchMask = this.matchSum;
-			while (0 != (matchMask[token >> 6] & (1L << (token & 0x3f)))) {
-				if (input.position < input.limit) {
-					token = Byte.toUnsignedInt(input.array[input.position++]);
-				} else {
-					this.metrics.sum += (input.position - anchor);
-					return -1;
-				}
+		final int anchor = input.position;
+		final long[] matchMask = this.matchSum;
+		while (0 != (matchMask[token >> 6] & (1L << (token & 0x3f)))) {
+			if (input.position < input.limit) {
+				token = Byte.toUnsignedInt(input.array[input.position++]);
+			} else {
+				this.metrics.sum += (input.position - anchor);
+				return -1;
 			}
-			this.metrics.sum += (input.position - anchor);
 		}
+		this.metrics.sum += (input.position - anchor);
 		this.matchMode = Mnone;
 		return token;
 	}
 
 	private int productTrap(Input input, int token) {
-		if (token < Signal.nul.signal()) {
-			final int[] match = this.matchProduct;
-			final int mlen = match.length;
-			int mpos = this.matchPosition;
-			assert mpos <= mlen;
-			while (mpos < mlen) {
-				if (token == match[mpos++]) {
-					if (mpos == mlen) {
-						break;
-					} else if (input.position < input.limit) {
-						token = Byte.toUnsignedInt(input.array[input.position++]);
-					} else {
-						this.matchPosition = mpos;
-						return -1;
-					}
-				} else {
-					this.errorInput = token;
-					token = Signal.nul.signal();
+		final int[] match = this.matchProduct;
+		final int mlen = match.length;
+		int mpos = this.matchPosition;
+		assert mpos <= mlen;
+		while (mpos < mlen) {
+			if (token == match[mpos++]) {
+				if (mpos == mlen) {
 					break;
+				} else if (input.position < input.limit) {
+					token = Byte.toUnsignedInt(input.array[input.position++]);
+				} else {
+					this.matchPosition = mpos;
+					return -1;
 				}
+			} else {
+				this.errorInput = token;
+				token = nulSignal;
+				break;
 			}
-			this.metrics.product += mpos;
 		}
+		this.metrics.product += mpos;
 		this.matchMode = Mnone;
 		return token;
 	}
 
 	private int scanTrap(Input input, int token) {
-		if (token < Signal.nul.signal()) {
-			final int anchor = input.position;
-			final int matchByte = this.matchByte;
-			while (token != matchByte) {
-				if (input.position < input.limit) {
-					token = Byte.toUnsignedInt(input.array[input.position++]);
-				} else {
-					this.metrics.scan += (input.position - anchor);
-					return -1;
-				}
+		final int anchor = input.position;
+		final int matchByte = this.matchByte;
+		while (token != matchByte) {
+			if (input.position < input.limit) {
+				token = Byte.toUnsignedInt(input.array[input.position++]);
+			} else {
+				this.metrics.scan += (input.position - anchor);
+				return -1;
 			}
-			this.metrics.scan += (input.position - anchor);
 		}
+		this.metrics.scan += (input.position - anchor);
 		this.matchMode = Mnone;
 		return token;
 	}
@@ -893,11 +889,11 @@ E:	do {
 				} else {
 					throw new TargetBindingException(String.format("Null signal reference for signal effector: %s", name.toString()));
 				}
-				return this.getParameter(parameterIndex);
 			} else {
 				throw new TargetBindingException(String.format("Invalid signal reference `%s` for signal effector, requires type indicator ('%c') before the transducer name",
-					new Bytes(parameterList[0]).toString(), Base.TYPE_REFERENCE_SIGNAL));
+				new Bytes(parameterList[0]).toString(), Base.TYPE_REFERENCE_SIGNAL));
 			}
+			return this.getParameter(parameterIndex);
 		}
 
 		@Override
@@ -936,7 +932,6 @@ E:	do {
 	}
 
 	private final class OutEffector extends BaseInputOutputEffector {
-
 		private OutEffector(final Transductor transductor) {
 			super(transductor, "out");
 		}
@@ -967,7 +962,6 @@ E:	do {
 	}
 
 	private final class CountEffector extends BaseParameterizedEffector<Transductor, int[]> {
-
 		private CountEffector(final Transductor transductor) {
 			super(transductor, "count");
 		}
@@ -979,12 +973,12 @@ E:	do {
 
 		@Override
 		public int invoke(final int parameterIndex) throws EffectorException {
-			TransducerState tos = transducerStack.peek();
-			assert (super.target.transducer == tos) || (super.target.transducer == super.target.transducerStack.get(super.target.transducerStack.tos()-1));
-			int[] countdown = super.getParameter(parameterIndex);
-			tos.countdown[1] = countdown[1];
-			tos.countdown[0] = countdown[0] < 0 ? (int)getField(-1-countdown[0]).asInteger() : countdown[0];
-			return transducer.countdown[0] == 0 ? IEffector.rtxSignal(countdown[1]) : IEffector.RTX_NONE;
+			assert (transducer == transducerStack.peek()) || (transducer == transducerStack.get(transducerStack.tos()-1));
+			System.arraycopy(super.getParameter(parameterIndex), 0, transducer.countdown, 0, 2);
+			if (transducer.countdown[0] < 0) {
+				transducer.countdown[0] = (int)getField(-1 - transducer.countdown[0]).asInteger();
+			}
+			return transducer.countdown[0] <= 0 ? IEffector.rtxSignal(transducer.countdown[1]) : IEffector.RTX_NONE;
 		}
 
 		@Override
@@ -1000,31 +994,35 @@ E:	do {
 			}
 			int count = -1;
 			assert !Base.isReferenceOrdinal(parameterList[0]) : "Reference ordinal presented for <count> to CountEffector[<count> <signal>]";
-			byte type = Base.getReferentType(parameterList[0]);
-			if (type == Base.TYPE_REFERENCE_FIELD) {
+			switch (Base.getReferentType(parameterList[0])) {
+			case Base.TYPE_REFERENCE_FIELD:
 				Bytes fieldName = new Bytes(Base.getReferenceName(parameterList[0]));
-				int fieldOrdinal = super.target.getFieldOrdinal(fieldName);
+				int fieldOrdinal = getFieldOrdinal(fieldName);
 				if (fieldOrdinal >= 0) {
-					count = -1 * (1 + fieldOrdinal);
+					count = -1 - fieldOrdinal;
 				} else {
-					throw new TargetBindingException(String.format("%1$s.%2$s: Field %3$s is not found",
+					throw new TargetBindingException(String.format("%1$s.%2$s: Field %3$s not found",
 						getName(), super.getName(), fieldName.toString()));
 				}
-			} else if (type == Base.TYPE_REFERENCE_NONE) {
+				break;
+			case Base.TYPE_REFERENCE_NONE:
 				count = Base.decodeInt(parameterList[0], parameterList[0].length);
+				break;
+			default:
+				throw new TargetBindingException(String.format("%1$s.%2$s: invalid field|counter '%3$%s' for count effector",
+					getName(), super.getName(), Bytes.decode(super.getDecoder(), parameterList[0], parameterList[0].length)));
 			}
 			assert !Base.isReferenceOrdinal(parameterList[1]) : "Reference ordinal presented for <signal> to CountEffector[<count> <signal>]";
 			if (Base.getReferentType(parameterList[1]) == Base.TYPE_REFERENCE_SIGNAL) {
-				Bytes signalName = new Bytes(Base.getReferenceName(parameterList[1]));
-				int signalOrdinal = getModel().getSignalOrdinal(signalName);
-				assert signalOrdinal >= Signal.nul.signal();
-				super.setParameter(parameterIndex, new int[] { count, signalOrdinal });
-				return super.getParameter(parameterIndex);
+				super.setParameter(parameterIndex, new int[] { 
+					count, getModel().getSignalOrdinal(new Bytes(Base.getReferenceName(parameterList[1])))
+				});
 			} else {
 				throw new TargetBindingException(String.format("%1$s.%2$s: invalid signal '%3$%s' for count effector",
-					getName(), super.getName(), Bytes.decode(super.getDecoder(),
-					parameterList[1], parameterList[1].length)));
+					getName(), super.getName(), Bytes.decode(super.getDecoder(), parameterList[1], parameterList[1].length)));
 			}
+			assert super.getParameter(parameterIndex)[1] >= nulSignal;
+			return super.getParameter(parameterIndex);
 		}
 
 		@Override
@@ -1032,7 +1030,7 @@ E:	do {
 			int[] param = super.parameters[parameterIndex];
 			StringBuilder sb= new StringBuilder();
 			if (param[0] < 0) {
-				byte[] name = getModel().getFieldName(-1 * param[0]);
+				byte[] name = getModel().getFieldName(-1 - param[0]);
 				byte[] field = new byte[name.length + 1];
 				field[0] = Base.TYPE_REFERENCE_FIELD;
 				System.arraycopy(name, 0, field, 1, name.length);
@@ -1079,17 +1077,17 @@ E:	do {
 				return ordinal;
 			} else {
 				throw new TargetBindingException(String.format("Invalid transducer reference `%s` for start effector, requires type indicator ('%c') before the transducer name",
-			 new Bytes(parameterList[0]).toString(), Base.TYPE_REFERENCE_TRANSDUCER));
+					new Bytes(parameterList[0]).toString(), Base.TYPE_REFERENCE_TRANSDUCER));
 			}
 		}
 
 		@Override
 		public int invoke(final int parameterIndex) throws EffectorException {
 			try {
-				super.target.transducerStack.push(super.target.model.loadTransducer(super.getParameter(parameterIndex)));
+				transducerStack.push(model.loadTransducer(super.getParameter(parameterIndex)));
 			} catch (final ModelException e) {
 				throw new EffectorException(String.format("The start effector failed to load %1$s", 
-					super.target.model.getTransducerName(super.getParameter(parameterIndex))), e);
+					model.getTransducerName(super.getParameter(parameterIndex))), e);
 			}
 			return IEffector.RTX_START;
 		}
@@ -1132,12 +1130,12 @@ E:	do {
 
 		@Override
 		public int invoke(final int parameterIndex) throws EffectorException {
-			if (super.target.matchMode == Mnone) {
-				super.target.matchMode = Msum;
-				super.target.matchSum = super.parameters[parameterIndex];
+			if (matchMode == Mnone) {
+				matchMode = Msum;
+				matchSum = super.parameters[parameterIndex];
 			} else {
 				throw new EffectorException(String.format("Illegal attempt to override match mode %d with MSUM=%d",
-					super.target.matchMode, Msum));
+					matchMode, Msum));
 			}
 			return IEffector.RTX_NONE;
 		}
@@ -1165,57 +1163,38 @@ E:	do {
 		public String showParameter(int parameterIndex) {
 			long[] sum = super.parameters[parameterIndex];
 			StringBuilder sb = new StringBuilder();
-			int bit = 0, startBit = -1;
+			int endBit = 0, startBit = -1;
 			for (int j = 0; j < sum.length; j++) {
-				for (int k = 0; k < 64; k++, bit++) {
+				for (int k = 0; k < 64; k++, endBit++) {
 					if (0 == (sum[j] & (1L << k))) {
 						if (startBit >= 0) {
-							if (startBit < (bit-2)) {
-								if (startBit > 32 && startBit <127) {
-									sb.append(String.format(" %c", (char)startBit));
-								} else {
-									sb.append(String.format(" #%x", startBit));
-								}
-								if ((bit - 1) > 32 && (bit - 1) <127) {
-									sb.append(String.format("-%c", (char)(bit-1)));
-								} else {
-									sb.append(String.format("-#%x", (bit-1)));
-								}
-							} else {
-								if (startBit > 32 && startBit <127) {
-									sb.append(String.format(" %c", (char)startBit));
-								} else {
-									sb.append(String.format(" #%x", startBit));
-								}
-							}
+							this.printRange(sb, startBit, endBit);
 							startBit = -1;
 						}
 					} else if (startBit < 0) {
-						startBit = bit;
+						startBit = endBit;
 					}
 				}
 			}
 			if (startBit >= 0) {
-				if (bit > (startBit + 1)) {
-					if (startBit > 32 && startBit < 127) {
-						sb.append(String.format(" %c", (char)startBit));
-					} else {
-						sb.append(String.format(" #%x", startBit));
-					}
-					if ((bit - 1) > 32 && (bit - 1) <127) {
-						sb.append(String.format(" %c", (char)(bit - 1)));
-					} else {
-						sb.append(String.format(" #%x", (bit - 1)));
-					}
-				} else {
-					if ((bit - 1) > 32 && (bit - 1) <127) {
-						sb.append(String.format(" %c", (char)(bit - 1)));
-					} else {
-						sb.append(String.format(" #%x", (bit - 1)));
-					}
-				}
+				this.printRange(sb, startBit, endBit);
 			}
 			return sb.toString();
+		}
+
+		private void printRange(StringBuilder sb, int startBit, int endBit) {
+			if (endBit > (startBit + 1)) {
+				sb.append(startBit > 32 && startBit < 127
+				?	String.format(" %c", (char)startBit)
+				:	String.format(" #%x", startBit));
+				sb.append((endBit-1) > 32 && (endBit-1) < 127
+				?	String.format("-%c", (char)(endBit-1))
+				:	String.format("-#%x", (endBit-1)));
+			} else {
+				sb.append(startBit > 32 && startBit < 127
+				?	String.format(" %c", (char)startBit)
+				:	String.format(" #%x", startBit));
+			}
 		}
 	}
 
@@ -1231,13 +1210,13 @@ E:	do {
 
 		@Override
 		public int invoke(final int parameterIndex) throws EffectorException {
-			if (super.target.matchMode == Mnone) {
-				super.target.matchMode = Mproduct;
-				super.target.matchProduct = super.parameters[parameterIndex];
-				super.target.matchPosition = 0;
+			if (matchMode == Mnone) {
+				matchMode = Mproduct;
+				matchProduct = super.parameters[parameterIndex];
+				matchPosition = 0;
 			} else {
 				throw new EffectorException(String.format("Illegal attempt to override match mode %d with MPRODUCT=%d",
-					super.target.matchMode, Mproduct));
+					matchMode, Mproduct));
 			}
 			return IEffector.RTX_NONE;
 		}
@@ -1266,11 +1245,9 @@ E:	do {
 			int[] product = super.parameters[parameterIndex];
 			StringBuilder sb = new StringBuilder();
 			for (int j = 0; j < product.length; j++) {
-				if (32 < product[j] && 127 > product[j]) {
-					sb.append(String.format(" %c", (char)product[j]));
-				} else {
-					sb.append(String.format(" #%x", product[j]));
-				}
+				sb.append(32 < product[j] && 127 > product[j]
+				?	String.format(" %c", (char)product[j])
+				:	String.format(" #%x", product[j]));
 			}
 			return sb.toString();
 		}
@@ -1288,12 +1265,12 @@ E:	do {
 
 		@Override
 		public int invoke(final int parameterIndex) throws EffectorException {
-			if (super.target.matchMode == Mnone) {
-				super.target.matchMode = Mscan;
-				super.target.matchByte = super.parameters[parameterIndex];
+			if (matchMode == Mnone) {
+				matchMode = Mscan;
+				matchByte = super.parameters[parameterIndex];
 			} else {
 				throw new EffectorException(String.format("Illegal attempt to override match mode %d with MSCAN=%d",
-					super.target.matchMode, Mscan));
+					matchMode, Mscan));
 			}
 			return IEffector.RTX_NONE;
 		}
@@ -1315,11 +1292,9 @@ E:	do {
 		@Override
 		public String showParameter(int parameterIndex) {
 			int scanbyte = super.parameters[parameterIndex];
-			if (32 < scanbyte && 127 > scanbyte) {
-				return String.format("%c", (char)scanbyte);
-			} else {
-				return String.format("#%x", scanbyte);
-			}
+			return 32 < scanbyte && 127 > scanbyte
+			?	String.format(" %c", (char)scanbyte)
+			:	String.format(" #%x", scanbyte);
 		}
 	}
 }

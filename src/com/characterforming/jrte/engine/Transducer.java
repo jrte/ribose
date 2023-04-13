@@ -43,26 +43,32 @@ final class Transducer {
 		this.inputEquivalents = 0;
 	}
 
+	// encode state and action in transition matrix cell
 	static long transition(int state, int action) {
 		return ((long)action << 32) | (long)state;
 	}
 
+	// decode state from transition matrix cell
 	static int state(long transition) {
 		return (int)(transition & (long)0xffffffff);
 	}
 
+	// decode action from transition matrix cell
 	static int action(long transition) {
 		return (int)(transition >>> 32);
 	}
 
+	// encode effector and paramter ordinals in action commponent of transition matrix cell
 	static int action(int effect, int parameter) {
 		return  (effect << 16) | parameter;
 	}
 
+	// decode effector ordinal from action commponent of transition matrix cell
 	static int effector(int action) {
 		return action >>> 16;
 	}
 
+	// decode parameter ordinal from action commponent of transition matrix cell
 	static int parameter(int action) {
 		return action & 0xffff;
 	}
