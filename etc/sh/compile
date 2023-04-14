@@ -1,24 +1,27 @@
 #! /bin/bash
-version=$(cat version)
-jars="$(dirname $(readlink -f $0))/../../jars"
-path="$jars/$(cat version).jar"
+jrte=$(realpath $(dirname $0)/../..)
+jars=$jrte/jars
+version=$(cat $jrte/version)
+path="$jars/$version.jar:$jars/$version-test.jar"
 target="com.characterforming.ribose.BaseTarget"
 if (($#>1)) && [[ "$1" == "--target" ]]; then
 	target="$2"
 	shift 2
 	if (($#>1)) && [[ "$1" == "--target-path" ]]; then
-		path="$path:$(readlink -f $2)"
-		shift 2
+		targetpath=$(realpath "$2")
+		if [[ ! -z "$targetpath" ]]; then
+			path="$path:$targetpath"
+			shift 2
+		fi
 	fi
 fi
 if (($#==2)); then
-	if [[ -d "$1" ]]; then
-		dfadir="$1"
-	else
-		echo "Not a directory: $1"
+	dfadir=$(realpath "$1")
+	if [[ ! -d "$dfadir" ]]; then
+		echo "Not a directory: $dfadir"
 		exit 1
 	fi
-	model="$2"
+	model=$(realpath "$2")
 else 
 	echo "Usage: compile [--target <target-classname> [--target-path <target-classpath>]] <dfa-directory-path> <model-file-path>"
 	echo "Compiles automata from <dfa-directory-path> into <model-file-path>."
@@ -26,3 +29,4 @@ else
 	exit 1
 fi
 ${JAVA_HOME}/bin/java -ea -cp "$path" com.characterforming.ribose.TCompile --target $target "$dfadir" "$model"
+# 2>&1 | grep -e 'INFO\|WARN\|ERROR' | grep -oe ':.*$' | tr -d ':'

@@ -347,10 +347,12 @@ I:			do {
 						do {
 							input = this.inputStack.pop();
 							if (input == Input.empty) {
+								token = 0;
 								break T;
 							}
 						} while (input.position >= input.limit);
 						token = 0xff & (int)input.array[input.position++];
+						assert input == this.inputStack.peek();
 					}
 					
 					// absorb self-referencing (msum,mscan) or sequential (mproduct) transitions with nil effect
@@ -541,6 +543,7 @@ E:	do {
 					if ((token != nulSignal && token != eosSignal)) {
 						++this.metrics.errors;
 						this.errorInput = token;
+						assert 0 == (aftereffects & IEffector.RTX_SIGNAL);
 						aftereffects |= IEffector.rtxSignal(nulSignal);
 					} else {
 						aftereffects |= IEffector.RTX_STOPPED;
@@ -568,6 +571,7 @@ E:	do {
 				case COUNT:
 					if (--this.transducer.countdown[0] <= 0) {
 						this.transducer.countdown[0] = 0;
+						assert 0 == (aftereffects & IEffector.RTX_SIGNAL);
 						aftereffects |= IEffector.rtxSignal(this.transducer.countdown[1]);
 					}
 					break;

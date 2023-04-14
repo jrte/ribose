@@ -3,6 +3,9 @@ cd $(dirname $(readlink -f $0))/../..
 if (($#<1)) || (($#>2)); then
 	echo "Usage: TestRunner <model-path> [1] (add '1' as second parameter to include regex runs)"
 else
-	version=$(cat version)
-	${JAVA_HOME}/bin/java -cp jars/$version.jar:jars/$version-test.jar com.characterforming.jrte.test.TestRunner $*
+	jrte=$(realpath $(dirname $0)/../..)
+	jars=$jrte/jars
+	version=$(cat $jrte/version)
+	path="$jars/$version.jar:$jars/$version-test.jar"
+	${JAVA_HOME}/bin/java -cp "$path" com.characterforming.jrte.test.TestRunner $*
 fi
