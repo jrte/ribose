@@ -241,6 +241,9 @@ public interface ITransductor extends ITarget {
 		/** Number of bytes consumed in mscan traps */
 		public long scan;
 
+		/** Number of bytes allocated while marking */
+		public long allocated;
+
 		/** Constructor */
 		public Metrics() {
 			this.reset();
@@ -252,8 +255,22 @@ public interface ITransductor extends ITarget {
 		 * @return a reference to the reset metrics
 		 */
 		public Metrics reset() {
-			bytes = errors = product = sum = scan = 0;
+			this.allocated = this.bytes = this.errors = this.product = this.sum = this.scan = 0;
 			return this;
+		}
+
+		/**
+		 * Add transient metrics to acumulator metrics
+		 * 
+		 * @param accumulator the metrics to be updated
+		 */
+		public void update(Metrics accumulator) {
+			accumulator.bytes += this.bytes;
+			accumulator.errors += this.errors;
+			accumulator.product += this.product;
+			accumulator.sum += this.sum;
+			accumulator.scan += this.scan;
+			accumulator.allocated += this.allocated;
 		}
 	}
 
@@ -334,13 +351,18 @@ public interface ITransductor extends ITarget {
 	 * <br><br>
 	 * If a mark is set, it applies to the primary input stream and marked input
 	 * buffers held in the transduction mark set cannot be reused by the caller
-	 * until a new mark is set or the input has been reset and all marked buffers
-	 * have been transduced. Call {@link #recycle(byte[])} before reusing data buffers
-	 * if the transduction involves backtracking with mark/reset.
+	 * until they have been transduced. Call {@link #recycle(byte[])} to recover
+	 * buffers for reuse before reusing data buffers. This will allocate a new buffer
+	 * only if there is no free buffer in the mark set. If the input buffer size is
+	 * large enough to contain the longest marked region at most one new buffer will be 
+	 * allocated per transduction. Otherwise new buffer creation is unbounded and
+	 * n-1 of n marked buffers will be leaked to the garbage collector from each
+	 * marked region.
 	 *
 	 * @return this ITransductor
 	 * @throws RiboseException on error
 	 * @throws DomainErrorException on error
+	 * @see #recycle(byte[])
 	 * @see #status()
 	 */
 	ITransductor run() throws RiboseException, DomainErrorException;
@@ -355,16 +377,17 @@ public interface ITransductor extends ITarget {
 	 *
 	 * @param bytes a recently used input buffer
 	 * @return the given buffer ({@code bytes}), or a new biffer of equal size if {@code bytes} is marked
+	 * @see #run()
 	 */
 	byte[] recycle(byte[] bytes);
 
 	/**
-	 * Return metrics from the most recent {@link #run()} call. Metrics are 
+	 * Update metrics from the most recent {@link #run()} call. Metrics are 
 	 * preserved until the {@code run()} method is called again.
 	 * 
-	 * @return the run metrics
+	 * @param metrics the metrics to be updated
 	 */
-	Metrics metrics();
+	void metrics(Metrics metrics);
 
 	/**
 	 * Clear input and transductor stacks and reset all fields to

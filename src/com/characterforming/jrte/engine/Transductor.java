@@ -434,7 +434,7 @@ S:				do {
 			throw new EffectorException("Unable to write() to output", e);
 		} finally {
 			// Prepare to pause (or stop) transduction
-			this.metrics.bytes = this.inputStack.getBytesCount();
+			this.inputStack.getBytesCount(this.metrics);
 			if (transducer == this.transducerStack.peek()) {
 				transducer.state = state;
 			}
@@ -450,8 +450,8 @@ S:				do {
 	}
 
 	@Override // @see com.characterforming.ribose.ITransductor#metrics()
-	public Metrics metrics() {
-		return this.metrics;
+	public void metrics(Metrics accumulator) {
+		this.metrics.update(accumulator);
 	}
 
 	@Override // @see com.characterforming.ribose.IOutput#getValueOrdinal(Bytes)

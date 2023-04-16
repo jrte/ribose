@@ -26,6 +26,8 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import com.characterforming.ribose.IEffector;
+import com.characterforming.ribose.ITransductor.Metrics;
+import com.characterforming.ribose.base.EffectorException;
 
 /**
  * @author Kim Briggs
@@ -42,7 +44,8 @@ final class InputStack {
 	private int markState;
 	private Input[] markList;
 	private int bom, tom;
-	private long bytesPopped;
+	private long bytesPushed;
+	private int bytesAllocated;
 	
 	final class MarkStack extends LinkedList<Input> {
 		private static final long serialVersionUID = 1L;
@@ -59,7 +62,8 @@ final class InputStack {
 		this.markLimit = initialSize;
 		this.markHigh = 0;
 		this.bom = this.tom = 0;
-		this.bytesPopped = 0;
+		this.bytesAllocated = 0;
+		this.bytesPushed = 0;
 		this.tos = -1;
 	}
 	
@@ -71,6 +75,9 @@ final class InputStack {
 	Input push(byte[] data, int limit) {
 		assert data.length >= limit;
 		Input top = this.stackcheck();
+		if (this.tos == 0) {
+			this.bytesPushed += limit;
+		}
 		top.array = data;
 		top.length = data.length;
 		top.limit = limit;
@@ -119,36 +126,35 @@ final class InputStack {
 	 */
 	Input pop() {
 		assert this.stack.length <= Transductor.INITIAL_STACK_SIZE;
-		while (this.tos >= 0) {
-			Input input = this.stack[this.tos];
-			if (input.position < input.limit) {
-				if (this.tos == 0) {
-					if (this.markState == InputStack.reset && input.mark < 0) {
-						assert this.tom >= 0;
-						assert !Base.isReferenceOrdinal(input.array);
-						this.addMarked(this.stack[this.tos--]);
-						input.copy(this.getMarked());
-					} else {
-						this.bytesPopped += input.limit;
+		if (this.tos >= 0) {
+			do {
+				Input input = this.stack[this.tos];
+				if (input.position < input.limit) {
+					if (this.tos == 0) {
+						if (this.markState == InputStack.reset && input.mark < 0) {
+							assert this.tom >= 0;
+							assert !Base.isReferenceOrdinal(input.array);
+							this.addMarked(this.stack[0]);
+							this.stack[0].copy(this.getMarked());
+							assert input.equals(this.stack[0]);
+						}
 					}
+					return input;
 				}
-				return input;
+				--this.tos;
+			} while (this.tos >= 0);
+			switch (this.markState) {
+			case InputStack.reset:
+				assert this.bom != this.tom;
+				return this.push(this.getMarked());
+			case InputStack.marked:
+				Input marked = this.addMarked(this.stack[0]);
+				marked.position = Math.max(0, marked.mark);
+				marked.mark = -1;
+				break;
+			default:
+				break;
 			}
-			--this.tos;
-		}
-		assert this.tos == -1;
-		switch (this.markState) {
-		case InputStack.reset:
-			assert this.bom != this.tom;
-			assert this.stack[0].array == this.markList[this.bom].array;
-			return this.push(this.getMarked());
-		case InputStack.marked:
-			Input marked = this.addMarked(this.stack[0]);
-			marked.position = Math.max(0, marked.mark);
-			marked.mark = -1;
-			break;
-		default:
-			break;
 		}
 		return Input.empty;
 	}
@@ -175,12 +181,19 @@ final class InputStack {
 	/**
 	 * Create a mark point. This will be retained until {@code reset()}
 	 * or {@code unmark()} is called. 
+	 * 
+	 * @throws EffectorException if previous mark is resetting
 	 */
-	void mark() {
-		if (this.tos >= 0) {
-			this.stack[0].mark = this.stack[0].position;
-			this.markState = InputStack.marked;
-			this.bom = this.tom;
+	void mark() throws EffectorException {
+		if (this.markState != InputStack.reset) {
+			if (this.tos >= 0) {
+				this.markState = InputStack.marked;
+				this.stack[0].mark = this.stack[0].position;
+				this.bom = this.tom;
+			}
+		} else {
+			throw new EffectorException(
+				"mark invoked while previous mark is resetting (prohibited)");
 		}
 	}
 	
@@ -188,10 +201,10 @@ final class InputStack {
 	 * Clear the mark state and null out all data references in the mark stack. 
 	 */
 	void unmark() {
-		if (this.markHigh > this.markLimit) {
+		if (this.markHigh > Integer.min(this.markLimit, 32)) {
 			this.logger.log(Level.WARNING, String.format(
-				"Mark limit %d was extended to %d. Try increasing ribose.inbuffer.size to exceed maximal expected marked extent.",
-				this.markLimit, this.markHigh));
+				"Mark limit %d was extended past %d. Try increasing ribose.inbuffer.size to exceed maximal expected marked extent.",
+				this.markLimit, Integer.min(this.markLimit, 32)));
 		}
 		this.markHigh = 0;
 		this.stack[0].mark = -1;
@@ -208,8 +221,9 @@ final class InputStack {
 	 * is/becomes top frame. 
 	 * 
 	 * @return {@link IEffector#RTX_INPUT} if reset effected immediately
+	 * @throws EffectorException if no mark set
 	 */
-	int reset() {
+	int reset() throws EffectorException {
 		if (this.markState == InputStack.marked) {
 			assert this.tos >= 0;
 			Input bos = this.stack[0];
@@ -232,6 +246,9 @@ final class InputStack {
 					return IEffector.RTX_INPUT;
 				}
 			}
+		} else {
+			throw new EffectorException(
+				"reset invoked with no mark set");
 		}
 		return IEffector.RTX_NONE;
 	}
@@ -245,19 +262,26 @@ final class InputStack {
 	byte[] recycle(byte[] bytes) {
 		assert this.tos < 0;
 		assert (this.markState != InputStack.clear) || this.bom == this.tom;
-		if ((this.markState != InputStack.clear) || this.resident(bytes)) {
-			final boolean empty = this.bom == this.tom;
-			final int tom = this.nextMarked(this.tom);
-			final int bom = this.nextMarked(this.bom);
-			final int end = empty ? this.markList.length : bom;
-			for (int i = empty ? 0 : tom; i != end; i = empty ? i + 1 : this.nextMarked(i)) {
-				if ((this.markList[i].array != null) && !resident(this.markList[i].array)) {
-					bytes = this.markList[i].array;
-					this.markList[i].clear();
-					return bytes;
+		if (this.resident(bytes)) {
+			Input free = null;
+			for (int i = 0; i < this.markList.length; i++) {
+				final Input marked = this.markList[i];
+				if (marked.array != null && !resident(marked.array)) {
+					if (marked.array == bytes) {
+						marked.clear();
+						return bytes;
+					} else if (free == null) {
+						free = marked;
+					}
 				}
 			}
-			bytes = new byte[bytes.length];
+			if (free != null) {
+				bytes = free.array;
+				free.clear();
+			} else {
+				bytes = new byte[bytes.length];
+				this.bytesAllocated += bytes.length;
+			}
 		}
 		return bytes;
 	}
@@ -293,10 +317,12 @@ final class InputStack {
 	 * Get and reset the number of bytes popped since last sample.
 	 * @return The number of bytes popped since count last reset
 	 */
-	public long getBytesCount() {
-		long bytes = this.bytesPopped;
-		this.bytesPopped = 0;
-		return bytes;
+	public Metrics getBytesCount(Metrics metrics) {
+		metrics.bytes = this.bytesPushed;
+		metrics.allocated = this.bytesAllocated;
+		this.bytesAllocated = 0;
+		this.bytesPushed = 0;
+		return metrics;
   }
 
 	private Input stackcheck() {
@@ -329,25 +355,31 @@ final class InputStack {
 	}
 	
 	private boolean resident(byte[] bytes) {
-		for (int i = 0; i < this.tos; i++) {
-			if (bytes == this.stack[i].array) {
-				return true;
+		if (bytes != null) {
+			for (int i = 0; i < this.tos; i++) {
+				if (bytes == this.stack[i].array) {
+					assert i == 0;
+					return true;
+				}
 			}
-		}
-		final int bom = this.nextMarked(this.bom);
-		final int tom = this.nextMarked(this.tom);
-		for (int i = bom; i != tom; i = this.nextMarked(i)) {
-			if (bytes == this.markList[i].array) {
-				return true;
+			final int bom = this.nextMarked(this.bom);
+			final int tom = this.nextMarked(this.tom);
+			for (int i = bom; i != tom; i = this.nextMarked(i)) {
+				if (bytes == this.markList[i].array) {
+					return true;
+				}
 			}
 		}
 		return false;
 	}
 	
 	private Input addMarked(Input input) {
-		this.markcheck().copy(input);
-		assert this.bom != this.tom;
-		return this.markList[this.tom];
+		if (!input.equals(this.markList[this.tom])) {
+			this.markcheck().copy(input);
+			assert this.bom != this.tom;
+			input = this.markList[this.tom];
+		}
+		return input;
 	}
 	
 	private Input getMarked() {

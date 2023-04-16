@@ -113,7 +113,7 @@ public class TestRunner {
 						assert trex.status().isStopped();
 					}
 				}
-				double mbps = (t2 > 0) ? (double)(10l*10000000l*1000l) / (double)t2 : -1;
+				double mbps = (t2 > 0) ? (double)(100000000l*1000000000l) / (double)(t2*1024*1024) : -1;
 				System.out.println(String.format(" : %8.3f mb/s (bytes)", mbps));
 			}
 			exitCode = 0;
