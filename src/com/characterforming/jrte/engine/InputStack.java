@@ -125,40 +125,38 @@ final class InputStack {
 	 */
 	Input pop() {
 		assert this.stack.length <= Transductor.INITIAL_STACK_SIZE;
- 		Input input = Input.empty;
-		while (this.tos >= 0) {
-			input = this.stack[this.tos];
-			if (input.hasRemaining()) {
-				if (this.markState == InputStack.reset
-				&& !input.hasMark() && this.tos == 0
-				) {
-					assert this.tom >= 0;
-					assert !Base.isReferenceOrdinal(input.array);
-					this.addMarked(this.stack[this.tos--]);
-					input.copy(this.getMarked());
+		if (this.tos >= 0) {
+			do {
+				Input input = this.stack[this.tos];
+				if (input.position < input.limit) {
+					if (this.tos == 0) {
+						if (this.markState == InputStack.reset
+						&& input.mark < 0) {
+							assert this.tom >= 0;
+							assert !Base.isReferenceOrdinal(input.array);
+							this.addMarked(this.stack[0]);
+							this.stack[0].copy(this.getMarked());
+							assert input.equals(this.stack[0]);
+						}
+					}
+					return input;
 				}
-				return input;
+				--this.tos;
+			} while (this.tos >= 0);
+			switch (this.markState) {
+			case InputStack.reset:
+				assert this.bom != this.tom;
+				return this.push(this.getMarked());
+			case InputStack.marked:
+				Input marked = this.addMarked(this.stack[0]);
+				marked.position = Math.max(0, marked.mark);
+				marked.mark = -1;
+				break;
+			default:
+				break;
 			}
-			--this.tos;
 		}
-		assert this.tos == -1;
-		assert !input.hasRemaining();
-		input = Input.empty;
-		switch (this.markState) {
-		case InputStack.reset:
-			assert this.bom != this.tom;
-			assert this.stack[0].array == this.markList[this.bom].array;
-			input = this.push(this.getMarked());
-			break;
-		case InputStack.marked:
-			Input marked = this.addMarked(this.stack[0]);
-			marked.position = Math.max(0, marked.mark);
-			marked.mark = -1;
-			break;
-		default:
-			break;
-		}
-		return input;
+		return Input.empty;
 	}
 
 	/**	
