@@ -147,7 +147,7 @@ public final class Transductor implements ITransductor, IOutput {
 		this.signalLimit = this.model.getSignalLimit();
 		this.rtcLogger = Base.getCompileLogger();
 		this.rteLogger = Base.getRuntimeLogger();
-		this.metrics = new ITransductor.Metrics();
+		this.metrics = new Metrics();
 
 		if (this.mode == TargetMode.run) {
 			this.fieldOrdinalMap = this.model.getFieldMap();
@@ -433,7 +433,8 @@ S:				do {
 			throw new EffectorException("Unable to write() to output", e);
 		} finally {
 			// Prepare to pause (or stop) transduction
-			this.metrics.bytes = this.inputStack.getBytesCount();
+			this.metrics.bytes = this.inputStack.getBytesRead();
+			this.metrics.allocated = this.inputStack.getBytesAllocated();
 			if (transducer == this.transducerStack.peek()) {
 				transducer.state = state;
 			}
@@ -449,8 +450,8 @@ S:				do {
 	}
 
 	@Override // @see com.characterforming.ribose.ITransductor#metrics()
-	public Metrics metrics() {
-		return this.metrics;
+	public void metrics(Metrics accumulator) {
+		this.metrics.update(accumulator);
 	}
 
 	@Override // @see com.characterforming.ribose.IOutput#getValueOrdinal(Bytes)
@@ -1029,7 +1030,7 @@ E:	do {
 		@Override
 		public String showParameter(int parameterIndex) {
 			int[] param = super.parameters[parameterIndex];
-			StringBuilder sb= new StringBuilder();
+			StringBuilder sb = new StringBuilder();
 			if (param[0] < 0) {
 				byte[] name = getModel().getFieldName(-1 - param[0]);
 				byte[] field = new byte[name.length + 1];

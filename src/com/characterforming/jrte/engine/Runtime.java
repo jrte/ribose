@@ -29,6 +29,7 @@ import java.util.logging.Logger;
 import com.characterforming.ribose.IRuntime;
 import com.characterforming.ribose.ITarget;
 import com.characterforming.ribose.ITransductor;
+import com.characterforming.ribose.ITransductor.Metrics;
 import com.characterforming.ribose.base.Bytes;
 import com.characterforming.ribose.base.DomainErrorException;
 import com.characterforming.ribose.base.ModelException;
@@ -80,6 +81,7 @@ public final class Runtime implements IRuntime {
 	@Override // @see com.characterforming.ribose.IRuntime#transduce(Bytes, Signal, InputStream)
 	public boolean transduce(ITarget target, Bytes transducer, Signal prologue, InputStream in, OutputStream out) throws RiboseException {
 		try {
+			Metrics metrics = new Metrics();
 			byte[] bytes = new byte[Base.getInBufferSize()];
 			int read = in.read(bytes);
 			@SuppressWarnings("unused")
@@ -93,6 +95,7 @@ public final class Runtime implements IRuntime {
 					do {
 						if (trex.run().status().isPaused()) {
 							bytes = trex.recycle(bytes);
+							trex.metrics(metrics);
 							assert bytes != null;
 							read = in.read(bytes);
 							if (read > 0) {

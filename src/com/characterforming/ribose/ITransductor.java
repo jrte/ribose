@@ -241,6 +241,9 @@ public interface ITransductor extends ITarget {
 		/** Number of bytes consumed in mscan traps */
 		public long scan;
 
+		/** Number of bytes allocated while marking */
+		public long allocated;
+
 		/** Constructor */
 		public Metrics() {
 			this.reset();
@@ -254,6 +257,20 @@ public interface ITransductor extends ITarget {
 		public Metrics reset() {
 			bytes = errors = product = sum = scan = 0;
 			return this;
+		}
+
+		/**
+		 * Add transient metrics to acumulator metrics
+		 * 
+		 * @param accumulator the metrics to be updated
+		 */
+		public void update(Metrics accumulator) {
+			accumulator.bytes += this.bytes;
+			accumulator.errors += this.errors;
+			accumulator.product += this.product;
+			accumulator.sum += this.sum;
+			accumulator.scan += this.scan;
+			accumulator.allocated += this.allocated;
 		}
 	}
 
@@ -341,6 +358,7 @@ public interface ITransductor extends ITarget {
 	 * @return this ITransductor
 	 * @throws RiboseException on error
 	 * @throws DomainErrorException on error
+	 * @see #recycle(byte[])
 	 * @see #status()
 	 */
 	ITransductor run() throws RiboseException, DomainErrorException;
@@ -355,16 +373,19 @@ public interface ITransductor extends ITarget {
 	 *
 	 * @param bytes a recently used input buffer
 	 * @return the given buffer ({@code bytes}), or a new biffer of equal size if {@code bytes} is marked
+	 * @see #run()
 	 */
 	byte[] recycle(byte[] bytes);
 
 	/**
-	 * Return metrics from the most recent {@link #run()} call. Metrics are 
-	 * preserved until the {@code run()} method is called again.
+	 * Update metrics from the most recent {@link #run()} call. Metrics are 
+	 * preserved until the {@code run()} method is called again. This method
+	 * sums the metrics from the most resent {@link #run()} call into an
+	 * accumulating Metrics instance.
 	 * 
-	 * @return the run metrics
+	 * @param metrics the metrics to be updated
 	 */
-	Metrics metrics();
+	void metrics(Metrics metrics);
 
 	/**
 	 * Clear input and transductor stacks and reset all fields to

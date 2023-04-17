@@ -42,7 +42,8 @@ final class InputStack {
 	private int markState;
 	private Input[] markList;
 	private int bom, tom;
-	private long bytesPopped;
+	private long bytesPushed;
+	private long bytesAllocated;
 	
 	final class MarkStack extends LinkedList<Input> {
 		private static final long serialVersionUID = 1L;
@@ -59,7 +60,8 @@ final class InputStack {
 		this.markLimit = initialSize;
 		this.markHigh = 0;
 		this.bom = this.tom = 0;
-		this.bytesPopped = 0;
+		this.bytesAllocated = 0;
+		this.bytesPushed = 0;
 		this.tos = -1;
 	}
 	
@@ -71,6 +73,9 @@ final class InputStack {
 	Input push(byte[] data, int limit) {
 		assert data.length >= limit;
 		Input top = this.stackcheck();
+		if (this.tos == 0) {
+			this.bytesPushed += limit;
+		}
 		top.array = data;
 		top.length = data.length;
 		top.limit = limit;
@@ -130,8 +135,6 @@ final class InputStack {
 					assert !Base.isReferenceOrdinal(input.array);
 					this.addMarked(this.stack[this.tos--]);
 					input.copy(this.getMarked());
-				} else if (this.tos == 0 && input.position == 0) {
-						this.bytesPopped += (input.limit - input.position);
 				}
 				return input;
 			}
@@ -265,6 +268,7 @@ final class InputStack {
 				}
 			}
 		}
+		this.bytesAllocated += bytes.length;
 		return new byte[bytes.length];
 	}
 	
@@ -296,13 +300,27 @@ final class InputStack {
 	}
 
   /**
-	 * Get and reset the number of bytes popped since last sample.
-	 * @return The number of bytes popped since count last reset
+	 * Get and reset the number of allocated in {@link #recycle()}
+	 * since the last call to this method.
+	 * 
+	 * @return The number of bytes allocated since count last reset
 	 */
-	public long getBytesCount() {
-		long bytes = this.bytesPopped;
-		this.bytesPopped = 0;
-		return bytes;
+	public long getBytesAllocated() {
+		long allocated = this.bytesAllocated;
+		this.bytesAllocated = 0;
+		return allocated;
+  }
+
+  /**
+	 * Get and reset the number of bytes of primary input read since
+	 * the last call to the method.
+	 * 
+	 * @return The number of bytes read since count last reset
+	 */
+	public long getBytesRead() {
+		long read = this.bytesPushed;
+		this.bytesPushed = 0;
+		return read;
   }
 
 	private Input stackcheck() {
@@ -330,14 +348,6 @@ final class InputStack {
 			this.tom = this.markHigh = this.markList.length;
 			this.markList = marked;
 			this.bom = 0;
-		}
-		int markSize = this.tom < this.bom
-		? this.tom + this.markList.length - this.bom
-		: this.tom - this.bom;
-		if (markSize > this.markLimit) {
-			this.logger.log(Level.WARNING, String.format("Mark limit %d exceeded. Try increasing ribose.inbuffer.size to exceed maximal expected marked extent.",
-				this.markLimit));
-			this.markLimit = markSize;
 		}
 		return this.markList[this.tom];
 	}
