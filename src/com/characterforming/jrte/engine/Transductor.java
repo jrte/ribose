@@ -347,12 +347,10 @@ I:			do {
 						do {
 							input = this.inputStack.pop();
 							if (input == Input.empty) {
-								token = 0;
 								break T;
 							}
 						} while (input.position >= input.limit);
 						token = 0xff & (int)input.array[input.position++];
-						assert input == this.inputStack.peek();
 					}
 					
 					// absorb self-referencing (msum,mscan) or sequential (mproduct) transitions with nil effect
@@ -434,7 +432,7 @@ S:				do {
 			throw new EffectorException("Unable to write() to output", e);
 		} finally {
 			// Prepare to pause (or stop) transduction
-			this.inputStack.getBytesCount(this.metrics);
+			this.metrics.bytes = this.inputStack.getBytesCount();
 			if (transducer == this.transducerStack.peek()) {
 				transducer.state = state;
 			}
@@ -450,8 +448,8 @@ S:				do {
 	}
 
 	@Override // @see com.characterforming.ribose.ITransductor#metrics()
-	public void metrics(Metrics accumulator) {
-		this.metrics.update(accumulator);
+	public Metrics metrics() {
+		return this.metrics;
 	}
 
 	@Override // @see com.characterforming.ribose.IOutput#getValueOrdinal(Bytes)
@@ -543,7 +541,6 @@ E:	do {
 					if ((token != nulSignal && token != eosSignal)) {
 						++this.metrics.errors;
 						this.errorInput = token;
-						assert 0 == (aftereffects & IEffector.RTX_SIGNAL);
 						aftereffects |= IEffector.rtxSignal(nulSignal);
 					} else {
 						aftereffects |= IEffector.RTX_STOPPED;
@@ -571,7 +568,6 @@ E:	do {
 				case COUNT:
 					if (--this.transducer.countdown[0] <= 0) {
 						this.transducer.countdown[0] = 0;
-						assert 0 == (aftereffects & IEffector.RTX_SIGNAL);
 						aftereffects |= IEffector.rtxSignal(this.transducer.countdown[1]);
 					}
 					break;

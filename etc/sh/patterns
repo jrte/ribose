@@ -23,16 +23,12 @@ if [[ ! -d "$4" ]]; then
 	exit 1
 fi
 
-jrte=$(realpath $(dirname $0)/../..)
-jars=$jrte/jars
-version=$(cat $jrte/version)
-path="$jars/$version.jar:$jars/$version-test.jar"
 src="$1"
 prologue="$2"
 epilogue="$3"
 out="$4"
 
-ginr="$jrte/etc/ginr/ginr"
+ginr="etc/ginr/ginr"
 if [[ "$OS" =~ ^Windows ]]; then
 	ginr="$ginr.exe"
 fi

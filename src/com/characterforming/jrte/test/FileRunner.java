@@ -99,7 +99,7 @@ public class FileRunner {
 			rteLogger.log(Level.SEVERE, "Runtime failed, exception thrown.", e);
 		}
 		try {
-			long tjrte = 0, t0 = 0, t1 = 0;
+			long mproduct = 0, msum = 0, mscan = 0, errors = 0, inputs = 0, tjrte = 0, t0 = 0, t1 = 0;
 			int loops = 1;
 			if (regex.isEmpty() && (jrteOutEnabled || !regexOutEnabled)) {
 				try (IRuntime ribose = Ribose.loadRiboseModel(new File(modelPath))) {
@@ -108,18 +108,20 @@ public class FileRunner {
 					if (!jrteOutEnabled) {
 						System.out.print(String.format("%20s: ", transducerName));
 						loops = 20;
-						ITransductor.Metrics metrics = new ITransductor.Metrics();
 						for (int i = 0; i < loops; i++) {
 							assert trex.status().isStopped();
 							if (trex.push(bbuf, (int)blen).status().isWaiting()
 							&& (!nil || (trex.signal(Signal.nil).status().isWaiting()))
 							&& (trex.start(Bytes.encode(encoder, transducerName)).status().isRunnable())) {
+								ITransductor.Metrics metrics = trex.metrics().reset();
 								t0 = System.nanoTime();
 								do {
 									trex.run();
-									if (i >= 10) {
-										trex.metrics(metrics);
-									}
+									msum += metrics.sum;
+									mproduct += metrics.product;
+									mscan += metrics.scan;
+									errors += metrics.errors;
+									inputs += metrics.bytes;
 								} while (trex.status().isRunnable());
 								if (trex.status().isPaused()) {
 									trex.signal(Signal.eos).run();
@@ -134,11 +136,12 @@ public class FileRunner {
 								assert trex.status().isStopped();
 							}
 						}
-						double mbps = (tjrte > 0) ? (double)(metrics.bytes*1000000000l) / (double)(tjrte*1024*1024) : -1;
-						double mps = (metrics.bytes > 0) ? ((double)(100 * metrics.sum) / (double)metrics.bytes) : -1;
-						double mpr = (metrics.bytes > 0) ? ((double)(100 * metrics.product) / (double)metrics.bytes) : -1;
-						double msc = (metrics.bytes > 0) ? ((double)(100 * metrics.scan) / (double)metrics.bytes) : -1;
-						double ekb = (metrics.bytes > 0) ? ((double)(1024 * metrics.errors) / (double)metrics.bytes) : -1;
+						inputs = inputs > 0 ? inputs : loops * blen;
+						double mbps = (tjrte > 0) ? (double)((inputs >> 1)*1000) / (double)tjrte : -1;
+						double mps = ((double)(100 * msum) / (double)inputs);
+						double mpr = ((double)(100 * mproduct) / (double)inputs);
+						double msc = ((double)(100 * mscan) / (double)inputs);
+						double ekb = ((double)(1024 * errors) / (double)inputs);
 						System.out.println(String.format(" : %8.3f mb/s %7.3f nul/kb %6.3f%% m+ %6.3f%% m* %6.3f%% m-", mbps, ekb, mps, mpr, msc));
 						rtmLogger.log(Level.INFO, String.format("%s\t%8.3f\t%7.3f\t%6.3f\t%6.3f\t%6.3f\t%d\t%s", inputPath, mbps, ekb, mps, mpr, msc, blen, transducerName));
 					} else {

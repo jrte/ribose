@@ -1,10 +1,7 @@
 #! /bin/bash
-jrte=$(realpath $(dirname $0)/../..)
-jars=$jrte/jars
-version=$(cat $jrte/version)
-path="$jars/$version.jar:$jars/$version-test.jar"
-loops=10
 tsv=""
+loops=10
+jrte=$(dirname $(readlink -f $0))/../..
 if [[ "$1" == "--tsv" ]]; then
 	tsv="--tsv"
 	shift

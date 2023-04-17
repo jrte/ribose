@@ -1,9 +1,5 @@
 #!/bin/bash
 #set -x
-jrte=$(realpath $(dirname $0)/../..)
-jars=$jrte/jars
-version=$(cat $jrte/version)
-path="$jars/$version.jar:$jars/$version-test.jar"
 vmargs=""
 while [[ "$1" =~ ^[-][^-] ]]; do
 	vmargs="$vmargs $1";
@@ -23,5 +19,8 @@ else
 	transducer="$2"
 	input="$3"
 	shift 3
-	${JAVA_HOME}/bin/java $vmargs -cp "$path" com.characterforming.jrte.test.FileRunner $nil "$model" "$transducer" "$input" $*
+	version="$(cat version)"
+	jars="$(dirname $(readlink -f $0))/../../jars"
+	java="${JAVA_HOME}/bin/java -cp $jars/$version.jar:$jars/$version-test.jar"
+	$java $vmargs com.characterforming.jrte.test.FileRunner $nil "$model" "$transducer" "$input" $*
 fi

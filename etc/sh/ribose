@@ -1,16 +1,15 @@
 #! /bin/bash
 #set -x
-jrte=$(realpath $(dirname $0)/../..)
-jars=$jrte/jars
-version=$(cat $jrte/version)
-path="$jars/$version.jar:$jars/$version-test.jar"
 vmargs=""
 while [[ "$1" =~ ^[-][^-] ]]; do
 	vmargs="$vmargs $1";
 	shift
 done
+version=$(cat version)
+jars="$(dirname $(readlink -f $0))/../../jars"
+path=$jars/$(cat version).jar
 if (($#>1)) && [[ "$1" == "--target-path" ]]; then
-	path="$path:$(realpath $2)"
+	path="$path:$(readlink -f $2)"
 	shift 2
 fi
 nil=""
@@ -23,6 +22,8 @@ if (($#!=3 && $# != 4)); then
  	echo "Use (vm-args) '-Djrte.out.enabled=false' and/or '-Dregex.out.enabled=false' to mute output."
   echo "Use '-' for input-path to read from System.in; default output stream is System.out."
 else
+  version=$(cat version)
+  jars="$(dirname $(readlink -f $0))/../../jars"
   java="${JAVA_HOME}/bin/java -cp $path $vmargs com.characterforming.ribose.TRun"
 	model="$1"
 	transducer="$2"

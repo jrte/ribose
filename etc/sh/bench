@@ -11,10 +11,6 @@ function strip() {
 		fi
 	done
 }
-jrte=$(realpath $(dirname $0)/../..)
-jars=$jrte/jars
-version=$(cat $jrte/version)
-path="$jars/$version.jar:$jars/$version-test.jar"
 format=cat
 if [[ "$1" == "--tsv" ]]; then	
 	format=strip
@@ -31,6 +27,7 @@ transducer=$3
 input=$4
 shift 4
 output="-Djrte.out.enabled=false -Dregex.out.enabled=false"
+cp="-cp jars/$(cat version).jar;jars/$(cat version)-test.jar"
 for i in $(seq $n); do
-	${JAVA_HOME}/bin/java -Dfile.encoding=UTF-8 $output -cp "$path" com.characterforming.jrte.test.FileRunner --nil "$model" $transducer "$input" "$@"|$format
+	${JAVA_HOME}/bin/java -Dfile.encoding=UTF-8 $output $cp com.characterforming.jrte.test.FileRunner --nil "$model" $transducer "$input" "$@"|$format
 done

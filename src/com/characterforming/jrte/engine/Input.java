@@ -15,10 +15,9 @@ final class Input {
 	
 	Input(byte[] array) {
 		this.array = array;
-		this.length = array != null ? array.length : 0;
-		this.position = this.limit = 0;
-		this.mark = -1;
-}
+		this.length = array != null ? array.length : -1;
+		this.stop();
+	}
 	
 	Input(Input input) {
 		this.copy(input);
@@ -76,7 +75,7 @@ final class Input {
 	}
 	
 	void rewind() {
-		this.position = 0;
+		this.position = this.length >= 0 ? 0 : -1;
 		this.mark = -1;
 	}
 	
@@ -86,23 +85,7 @@ final class Input {
 	
 	@Override
 	public String toString() {
-		return String.format("[array:%s] position:%d limit:%d mark:%d length:%d limit:%d", 
-			this.array.toString(), this.position, this.limit, this.mark, this.length, this.limit);
-	}
-
-	@Override
-	public boolean equals(Object input) {
-		if (input != null && input instanceof Input) {
-			Input other = (Input)input;
-			return this.array == other.array
-			&& this.position == other.position
-			&& this.limit == other.limit;
-		}
-		return false;
-	}
-
-	@Override
-	public int hashCode() {
-		return this.array != null ? this.array.hashCode() : 0;
+		return String.format("position:%d limit:%d mark:%d length:%d [array:%d]", 
+			this.position, this.limit, this.mark, this.length, this.array != null ? this.array.length : -1);
 	}
 }

@@ -80,7 +80,6 @@ public final class Runtime implements IRuntime {
 	@Override // @see com.characterforming.ribose.IRuntime#transduce(Bytes, Signal, InputStream)
 	public boolean transduce(ITarget target, Bytes transducer, Signal prologue, InputStream in, OutputStream out) throws RiboseException {
 		try {
-			ITransductor.Metrics metrics = new ITransductor.Metrics();
 			byte[] bytes = new byte[Base.getInBufferSize()];
 			int read = in.read(bytes);
 			@SuppressWarnings("unused")
@@ -94,7 +93,6 @@ public final class Runtime implements IRuntime {
 					do {
 						if (trex.run().status().isPaused()) {
 							bytes = trex.recycle(bytes);
-							trex.metrics(metrics);
 							assert bytes != null;
 							read = in.read(bytes);
 							if (read > 0) {
