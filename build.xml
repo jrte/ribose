@@ -444,6 +444,11 @@
 			<arg value="-c"/>
 			<arg value="etc/sh/FileRunner ${jargs} ${jargs.gc.test}/linuxkernelstrict.gc -Djrte.out.enabled=true -Dregex.out.enabled=false --nil build/Test.model LinuxKernelStrict ${test.input.dir}/kern-10.log"/>
 		</exec>
+		<echo message="Ribose[67 byte input buffer]: LinuxKernelStrict ${test.input.dir}/kern-10.log -> ${build.testenv}/linuxkernelstrict-67.(out,gc)"/>
+		<exec failonerror="true" executable="bash" output="${build.testenv}/linuxkernelstrict-67.out">
+			<arg value="-c"/>
+			<arg value="etc/sh/FileRunner ${jargs} ${jargs.gc.test}/linuxkernelstrict-67.gc -Dribose.inbuffer.size=67 -Djrte.out.enabled=true -Dregex.out.enabled=false --nil build/Test.model LinuxKernelStrict ${test.input.dir}/kern-10.log"/>
+		</exec>
 <!-- linux kernel verify -->
 		<fixcrlf srcDir="${build.testenv}" includes="linuxkernel*.out"/>
 		<exec failonerror="true" executable="wc">
@@ -458,11 +463,15 @@
 		<exec failonerror="true" executable="wc">
 			<arg line="--lines --bytes ${build.testenv}/linuxkernelstrict.out"/>
 		</exec>
+		<exec failonerror="true" executable="wc">
+			<arg line="--lines --bytes ${build.testenv}/linuxkernelstrict-67.out"/>
+		</exec>
 		<condition property="kernel.match">
 			<and>
 				<filesmatch file1="${build.testenv}/linuxkernelregex.out" file2="${build.testenv}/linuxkernel.out"/>
 				<filesmatch file1="${build.testenv}/linuxkernelregex.out" file2="${build.testenv}/linuxkernelloose.out"/>
 				<filesmatch file1="${build.testenv}/linuxkernelregex.out" file2="${build.testenv}/linuxkernelstrict.out"/>
+				<filesmatch file1="${build.testenv}/linuxkernelregex.out" file2="${build.testenv}/linuxkernelstrict-67.out"/>
 			</and>
 		</condition>
 		<fail unless="kernel.match" message="Not identical: ${build.testenv}/linuxkernel*.out"/>

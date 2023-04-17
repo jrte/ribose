@@ -37,6 +37,7 @@ final class InputStack {
 	private final Logger logger;
 	private Input[] stack;
 	private int tos;
+	private int markHigh;
 	private int markLimit;
 	private int markState;
 	private Input[] markList;
@@ -55,7 +56,8 @@ final class InputStack {
 		this.stack = Input.stack(initialSize);
 		this.markList = Input.stack(initialSize);
 		this.markState = InputStack.clear;
-		this.markLimit = 2;
+		this.markLimit = initialSize;
+		this.markHigh = 0;
 		this.bom = this.tom = 0;
 		this.bytesPopped = 0;
 		this.tos = -1;
@@ -190,6 +192,12 @@ final class InputStack {
 	 * Clear the mark state and null out all data references in the mark stack. 
 	 */
 	void unmark() {
+		if (this.markHigh > Integer.min(this.markLimit, 32)) {
+			this.logger.log(Level.WARNING, String.format(
+				"Mark limit %d was extended past %d. Try increasing ribose.inbuffer.size to exceed maximal expected marked extent.",
+				this.markLimit, Integer.min(this.markLimit, 32)));
+		}
+		this.markHigh = 0;
 		this.stack[0].mark = -1;
 		this.bom = this.tom = 0;
 		this.markState = InputStack.clear;
@@ -319,7 +327,7 @@ final class InputStack {
 			for (int pos = this.markList.length; pos < marked.length; pos++) {
 				marked[pos] = new Input();
 			}
-			this.tom = this.markList.length;
+			this.tom = this.markHigh = this.markList.length;
 			this.markList = marked;
 			this.bom = 0;
 		}
