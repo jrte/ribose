@@ -26,6 +26,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import com.characterforming.ribose.IEffector;
+import com.characterforming.ribose.base.EffectorException;
 
 /**
  * @author Kim Briggs
@@ -182,12 +183,19 @@ final class InputStack {
 	/**
 	 * Create a mark point. This will be retained until {@code reset()}
 	 * or {@code unmark()} is called. 
+	 * 
+	 * @throws EffectorException if previous mark is resetting
 	 */
-	void mark() {
-		if (this.tos >= 0) {
-			this.stack[0].mark = this.stack[0].position;
-			this.markState = InputStack.marked;
-			this.bom = this.tom;
+	void mark() throws EffectorException {
+		if (this.markState != InputStack.reset) {
+			if (this.tos >= 0) {
+				this.markState = InputStack.marked;
+				this.stack[0].mark = this.stack[0].position;
+				this.bom = this.tom;
+			}
+		} else {
+			throw new EffectorException(
+				"mark invoked while previous mark is resetting (prohibited)");
 		}
 	}
 	
@@ -211,11 +219,13 @@ final class InputStack {
 	
 	/** 
 	 * Reset position in marked frame to a mark point. The reset will be 
-	 * effected if/when the marked frame is/becomes top frame. 
+	 * effected if/when the bottom stack frame containing the primary input
+	 * is/becomes top frame. 
 	 * 
 	 * @return {@link IEffector#RTX_INPUT} if reset effected immediately
+	 * @throws EffectorException if no mark set
 	 */
-	int reset() {
+	int reset() throws EffectorException {
 		if (this.markState == InputStack.marked) {
 			assert this.tos >= 0;
 			Input bos = this.stack[0];
@@ -238,6 +248,9 @@ final class InputStack {
 					return IEffector.RTX_INPUT;
 				}
 			}
+		} else {
+			throw new EffectorException(
+				"reset invoked with no mark set");
 		}
 		return IEffector.RTX_NONE;
 	}
@@ -353,25 +366,26 @@ final class InputStack {
 	}
 	
 	private boolean resident(byte[] bytes) {
-		for (int i = 0; i < this.tos; i++) {
-			if (bytes == this.stack[i].array) {
-				return true;
-			}
-		}
-		final int bom = this.nextMarked(this.bom);
-		final int tom = this.nextMarked(this.tom);
-		for (int i = bom; i != tom; i = this.nextMarked(i)) {
-			if (bytes == this.markList[i].array) {
-				return true;
+		if (bytes != null) {
+			assert this.tos < 0;
+			final int bom = this.nextMarked(this.bom);
+			final int tom = this.nextMarked(this.tom);
+			for (int i = bom; i != tom; i = this.nextMarked(i)) {
+				if (bytes == this.markList[i].array) {
+					return true;
+				}
 			}
 		}
 		return false;
 	}
 	
 	private Input addMarked(Input input) {
-		this.markcheck().copy(input);
-		assert this.bom != this.tom;
-		return this.markList[this.tom];
+		if (!input.equals(this.markList[this.tom])) {
+			this.markcheck().copy(input);
+			assert this.bom != this.tom;
+			input = this.markList[this.tom];
+		}
+		return input;
 	}
 	
 	private Input getMarked() {

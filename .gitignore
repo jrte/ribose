@@ -4,6 +4,8 @@ javadoc
 jars/*.jar
 java_pid*
 **/.fuse_hidden*
+**/.~*
+**/*.bak
 *.gz
 *.out
 *.log*
