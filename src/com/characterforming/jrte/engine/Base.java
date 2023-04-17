@@ -318,25 +318,21 @@ public final class Base {
 	}
 
 	/**
-	 * Decode a reference ordinal.
+	 * Decode a reference ordinal. This will assert if assertions are enabled
+	 * and the {@code bytes} array is not 4-byte encoded reference ordinal 
+	 * but will otherwise presume that reference is well-formed and decode
+	 * the last 2 bytes as a big-endian 16-bit reference ordinal.
 	 *
 	 * @param type Expected reference type
 	 * @param bytes Bytes to check
-	 * @return the reference ordinal or a negative integer if none
+	 * @return the reference ordinal
 	 */
 	static public int decodeReferenceOrdinal(int type, final byte bytes[]) {
-		assert isReferenceOrdinal(bytes);
-		if (getReferenceType(bytes) == type) {
-			switch (bytes[1]) {
-			case TYPE_REFERENCE_TRANSDUCER:
-			case TYPE_REFERENCE_SIGNAL:
-			case TYPE_REFERENCE_FIELD:
-				return (Byte.toUnsignedInt(bytes[2]) << 8) | Byte.toUnsignedInt(bytes[3]);
-			default:
-				break;
-			}
-		}
-		return Integer.MIN_VALUE;
+		assert getReferenceType(bytes) == type
+		&& ((bytes[1] == TYPE_REFERENCE_FIELD)
+			|| (bytes[1] == TYPE_REFERENCE_SIGNAL)
+			|| (bytes[1] == TYPE_REFERENCE_TRANSDUCER));
+		return (Byte.toUnsignedInt(bytes[2]) << 8) | Byte.toUnsignedInt(bytes[3]);
 	}
 
 	/**

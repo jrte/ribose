@@ -168,11 +168,11 @@ class Field implements IField {
 		this.length += next.length;
 	}
 
-	void append(Field next) {
-		assert this.value != null;
-		growValue(next.length);
-		System.arraycopy(next.value, 0, this.value, this.length, next.length);
-		this.length += next.length;
+	void append(IField next) {
+		Field field = (Field)next;
+		growValue(field.length);
+		System.arraycopy(field.value, 0, this.value, this.length, field.length);
+		this.length += field.length;
 	}
 
 	private void growValue(int size) {

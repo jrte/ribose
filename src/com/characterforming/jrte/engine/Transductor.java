@@ -756,12 +756,7 @@ E:	do {
 		public int invoke(final int parameterIndex) throws EffectorException {
 			for (byte[] bytes : super.getParameter(parameterIndex)) {
 				if (Base.getReferenceType(bytes) == Base.TYPE_REFERENCE_FIELD) {
-					int fieldOrdinal = Base.decodeReferenceOrdinal(Base.TYPE_REFERENCE_FIELD, bytes);
-					Field field = (Field)getField(fieldOrdinal);
-					assert field != null;
-					if (field != null) {
-						selected.append(field.getValue());
-					}
+					selected.append(getField(Base.decodeReferenceOrdinal(Base.TYPE_REFERENCE_FIELD, bytes)));
 				} else {
 					selected.append(bytes);
 				}
