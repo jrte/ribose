@@ -347,6 +347,7 @@ I:			do {
 						do {
 							input = this.inputStack.pop();
 							if (input == Input.empty) {
+								token = 0;
 								break T;
 							}
 						} while (input.position >= input.limit);
