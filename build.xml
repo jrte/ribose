@@ -51,7 +51,8 @@
 	<property name="jargs.jit.inline" value="-XX:CompileCommandFile=etc/jit/ribose.jit"/>
 	<property name="jargs.gc.buffers" value="-Dribose.inbuffer.size=${ribose.inbuffer.size} -Dribose.outbuffer.size=${ribose.outbuffer.size}"/>
 	<property name="jargs.gc.test" value="-Xms2m ${jargs.gc.buffers} -Xlog:gc*:file=${build.testenv}"/>
-	<property name="jargs" value="-ea ${jargs.jit.inline}"/>
+	<!--property name="jargs" value="-ea ${jargs.jit.inline}"/-->
+	<property name="jargs" value="-ea"/>
 	<condition property="linux">
 		<os family="unix" />
 	</condition>
@@ -73,6 +74,8 @@
 	<path id="jrte.classpath">
 		<pathelement location="${jars.dir}/${ribose.version}.jar"/>
 	</path>
+
+	<target name="package" depends="ribose,package-test,compile-test-model,javadoc"/>
 
 	<target name="clean" depends="clean-java,clean-patterns,clean-test">
   	<delete dir="build"/>
@@ -122,7 +125,7 @@
 		<echoproperties/>
 	</target>
 
-	<target name="ribose" depends="init,package-java,build-compiler-model,javadoc"
+	<target name="ribose" depends="init,package-java,build-compiler-model"
 		description="Clean build for java and patterns"/>
 
 	<target name="ci-test" depends="clean,test,env"
@@ -193,6 +196,7 @@
 		<exec failonerror="true" executable="bash">
 			<arg line="etc/sh/patterns ${ribose.patterns} patterns/alpha.inr patterns/after.inr ${build.compiler.model}"/>
 		</exec>
+		<echo/>
 		<java fork="true" jvm="${jdk}/bin/java" dir ="." classname="com.characterforming.ribose.TCompile" classpathref="jrte.classpath" failonerror="true">
 			<jvmarg line="${jargs}"/>
 			<arg line="--target com.characterforming.ribose.TCompile ${build.compiler.model} ${build.compiler.model}/TCompile.model"/>
@@ -219,14 +223,14 @@
 		</exec>
 	</target>
 
-	<target name="check-package-test-patterns" depends="compile-test-patterns">
+	<target name="check-compile-test-model" depends="compile-test-patterns">
 		<uptodate targetfile="build/Test.model" property="patterns.packaged">
 			<srcfiles dir="${build.automata}" includes="**/*.dfa"/>
 			<srcfiles file="${jars.dir}/${ribose.version}.jar"/>
 		</uptodate>
 	</target>
 
-	<target name="package-test-patterns" depends="package-test,check-package-test-patterns" unless="patterns.packaged">
+	<target name="compile-test-model" depends="package-test,check-compile-test-model" unless="patterns.packaged">
 		<delete file="build/Test.model"/>
 		<delete file="build/Test.map"/>
 		<exec failonerror="true" executable="bash">
@@ -270,7 +274,7 @@
 		<jar basedir="${java.source.dir}" destfile="${jars.dir}/${ribose.version}-source.jar"/>
 	</target>
 
-	<target name="test-env" depends="ribose,package-test-patterns,package-test">
+	<target name="test-env" depends="ribose,compile-test-model,package-test">
 		<property environment="env"/>
 		<java fork="true" jvm="${jdk}/bin/java" dir="." classname="com.characterforming.ribose.TRun" classpathref="jrte.classpath">
 			<jvmarg line="-version"/>

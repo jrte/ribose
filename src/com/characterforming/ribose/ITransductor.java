@@ -372,7 +372,7 @@ public interface ITransductor extends ITarget {
 	 * they have been recovered by a call to this method.
 	 *
 	 * @param bytes a recently used input buffer
-	 * @return the given buffer ({@code bytes}), or a new biffer of equal size if {@code bytes} is marked
+	 * @return the given buffer ({@code bytes}), or a new buffer of equal size if {@code bytes} is marked
 	 * @see #run()
 	 */
 	byte[] recycle(byte[] bytes);
@@ -380,7 +380,7 @@ public interface ITransductor extends ITarget {
 	/**
 	 * Update metrics from the most recent {@link #run()} call. Metrics are 
 	 * preserved until the {@code run()} method is called again. This method
-	 * sums the metrics from the most resent {@link #run()} call into an
+	 * sums the metrics from the most recent {@link #run()} call into an
 	 * accumulating Metrics instance.
 	 * 
 	 * @param metrics the metrics to be updated
