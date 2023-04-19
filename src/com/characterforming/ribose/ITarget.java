@@ -44,7 +44,7 @@ import com.characterforming.ribose.base.TargetBindingException;
  * <br><br>
  * At runtime, a live target instance is bound to a transductor and the binding
  * persists for the lifetime of the transductor. Live runtime targets are instantiated
- * externally and passed to the {@link IRuntime#newTransductor(ITarget)} method
+ * externally and passed to the {@link IRuntime#transductor(ITarget)} method
  * to create {@code ITransductor} instances. When a runtime target is bound to a
  * transductor each parameterized effector receives a call to
  * {@link IParameterizedEffector#setParameter(int, Object)} to set the precompiled

@@ -73,8 +73,8 @@ public final class Runtime implements IRuntime {
 		this.model.load();
 	}
 
-	@Override // @see com.characterforming.ribose.IRuntime#newTransductor(ITarget)
-	public ITransductor newTransductor(ITarget target) throws ModelException {
+	@Override // @see com.characterforming.ribose.IRuntime#transductor(ITarget)
+	public ITransductor transductor(ITarget target) throws ModelException {
 		return this.model.bindTransductor(target);
 	}
 
@@ -87,7 +87,7 @@ public final class Runtime implements IRuntime {
 			@SuppressWarnings("unused")
 			int position = read;
 			if (read > 0) {
-				ITransductor trex = newTransductor(target);
+				ITransductor trex = transductor(target);
 				if (trex.push(bytes, read).status().isWaiting()
 				&& ((prologue == null) || (trex.signal(prologue).status().isWaiting()))
 				&& (trex.start(transducer).status().isRunnable())) {

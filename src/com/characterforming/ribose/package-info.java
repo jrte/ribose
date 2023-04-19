@@ -43,10 +43,11 @@
  * is written as UTF-8 byte stream unless {@code -Djrte.out.enabled=false} is selected in the java
  * command options (allowing benchmarking to proceed without I/O overhead). The {@code --target-path}
  * argument need not be specified if the model target is {@link com.characterforming.ribose.base.BaseTarget}.
- * In any case, the target class must have a default constructor for both proxy and live target
- * instances. A proxy instance will be instantiated to precompile effector parameters and live 
- * instance will be instantiated and bound to the transduction. See the {@link ITarget} documentation
- * for details regarding proxy and live targets in the ribose runtime. Default output is System.out.
+ * In any case, to run transductions with {@link TRun} the target class must have a default constructor
+ * for proxy <i>and</i> live target instances. A proxy instance will be instantiated to precompile
+ * effector parameters and a live instance will be instantiated and bound to the transduction. See the
+ * {@link ITarget} documentation for details regarding proxy and live targets in the ribose runtime.
+ * Default output is System.out.
  * <br><br>
  * <table style="font-size:12px">
  * <caption style="text-align:left"><b>TRun usage</b></caption>
@@ -84,7 +85,7 @@
  * runtime). The {@link IRuntime#transduce(ITarget, Bytes, java.io.InputStream, java.io.OutputStream)}
  * method offers generic support for setting up and running a stream-oriented transduction
  * with a live target instance. For more fine-grained transduction control, use
- * {@link IRuntime#newTransductor(ITarget)} to bind a live target to a transductor
+ * {@link IRuntime#transductor(ITarget)} to bind a live target to a transductor
  * and apply {@link ITransductor} methods directly to set up inputs and transducers
  * and run transductions. Transductions and the involved objects (transductor, target,
  * effectors, fields) are assumed to be single-threaded. Concurrent transductions should

@@ -77,7 +77,7 @@ import com.characterforming.ribose.base.Signal;
  * ITarget proxyTarget = new Target();
  * ITarget liveTarget = new Target(args);
  * IRuntime runtime = Ribose.loadRuntimeModel(modelFile,proxyTarget);
- * ITransductor trex = runtime.newTransductor(liveTarget);
+ * ITransductor trex = runtime.transductor(liveTarget);
  * byte[] data = new byte[64 * 1024];
  * int limit = input.read(data,data.length);
  * if (trex.stop().push(data,limit).signal(Signal.nil).start(transducer).status().isRunnable()) {

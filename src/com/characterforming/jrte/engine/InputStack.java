@@ -129,20 +129,15 @@ final class InputStack {
 			do {
 				Input input = this.stack[this.tos];
 				if (input.position < input.limit) {
-					if (this.tos == 0) {
-						if (this.markState == InputStack.reset
-						&& input.mark < 0) {
-							assert this.tom >= 0;
-							assert !Base.isReferenceOrdinal(input.array);
-							this.addMarked(this.stack[0]);
-							this.stack[0].copy(this.getMarked());
-							assert input.equals(this.stack[0]);
-						}
+					if (this.markState == InputStack.reset && this.tos == 0) {
+						assert input.mark < 0 && this.tom >= 0;
+						this.addMarked(this.stack[0]);
+						this.stack[0].copy(this.getMarked());
+						assert input.equals(this.stack[0]);
 					}
 					return input;
 				}
-				--this.tos;
-			} while (this.tos >= 0);
+			} while (--this.tos >= 0);
 			switch (this.markState) {
 			case InputStack.reset:
 				assert this.bom != this.tom;
@@ -201,7 +196,7 @@ final class InputStack {
 	 * Clear the mark state and null out all data references in the mark stack. 
 	 */
 	void unmark() {
-		if (this.markHigh > Integer.min(this.markLimit, 32)) {
+		if (this.markHigh > Math.min(this.markLimit, 32)) {
 			this.logger.log(Level.WARNING, String.format(
 				"Marklist size was extended past %d and increased to %d. Try increasing ribose.inbuffer.size to exceed maximal expected marked extent.",
 				this.markLimit, this.markHigh));
@@ -316,7 +311,7 @@ final class InputStack {
 	 * 
 	 * @return The number of bytes allocated since count last reset
 	 */
-	public long getBytesAllocated() {
+	long getBytesAllocated() {
 		long allocated = this.bytesAllocated;
 		this.bytesAllocated = 0;
 		return allocated;
@@ -328,7 +323,7 @@ final class InputStack {
 	 * 
 	 * @return The number of bytes read since count last reset
 	 */
-	public long getBytesRead() {
+	long getBytesRead() {
 		long read = this.bytesPushed;
 		this.bytesPushed = 0;
 		return read;
@@ -378,6 +373,7 @@ final class InputStack {
 	}
 	
 	private Input addMarked(Input input) {
+		assert !Base.isReferenceOrdinal(input.array);
 		if (!input.equals(this.markList[this.tom])) {
 			this.markcheck().copy(input);
 			assert this.bom != this.tom;

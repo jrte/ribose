@@ -114,7 +114,7 @@ public class ModelCompiler implements ITarget {
 		try (IRuntime compilerRuntime = Ribose.loadRiboseModel(compilerModelFile)) {
 			final CharsetEncoder encoder = Base.newCharsetEncoder();
 			TCompile compiler = new TCompile(targetModel);
-			compiler.setTransductor(compilerRuntime.newTransductor(compiler));
+			compiler.setTransductor(compilerRuntime.transductor(compiler));
 			for (final String filename : inrAutomataDirectory.list()) {
 				if (!filename.endsWith(Base.AUTOMATON_FILE_SUFFIX)) {
 					continue;

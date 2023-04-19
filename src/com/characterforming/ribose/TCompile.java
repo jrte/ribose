@@ -28,22 +28,10 @@ import java.util.logging.Logger;
 import com.characterforming.jrte.engine.Base;
 import com.characterforming.jrte.engine.Model;
 import com.characterforming.jrte.engine.ModelCompiler;
-import com.characterforming.ribose.base.TargetBindingException;
 
 /**
  * Provides a {@link TCompile#main(String[])} method to transduce ginr DFAs to ribose transducers
  * and package them in a ribose runtime model along with a target class and associated effectors.
- * {@code TCompile} also serves as target class for the ribose compiler model {@code TCompile.model}
- * containing transducers used by the compiler. It inherits three specialized effectors from its
- * base {@code com.characterforming.jrte.engine.ModelCompiler} class.
- * <br><br>
- * The default constructor {@link TCompile()} is used only when building a new compiler model
- * and when loading the compiler model for runtime use by the compilers. In those contexts it
- * serves only as a proxy target to present its effectors and compile effector parameters. The
- * {@link TCompile(Model)} constructor instantiates a runtime instance of the model compiler
- * to serve as a live target during compilation of other ribose models, pulling precompiled 
- * effector parameters from the praxy target in the model.
- * <br><br>
  * The main method runs the ribose runtime compiler to build a runtime model and model map
  * for a target class from a collection of ginr automata generated from ribose patterns. The
  * default {@link com.characterforming.ribose.base.BaseTarget} class will be used as target if
@@ -85,27 +73,16 @@ public final class TCompile extends ModelCompiler {
 	}
 	
 	/**
-	 * Constructor (as runtime target for compilation of other ribose models)
+	 * Constructor (as runtime target for compilation of ribose models)
 	 * 
 	 * @param targetModel the TCompile model instance to be constructed and persisted
 	 */
 	public TCompile(Model targetModel) {
 		super(targetModel);
 	}
-	
-	@Override // @see com.characterforming.ribose.ITarget#bindeEffectors()
-	public IEffector<?>[] getEffectors() throws TargetBindingException {
-		return super.getEffectors();
-	}
-
-	@Override // com.characterforming.ribose.ITarget#getName()
-	public String getName() {
-		return this.getClass().getSimpleName();
-	}
 
 	/**
-	 * Runs the ribose runtime compiler to build a runtime model for a target 
-	 * class from a collection of ginr automata generated from ribose patterns.
+	 * Runs the ribose model compiler to refresh the model compiler model.
 	 * 
 	 * @param args <i>target-classname automata-directory-path runtime-model-path</i>
 	 * @throws IOException If logging subsystem can't initialize

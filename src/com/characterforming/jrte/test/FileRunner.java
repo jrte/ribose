@@ -105,7 +105,7 @@ public class FileRunner {
 			if (regex.isEmpty() && (jrteOutEnabled || !regexOutEnabled)) {
 				try (IRuntime ribose = Ribose.loadRiboseModel(new File(modelPath))) {
 					TestTarget runTarget = new TestTarget();
-					ITransductor trex = ribose.newTransductor(runTarget);
+					ITransductor trex = ribose.transductor(runTarget);
 					if (!jrteOutEnabled) {
 						System.out.print(String.format("%20s: ", transducerName));
 						loops = 20;

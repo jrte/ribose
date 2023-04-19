@@ -47,7 +47,7 @@ import com.characterforming.ribose.base.Signal;
 import com.characterforming.ribose.base.TargetBindingException;
 
 /**
- * Runtime transductor instances are instantiated using {@link IRuntime#newTransductor(ITarget)}
+ * Runtime transductor instances are instantiated using {@link IRuntime#transductor(ITarget)}
  * presenting a collection of {@link IEffector} and {@link IParameterizedEffector}
  * instances. Client applications drive transduction using the Transductor.run() method,
  * which processes the input stack until one of the following conditions is satisfied:

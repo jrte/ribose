@@ -86,7 +86,7 @@ public class TestRunner {
 		};
 		final CharsetEncoder encoder = Base.newCharsetEncoder();
 		try (final IRuntime ribose = Ribose.loadRiboseModel(new File(modelPath))) {
-			final ITransductor trex = ribose.newTransductor(new TestTarget());
+			final ITransductor trex = ribose.transductor(new TestTarget());
 			for (final String test : tests) {
 				long t0 = 0, t1 = 0, t2 = 0;
 				System.out.format("%20s: ", test);
