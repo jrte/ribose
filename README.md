@@ -352,7 +352,36 @@ Good luck with all that.
 # Disclaimer
 Ribose is presented for demonstration only and is not regularly maintained. You may use it to compile and run the included examples, or create your own transducers to play with. Or clone and refine it and make it available to the rest of the world. Transcode it to **C** and wrap it in a Python thing. Do what you will, it's open source.
 
-Ribose has been developed and tested with OpenJDK 11 in Ubuntu and Windows 10 and builds with OpenJDK 17 as well. Clone the ribose repo and run `ant clean package` to build the ribose and test libraries and API documentation in the `jars/` and `javadoc/` directories and the ribose compiler and test models. The `JAVA_HOME` environment variable must be set properly, eg `export JAVA_HOME=$(realpath ~/jdk-17.0.7)`. Similarly for the `ANT_HOME` environment variable. The `ant test` target runs the CI test suite, `ant ci-test` runs a clean build with tests. This should work on any unix-ish platform, including `git bash` or `Msys2\mingw` for Windows, with `ant`, `java`, `bash`, `cat`, `wc`, `grep` in the executable search path. 
+Ribose should build on any unix-ish platform, including `git bash` or `Msys2\mingw` for Windows, with `ant`, `java`, `bash`, `cat`, `wc`, `grep` in the executable search path. It has been developed and tested with OpenJDK 11 in Ubuntu and Windows 10 and builds with OpenJDK 17 as well. The `JAVA_HOME` and `ANT_HOME` environment variable must be set properly, eg `export JAVA_HOME=$(realpath ~/jdk-17.0.7)`.
+
+Clone the ribose repo and run `ant clean package` to build the ribose and test libraries and API documentation in the `jars/` and `javadoc/` directories and the ribose compiler and test models. The `ant test` target runs the CI test suite, `ant ci-test` runs a clean build with tests.
+
+```
+-: # clone ribose
+-: git clone https://github.com/jrte/ribose.git
+Cloning into 'ribose'...
+remote: Enumerating objects: 4222, done.
+remote: Counting objects: 100% (725/725), done.
+remote: Compressing objects: 100% (385/385), done.
+remote: Total 4222 (delta 401), reused 527 (delta 268), pack-reused 3497
+Receiving objects: 100% (4222/4222), 33.18 MiB | 8.19 MiB/s, done.
+Resolving deltas: 100% (2472/2472), done.
+-: # set home paths for java and ant
+-: export JAVA_HOME="$(realpath ./jdk-17.0.7)"
+-: export ANT_HOME="$(realpath ./ant-1.10.12)"
+-: # build ribose, test and javadoc jars and compiler, test models
+-: cd ribose
+-: ant package
+-: ls jars
+ribose-0.0.2-test.jar  ribose-0.0.2.jar
+-: find . -name '*.model' -o -name '*.map'
+./build/Test.map
+./build/Test.model
+./TCompile.map
+./TCompile.model
+-: # run the CI tests
+-: ant test
+```
 
 Binary executable copies of `ginr` (for Linux) and `ginr.exe` (for Windows) are included in `etc/ginr` for personal use (with the author's permission); ginr guidance is [reposted in the sidebar](https://github.com/jrte/ribose/wiki) on the ribose wiki. You are encouraged to clone or download and build ginr directly from the [ginr repo](https://github.com/ntozubod/ginr).
 
