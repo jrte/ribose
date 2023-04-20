@@ -77,7 +77,7 @@ etc/sh/ribose --nil build/Test.model Hello -
 Hello World
 ```
 ### Fibonacci
-This next example computes unary Fibonacci numbers from unary inputs, using transductor compositing effectors to manipulate a collection of user-defined fields (`~X`) that accumulate data mapped from the input. This is interesting because, formally, FSTs effect linear transforms and can only produce regular outputs while the Fibonacci sequence is not regular (it is strictly context sensitive). This is possible because the Fibonacci FST generates a regular sequence of effectors that retain intermediate results in field registers in the host machine's RAM. Fields and literal byte sequences can also be injected into the transduction input stream, using the in[[`@field`] effector, for immediate transduction. 
+This next example computes unary Fibonacci numbers from unary inputs, using transductor compositing effectors to manipulate a collection of user-defined fields (`~X`) that accumulate data mapped from the input. This is interesting because, formally, FSTs effect linear transforms and can only produce regular outputs while the Fibonacci sequence is not regular (it is strictly context sensitive). This is possible because the Fibonacci FST generates a regular sequence of effectors that retain intermediate results in field registers in the host machine's RAM. Fields and literal byte sequences can also be injected into the transduction input stream, using the in[`@field`] effector, for immediate transduction. 
 ```
 Fibonacci = (
   (
