@@ -28,17 +28,34 @@ package com.characterforming.ribose.base;
 public class ModelException extends RiboseException {
 	private static final long serialVersionUID = 1L;
 
+	/** Constructor */
 	public ModelException() {
 	}
 
+	/**
+	 * Constructor
+	 * 
+	 * @param message exception message
+	 */
 	public ModelException(final String message) {
 		super(message);
 	}
 
+	/**
+	 * Constructor
+	 * 
+	 * @param cause the causal exception
+	 */
 	public ModelException(final Throwable cause) {
 		super(cause);
 	}
 
+	/**
+	 * Constructor
+	 * 
+	 * @param message exception message
+	 * @param cause the causal exception
+	 */
 	public ModelException(final String message, final Throwable cause) {
 		super(message, cause);
 	}

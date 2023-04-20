@@ -55,6 +55,7 @@ import com.characterforming.ribose.base.RiboseException;
 import com.characterforming.ribose.base.Signal;
 import com.characterforming.ribose.base.TargetBindingException;
 
+/** Model compiler implements ITarget for the ribose compiler model. */
 public class ModelCompiler implements ITarget {
 
 	/**

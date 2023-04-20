@@ -28,17 +28,34 @@ package com.characterforming.ribose.base;
 public class TargetNotFoundException extends ModelException {
 	private static final long serialVersionUID = 1L;
 
+	/** Constructor */
 	public TargetNotFoundException() {
 	}
 
+	/**
+	 * Constructor
+	 * 
+	 * @param message exception message
+	 */
 	public TargetNotFoundException(final String message) {
 		super(message);
 	}
 
+	/**
+	 * Constructor
+	 * 
+	 * @param cause the causal exception
+	 */
 	public TargetNotFoundException(final Throwable cause) {
 		super(cause);
 	}
 
+	/**
+	 * Constructor
+	 * 
+	 * @param message exception message
+	 * @param cause the causal exception
+	 */
 	public TargetNotFoundException(final String message, final Throwable cause) {
 		super(message, cause);
 	}

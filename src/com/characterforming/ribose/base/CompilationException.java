@@ -28,19 +28,36 @@ package com.characterforming.ribose.base;
 public class CompilationException extends Exception {
 	private static final long serialVersionUID = 1L;
 
+	/** Constructor */
 	public CompilationException() {
 		super();
 	}
 
-	public CompilationException(final String message, final Throwable cause) {
-		super(message, cause);
-	}
-
+	/**
+	 * Constructor
+	 * 
+	 * @param message exception message
+	 */
 	public CompilationException(final String message) {
 		super(message);
 	}
 
+	/**
+	 * Constructor
+	 * 
+	 * @param cause the causal exception
+	 */
 	public CompilationException(final Throwable cause) {
 		super(cause);
+	}
+
+	/**
+	 * Constructor
+	 * 
+	 * @param message exception message
+	 * @param cause the causal exception
+	 */
+	public CompilationException(final String message, final Throwable cause) {
+		super(message, cause);
 	}
 }

@@ -308,17 +308,15 @@ public final class Transductor implements ITransductor, IOutput {
 		}
 		this.matchMode = Mnone;
 		if (this.status() == Status.NULL) {
-			RiboseException rtx = new RiboseException("run: Transduction is MODEL and inoperable");
-			this.rteLogger.log(Level.SEVERE, rtx.getMessage(), rtx);
-			throw rtx;
+			throw new RiboseException("run: Transductor instantiated as model for compiler is inoperable in the runtime");
 		}
 		return this;
 	}
 
 	@Override	// @see com.characterforming.ribose.ITransductor#run()
 	public ITransductor run() throws RiboseException, DomainErrorException {
-		if (this.status() == Status.NULL) {
-			return this.stop();
+		if (this.transducerStack.isEmpty()) {
+			throw new RiboseException("Transductor.run() called while transducer stack is empty");
 		}
 		this.metrics.reset();
 		this.errorInput = -1;

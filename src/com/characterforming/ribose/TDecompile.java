@@ -68,6 +68,12 @@ import com.characterforming.ribose.base.ModelException;
  *   2   4 -&gt;   2 select[4] cut[0] select[5] copy[0] select[3] cut[1]</pre>
  */
 public final class TDecompile {
+  /**
+   * Decompile a transducer, rendering input equivalence classes and state transitions with effects.
+   * 
+   * @param args command line arguments
+   * @throws ModelException on error
+   */
   public static void main(final String[] args) throws ModelException {
     if (args.length != 2) {
       System.out.println();

@@ -171,12 +171,11 @@
 
   <target name="javadoc" unless="javadoc.uptodate" depends="check-javadoc">
   	<delete dir="javadoc" includes="**/*"/>
-    <javadoc access="protected" overview="overview.html" source="11" sourcepath="src" destdir="javadoc" splitindex="false"
+    <javadoc executable="${jdk}/bin/javadoc" access="protected" overview="overview.html" sourcepath="src" destdir="javadoc" splitindex="false"
 			use="true" version="true" nodeprecated="false" nodeprecatedlist="false" noindex="false" nonavbar="false" notree="false"
 			packagenames="com.characterforming.ribose.base,com.characterforming.ribose"
 			doctitle="The General Idea" failonerror="false" failonwarning="false">
 			<group title="Ribose" packages="com.characterforming.ribose*"/>
-			<link href="https://docs.oracle.com/en/java/javase/11/docs/api/"/>
 		</javadoc>
 		<copy todir="javadoc" file="etc/markdown/a-b-gears-white.gif"/>
 		<jar basedir="javadoc" destfile="jars/${ribose.version}-api.jar"/>
@@ -247,7 +246,7 @@
 	</target>
 
 	<target name="compile-test" depends="check-compile-test">
-		<javac fork="true" executable="${jdk}/bin/javac" compiler="modern" release="11" includeantruntime="false"
+		<javac fork="true" executable="${jdk}/bin/javac" compiler="modern" includeantruntime="false"
 		srcdir="${java.source.dir}" destdir="${build.java.classes}" includes="**/${java.test.dir}/**"
 		debug="true" debuglevel="lines,vars,source">
 			<classpath refid="test.classpath"/>

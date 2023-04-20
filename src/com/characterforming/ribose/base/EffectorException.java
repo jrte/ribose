@@ -28,17 +28,34 @@ package com.characterforming.ribose.base;
 public class EffectorException extends RiboseException {
 	private static final long serialVersionUID = 1L;
 
+	/** Constructor */
 	public EffectorException() {
 	}
 
+	/**
+	 * Constructor
+	 * 
+	 * @param message exception message
+	 */
 	public EffectorException(final String message) {
 		super(message);
 	}
 
+	/**
+	 * Constructor
+	 * 
+	 * @param cause the causal exception
+	 */
 	public EffectorException(final Throwable cause) {
 		super(cause);
 	}
 
+	/**
+	 * Constructor
+	 * 
+	 * @param message exception message
+	 * @param cause the causal exception
+	 */
 	public EffectorException(final String message, final Throwable cause) {
 		super(message, cause);
 	}

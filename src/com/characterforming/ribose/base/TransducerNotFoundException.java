@@ -28,17 +28,34 @@ package com.characterforming.ribose.base;
 public class TransducerNotFoundException extends RiboseException {
 	private static final long serialVersionUID = 1L;
 
+	/** Constructor */
 	public TransducerNotFoundException() {
 	}
 
+	/**
+	 * Constructor
+	 * 
+	 * @param message exception message
+	 */
 	public TransducerNotFoundException(final String message) {
 		super(message);
 	}
 
+	/**
+	 * Constructor
+	 * 
+	 * @param cause the causal exception
+	 */
 	public TransducerNotFoundException(final Throwable cause) {
 		super(cause);
 	}
 
+	/**
+	 * Constructor
+	 * 
+	 * @param message exception message
+	 * @param cause the causal exception
+	 */
 	public TransducerNotFoundException(final String message, final Throwable cause) {
 		super(message, cause);
 	}

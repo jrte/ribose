@@ -29,30 +29,37 @@ import java.util.List;
  * @author Kim Briggs
  */
 public class TargetBindingException extends ModelException {
-
 	private static final long serialVersionUID = 1L;
-	private List<String> unboundEffectorList = null;
 
+	/** Constructor */
 	public TargetBindingException() {
 	}
 
+	/**
+	 * Constructor
+	 * 
+	 * @param message exception message
+	 */
 	public TargetBindingException(final String message) {
 		super(message);
 	}
 
+	/**
+	 * Constructor
+	 * 
+	 * @param cause the causal exception
+	 */
 	public TargetBindingException(final Throwable cause) {
 		super(cause);
 	}
 
+	/**
+	 * Constructor
+	 * 
+	 * @param message exception message
+	 * @param cause the causal exception
+	 */
 	public TargetBindingException(final String message, final Throwable cause) {
 		super(message, cause);
-	}
-
-	public void setUnboundEffectorList(final List<String> unbound) {
-		this.unboundEffectorList = unbound;
-	}
-
-	public List<String> getUnboundEffectorList() {
-		return this.unboundEffectorList != null ? this.unboundEffectorList : new ArrayList<String>(0);
 	}
 }

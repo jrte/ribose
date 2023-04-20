@@ -31,17 +31,34 @@ public class RiboseException extends Exception {
 	 */
 	private static final long serialVersionUID = 1L;
 
+	/** Constructor */
 	public RiboseException() {
 	}
 
+	/**
+	 * Constructor
+	 * 
+	 * @param message exception message
+	 */
 	public RiboseException(final String message) {
 		super(message);
 	}
 
+	/**
+	 * Constructor
+	 * 
+	 * @param cause the causal exception
+	 */
 	public RiboseException(final Throwable cause) {
 		super(cause);
 	}
 
+	/**
+	 * Constructor
+	 * 
+	 * @param message exception message
+	 * @param cause the causal exception
+	 */
 	public RiboseException(final String message, final Throwable cause) {
 		super(message, cause);
 	}

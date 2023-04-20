@@ -84,6 +84,11 @@ public abstract class BaseEffector<T extends ITarget> implements IEffector<T> {
 		return this.name.toString();
 	}
 
+	/**
+	 * Lazy instantation for charset decoder
+	 * 
+	 * @return a decoder instance
+	*/
 	protected CharsetDecoder getDecoder() {
 		if (this.decoder == null) {
 			this.decoder = Base.newCharsetDecoder();
@@ -91,6 +96,11 @@ public abstract class BaseEffector<T extends ITarget> implements IEffector<T> {
 		return this.decoder;
 	}
 
+	/**
+	 * Lazy instantation for charset encoder
+	 * 
+	 * @return a encoder instance
+	*/
 	protected CharsetEncoder getEncoder() {
 		if (this.encoder == null) {
 			this.encoder = Base.newCharsetEncoder();
