@@ -16,7 +16,7 @@ The ribose runtime operates multiple concurrent transductions, each encapsulated
 
 The ribose model compiler and runtime are simple, compact (≾120K) and free from external dependencies. The ribose runtime transduces `byte*` streams simply and only because `byte` is the least common denominator for data representation in most networks and computing machines. Ginr compiles complex Unicode glyphs in ribose patterns to multiple UTF-8 byte transitions, so all ribose transductions are effected in the byte domain and only extracted features are decoded and widened to 16-bit Unicode code points. Binary data can be embedded with text (eg, **\`a\x00b\`**), using self-terminating binary patterns or prior length information, as long as they are distinguishable from other artifacts in the information stream. Raw binary encodings may be especially useful in domains, such as online gaming or realtime process control, that demand compact and efficient messaging protocols with relaxed readability requirements. Semantic effectors may also inject previously captured bytes or out-of-band signals, such as countdown termination, into the input stream to direct the course of transductions.
 ### _Example_
-A simple example, taken from the ribose transducer that reduces the serialized form of compiled ginr automata to construct ribose transducers: The input pattern `('INR' (digit+ tab):4 digit+ nl)` is extended to check for a specific tag and marshal 5 integer fields into an immutable `Header` value object. Fields are extracted to named values in raw `byte[]` arrays using the `clear`, `select` and `paste` effectors before the domain-specific `header` effector is finally invoked to decode and marshal them into a `Header` object.
+A simple example, taken from the ribose transducer that reduces the serialized form of compiled ginr automata to construct ribose transducers: The input pattern `('INR' (digit+ tab):4 digit+ nl)` is extended to check for a specific tag and marshal 5 integer fields into an immutable `Header` value object. Fields are extracted in raw `byte[]` arrays using the `clear`, `select` and `paste` effectors before the domain-specific `header` effector is finally invoked to decode and marshal them into a `Header` object.
 ```
 # INR210	3	565	127	282
 
@@ -50,17 +50,17 @@ Ginr operates in a symbolic domain involving a finite set of symbols and algebra
 
 Input patterns are expressed in `{byte,signal}*`-semirings, and may involve UTF-8 and binary bytes from an external source as well as control signals interjected by target effectors. Ribose transducer patterns are expressed in `(input,effector,parameter)*`-semirings, mapping input patterns onto parameterized effectors expressed by domain-specific target classes. They identify syntactic features of interest in the input and apply target effectors to extract and assimilate features into the target domain. 
 
-A ribose model is associated with a domain-specific target class and is a container for related collections of transducers, target effectors, static effector parameters, control signals and named value registers for accumulating extracted bytes. The `ITransductor` implementation that governs ribose transductions provides a base set of effectors to
-- extract and compose data in selected named values *(`select, paste, copy, cut, clear`)*,
+A ribose model is associated with a domain-specific target class and is a container for related collections of transducers, target effectors, static effector parameters, control signals and field registers for accumulating extracted bytes. The `ITransductor` implementation that governs ribose transductions provides a base set of effectors to
+- extract and compose data in selected fields *(`select, paste, copy, cut, clear`)*,
 - count down from preset value and signal end of countdown *(`count`)*
 - push/pop transducers on the transduction stack *(`start, stop`)*,
 - mark/reset at a point in the input stream *(`mark, reset`)*,
 - inject input for immediate transduction *(`in, signal`)*,
 - or write extracted data to an output stream *(`out`)*.
 
-All ribose models implicitly inherit the transductor effectors, along with an extensible set of control signals `{nul,nil,eol,eos}` and an anonymous named value that is preselected for every transduction and reselected when `select` is invoked with no parameter. New signals and named values referenced in transducer patterns implicitly extend the base signal and value collections. Additional effectors may be defined in specialized `ITarget` implementation classes.
+All ribose models implicitly inherit the transductor effectors, along with an extensible set of control signals `{nul,nil,eol,eos}` and an anonymous field that is preselected for every transduction and reselected when `select` is invoked with no parameter. New signals and fields referenced in transducer patterns implicitly extend the base signal and value collections. Additional effectors may be defined in specialized `ITarget` implementation classes.
 
-The ribose transductor implements `ITarget` and its effectors are sufficient for most ribose models that transduce input to standard output via the `out[...]` effector. Domain-specific target classes may extend `BaseTarget` to express additional effectors, typically as inner classes specializing `BaseEffector<Target>` or `BaseParameterizedEffector<Target>`. All effectors are provided with a reference to the containing target instance and an `IOutput` view for extracting named values as `byte[]`, integer, floating point or Unicode `char[]` values, typically for inclusion in immutable value objects that are incorporated into the target model.
+The ribose transductor implements `ITarget` and its effectors are sufficient for most ribose models that transduce input to standard output via the `out[...]` effector. Domain-specific target classes may extend `BaseTarget` to express additional effectors, typically as inner classes specializing `BaseEffector<Target>` or `BaseParameterizedEffector<Target>`. All effectors are provided with a reference to the containing target instance and an `IOutput` view for extracting fields as `byte[]`, integer, floating point or Unicode `char[]` values, typically for inclusion in immutable value objects that are incorporated into the target model.
 
 Targets need not be monolithic. In fact, every ribose transduction involves a composite target comprised of the transductor and at least one other target class (eg, `BaseTarget`). In a composite target one target class is selected as the representative target, which instantiates and gathers effectors from subordinate targets to merge with its own effectors into a single collection to merge with the transductor effectors. Composite targets allow separable concerns within complex semantic domains to be encapsulated in discrete interoperable and reusable targets.
 ## More Examples
@@ -77,7 +77,7 @@ etc/sh/ribose --nil build/Test.model Hello -
 Hello World
 ```
 ### Fibonacci
-This next example computes unary Fibonacci numbers from unary inputs, using transductor compositing effectors to manipulate a collection of user-defined named values (`~X`) that accumulate data mapped from the input. This is interesting because, formally, FSTs effect linear transforms and can only produce regular outputs while the Fibonacci sequence is not regular (it is strictly context sensitive). This is possible because the Fibonacci FST generates a regular sequence of effectors that retain intermediate results in named value registers.
+This next example computes unary Fibonacci numbers from unary inputs, using transductor compositing effectors to manipulate a collection of user-defined fields (`~X`) that accumulate data mapped from the input. This is interesting because, formally, FSTs effect linear transforms and can only produce regular outputs while the Fibonacci sequence is not regular (it is strictly context sensitive). This is possible because the Fibonacci FST generates a regular sequence of effectors that retain intermediate results in field registers in the host machine's RAM. Fields and literal byte sequences can also be injected into the transduction input stream, using the in[[`@field`] effector, for immediate transduction. 
 ```
 Fibonacci = (
   (
@@ -124,7 +124,7 @@ Header = (
   (nl, header)
 );
 ```
-The model compiler class, `ModelCompiler`, implements the `ITarget` interface and expresses a `HeaderEffector<ModelCompiler>` effector class. The compiled `Header` transducer maps the `header` token in the pattern to this effector's `invoke()` method and calls it when the final `nl` token is read. The effector uses its `IOutput` view to decode raw bytes from named values to integer-valued fields within a `Header` object bound to the target instance.
+The model compiler class, `ModelCompiler`, implements the `ITarget` interface and expresses a `HeaderEffector<ModelCompiler>` effector class. The compiled `Header` transducer maps the `header` token in the pattern to this effector's `invoke()` method and calls it when the final `nl` token is read. The effector uses its `IOutput` view to decode fields extracted as raw bytes from input to integer-valued fields within a `Header` object bound to the target instance.
 ```
 class Header {
   final int version;
