@@ -196,10 +196,11 @@ final class InputStack {
 	 * Clear the mark state and null out all data references in the mark stack. 
 	 */
 	void unmark() {
-		if (this.markHigh > Math.min(this.markLimit, 32)) {
+		if (this.markHigh > this.markLimit) {
 			this.logger.log(Level.WARNING, String.format(
 				"Marklist size was extended past %d and increased to %d. Try increasing ribose.inbuffer.size to exceed maximal expected marked extent.",
 				this.markLimit, this.markHigh));
+			this.markLimit = this.markHigh;
 		}
 		this.markHigh = 0;
 		this.stack[0].mark = -1;

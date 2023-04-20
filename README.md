@@ -1,3 +1,4 @@
+[To skip this long screed and learn how to build and work with ribose jump to the [Disclaimer](#disclaimer) at the end]
 # The General Idea
 Ribose (formerly jrte) is about inversion of control for high-volume text analysis and information extraction and transformation in general. Many stream oriented tasks, such as cleaning and extraction for data analytic workflows, involve recognizing and acting upon features embedded, more or less sparsely, within a larger context. Software developers receive some onerous help in that regard from generic software libraries that support common document standards (eg, XML, JSON, MS Word, etc), but dependency on these libraries adds complexity, vulnerability and significant runtime costs to software deployments. And these libraries are of no use at all when information is presented in idiomatic formats that require custom software to deserialize.
 
@@ -351,17 +352,15 @@ Good luck with all that.
 # Disclaimer
 Ribose is presented for demonstration only and is not regularly maintained. You may use it to compile and run the included examples, or create your own transducers to play with. Or clone and refine it and make it available to the rest of the world. Transcode it to **C** and wrap it in a Python thing. Do what you will, it's open source.
 
-Clone the ribose repo and run `ant ribose` to build the ribose library and API (javadoc) in the `jars/` folder. The `test` ant target runs the CI test suite, `ci-test` runs a clean build with tests. This should work on any unix-ish platform, including `git bash` or `Msys2\mingw` for Windows, with `gcc`, `ant`, `java`, `bash`, `cat`, `wc`, `grep` in the executable search path. Binary executable copies of `ginr` (for Linux) and `ginr.exe` (for Windows) are included in `etc/ginr` (with the author's permission) for personal use. You are encouraged to clone or download and build ginr directly from the [ginr repo](https://github.com/ntozubod/ginr).
+Clone the ribose repo and run `ant clean package` to build the ribose and test libraries and API documentation in the `jars/` and `javadoc/` directories and the ribose compiler and test models. The `ant test` target runs the CI test suite, `ant ci-test` runs a clean build with tests. This should work on any unix-ish platform, including `git bash` or `Msys2\mingw` for Windows, with `ant`, `java`, `bash`, `cat`, `wc`, `grep` in the executable search path. Ribose has been developed and tested with OpenJDK 11 in Ubuntu and Windows 10.
 
-The `TRun` target is coupled with the transductor effectors and is sufficient for basic ribose runtime models containing only transductions that write output though the `out[...]` effector. Specialized `ITarget` implementations can express additional effectors that capture transduction output in simple value objects for assimilation into the target, which may also interact with other domain objects. In any case, to build a ribose model for a collection of transduction patterns, emulate the procedure for building `Test.model` (see the `compile-test-patterns` and `package-test-patterns` targets in `build.xml`).
+Binary executable copies of `ginr` (for Linux) and `ginr.exe` (for Windows) are included in `etc/ginr` for personal use (with the author's permission); ginr guidance is [reposted in the sidebar](https://github.com/jrte/ribose/wiki) on the ribose wiki. You are encouraged to clone or download and build ginr directly from the [ginr repo](https://github.com/ntozubod/ginr).
 
-Shell scripts for compiling patterns, packaging transducers into ribose models, and running transductions are available in `etc/sh`:
+To learn how to build ribose models and run transductors in the JVM runtime build ribose and see the javadoc pages in `javadoc/`. The documentation for the `com.characterforming.ribose` package specifies the arguments for the runnable classes `TCompile`, `TDecompile` and `TRun`. These can be run directly or from the shell scripts in `etc/sh`:
 
 - _patterns_: compile ginr patterns from a containing folder to DFAs
 - _compile_: compile ginr DFAs to ribose transducers and package transducers into a ribose model
 - _ribose_: start a ribose transducer on a runtime transductor to transduce an input file
-
-To learn how to use ribose models in the JVM runtime build ribose and see the javadoc pages in `javadoc/`.
 
 For some background reading and a historical perspective visit the [ribose wiki](https://github.com/jrte/ribose/wiki).
 
