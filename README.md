@@ -144,7 +144,7 @@ class Header {
 }
 
 class HeaderEffector extends BaseEffector<ModelCompiler> {
-  INamedValue fields[];
+  IField fields[];
 
   HeaderEffector(ModelCompiler automaton) {
     super(automaton, Bytes.encode("header"));
@@ -154,12 +154,12 @@ class HeaderEffector extends BaseEffector<ModelCompiler> {
   public void setOutput(IOutput output)
   throws TargetBindingException {
     super.setOutput(output);
-    fields = new INamedValue[] {
-      super.output.getNamedValue(Bytes.encode("version")),
-      super.output.getNamedValue(Bytes.encode("tapes")),
-      super.output.getNamedValue(Bytes.encode("transitions")),
-      super.output.getNamedValue(Bytes.encode("states")),
-      super.output.getNamedValue(Bytes.encode("symbols"))
+    fields = new IField[] {
+      super.output.getField(Bytes.encode("version")),
+      super.output.getField(Bytes.encode("tapes")),
+      super.output.getField(Bytes.encode("transitions")),
+      super.output.getField(Bytes.encode("states")),
+      super.output.getField(Bytes.encode("symbols"))
     };
   }
 
