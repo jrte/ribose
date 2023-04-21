@@ -1,6 +1,6 @@
 bin/
 build/
-javadoc
+javadoc/
 jars/*.jar
 java_pid*
 **/.fuse_hidden*

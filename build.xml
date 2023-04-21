@@ -193,7 +193,7 @@
 			<fileset dir="${build.compiler.model}" includes="TCompile.*"/>
 		</delete>
 		<exec failonerror="true" executable="bash">
-			<arg line="etc/sh/patterns ${ribose.patterns} patterns/alpha.inr patterns/after.inr ${build.compiler.model}"/>
+			<arg line="etc/sh/patterns ${ribose.patterns} patterns/alpha.inr patterns/after.inr"/>
 		</exec>
 		<echo/>
 		<java fork="true" jvm="${jdk}/bin/java" dir ="." classname="com.characterforming.ribose.TCompile" classpathref="jrte.classpath" failonerror="true">
@@ -218,7 +218,7 @@
 
 	<target name="compile-test-patterns" depends="check-test-patterns" unless="test.patterns.uptodate">
 		<exec failonerror="true" executable="bash">
-			<arg line="etc/sh/patterns ${test.patterns} patterns/alpha.inr patterns/after.inr ${build.automata}"/>
+			<arg line="etc/sh/patterns ${test.patterns} patterns/alpha.inr patterns/after.inr"/>
 		</exec>
 	</target>
 

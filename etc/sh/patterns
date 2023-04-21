@@ -1,9 +1,8 @@
 #! /bin/bash
-if (($# != 4)); then
-	echo "Usage: patterns <ginr-source-directory> <prologue-file> <epilogue-file> <dfa-output-directory>"
-	echo "Effect: 'cat <prologue-file><ginr-source-file>.inr<epilogue-file> | ginr' for each ginr source in <ginr-source-directory>"
+if (($# <2)) || (($#>3)); then
+	echo "Usage: patterns <ginr-source-directory> <prologue-file> [<epilogue-file>]"
+	echo "Effect: 'cat <prologue-file> <ginr-source-file> [<epilogue-file>] | ginr' for each ginr source in <ginr-source-directory>"
 	echo "Tracing info including ginr error messages for X.inr are written to /tmp/X.inr.ginrout"
-	echo "Compiled automata (*.dfa) are placed in <dfa-output-directory>"
 	exit 1
 fi
 if [[ ! -d "$1" ]]; then 
@@ -14,23 +13,14 @@ if [[ ! -f "$2" ]]; then
 	echo "Not found: $2"
 	exit 1
 fi
-if [[ ! -f "$3" ]]; then 
+if (($#==3)) && [[ ! -f "$3" ]]; then 
 	echo "Not found: $3"
 	exit 1
 fi
-if [[ ! -d "$4" ]]; then 
-	echo "Not a directory: $4"
-	exit 1
-fi
-
 jrte=$(realpath $(dirname $0)/../..)
 jars=$jrte/jars
 version=$(cat $jrte/version)
 path="$jars/$version.jar:$jars/$version-test.jar"
-src="$1"
-prologue="$2"
-epilogue="$3"
-out="$4"
 
 ginr="$jrte/etc/ginr/ginr"
 if [[ "$OS" =~ ^Windows ]]; then
@@ -39,11 +29,11 @@ fi
 
 failed=0
 echo ":bye;" | $ginr | grep ' '
-for f in "$src"/*.inr; do
+for f in "$1"/*.inr; do
 	if [[ "$f" != "$prologue" && "$f" != "$epilogue" ]]; then
 		file=$(basename "$f")
 		name=${file%.inr}
-		cat "$prologue" "$f" "$epilogue" | $ginr &> "/tmp/$name.ginrout"
+		cat $2 $f $3 | $ginr &> "/tmp/$name.ginrout"
 		grep --basic-regexp --before-context=2 --after-context=2 \
 			'^[ ]*\* \* \*\|^[ ]*\*\*\*\|^Error detected at state [0-9]*:\|^Reserved character:\|^Warning:' \
 			"/tmp/$name.ginrout" &> "/tmp/$name.ginrerr"
