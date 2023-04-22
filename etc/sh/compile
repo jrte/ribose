@@ -2,17 +2,17 @@
 jrte=$(realpath $(dirname $0)/../..)
 jars=$jrte/jars
 version=$(cat $jrte/version)
-path="$jars/$version.jar:$jars/$version-test.jar"
+path="$jars/$version.jar"
 target="com.characterforming.ribose.base.BaseTarget"
 if (($#>1)) && [[ "$1" == "--target" ]]; then
 	target="$2"
 	shift 2
-	if (($#>1)) && [[ "$1" == "--target-path" ]]; then
-		targetpath=$(realpath "$2")
-		if [[ ! -z "$targetpath" ]]; then
-			path="$path:$targetpath"
-			shift 2
-		fi
+fi
+if (($#>1)) && [[ "$1" == "--target-path" ]]; then
+	targetpath=$(realpath "$2")
+	if [[ ! -z "$targetpath" ]]; then
+		path="$path:$targetpath"
+		shift 2
 	fi
 fi
 if (($#==2)); then
@@ -23,7 +23,7 @@ if (($#==2)); then
 	fi
 	model=$(realpath "$2")
 else 
-	echo "Usage: compile [--target <target-classname> [--target-path <target-classpath>]] <dfa-directory-path> <model-file-path>"
+	echo "Usage: compile [--target <target-classname>] [--target-path <target-classpath>] <dfa-directory-path> <model-file-path>"
 	echo "Compiles automata from <dfa-directory-path> into <model-file-path>."
 	echo "Default target is com.characterforming.ribose.BaseTarget."
 	exit 1

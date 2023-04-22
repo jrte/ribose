@@ -196,16 +196,15 @@
 			<arg line="etc/sh/patterns ${ribose.patterns} patterns/alpha.inr patterns/after.inr"/>
 		</exec>
 		<echo/>
-		<java fork="true" jvm="${jdk}/bin/java" dir ="." classname="com.characterforming.ribose.TCompile" classpathref="jrte.classpath" failonerror="true">
-			<jvmarg line="${jargs}"/>
-			<arg line="--target com.characterforming.ribose.TCompile ${build.compiler.model} ${build.compiler.model}/TCompile.model"/>
-		</java>
+		<exec failonerror="true" executable="bash">
+			<arg line="etc/sh/compile --target com.characterforming.ribose.TCompile ${build.compiler.model} ${build.compiler.model}/TCompile.model"/>
+		</exec>
 		<fixcrlf file="${build.compiler.model}/TCompile.map" eol="lf"/>
-		<move file="./TCompile.map" tofile="./TCompile.map.last" failonerror="false" verbose="true"/>
-		<move file="./TCompile.model" tofile="./TCompile.model.last" failonerror="false" verbose="true"/>
 		<move todir="." verbose="true">
 			<fileset dir="${build.compiler.model}" includes="TCompile.*"/>
 		</move>
+		<copy file="./TCompile.model" todir="${build.java.classes}/com/characterforming/jrte/engine" overwrite="true" force="true"/>
+		<jar update="true" basedir="${build.java.classes}" destfile="jars/${ribose.version}.jar" includes="**/TCompile.model"/>
 	</target>
 
 	<target name="check-test-patterns" depends="ribose">

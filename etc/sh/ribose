@@ -3,7 +3,7 @@
 jrte=$(realpath $(dirname $0)/../..)
 jars=$jrte/jars
 version=$(cat $jrte/version)
-path="$jars/$version.jar:$jars/$version-test.jar"
+path="$jars/$version.jar"
 vmargs=""
 while [[ "$1" =~ ^[-][^-] ]]; do
 	vmargs="$vmargs $1";

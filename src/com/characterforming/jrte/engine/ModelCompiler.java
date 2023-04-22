@@ -25,7 +25,11 @@ import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.URL;
 import java.nio.charset.CharsetDecoder;
 import java.nio.charset.CharsetEncoder;
 import java.util.ArrayList;
@@ -109,9 +113,34 @@ public class ModelCompiler implements ITarget {
 	}
 
 	public static boolean compileAutomata(Model targetModel, File inrAutomataDirectory) throws ModelException {
-		File workingDirectory = new File(System.getProperty("user.dir", "."));
-		File compilerModelFile = new File(workingDirectory, "TCompile.model");
 		Logger rtcLogger = Base.getCompileLogger();
+		File compilerModelFile = null;
+		String compilerModelPath = ModelCompiler.class.getPackageName() + "/TCompile.model";
+		URL compilerModelUrl = targetModel.getClass().getResource(compilerModelPath);
+		if (compilerModelUrl != null) {
+			try {
+				compilerModelFile = File.createTempFile("TCompile", ".model");
+				try (
+					InputStream mis = targetModel.getClass().getResourceAsStream(compilerModelPath);
+					OutputStream mos =  new FileOutputStream(compilerModelFile);
+				) {
+					compilerModelFile.deleteOnExit();
+					byte[] data = new byte[65536];
+					int read = -1;
+					do {
+						read = mis.read(data);
+						if (read > 0) {
+							mos.write(data, 0, read);
+						}
+					} while (read >= 0);
+				}
+			} catch (IOException e) {
+				throw new ModelException("Unable to create temporary model file", e);
+			}
+		} else {
+			File workingDirectory = new File(System.getProperty("user.dir", "."));
+			compilerModelFile = new File(workingDirectory, "TCompile.model");
+		}
 		try (IRuntime compilerRuntime = Ribose.loadRiboseModel(compilerModelFile)) {
 			final CharsetEncoder encoder = Base.newCharsetEncoder();
 			TCompile compiler = new TCompile(targetModel);

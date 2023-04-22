@@ -1,7 +1,7 @@
 bin/
 build/
 javadoc/
-jars/*.jar
+jars/*
 java_pid*
 **/.fuse_hidden*
 **/.~*

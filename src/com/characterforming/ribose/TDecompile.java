@@ -85,9 +85,9 @@ public final class TDecompile {
 			System.out.println();
       System.exit(1);
     }
-    File modelFile = new File(args[0]);
+    File modelFile = (new File(args[0])).getAbsoluteFile();
     if (!modelFile.exists()) {
-      System.out.printf("Invalid model path: %s\n", args[0]);
+      System.out.printf("Invalid model path: %s (%s)\n", args[0], modelFile.getAbsolutePath());
       System.exit(1);
     }
     String transducerName = args[1];
