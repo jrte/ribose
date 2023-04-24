@@ -322,7 +322,7 @@ Consider ribonucleic acid (RNA), a strip of sugar (ribose) molecules strung toge
 
 For a more recent example, consider a **C** function compiled to a sequence of machine instructions with an entry point (call) and maybe one or more exit points (return). This can be decomposed into a set of vectors of non-branching instructions, each terminating with a branch (or return) instruction. These vectors are ratcheted through the control unit of a CPU and each sequential instruction is decoded and executed to effect specific local changes in the state of the machine. Branching instructions evaluate machine state to select the next vector for execution. All of this is effected by a von Neumann CPU, chasing an instruction pointer. As long as the stack pointer is fixed on the frame containing a function the instruction pointer will trace a regular pattern within the bounds of the compiled function. This regularity would be obvious in the source code for the function as implemented in a procedural programming language like **C**, where the interplay of concatenation (';'), union (if/else/switch) and repetition (while/do/for) is apparent. It may not be so obvious in source code written in other, eg functional, programming languages, but it all gets compiled down to machine code to run on von Neumann CPUs, on the ground or in the cloud.
 
-From an extreme but directionally correct perspective it can be said that almost all software processes operating today are running on programmable calculators with keyboards and heaps of RAM. Modern computing machines are the multigenerational inheritors of von Neumann's architecture, which was originally developed to support numeric use cases like calculating ballistic trajectories. These machines are "[Turing complete](https://en.wikipedia.org/wiki/Brainfuck)", so all that is required to accommodate textual data is a numeric encoding of text characters. [Programmers can do the rest](https://www.cs.nott.ac.uk/~pszgmh/Parsing.hs). Since von Neumann's day we've seen lots of giddy-up but the focus in [machine development](https://github.com/jrte/ribose/raw/master/reference/50_Years_of_Army_Computing.pdf) has mainly been on miniaturization and optimizations to compensate for RAM access lag. Ribose offers an alternative approach to sequential information processing, refactoring syntactic concerns into patterns that coordinate the application of tightly focussed effector functions of reduced complexity. This approach is not new; John Backus described _Applicative State Transition Systems_ generically in his [Turing Award](https://cs.wellesley.edu/~cs251/s19/notes/backus-turing-lecture.pdf) paper (§14, ©ACM 1977, fair use). Even IBM got in on the act, producing an FST-driven [XML Accelerator](https://web.archive.org/web/20120930202629/http://www.research.ibm.com/XML/IBM_Zurich_XML_Accelerator_Engine_paper_2004May04.pdf), of all things. They did it the hard way, eschewing state transition diagrams and working with lists of transitions, apparently unaware of semiring algebra, and deployed their thing inside [WebSphere](https://web.archive.org/web/20080622054818/http://www-306.ibm.com/software/integration/datapower/xa35/) where it would be inaccessible to web service developers. Ribose makes transduction real and accesible.
+From an extreme but directionally correct perspective it can be said that almost all software processes operating today are running on programmable calculators with keyboards and heaps of RAM. Modern computing machines are the multigenerational inheritors of von Neumann's architecture, which was originally developed to support numeric use cases like calculating ballistic trajectories. These machines are "[Turing complete](https://en.wikipedia.org/wiki/Brainfuck)", so all that is required to accommodate textual data is a numeric encoding of text characters. [Programmers can do the rest](https://www.cs.nott.ac.uk/~pszgmh/Parsing.hs). Since von Neumann's day we've seen lots of giddy-up but the focus in [machine development](https://github.com/jrte/ribose/raw/master/reference/50_Years_of_Army_Computing.pdf) has mainly been on miniaturization and optimizations to compensate for RAM access lag. Ribose offers an alternative approach to sequential information processing, refactoring syntactic concerns into patterns that coordinate the application of tightly focussed effector functions of reduced complexity. This approach is not new; John Backus described _Applicative State Transition Systems_ generically in his [Turing Award](https://cs.wellesley.edu/~cs251/s19/notes/backus-turing-lecture.pdf) paper (§14, ©ACM 1977, fair use). Even IBM got in on the act, producing an FST-driven [XML Accelerator](https://web.archive.org/web/20120930202629/http://www.research.ibm.com/XML/IBM_Zurich_XML_Accelerator_Engine_paper_2004May04.pdf), of all things. They did it the hard way, eschewing state transition diagrams and working with lists of transitions, apparently unaware of semiring algebra, and deployed their thing inside [WebSphere](https://web.archive.org/web/20080622054818/http://www-306.ibm.com/software/integration/datapower/xa35/) where it would be inaccessible to web service developers. Ribose makes transduction real and accessible.
 
 Programming instruction-driven machines to navigate complex patterns in sequential data or asynchronous workflows is an arduous task in any modern programming language, requiring a mess of fussy, fine-grained twiddling that is error prone and difficult to compose and maintain. Refactoring the twiddling into a nest of regular input patterns leaves a simplified collection of code snippets that just need to be sequenced correctly as effectors, and extending input patterns to orchestrate effector sequencing via transduction seems like a natural thing to do. Transducer patterns expressed in symbolic terms can be manipulated using well-founded and wide-ranging algebraic techniques, often without impacting effector semantics. Effector semantics are very specific and generally expressed in a few lines of code, free from syntactic concerns, in a procedural programming language. Their algebraic properties also enable regular patterns to be reflected in other mathematical domains where they may be amenable to productive analysis.
 
@@ -354,26 +354,28 @@ Ribose is presented for demonstration only and is not regularly maintained. You 
 
 Ribose should build on any unix-ish platform, including `git bash` or `Msys2\mingw` for Windows, with `ant`, `java`, `bash`, `cat`, `wc`, `grep` in the executable search path. It has been developed and tested with OpenJDK 11 in Ubuntu and Windows 10 and builds with OpenJDK 17 as well. The `JAVA_HOME` and `ANT_HOME` environment variable must be set properly, eg `export JAVA_HOME=$(realpath ~/jdk-17.0.7)`.
 
-Clone the ribose repo and run `ant clean package` to build the ribose and test libraries and API documentation in the `jars/` and `javadoc/` directories and the ribose compiler and test models. The `ant test` target runs the CI test suite, `ant ci-test` runs a clean build with tests.
+Clone the ribose repo and run `ant clean package` to percolate the ribose and test libraries and API documentation into the `jars/` and `javadoc/` directories and build the ribose compiler and test models from transducer patterns in the `patterns/` directory. The `ant test` target runs the CI test suite. The default target selected with `ant` alone performs a clean build and runs the CI tests.
 
 ```
--: # clone ribose
--: git clone https://github.com/jrte/ribose.git
-Cloning into 'ribose'...
-remote: Enumerating objects: 4222, done.
-remote: Counting objects: 100% (725/725), done.
-remote: Compressing objects: 100% (385/385), done.
-remote: Total 4222 (delta 401), reused 527 (delta 268), pack-reused 3497
-Receiving objects: 100% (4222/4222), 33.18 MiB | 8.19 MiB/s, done.
-Resolving deltas: 100% (2472/2472), done.
 -: # set home paths for java and ant
 -: export JAVA_HOME="$(realpath ./jdk-17.0.7)"
 -: export ANT_HOME="$(realpath ./ant-1.10.12)"
+-: # clone ribose
+-: git clone https://github.com/jrte/ribose.git
+Cloning into 'ribose'...
+...
+Resolving deltas: 100% (2472/2472), done.
 -: # build ribose, test and javadoc jars and compiler, test models
 -: cd ribose
 -: ant package
+Buildfile: F:\Ubuntu\git\jrte\build.xml
+...
+BUILD SUCCESSFUL
+-: # list build products
 -: ls jars
-ribose-0.0.2-test.jar  ribose-0.0.2.jar
+ribose-0.0.2.jar  ribose-0.0.2-api.jar  ribose-0.0.2-test.jar
+-: jar -tvf jars/ribose-0.0.2.jar|grep -oE '[a-z/]+TCompile.model'
+com/characterforming/jrte/engine/TCompile.model
 -: find . -name '*.model' -o -name '*.map'
 ./build/Test.map
 ./build/Test.model
@@ -390,6 +392,8 @@ To learn how to build ribose models and run transductors in the JVM runtime buil
 - _patterns_: compile ginr patterns from a containing folder to DFAs
 - _compile_: compile ginr DFAs to ribose transducers and package transducers into a ribose model
 - _ribose_: start a ribose transducer on a runtime transductor to transduce an input file
+
+Other than ginr ribose has no dependencies and is contained entirely within the ribose jar file. The shell scripts are tailored to work within the ribose repo environment and but can serve as templates for performing equivalent operations in other environments.
 
 For some background reading and a historical perspective visit the [ribose wiki](https://github.com/jrte/ribose/wiki).
 

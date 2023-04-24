@@ -2,24 +2,29 @@
  * Component interfaces and runnable classes for the ribose model compiler and runtime. The
  * {@link Ribose} class provides static methods for compiling and loading ribose models in
  * the Java VM. The runnable classes {@link TCompile} and {@link TRun} enable model compilation
- * and transduction to be run from the shell.
+ * and transduction to be run from the shell. Each model is bound to an {@link ITarget}
+ * implementation class <b>T</b>, which must provide a default constructor <b>T()</b> to
+ * serve as a proxy for model compilation and may also provide additional effectors and
+ * constructors. A ribose model or target is <i>simple</i> if model targets instantiated with the
+ * default constructor can support runtime transduction, and <i>fancy</i> if runtime 
+ * targets must be instantiated using a specialized constructor. 
  * <br><br>
  * A collection of related ribose patterns are compiled to automata by ginr. The automata
- * ({@code *.dfa}) files are saved to directory and the ribose model compiler packages them
- * into a ribose model ({@code *.model}) file for use in the ribose runtime. An {@link ITarget}
- * implementation class is bound to the model when it is compiled. The default 
- * {@link com.characterforming.ribose.base.BaseTarget} class provides access to the built-in
- * effectors described in the {@link ITransductor} documentation, whuch should be sufficient
- * for regular and context-free transductions that only write transduction output through
- * the {@code out} effector. Domain-specific {@code ITarget} implementations implicitly
- * include these built-in effectors and may define additional specialized effectors that
- * assimilate transduction output into the target domain. 
+ * ({@code *.dfa}) files are saved to directory and the ribose model compiler assembles them
+ * into a ribose model ({@code *.model}) file for use in the ribose runtime. In the process
+ * the model compiler instantiates proxy target instance to validate and compile effector
+ * parameters. The {@link com.characterforming.ribose.base.BaseTarget} class provides access
+ * to the built-in effectors described in the {@link ITransductor} documentation, which
+ * should be sufficient for regular and context-free transductions that only write transduction
+ * output through the {@code out} effector. Domain-specific {@code ITarget} implementations
+ * implicitly inherit these built-in effectors and may define additional specialized effectors
+ * that assimilate transduction output into the target domain. 
  * <br><br>
  * The ribose model compiler {@link TCompile} can be run from the command line using
  * {@link TCompile#main(String[])} specifying an {@link ITarget} implementation class
- * (eg, {@link com.characterforming.ribose.base.BaseTarget}) as target class, the path
- * to the automata directory and the path and name of the file to contain the compiled
- * model. The compiler is also accessible in the JVM using {@link Ribose#compileRiboseModel(Class, File, File)}.
+ * (eg, {@link com.characterforming.ribose.base.BaseTarget}) as target class, the path to the
+ * automata directory and the path and name of the file to contain the compiled model. The 
+ * compiler is also accessible in the JVM using {@link Ribose#compileRiboseModel(Class, File, File)}.
  * The  default {@link com.characterforming.ribose.base.BaseTarget} class will be used as
  * target if {@code --target} and {@code --target-path} are not specified. In any case, a
  * proxy instance of the model target class will be instantiated, using its default constructor,
@@ -35,18 +40,14 @@
  * <tr><td style="text-align:right"><i>model</i></td><td>The path to the file to contain the compiled model.</td></tr>
  * </table>
  * <br>
- * For {@link com.characterforming.ribose.base.BaseTarget} the default (nullary) constructor of the
- * target class, which the model compiler requires for proxy target instantiation, is also used for
- * live target instantiation in the ribose runtime. For any {@link ITarget} implementation capable of
- * live target instantiation from the default constructor {@link TRun#main(String[])} can be run to
- * load a target model and transduce a UTF-8 input stream. Output from the {@code out[..]} effector
- * is written as UTF-8 byte stream unless {@code -Djrte.out.enabled=false} is selected in the java
- * command options (allowing benchmarking to proceed without I/O overhead). The {@code --target-path}
- * argument need not be specified if the model target is {@link com.characterforming.ribose.base.BaseTarget}.
- * In any case, to run transductions with {@link TRun} the target class must have a default constructor
- * for proxy <i>and</i> live target instances. A proxy instance will be instantiated to precompile
- * effector parameters and a live instance will be instantiated and bound to the transduction. See the
- * {@link ITarget} documentation for details regarding proxy and live targets in the ribose runtime.
+ * For simple models the runtime target is instantiated with a default constructor in model compilation
+ * and runtime contexts. Any <i>simple</i> ribose model can be used to run transductions with 
+ * {@link TRun#main(String[])}. The {@code --target-path} argument need not be specified if the model
+ * target is the default {@link com.characterforming.ribose.base.BaseTarget}. Transductions involving
+ * <i>fancy</i> targets and models are expected to be embedded in applications or services where targets
+ * are instantiated externally to the runtime. See the {@link IRuntime} and {@link ITarget} documentation
+ * for more details regarding running transductions in the ribose runtime.
+ * runtime.
  * Default output is System.out.
  * <br><br>
  * <table style="font-size:12px">
@@ -60,10 +61,9 @@
  * <tr><td style="text-align:right"><i>output</i></td><td>The path to the output file (default is {@code System.out}).</td></tr>
  * </table>
  * <br>
- * The model compiler reduces the NxM transition matrix (N&ge;260 input
- * bytes or signals, M states) for ginr transducer <b>H</b> to an Nx1 input
- * equivalence transducer <b>F</b> mapping byte and signal ordinals to K&lt;N
- * input equivalence classes and a KxM kernel transducer <b>G</b> 
+ * The model compiler reduces the NxM transition matrix (N&ge;260 input bytes or signals, M states)
+ * for ginr transducer <b>H</b> to an Nx1 input equivalence transducer <b>F</b> mapping byte and
+ * signal ordinals to K&lt;N input equivalence classes and a KxM kernel transducer <b>G</b> 
  * equivalent to <b>H</b> modulo <b>F*</b> (so <b>H</b>(x)&nbsp;=&nbsp;<b>(G&deg;F*)</b>(x)).
  * The ribose transducer decompiler {@link TDecompile} can be used to list the input equivalence
  * map and kernel transitions for any compiled transducer. It can be run from the command line
