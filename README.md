@@ -352,7 +352,9 @@ Good luck with all that.
 # Disclaimer
 Ribose is presented for demonstration only and is not regularly maintained. You may use it to compile and run the included examples, or create your own transducers to play with. Or clone and refine it and make it available to the rest of the world. Transcode it to **C** and wrap it in a Python thing. Do what you will, it's open source.
 
-Ribose should build on any unix-ish platform, including `git bash` or `Msys2\mingw` for Windows, with `ant`, `java`, `bash`, `cat`, `wc`, `grep` in the executable search path. It has been developed and tested with OpenJDK 11 in Ubuntu and Windows 10 and builds with OpenJDK 17 as well. The `JAVA_HOME` and `ANT_HOME` environment variable must be set properly, eg `export JAVA_HOME=$(realpath ~/jdk-17.0.7)`.
+Binary executable copies of `ginr` (for Linux) and `ginr.exe` (for Windows) are included in `etc/ginr` for personal use (with the author's permission); ginr guidance is [reposted in the sidebar](https://github.com/jrte/ribose/wiki) on the ribose wiki. You are encouraged to clone or download and build ginr directly from the [ginr repo](https://github.com/ntozubod/ginr).
+
+Ribose has been developed and tested with OpenJDK 11 in Ubuntu and OpenJDK 11 and 17 in Windows 10. It should build on any unix-ish platform, including `git bash` or `Msys2\mingw` for Windows, with `ant`, `java`, `bash`, `cat`, `wc`, `grep` in the executable search path. The `JAVA_HOME` and `ANT_HOME` environment variables must be set properly, eg `export JAVA_HOME=$(realpath ~/jdk-17.0.7)`.
 
 Clone the ribose repo and run `ant clean package` to percolate the ribose and test libraries and API documentation into the `jars/` and `javadoc/` directories and build the ribose compiler and test models from transducer patterns in the `patterns/` directory. The `ant test` target runs the CI test suite. The default target selected with `ant` alone performs a clean build and runs the CI tests.
 
@@ -385,16 +387,22 @@ com/characterforming/jrte/engine/TCompile.model
 -: ant test
 ```
 
-Binary executable copies of `ginr` (for Linux) and `ginr.exe` (for Windows) are included in `etc/ginr` for personal use (with the author's permission); ginr guidance is [reposted in the sidebar](https://github.com/jrte/ribose/wiki) on the ribose wiki. You are encouraged to clone or download and build ginr directly from the [ginr repo](https://github.com/ntozubod/ginr).
-
-To learn how to build ribose models and run transductors in the JVM runtime build ribose and see the javadoc pages in `javadoc/`. The documentation for the `com.characterforming.ribose` package specifies the arguments for the runnable classes `TCompile`, `TDecompile` and `TRun`. These can be run directly or from the shell scripts in `etc/sh`:
+To learn how to build ribose models and run transductors in the JVM runtime build ribose and see the javadoc pages in `javadoc/`. The documentation for the `com.characterforming.ribose` package specifies the arguments for the runnable classes `TCompile`, `TDecompile` and `TRun` and presents the ribose runtime service interfaces. The runnable classes can be executed directly or from the shell scripts in `etc/sh`:
 
 - _patterns_: compile ginr patterns from a containing folder to DFAs
 - _compile_: compile ginr DFAs to ribose transducers and package transducers into a ribose model
 - _ribose_: start a ribose transducer on a runtime transductor to transduce an input file
 
-Other than ginr ribose has no dependencies and is contained entirely within the ribose jar file. The shell scripts are tailored to work within the ribose repo environment and but can serve as templates for performing equivalent operations in other environments.
+Other than ginr ribose has no dependencies and is contained entirely within the ribose jar file. The shell scripts are tailored to work within the ribose repo environment but can serve as templates for performing equivalent operations in other environments.
 
 For some background reading and a historical perspective visit the [ribose wiki](https://github.com/jrte/ribose/wiki).
 
 See [LICENSE](https://github.com/jrte/ribose/raw/master/LICENSE) for ribose licensing details.
+# Postscript
+Please somebody burn this into an FPGA and put it in a box like [this](https://web.archive.org/web/20080622054818/http://www-306.ibm.com/software/integration/datapower/xa35/) and sell it. But don't bind the sweetness to a monster and hide it in the box; please, provide and maintain a robust compiler for generalized rational functions and relations ([hint](https://github.com/ntozubod/ginr)). Show information architects how to encode basic domain artifacts as patterns in the byte `*`-semiring and combine patterns to represent more complex artifacts for persistence and transmission and decoding off the wire, without heavy handed guidance from externalities like IBM, Microsoft, Amazon, Google or yourself. 
+
+You never know. Folks who process vast quantities of text off the wire to feed their search engines or from persistent stores to feed their giant AI brains might find unimagined ways to repurpose your box. And you won't have to tweak your FPGA one bit, if you've done it right, because these novel adaptations are effected in the pattern domain.  A thriving pattern-oriented community will share libraries of patterns to cover common artifacts and everyone will love you.
+
+Then XML will go away. <i>Think</i> about it.
+
+Thank you.
