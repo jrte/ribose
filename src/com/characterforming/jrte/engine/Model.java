@@ -60,7 +60,7 @@ public final class Model implements AutoCloseable {
 	static final byte[] ALL_FIELDS_NAME = { '*' };
 
 	public enum TargetMode {
-		none, compile, run;
+		NONE, COMPILE, RUN;
 	}
 
 	private final String ioMode;
@@ -191,7 +191,7 @@ public final class Model implements AutoCloseable {
 		this.transducerObjectIndex = new Transducer[256];
 		this.transducerOffsetIndex = new long[256];
 		this.transducerNameIndex = new Bytes[256];
-		this.initialize(TargetMode.compile);
+		this.initialize(TargetMode.COMPILE);
 		return true;
 	}
 
@@ -236,11 +236,11 @@ public final class Model implements AutoCloseable {
 				String.format("RteException caught compiling model file '%1$s'", this.modelPath.getPath()), e);
 		} finally {
 			if (this.transducerOrdinalMap.size() <= 1) {
-				this.rtcLogger.log(Level.WARNING, String.format("No transducers compiled to %1$s",
-					this.modelPath.getPath()));
+				this.rtcLogger.log(Level.SEVERE, "No transducers compiled to {0}", this.modelPath.getPath());
+				this.deleteOnClose = true;
 			}
 			if (this.deleteOnClose) {
-				this.rtcLogger.log(Level.SEVERE, "Compilation failed for model " + this.modelPath.getPath());
+				this.rtcLogger.log(Level.SEVERE,"Compilation failed for model {0}",	this.modelPath.getPath());
 				mapFile.delete();
 			}
 			this.close();
@@ -259,10 +259,10 @@ public final class Model implements AutoCloseable {
 		try {
 			this.seek(0);
 			long indexPosition = this.getLong();
-			final String modelVersion = this.getString();
-			if (!modelVersion.equals(Base.RTE_VERSION) && !modelVersion.equals(Base.RTE_PREVIOUS)) {
+			final String loadedVersion = this.getString();
+			if (!loadedVersion.equals(Base.RTE_VERSION) && !loadedVersion.equals(Base.RTE_PREVIOUS)) {
 				throw new ModelException(String.format("Current this version '%1$s' does not match version string '%2$s' from model file '%3$s'",
-					Base.RTE_VERSION, modelVersion, this.modelPath.getPath()));
+					Base.RTE_VERSION, loadedVersion, this.modelPath.getPath()));
 			}
 			final String targetClassname = this.getString();
 			if (!targetClassname.equals(this.proxyTarget.getClass().getName())) {
@@ -270,7 +270,7 @@ public final class Model implements AutoCloseable {
 					String.format("Can't load model for target class '%1$s'; '%2$s' is target class for model file '%3$s'",
 						this.proxyTarget.getName(), targetClassname, this.modelPath.getPath()));
 			}
-			this.modelVersion = modelVersion;
+			this.modelVersion = loadedVersion;
 			this.seek(indexPosition);
 			this.signalOrdinalMap = this.getOrdinalMap();
 			this.signalNames = this.getValueNames(this.signalOrdinalMap);
@@ -279,7 +279,7 @@ public final class Model implements AutoCloseable {
 			this.effectorOrdinalMap = this.getOrdinalMap();
 			this.transducerOrdinalMap = this.getOrdinalMap();
 			this.transducerNames = this.getValueNames(this.fieldOrdinalMap);
-			this.initialize(TargetMode.run);
+			this.initialize(TargetMode.RUN);
 			assert this.effectorOrdinalMap.size() == this.proxyEffectors.length;
 			if (!this.transducerOrdinalMap.containsKey(Bytes.encode(this.encoder, this.proxyTarget.getName()))) {
 				throw new ModelException(String.format("Target name '%1$s' not found in name offset map for this file '%2$s'",
@@ -355,7 +355,7 @@ public final class Model implements AutoCloseable {
 			throw new ModelException(String.format("Cannot use model target instance as runtime target: $%s",
 				this.proxyTarget.getClass().getName()));
 		}
-		Transductor trex = new Transductor(this, TargetMode.run);
+		Transductor trex = new Transductor(this, TargetMode.RUN);
 		IEffector<?>[] trexFx = trex.getEffectors();
 		IEffector<?>[] targetFx = target.getEffectors();
 		IEffector<?>[] boundFx = new IEffector<?>[trexFx.length + targetFx.length];
@@ -373,21 +373,19 @@ public final class Model implements AutoCloseable {
 				this.io.close();
 			}
 		} catch (IOException e) {
-			this.rtcLogger.log(Level.SEVERE, "Unable to close model file %1$s " + this.modelPath.getPath(), e);
+			this.rtcLogger.log(Level.SEVERE, String.format("Unable to close model file %1$s", 
+				this.modelPath.getPath()), e);
 		} finally {
 			this.io = null;
-			if (this.deleteOnClose) {
-				if (this.modelPath.exists() && !this.modelPath.delete()) {
-					this.rtcLogger.warning("Unable to delete invalid model file %1$s " + this.modelPath.getPath());
-				}
+			if (this.deleteOnClose && this.modelPath.exists() && !this.modelPath.delete()) {
+				this.rtcLogger.log(Level.WARNING, "Unable to delete invalid model file%1$s{0}",
+					this.modelPath.getPath());
 			}
 		}
 	}
 
 	private void saveMapFile(File mapFile) {
-		PrintWriter mapWriter = null;
-		try {
-			mapWriter = new PrintWriter(mapFile);
+		try (PrintWriter mapWriter = new PrintWriter(mapFile)) {
 			mapWriter.println(String.format("version\t%1$s", this.modelVersion));
 			mapWriter.println(String.format("target\t%1$s", this.proxyTarget.getClass().getName()));
 			Bytes[] transducerIndex = new Bytes[this.transducerOrdinalMap.size()];
@@ -420,11 +418,7 @@ public final class Model implements AutoCloseable {
 			}
 			mapWriter.flush();
 		} catch (final IOException e) {
-			this.rtcLogger.log(Level.SEVERE, "Model unable to create map file " + mapFile.getPath(), e);
-		} finally {
-			if (mapWriter != null) {
-				mapWriter.close();
-			}
+			this.rtcLogger.log(Level.SEVERE, e, () -> "Model unable to create map file " + mapFile.getPath());
 		}
 	}
 
@@ -434,7 +428,7 @@ public final class Model implements AutoCloseable {
 			checked &= boundFx[i].equivalent(this.proxyEffectors[i]);
 		}
 		if (!checked) {
-			StringBuffer msg = new StringBuffer(256);
+			StringBuilder msg = new StringBuilder(256);
 			msg.append("Target ").append(target.getName()).append(" effectors do not match proxy effectors.")
 					.append(Base.lineEnd).append("\tTarget:");
 			for (IEffector<?> fx : boundFx) {
@@ -450,7 +444,7 @@ public final class Model implements AutoCloseable {
 
 	private boolean compileModelParameters() throws ModelException {
 		boolean fail = false;
-		final Map<Bytes, Integer> effectorOrdinalMap = this.getEffectorOrdinalMap();
+		final Map<Bytes, Integer> effectorMap = this.getEffectorOrdinalMap();
 		for (int effectorOrdinal = 0; effectorOrdinal < this.proxyEffectors.length; effectorOrdinal++) {
 			IEffector<?> effector = this.proxyEffectors[effectorOrdinal];
 			HashMap<BytesArray, Integer> parameters = this.effectorParametersMaps.get(effectorOrdinal);
@@ -459,7 +453,7 @@ public final class Model implements AutoCloseable {
 					final IParameterizedEffector<?,?> parameterizedEffector = (IParameterizedEffector<?,?>) effector;
 					parameterizedEffector.newParameters(parameters.size());
 					byte[][][] effectorParameters = new byte[parameters.size()][][];
-					for (HashMap.Entry<BytesArray, Integer> e : parameters.entrySet()) {
+					for (Map.Entry<BytesArray, Integer> e : parameters.entrySet()) {
 						try {
 							int v = e.getValue();
 							byte[][] p = e.getKey().getBytes();
@@ -472,8 +466,8 @@ public final class Model implements AutoCloseable {
 					}
 					this.putBytesArrays(effectorParameters);
 				} else if (parameters.size() > 0) {
-					this.rtcLogger.severe(String.format("%1$s.%2$s: effector does not accept parameters",
-							this.proxyTarget.getName(), effector.getName()));
+					this.rtcLogger.log(Level.SEVERE, () -> String.format("%1$s.%2$s: effector does not accept parameters",
+						this.proxyTarget.getName(), effector.getName()));
 					fail = true;
 				} else {
 					this.putInt(-1);
@@ -482,9 +476,9 @@ public final class Model implements AutoCloseable {
 				this.putInt(-1);
 			}
 		}
-		for (final Map.Entry<Bytes, Integer> entry : effectorOrdinalMap.entrySet()) {
+		for (final Map.Entry<Bytes, Integer> entry : effectorMap.entrySet()) {
 			if (this.proxyEffectors[entry.getValue()] == null) {
-				this.rtcLogger.log(Level.SEVERE, String.format("%1$s.%2$s: effector ordinal not found",
+				this.rtcLogger.log(Level.SEVERE, () -> String.format("%1$s.%2$s: effector ordinal not found",
 					this.proxyTarget.getName(), entry.getKey().toString()));
 				fail = true;
 			}
@@ -495,16 +489,11 @@ public final class Model implements AutoCloseable {
 	int compileParameters(final int effectorOrdinal, final byte[][] parameterBytes) {
 		HashMap<BytesArray, Integer> parametersMap = this.effectorParametersMaps.get(effectorOrdinal);
 		if (parametersMap == null) {
-			parametersMap = new HashMap<BytesArray, Integer>(10);
+			parametersMap = new HashMap<>(10);
 			this.effectorParametersMaps.set(effectorOrdinal, parametersMap);
 		}
-		final BytesArray parametersArray = new BytesArray(parameterBytes);
-		Integer parametersIndex = parametersMap.get(parametersArray);
-		if (parametersIndex == null) {
-			parametersIndex = parametersMap.size();
-			parametersMap.put(parametersArray, parametersIndex);
-		}
-		return parametersIndex;
+		final int mapSize = parametersMap.size();
+		return parametersMap.computeIfAbsent(new BytesArray(parameterBytes), absent -> mapSize);
 	}
 
 	private IEffector<?>[] bindParameters(IOutput output, IEffector<?>[] runtimeEffectors) throws TargetBindingException {
@@ -574,21 +563,13 @@ public final class Model implements AutoCloseable {
 	}
 
 	int addField(Bytes fieldName) {
-		Integer ordinal = this.fieldOrdinalMap.get(fieldName);
-		if (ordinal == null) {
-			ordinal = this.fieldOrdinalMap.size();
-			this.fieldOrdinalMap.put(fieldName, ordinal);
-		}
-		return ordinal;
+		final int mapSize = this.fieldOrdinalMap.size();
+		return this.fieldOrdinalMap.computeIfAbsent(fieldName, absent-> mapSize);
 	}
 
 	int addSignal(Bytes signalName) {
-		Integer ordinal = this.signalOrdinalMap.get(signalName);
-		if (ordinal == null) {
-			ordinal = this.getSignalLimit();
-			this.signalOrdinalMap.put(signalName, ordinal);
-		}
-		return ordinal;
+		final int mapSize = this.signalOrdinalMap.size();
+		return this.signalOrdinalMap.computeIfAbsent(signalName, absent-> mapSize);
 	}
 
 	int addTransducer(Bytes transducerName) {
@@ -672,7 +653,7 @@ public final class Model implements AutoCloseable {
 	}
 
 	int[] getIntArray() throws ModelException {
-		int[] ints = null;
+		int[] ints = {};
 		long position = 0;
 		try {
 			position = this.io.getFilePointer();
@@ -753,7 +734,7 @@ public final class Model implements AutoCloseable {
 	}
 
 	byte[] getBytes() throws ModelException {
-		byte[] bytes = null;
+		byte[] bytes = {};
 		long position = 0;
 		int read = -1;
 		try {
@@ -777,7 +758,7 @@ public final class Model implements AutoCloseable {
 	}
 
 	byte[][] getBytesArray() throws ModelException {
-		byte[][] bytesArray = null;
+		byte[][] bytesArray = {};
 		long position = 0;
 		try {
 			position = this.io.getFilePointer();
@@ -790,22 +771,19 @@ public final class Model implements AutoCloseable {
 			}
 		} catch (final IOException e) {
 			throw new ModelException(String.format(
-				"RuntimeModel.getBytesArray caught an IOException reading bytes array starting at file position %2$d",
-				position, this.getSafeFilePosition()), e);
+				"RuntimeModel.getBytesArray caught an IOException at file position %1$s reading bytes array starting at file position %2$d",
+				this.getSafeFilePosition(), position), e);
 		}
 		return bytesArray;
 	}
 
 	HashMap<Bytes, Integer> getOrdinalMap() throws ModelException {
 		byte[][] bytesArray = this.getBytesArray();
-		if (bytesArray != null) {
-			HashMap<Bytes, Integer> map = new HashMap<Bytes, Integer>((bytesArray.length * 5) >> 2);
-			for (int ordinal = 0; ordinal < bytesArray.length; ordinal++) {
-				map.put(new Bytes(bytesArray[ordinal]), ordinal);
-			}
-			return map;
+		HashMap<Bytes, Integer> map = new HashMap<Bytes, Integer>((bytesArray.length * 5) >> 2);
+		for (int ordinal = 0; ordinal < bytesArray.length; ordinal++) {
+			map.put(new Bytes(bytesArray[ordinal]), ordinal);
 		}
-		return null;
+		return map;
 	}
 
 	byte[][][] getBytesArrays() throws ModelException {
@@ -822,14 +800,14 @@ public final class Model implements AutoCloseable {
 			}
 		} catch (final IOException e) {
 			throw new ModelException(String.format(
-				"RuntimeModel.getBytesArray caught an IOException reading bytes array starting at file position after file position %2$d",
-				position, this.getSafeFilePosition()), e);
+				"RuntimeModel.getBytesArrays caught an IOException at file position %1$d reading bytes array starting at file position %2$d",
+				this.getSafeFilePosition(), position), e);
 		}
 		return (bytesArrays != null) ? bytesArrays : new byte[][][] {};
 	}
 
 	String getString() throws ModelException {
-		byte bytes[] = this.getBytes();
+		byte[] bytes = this.getBytes();
 		return Bytes.decode(this.decoder, bytes, bytes.length).toString();
 	}
 
@@ -837,7 +815,7 @@ public final class Model implements AutoCloseable {
 		final byte[][] bytesArray = this.getBytesArray();
 		final String[] stringArray = new String[bytesArray.length];
 		for (int i = 0; i < bytesArray.length; i++) {
-			stringArray[i++] = Bytes.decode(this.decoder, bytesArray[i], bytesArray[i].length).toString();
+			stringArray[i] = Bytes.decode(this.decoder, bytesArray[i], bytesArray[i].length).toString();
 		}
 		return stringArray;
 	}
@@ -862,12 +840,14 @@ public final class Model implements AutoCloseable {
 		} catch (final IOException e) {
 			throw new ModelException(String.format(
 				"RuntimeModel.putBytes caught an IOException writing %1$d bytes at file position %2$d after file position %3$d",
-				bytes.length, position, this.getSafeFilePosition()), e);
+				bytes != null ? bytes.length : 0, position, this.getSafeFilePosition()), e);
 		}
 	}
 
 	void putBytes(final Bytes bytes) throws ModelException {
-		this.putBytes((bytes != null) ? bytes.getBytes() : null);
+		if (bytes != null) {
+			this.putBytes(bytes.getBytes());
+		}
 	}
 
 	void putBytes(final ByteBuffer byteBuffer) throws ModelException {
@@ -875,8 +855,8 @@ public final class Model implements AutoCloseable {
 		if (byteBuffer != null) {
 			bytes = new byte[byteBuffer.limit() - byteBuffer.position()];
 			byteBuffer.get(bytes, byteBuffer.position(), byteBuffer.limit());
+			this.putBytes(bytes);
 		}
-		this.putBytes(bytes);
 	}
 
 	void putBytesArray(final Bytes[] bytesArray) throws ModelException {
@@ -892,8 +872,8 @@ public final class Model implements AutoCloseable {
 			}
 		} catch (final IOException e) {
 			throw new ModelException(String.format(
-				"RuntimeModel.putBytesArray caught an IOException writing bytes array starting at file position after file position %2$d",
-				position, this.getSafeFilePosition()), e);
+				"RuntimeModel.putBytesArray(Bytes[]) caught an IOException at file position %1$d writing byte[][] array starting at file position %2$d",
+				this.getSafeFilePosition(), position), e);
 		}
 	}
 
@@ -910,8 +890,8 @@ public final class Model implements AutoCloseable {
 			}
 		} catch (final IOException e) {
 			throw new ModelException(String.format(
-					"RuntimeModel.putBytesArray caught an IOException writing bytes array starting at file position after file position %2$d",
-					position, this.getSafeFilePosition()), e);
+				"RuntimeModel.putBytesArray(byte[][]) caught an IOException at file position %1$d writing byte[][] array starting at file position %2$d",
+				this.getSafeFilePosition(), position), e);
 		}
 	}
 
@@ -928,8 +908,8 @@ public final class Model implements AutoCloseable {
 			}
 		} catch (final IOException e) {
 			throw new ModelException(String.format(
-				"RuntimeModel.putBytesArrays caught an IOException writing bytes arrays starting at file position after file position %2$d",
-				position, this.getSafeFilePosition()), e);
+				"RuntimeModel.putBytesArray(Byte[][][]) caught an IOException at file position %1$d writing byte[][][] array starting at file position %2$d",
+				this.getSafeFilePosition(), position), e);
 		}
 	}
 
@@ -953,13 +933,12 @@ public final class Model implements AutoCloseable {
 	}
 
 	void putLong(final long i) throws ModelException {
-		final long position = this.getSafeFilePosition();
 		try {
 			this.io.writeLong(i);
 		} catch (final IOException e) {
 			throw new ModelException(String.format(
-				"RuntimeModel.putLong caught an IOException writing %1$d at file position %2$d after file position %3$d",
-				i, position, this.getSafeFilePosition()), e);
+				"RuntimeModel.putLong caught an IOException writing %1$d at file position %2$d",
+				i, this.getSafeFilePosition()), e);
 		}
 	}
 
@@ -972,8 +951,8 @@ public final class Model implements AutoCloseable {
 			}
 		} catch (final IOException e) {
 			throw new ModelException(String.format(
-				"RuntimeModel.putIntArray caught an IOException writing int array starting at file position after file position %2$d",
-				position, this.getSafeFilePosition()), e);
+				"RuntimeModel.putIntArray caught an IOException at file position %1$d writing int array starting at file position %2$d",
+				this.getSafeFilePosition(), position), e);
 		}
 	}
 

@@ -44,7 +44,7 @@ import com.characterforming.ribose.ITransductor;
  * <br><br>
  * Specialized ribose models may introduce additional signals simply by using them
  * with the {@code in[`!signal`]} effector or any other effector, The signal 
- * symbol (stripped of the ! prefix) can then be recogized as an input. For exanple,
+ * symbol (stripped of the ! prefix) can then be recognized as an input. For example,
  * <br><br>
  * <pre>
  * (nl, switch[`!door1` `!door2`]) ((door1, enter) | (door2, exit))

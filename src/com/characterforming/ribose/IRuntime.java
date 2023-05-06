@@ -36,7 +36,7 @@ import com.characterforming.ribose.base.Signal;
  * invokes target effectors to extract and assimilate features of interest into the
  * target in response to syntactic cues in the input. Transductors map syntactic
  * features onto effectors under the direction of a stack of finite state transducers
- * compiled from patterns in a domain-specific {@code (<feature-syntax>, <feature-sematics>)*}
+ * compiled from patterns in a domain-specific {@code (<feature-syntax>, <feature-semantics>)*}
  * semi-ring and collected in a ribose runtime model.
  * <br><br>
  * Each ribose runtime model is compiled from a collection of ginr automata produced

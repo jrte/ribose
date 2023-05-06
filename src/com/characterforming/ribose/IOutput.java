@@ -31,7 +31,7 @@ import com.characterforming.ribose.base.TargetBindingException;
  * {@link IEffector#setOutput(IOutput)} when they are first bound to a transductor. Fields can be
  * accessed by name or ordinal number. There is an anonymous field that can be accessed
  * by empty name (`~`) or ordinal number (0). Fields are referenced with a field type prefix
- * <b>~</b> in ribose transducer patterns and without the type prefic internally. For example,
+ * <b>~</b> in ribose transducer patterns and without the type prefix internally. For example,
  * a `~date` parameter in a ribose pattern would be accessed with {@link getField(Bytes)}.
  * <br><br>
  * All effectors receive identical instances of loggers and codecs, which are shared by
@@ -45,14 +45,14 @@ import com.characterforming.ribose.base.TargetBindingException;
  */
 public interface IOutput {
 	/**
-	 * Get the ribose compiler Logger instance (shared by tranductor and all bound effectors)
+	 * Get the ribose compiler Logger instance (shared by transductor and all bound effectors)
 	 *
 	 * @return compiler Logger instance
 	 */
 	Logger getRtcLogger();
 
 	/**
-	 * Get the ribose runtime Logger instance (shared by tranductor and all bound effectors)
+	 * Get the ribose runtime Logger instance (shared by transductor and all bound effectors)
 	 *
 	 * @return runtime Logger instance
 	 */

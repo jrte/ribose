@@ -38,6 +38,7 @@ import com.characterforming.jrte.engine.Base;
 public final class Bytes {
 	private static final char[] HEX = "0123456789ABCDEF".toCharArray();
 	private static final char[] EMPTY_CHARS = new char[] { };
+	public static final byte[] EMPTY_BYTES = new byte[] { };
 	private final byte[] bytes;
 	private int hash;
 
@@ -52,7 +53,7 @@ public final class Bytes {
 	}
 	
 	/**
-	 * Constructor copies and wraps an segment of an array of bytes
+	 * Constructor copies and wraps a segment of an array of bytes
 	 * 
 	 * @param from The source array
 	 * @param offset The position in the source array to copy from
@@ -149,7 +150,7 @@ public final class Bytes {
 	}
 	
 	/**
-	 * Like toString(), but theresult is a hexidecimal representation of the contents. 
+	 * Like toString(), but the result is a hexadecimal representation of the contents. 
 	 * 
 	 * @return the hex string
 	 */

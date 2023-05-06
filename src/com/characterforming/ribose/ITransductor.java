@@ -59,7 +59,7 @@ import com.characterforming.ribose.base.Signal;
  * it will be ignored. Finally, {@code stop()} must be called again to clear the
  * transducer and input stacks before the transductor instance can be reused.
  * <br><br>
- * {@link ITarget} implementations must present a nullary constructor, which is used
+ * {@link ITarget} implementations must present a niladic (default) constructor, which is used
  * to instantiate proxy targets for effector enumeration and parameter compilation. A
  * proxy target is instantiated by the compiler, which invokes each parameterized
  * effector to validate and compile its parameters. In the ribose runtime, a proxy
@@ -108,11 +108,15 @@ import com.characterforming.ribose.base.Signal;
  * will return with {@code Status.PAUSED} and {@code DomainErrorException}
  * will not be thrown.
  * <br><br>
- * Signals like {@code nul} that are raised asynchronously are difficult
- * to address in the expression of transduction patterns. However, if they are ignored
- * in the original pattern expression, the expression can be modified after the fact
- * by transducing the pattern itself to inject behaviors relating to asynchronpus signals.
- * See <a href="https://github.com/jrte/ribose#navigating-noisy-inputs-nullification">
+ * The {@code signal[`!signal`]} effector injects a signal for immediate transduction on
+ * the next transition. Effectors may inject a signal by returning from {@link IEffector#invoke()}
+ * or {@link IParameterizedEffector#invoke(int)} a signal ordinal encoded with 
+ * {@link IEffector#rtxSignal(int)}. At most one encoded signal can be injected per
+ * transition (this is not checked in the ribose runtime). Signals like {@code nul} that
+ * are raised asynchronously are difficult to address in the expression of transduction
+ * patterns. However, any pattern can be modified by flattening and transducing it to
+ * inject behaviors relating to asynchronous signals. See
+ * <a href="https://github.com/jrte/ribose#navigating-noisy-inputs-nullification">
  * Navigating Noisy Inputs (Nullification)</a> for an example showing how this can be done.
  * <br><br>
  * The runtime ITransductor implementation provides a core set of base effectors,
@@ -260,7 +264,7 @@ public interface ITransductor extends ITarget {
 		}
 
 		/**
-		 * Add transient metrics to acumulator metrics
+		 * Add transient metrics to accumulator metrics
 		 * 
 		 * @param accumulator the metrics to be updated
 		 */
@@ -279,7 +283,7 @@ public interface ITransductor extends ITarget {
 	 *
 	 * A RUNNABLE transduction can be resumed immediately by calling run(). A PAUSED
 	 * transduction can be resumed when new input is pushed. A WAITING transduction can be run
-	 * again after starting a new tranmsducer. Transducers may deliberately invoke the
+	 * again after starting a new transducer. Transducers may deliberately invoke the
 	 * {@code pause} effector to break out of run() with transducer and input stacks not
 	 * empty to allow the caller to take some action before calling run() to resume the
 	 * transduction. A STOPPED transduction can be reused to start a new transduction

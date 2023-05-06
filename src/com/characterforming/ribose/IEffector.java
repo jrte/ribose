@@ -20,18 +20,19 @@
 
 package com.characterforming.ribose;
 
+import com.characterforming.jrte.engine.Base;
 import com.characterforming.ribose.base.Bytes;
 import com.characterforming.ribose.base.EffectorException;
 import com.characterforming.ribose.base.TargetBindingException;
 
 /**
- * Interface for simple effectors that present only a nullary {@link #invoke()}
+ * Interface for simple effectors that present only a niladic {@link #invoke()}
  * method to the transductor. Effectors are invoked at runtime in response to
  * state transitions in a running transduction. They are typically implemented
  * as anonymous inner classes within a specialized {@link ITarget} implementation
  * class. Simple effectors present an {@link invoke()} method that is called from running
  * transductions. Parameterized effectors implementing {@link IParameterizedEffector} may
- * also be included in ribose targets. The ribose {@link ITransductor} implmentation
+ * also be included in ribose targets. The ribose {@link ITransductor} implementation
  * also presents a core suite of base effectors that are accessible to all targets.
  * <br><br>
  * All effectors return an integer <a href="#field.summary"> RTX</a> code, which is a bit
@@ -50,13 +51,14 @@ import com.characterforming.ribose.base.TargetBindingException;
  * <br><br>
  * To verify that transducer <b>T</b> from a model using signalling effectors in 
  * <b>S</b>={{@code count}, {@code signal}, {@code ...}} satisfies this signalling
- * contraint:
+ * constraint:
  * <br><br><pre> (T$(0 1)) &amp; (T$(0 1):alph)*S(T$1:alph)*S(T$(0 1):alph)*</pre>
- * must be empty. In general, range contraints on the effector set can be 
+ * must be empty. In general, range constraints on the effector set can be 
  * expressed as patterns to be tested against transducer patterns in the design
  * stage, before they are submitted for compilation to ginr FSTs and inclusion
  * in ribose models.
  * @param <T> The effector target type
+ * @see IParameterizedEffector
  * @author Kim Briggs
  */
 public interface IEffector<T extends ITarget> {
@@ -124,6 +126,7 @@ public interface IEffector<T extends ITarget> {
 	 * @return signal &lt;&lt; 16 | {@code IEffector.RTX_SIGNAL}
 	 */
 	static int rtxSignal(int signal) {
+		assert signal >= Base.RTE_SIGNAL_BASE;
 		return (signal << 16) | RTX_SIGNAL;
 	}
 

@@ -35,7 +35,7 @@ import com.characterforming.ribose.base.TargetBindingException;
  * effectors and compile effector parameters when a model is constructed and again
  * when a model is loaded for runtime use. In those contexts, {@link ITarget#getEffectors()}
  * is called to obtain an enumeration of the proxy target's effectors. For each
- * paramterized proxy effector, {@link IParameterizedEffector#newParameters(int)}
+ * parameterized proxy effector, {@link IParameterizedEffector#newParameters(int)}
  * is called first, indicating the number of parameters to be compiled. Then
  * {@link IParameterizedEffector#compileParameter(int, byte[][])} is called
  * for each parameter. No other methods are called on the proxy target or

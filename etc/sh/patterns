@@ -10,48 +10,53 @@ if [[ ! -d "$1" ]]; then
 	exit 1
 fi
 if [[ ! -f "$2" ]]; then 
-	echo "Not found: $2"
+	echo "Prologue not found: $2"
 	exit 1
 fi
 if (($#==3)) && [[ ! -f "$3" ]]; then 
-	echo "Not found: $3"
+	echo "Epilogue not found: $3"
 	exit 1
 fi
-jrte=$(realpath $(dirname $0)/../..)
-jars=$jrte/jars
-version=$(cat $jrte/version)
-path="$jars/$version.jar:$jars/$version-test.jar"
 
-ginr="$jrte/etc/ginr/ginr"
-if [[ "$OS" =~ ^Windows ]]; then
-	ginr="$ginr.exe"
+ginr=$(which ginr 2>/dev/null)
+if [[ ! -x "$ginr" ]]; then
+	ginr="etc/ginr/ginr"
+	if [[ "$OS" =~ ^Windows ]]; then
+		ginr="$ginr.exe"
+	fi
+	if [[ ! -x "$ginr" ]]; then
+		echo "Could not find ginr executable in search path or in etc/ginr"
+		exit 1
+	fi
 fi
+echo ginr@$(realpath "$ginr")
+echo ":bye;" | "$ginr" | grep ' '
 
-failed=0
-echo ":bye;" | $ginr | grep ' '
+failed=""
 for f in "$1"/*.inr; do
 	if [[ "$f" != "$prologue" && "$f" != "$epilogue" ]]; then
 		file=$(basename "$f")
 		name=${file%.inr}
-		cat $2 $f $3 | $ginr &> "/tmp/$name.ginrout"
-		grep --basic-regexp --before-context=2 --after-context=2 \
-			'^[ ]*\* \* \*\|^[ ]*\*\*\*\|^Error detected at state [0-9]*:\|^Reserved character:\|^Warning:' \
+		cat $2 $f $3 | "$ginr" &> "/tmp/$name.ginrout"
+		grep -n --basic-regexp --before-context=2 --after-context=2 \
+			'^[ ]*\* \* \*\|^[ ]*\*\*\*\|^Error detected at state [0-9]*:\|^Reserved character:\|^Warning:\|^Assertion failed' \
 			"/tmp/$name.ginrout" &> "/tmp/$name.ginrerr"
-		if [[ -s "/tmp/$name.ginrerr" ]]; then
-			((++failed))
-			echo "Errors reported for $file in /tmp/$name.ginrout (summary in /tmp/$name.ginrerr)"
-		else
-			for dfa in $(grep '^[A-Z0-9a-z_]*[ ]*:.*save' "$f" | grep -o '^[A-Z0-9a-z_]*' | sort -u); do
+		if [[ ! -s "/tmp/$name.ginrerr" ]]; then
+			for dfa in $(grep '^[A-Z0-9a-z_]*[ ]*:.*save' "$f" | grep -o '^[A-Z0-9a-z_]*'); do
 				grep "$dfa .*DFA MIN" "/tmp/$name.ginrout"
 			done
+		else
+			failed="$failed $name"
 		fi
 	fi
 done
 
-if ((failed>0)); then
-	echo "$failed errors reported, see /tmp/*.ginrerr"
-	find /tmp -name '*.ginrerr' -type f -not -empty -exec cat "{}" \; 2>/dev/null
+if [[ ! -z "$failed" ]]; then
+	for name in $failed; do
+		echo "Errors reported in /tmp/$name.ginrout:"
+		cat /tmp/$name.ginrerr
+	done
 	exit 1
-else
-	exit 0
 fi
+
+exit 0

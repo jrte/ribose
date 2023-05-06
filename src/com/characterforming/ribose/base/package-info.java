@@ -28,7 +28,7 @@
  * provide cross-cutting support to base and specialized effector subclasses.
  * <br><br>
  * {@link Signal} enumerates the core signals used to control transduction processes.
- * These resolve to out-of-band (&gt;256) inputs that can be pushed onto tranductor
+ * These resolve to out-of-band (&gt;256) inputs that can be pushed onto transductor
  * input stacks. Additional signals can be declared in transducer patterns simply by including
  * them as <i>`!name`</i> parameters with unique names for the {@code in[`!name`]}
  * effector in transducer patterns. Then <i>name</i> (without <i>`!...`</i> signal

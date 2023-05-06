@@ -48,7 +48,7 @@ public abstract class BaseEffector<T extends ITarget> implements IEffector<T> {
 	private final Bytes name;
 	
 	/**
-	 * Constructor receivs target and a name.
+	 * Constructor receives target and a name.
 	 * 
 	 * @param target The target that binds the effector
 	 * @param name The effector name
@@ -85,7 +85,7 @@ public abstract class BaseEffector<T extends ITarget> implements IEffector<T> {
 	}
 
 	/**
-	 * Lazy instantation for charset decoder
+	 * Lazy instantiation for charset decoder
 	 * 
 	 * @return a decoder instance
 	*/
@@ -97,7 +97,7 @@ public abstract class BaseEffector<T extends ITarget> implements IEffector<T> {
 	}
 
 	/**
-	 * Lazy instantation for charset encoder
+	 * Lazy instantiation for charset encoder
 	 * 
 	 * @return a encoder instance
 	*/

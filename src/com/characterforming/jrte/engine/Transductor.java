@@ -148,7 +148,7 @@ public final class Transductor implements ITransductor, IOutput {
 		this.rteLogger = Base.getRuntimeLogger();
 		this.metrics = new Metrics();
 
-		if (this.mode == TargetMode.run) {
+		if (this.mode == TargetMode.RUN) {
 			this.fieldOrdinalMap = this.model.getFieldMap();
 			this.fieldHandles = new Field[this.fieldOrdinalMap.size()];
 			for (final Entry<Bytes, Integer> entry : this.fieldOrdinalMap.entrySet()) {
@@ -234,7 +234,7 @@ public final class Transductor implements ITransductor, IOutput {
 
 	@Override // @see com.characterforming.ribose.ITransductor#status()
 	public Status status() {
-		if (this.mode == TargetMode.run) {
+		if (this.mode == TargetMode.RUN) {
 			assert this.inputStack != null;
 			assert this.transducerStack != null;
 			if (this.transducerStack.isEmpty()) {
@@ -461,13 +461,11 @@ S:				do {
 
 	@Override // @see com.characterforming.ribose.IOutput#getSelectedOrdinal()
 	public int getSelectedOrdinal() {
-		assert this.selected != null;
 		return (this.selected != null) ? this.selected.getOrdinal() : -1;
 	}
 
 	@Override // @see com.characterforming.ribose.IOutput#getField(int)
 	public IField getField(final int fieldOrdinal) {
-		assert this.fieldHandles != null;
 		if (this.fieldHandles != null && fieldOrdinal < this.fieldHandles.length) {
 			return this.fieldHandles[fieldOrdinal];
 		} else {
@@ -645,8 +643,8 @@ E:	do {
 
 	private int scanTrap(Input input, int token) {
 		final int anchor = input.position;
-		final int matchByte = this.matchByte;
-		while (token != matchByte) {
+		final int matchToken = this.matchByte;
+		while (token != matchToken) {
 			if (input.position < input.limit) {
 				token = Byte.toUnsignedInt(input.array[input.position++]);
 			} else {
@@ -669,31 +667,31 @@ E:	do {
 		top.state = state;
 		last /= top.inputEquivalents;
 		state /= top.inputEquivalents;
-		StringBuilder output = new StringBuilder(256);
-		output.append(String.format("Domain error on (%1$d~%2$d) in %3$s [%4$d]->[%5$d]%6$s,\tTransducer stack:%7$s",
+		StringBuilder message = new StringBuilder(256);
+		message.append(String.format("Domain error on (%1$d~%2$d) in %3$s [%4$d]->[%5$d]%6$s,\tTransducer stack:%7$s",
 			this.errorInput, this.errorInput >= 0 ? top.inputFilter[this.errorInput] : this.errorInput, 
 			top.name, last, state, Base.lineEnd, Base.lineEnd));
 		for (int i = this.transducerStack.tos(); i >= 0; i--) {
 			TransducerState t = this.transducerStack.get(i);
 			int s = t.state / t.inputEquivalents;
-			output.append(String.format("\t\t%1$20s state:%2$3d; accepting", t.name, s));
+			message.append(String.format("\t\t%1$20s state:%2$3d; accepting", t.name, s));
 			for (int j = 0; j < top.inputEquivalents; j++) {
 				if (Transducer.action(t.transitionMatrix[t.state + j]) != Transductor.NUL) {
-					output.append(String.format(" (%1$d)->[%2$d]", j,
+					message.append(String.format(" (%1$d)->[%2$d]", j,
 						Transducer.state(t.transitionMatrix[t.state + j]) / t.inputEquivalents));
 				}
 			}
-			output.append(Base.lineEnd);
+			message.append(Base.lineEnd);
 		}
-		output.append(Base.lineEnd).append("\tInput stack:").append(Base.lineEnd);
+		message.append(Base.lineEnd).append("\tInput stack:").append(Base.lineEnd);
 		for (int i = this.inputStack.tos(); i >= 0; i--) {
 			final Input input = this.inputStack.get(i);
 			if (input.array == null) {
-				output.append("\t\t(null)").append(Base.lineEnd);
+				message.append("\t\t(null)").append(Base.lineEnd);
 			} else if (!input.hasRemaining()) {
-				output.append("[ ]").append(Base.lineEnd);
+				message.append("[ ]").append(Base.lineEnd);
 			} else if (Base.isReferenceOrdinal(input.array)) {
-				output.append("\t\t [ !").append(Integer.toString(Base.decodeReferenceOrdinal(Base.getReferenceType(input.array), input.array)))
+				message.append("\t\t [ !").append(Integer.toString(Base.decodeReferenceOrdinal(Base.getReferenceType(input.array), input.array)))
 					.append(" ]").append(Base.lineEnd);
 			} else if (input.position < input.length) {
 				assert input.position < input.length && input.length <= input.array.length ;
@@ -708,24 +706,24 @@ E:	do {
 					inchar = String.format("%1$2x", Byte.toUnsignedInt(input.array[position]));
 				}
 				inbyte = Byte.toUnsignedInt(input.array[position]);
-				output.append(String.format("\t\t[ char='%1$s' (0x%2$02X); pos=%3$d; length=%4$d < ",
+				message.append(String.format("\t\t[ char='%1$s' (0x%2$02X); pos=%3$d; length=%4$d < ",
 					inchar, inbyte, position, input.array.length));
 				while (start < end) {
 					int ubyte = Byte.toUnsignedInt(input.array[start]);
 					int equiv = top.inputFilter[ubyte];
 					if ((ubyte < 0x20) || (ubyte > 0x7e)) {
-						output.append(String.format((start != position) ? "%1$02X~%2$d " : "[%1$02X~%2$d] ", ubyte, equiv));
+						message.append(String.format((start != position) ? "%1$02X~%2$d " : "[%1$02X~%2$d] ", ubyte, equiv));
 					} else {
-						output.append(String.format((start != position) ? "%1$c~%2$d " : "[%1$c~%2$d] ", (char)input.array[start], equiv));
+						message.append(String.format((start != position) ? "%1$c~%2$d " : "[%1$c~%2$d] ", (char)input.array[start], equiv));
 					}
 					start += 1;
 				}
-				output.append("> ]").append(Base.lineEnd);
+				message.append("> ]").append(Base.lineEnd);
 			} else {
-				output.append("\t\t[ < end-of-input > ]").append(Base.lineEnd);
+				message.append("\t\t[ < end-of-input > ]").append(Base.lineEnd);
 			}
 		}
-		return output.toString();
+		return message.toString();
 	}
 
 	private final class InlineEffector extends BaseEffector<Transductor> {
@@ -917,7 +915,8 @@ E:	do {
 					if (frames == parameters) {
 						frames = Arrays.copyOf(parameters, parameters.length);
 					}
-					frames[i] = getField(Base.decodeReferenceOrdinal(Base.TYPE_REFERENCE_FIELD, frames[i])).copyValue();
+					IField field = getField(Base.decodeReferenceOrdinal(Base.TYPE_REFERENCE_FIELD, frames[i]));
+					frames[i] = (field != null) ? field.copyValue() : Bytes.EMPTY_BYTES;
 				}
 			}
 			inputStack.put(frames);
@@ -942,7 +941,9 @@ E:	do {
 					try {
 						if (Base.getReferenceType(bytes) == Base.TYPE_REFERENCE_FIELD) {
 							Field field = (Field)getField(Base.decodeReferenceOrdinal(Base.TYPE_REFERENCE_FIELD, bytes));
-							super.target.output.write(field.getValue(), 0, field.getLength());
+							if (field != null) {
+								super.target.output.write(field.getValue(), 0, field.getLength());
+							}
 						} else {
 							super.target.output.write(bytes, 0, bytes.length);
 						}
@@ -970,7 +971,8 @@ E:	do {
 			assert (transducer == transducerStack.peek()) || (transducer == transducerStack.get(transducerStack.tos()-1));
 			System.arraycopy(super.getParameter(parameterIndex), 0, transducer.countdown, 0, 2);
 			if (transducer.countdown[0] < 0) {
-				transducer.countdown[0] = (int)getField(-1 - transducer.countdown[0]).asInteger();
+				IField field = getField(-1 - transducer.countdown[0]);
+				transducer.countdown[0] = (field != null) ? (int)field.asInteger() : -1;
 			}
 			return transducer.countdown[0] <= 0 ? IEffector.rtxSignal(transducer.countdown[1]) : IEffector.RTX_NONE;
 		}
@@ -984,7 +986,7 @@ E:	do {
 		public int[] compileParameter(final int parameterIndex, final byte[][] parameterList) throws TargetBindingException {
 			if (parameterList.length != 2) {
 				throw new TargetBindingException(String.format("%1$S.%2$S: effector requires two parameters",
-					getName(), super.getName()));
+					super.getTarget().getName(), super.getName()));
 			}
 			int count = -1;
 			assert !Base.isReferenceOrdinal(parameterList[0]) : "Reference ordinal presented for <count> to CountEffector[<count> <signal>]";
@@ -996,7 +998,7 @@ E:	do {
 					count = -1 - fieldOrdinal;
 				} else {
 					throw new TargetBindingException(String.format("%1$s.%2$s: Field %3$s not found",
-						getName(), super.getName(), fieldName.toString()));
+						super.getTarget().getName(), super.getName(), fieldName.toString()));
 				}
 				break;
 			case Base.TYPE_REFERENCE_NONE:
@@ -1004,7 +1006,7 @@ E:	do {
 				break;
 			default:
 				throw new TargetBindingException(String.format("%1$s.%2$s: invalid field|counter '%3$%s' for count effector",
-					getName(), super.getName(), Bytes.decode(super.getDecoder(), parameterList[0], parameterList[0].length)));
+				super.getTarget().getName(), super.getName(), Bytes.decode(super.getDecoder(), parameterList[0], parameterList[0].length)));
 			}
 			assert !Base.isReferenceOrdinal(parameterList[1]) : "Reference ordinal presented for <signal> to CountEffector[<count> <signal>]";
 			if (Base.getReferentType(parameterList[1]) == Base.TYPE_REFERENCE_SIGNAL) {
@@ -1013,7 +1015,7 @@ E:	do {
 				});
 			} else {
 				throw new TargetBindingException(String.format("%1$s.%2$s: invalid signal '%3$%s' for count effector",
-					getName(), super.getName(), Bytes.decode(super.getDecoder(), parameterList[1], parameterList[1].length)));
+					super.getTarget().getName(), super.getName(), Bytes.decode(super.getDecoder(), parameterList[1], parameterList[1].length)));
 			}
 			assert super.getParameter(parameterIndex)[1] >= nulSignal;
 			return super.getParameter(parameterIndex);
@@ -1080,8 +1082,9 @@ E:	do {
 			try {
 				transducerStack.push(model.loadTransducer(super.getParameter(parameterIndex)));
 			} catch (final ModelException e) {
+				byte[] bytes = model.getTransducerName(super.getParameter(parameterIndex));
 				throw new EffectorException(String.format("The start effector failed to load %1$s", 
-					model.getTransducerName(super.getParameter(parameterIndex))), e);
+					Bytes.decode(super.getDecoder(), bytes, bytes.length)), e);
 			}
 			return IEffector.RTX_START;
 		}

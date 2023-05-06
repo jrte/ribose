@@ -21,7 +21,7 @@
 package com.characterforming.ribose.base;
 
 /**
- * Thrown when the target class cannot be instantitated using a default constructor
+ * Thrown when the target class cannot be instantiated using a default constructor
  * 
  * @author Kim Briggs
  */

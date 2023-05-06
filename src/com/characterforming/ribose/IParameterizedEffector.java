@@ -24,7 +24,7 @@ import com.characterforming.ribose.base.EffectorException;
 import com.characterforming.ribose.base.TargetBindingException;
 
 /**
- * Interface for parameterized effectors extends {@link IEffector} with a unary
+ * Interface for parameterized effectors extends {@link IEffector} with a monadic
  * {@link #invoke(int)} method. Parameters are compiled from arrays of byte arrays
  * into an array of some parameter type <b>P</b> that is constructible from one or more
  * arrays of bytes. Compiled parameter values are referenced by their index in
@@ -39,7 +39,7 @@ import com.characterforming.ribose.base.TargetBindingException;
  * into a ribose runtime. The runtime will call {@link #newParameters(int)} to
  * set the size of the parameter array and then call {@link #compileParameter(int, byte[][])}
  * for each parameter list. In ribose transducer patterns parameters are presented
- * to effectors on tape 2 (the paramter tape) as a list of one or more backquoted
+ * to effectors on tape 2 (the parameter tape) as a list of one or more backquoted
  * tokens, eg {@code out[`~field` `,`]}. Parameter tokens may contain text, which
  * ginr encodes as UTF-8 bytes, binary data encoded using {@code \xHH} hexadecimal
  * representation for unprintable bytes, or fields (`~field`), transducer
@@ -49,7 +49,7 @@ import com.characterforming.ribose.base.TargetBindingException;
  * each parameter list to an instance of the effectors parameter type <b>P</b>.
  * <br><br>
  * For example, a {@code date[]} effector might accept date format strings as parameters
- * and compile them to {@code DateFormat} instances in its paramter array. At runtime,
+ * and compile them to {@code DateFormat} instances in its parameter array. At runtime,
  * the date effector will be invoked with an integer indicating the index of the
  * date formatter to be applied to render the UTF-8 bytes in the selected field
  * ({@link IOutput#getSelectedField()}) canonically as a long integer.
@@ -129,7 +129,7 @@ public interface IParameterizedEffector<T extends ITarget, P> extends IEffector<
 	}
 
 	/**
-	 * Parameterized effector invocation receivews the index of the {@code P}
+	 * Parameterized effector invocation receives the index of the {@code P}
 	 * instance to apply for the invocation.
 	 *
 	 * @param parameterIndex The index of the parameter object to be applied

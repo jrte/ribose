@@ -75,37 +75,27 @@
 		<pathelement location="${jars.dir}/${ribose.version}.jar"/>
 	</path>
 
-	<target name="package" depends="ribose,package-test,compile-test-model,javadoc"/>
-
-	<target name="clean" depends="clean-java,clean-patterns,clean-test">
+	<target name="clean" depends="clean-ribose,clean-test">
   	<delete dir="build"/>
 	</target>
-
-	<target name="clean-java">
-		<delete dir="${build.java.classes}/com"/>
-  	<delete dir="javadoc" includes="**/*"/>
-		<delete failonerror="false">
-		  <fileset dir="${jars.dir}" includes="*.jar"/>
-		</delete>
-	</target>
-
-	<target name="clean-patterns">
-		<delete dir="${build.compiler.model}"/>
-		<delete dir="${build.automata}" />
-		<delete failonerror="false">
-		  <fileset dir="/tmp" includes="*.ginrout,*.ginrerr"/>
-		</delete>
+	
+	<target name="clean-ribose">
+		<delete failonerror="false" dir="${build.java.classes}/com"/>
+  	<delete failonerror="false" dir="javadoc" includes="**/*"/>
+		<delete failonerror="false" dir="${jars.dir}" includes="**/*"/>
+		<delete failonerror="false" dir="${build.compiler.model}"/>
+		<delete failonerror="false" dir="/tmp" includes="*.ginrout,*.ginrerr"/>
 	</target>
 
 	<target name="clean-test">
-		<delete file="build/Test.model"/>
-		<delete file="build/Test.map"/>
-		<delete dir="${build.testenv}"/>
-		<delete dir="/tmp" includes="*.gc"/>
+		<delete failonerror="false" file="build/Test.model"/>
+		<delete failonerror="false" file="build/Test.map"/>
+		<delete failonerror="false" dir="${build.automata}" />
+		<delete failonerror="false" dir="${build.testenv}"/>
+		<delete failonerror="false" dir="/tmp" includes="*.gc"/>
 	</target>
 
-	<target name="init">
-		<tstamp/>
+	<target name="init" depends="init-ribose,init-test">
 		<exec outputproperty="git.branch" executable="git">
 			<arg line="branch --show-current"/>
 		</exec>
@@ -116,8 +106,14 @@
 		<echo message="Git commit: ${git.commit}"/>
 		<echo message="Version: ${ribose.version}"/>
 		<echo message="${ribose.version}" file="version"/>
+	</target>
+
+	<target name="init-ribose">
 		<mkdir dir="${build.java.classes}"/>
 		<mkdir dir="${build.compiler.model}"/>
+	</target>
+
+	<target name="init-test">
 		<mkdir dir="${build.automata}"/>
 	</target>
 
@@ -125,7 +121,9 @@
 		<echoproperties/>
 	</target>
 
-	<target name="ribose" depends="init,package-java,build-compiler-model"
+	<target name="package" depends="ribose,package-test,compile-test-model,javadoc"/>
+
+	<target name="ribose" depends="init-ribose,package-java,build-compiler-model"
 		description="Clean build for java and patterns"/>
 
 	<target name="ci-test" depends="clean,test,env"
@@ -272,7 +270,7 @@
 		<jar basedir="${java.source.dir}" destfile="${jars.dir}/${ribose.version}-source.jar"/>
 	</target>
 
-	<target name="test-env" depends="ribose,compile-test-model,package-test">
+	<target name="test-env" depends="ribose,init-test,compile-test-model,package-test">
 		<property environment="env"/>
 		<java fork="true" jvm="${jdk}/bin/java" dir="." classname="com.characterforming.ribose.TRun" classpathref="jrte.classpath">
 			<jvmarg line="-version"/>
