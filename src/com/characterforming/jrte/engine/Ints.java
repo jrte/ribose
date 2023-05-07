@@ -28,25 +28,25 @@ import java.util.Arrays;
  * @author Kim Briggs
  */
 final class Ints {
-	private final int[] ints;
+	private final int[] data;
 	private int hash;
 
 	public Ints(final int[] ints) {
-		this.ints = ints;
+		this.data = ints;
 		this.hash = 0;
 	}
 
-	public int[] getInts() {
-		return this.ints;
+	public int[] getData() {
+		return this.data;
 	}
 
 	public int getInt(final int index) {
-		return this.ints[index];
+		return this.data[index];
 	}
 
 	private int hash() {
-		int h = this.ints.length;
-		for (final int j : this.ints) {
+		int h = this.data.length;
+		for (final int j : this.data) {
 			h = h * 31 + j;
 		}
 		return h != 0 ? h : -1;
@@ -62,8 +62,8 @@ final class Ints {
 
 	@Override
 	public boolean equals(final Object other) {
-		return other == this || other != null && other instanceof Ints
+		return other == this || other instanceof Ints
 		&& ((Ints) other).hashCode() == this.hashCode()
-		&& Arrays.equals(((Ints) other).ints, this.ints);
+		&& Arrays.equals(((Ints) other).data, this.data);
 	}
 }

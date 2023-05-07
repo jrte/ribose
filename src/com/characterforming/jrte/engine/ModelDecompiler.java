@@ -50,7 +50,7 @@ public class ModelDecompiler {
 		Set<Map.Entry<Bytes, Integer>> effectorOrdinalMap = this.model.getEffectorOrdinalMap().entrySet();
 		String[] effectorNames = new String[effectorOrdinalMap.size()];
 		for (Map.Entry<Bytes, Integer> entry : effectorOrdinalMap) {
-			effectorNames[(int)entry.getValue()] = Bytes.decode(this.decoder, entry.getKey().getData(), entry.getKey().getLength()).toString();
+			effectorNames[entry.getValue()] = Bytes.decode(this.decoder, entry.getKey().getData(), entry.getKey().getLength()).toString();
 		}
 		System.err.printf("%s%n%nInput equivalents (equivalent: input...)%n%n", transducerName);
 		for (int i = 0; i < inputEquivalentCount; i++) {

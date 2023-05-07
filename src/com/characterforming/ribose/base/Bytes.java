@@ -111,7 +111,7 @@ public final class Bytes {
 		Bytes bytes = null;
 		try {
 			ByteBuffer buffer = encoder.reset().encode(chars);
-			byte b[] = new byte[buffer.limit()];
+			byte[] b = new byte[buffer.limit()];
 			buffer.get(b, 0, b.length);
 			bytes = new Bytes(b);
 		} catch (CharacterCodingException e) {

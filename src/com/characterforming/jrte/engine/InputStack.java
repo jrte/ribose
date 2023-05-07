@@ -32,9 +32,9 @@ import com.characterforming.ribose.base.EffectorException;
  * @author Kim Briggs
  */
 final class InputStack {
-	private static final int clear = 0;
-	private static final int marked = 1;
-	private static final int reset = 2;
+	private static final int CLEAR = 0;
+	private static final int MARKED = 1;
+	private static final int RESET = 2;
 	private final Logger logger;
 	private Input[] stack;
 	private int tos;
@@ -53,11 +53,11 @@ final class InputStack {
 		private static final long serialVersionUID = 1L;
 	}
 	
-	InputStack(final int initialSize, final int signalCount, final int fieldCount) {
+	InputStack(final int initialSize) {
 		this.logger = Base.getCompileLogger();
 		this.stack = Input.stack(initialSize);
 		this.markList = Input.stack(initialSize);
-		this.markState = InputStack.clear;
+		this.markState = InputStack.CLEAR;
 		this.markLimit = initialSize;
 		this.markHigh = 0;
 		this.bom = this.tom = 0;
@@ -129,7 +129,7 @@ final class InputStack {
 			do {
 				Input input = this.stack[this.tos];
 				if (input.position < input.limit) {
-					if (this.markState == InputStack.reset && this.tos == 0) {
+					if (this.markState == InputStack.RESET && this.tos == 0) {
 						assert input.mark < 0 && this.tom >= 0;
 						this.addMarked(this.stack[0]);
 						this.stack[0].copy(this.getMarked());
@@ -139,10 +139,10 @@ final class InputStack {
 				}
 			} while (--this.tos >= 0);
 			switch (this.markState) {
-			case InputStack.reset:
+			case InputStack.RESET:
 				assert this.bom != this.tom;
 				return this.push(this.getMarked());
-			case InputStack.marked:
+			case InputStack.MARKED:
 				Input marked = this.addMarked(this.stack[0]);
 				marked.position = Math.max(0, marked.mark);
 				marked.mark = -1;
@@ -180,9 +180,9 @@ final class InputStack {
 	 * @throws EffectorException if previous mark is resetting
 	 */
 	void mark() throws EffectorException {
-		if (this.markState != InputStack.reset) {
+		if (this.markState != InputStack.RESET) {
 			if (this.tos >= 0) {
-				this.markState = InputStack.marked;
+				this.markState = InputStack.MARKED;
 				this.stack[0].mark = this.stack[0].position;
 				this.bom = this.tom;
 			}
@@ -197,7 +197,7 @@ final class InputStack {
 	 */
 	void unmark() {
 		if (this.markHigh > this.markLimit) {
-			this.logger.log(Level.WARNING, String.format(
+			this.logger.log(Level.WARNING, () -> String.format(
 				"Marklist size was extended past %d and increased to %d. Try increasing ribose.inbuffer.size to exceed maximal expected marked extent.",
 				this.markLimit, this.markHigh));
 			this.markLimit = this.markHigh;
@@ -205,7 +205,7 @@ final class InputStack {
 		this.markHigh = 0;
 		this.stack[0].mark = -1;
 		this.bom = this.tom = 0;
-		this.markState = InputStack.clear;
+		this.markState = InputStack.CLEAR;
 		for (Input input : this.markList) {
 			input.clear();
 		}
@@ -220,21 +220,21 @@ final class InputStack {
 	 * @throws EffectorException if no mark set
 	 */
 	int reset() throws EffectorException {
-		if (this.markState == InputStack.marked) {
+		if (this.markState == InputStack.MARKED) {
 			assert this.tos >= 0;
 			Input bos = this.stack[0];
 			if (bos.mark >= 0) {
 				this.bom = this.tom;
 				bos.position = bos.mark;
 				bos.mark = -1;
-				this.markState = InputStack.clear;
+				this.markState = InputStack.CLEAR;
 				if (this.tos == 0) {
 					return IEffector.RTX_INPUT;
 				}
 			} else {
 				assert bos.mark == -1;
 				assert this.bom != this.tom;
-				this.markState = InputStack.reset;
+				this.markState = InputStack.RESET;
 				if (this.tos == 0) {
 					this.tos = -1;
 					this.addMarked(bos).position = 0;
@@ -261,10 +261,8 @@ final class InputStack {
 			return bytes;
 		}
 		final boolean empty = this.bom == this.tom;
-		final int tom = this.nextMarked(this.tom);
-		final int bom = this.nextMarked(this.bom);
-		final int end = empty ? this.markList.length : bom;
-		for (int i = empty ? 0 : tom; i != end; i = empty ? i + 1 : this.nextMarked(i)) {
+		final int end = empty ? this.markList.length : this.nextMarked(this.bom);
+		for (int i = empty ? 0 : this.nextMarked(this.tom); i != end; i = empty ? i + 1 : this.nextMarked(i)) {
 			if (this.markList[i].array != null) {
 				if (!resident(this.markList[i].array)) {
 					bytes = this.markList[i].array;
@@ -362,9 +360,8 @@ final class InputStack {
 	private boolean resident(byte[] bytes) {
 		if (bytes != null) {
 			assert this.tos < 0;
-			final int bom = this.nextMarked(this.bom);
-			final int tom = this.nextMarked(this.tom);
-			for (int i = bom; i != tom; i = this.nextMarked(i)) {
+			final int end = this.nextMarked(this.tom);
+			for (int i = this.nextMarked(this.bom); i != end; i = this.nextMarked(i)) {
 				if (bytes == this.markList[i].array) {
 					return true;
 				}
@@ -387,7 +384,7 @@ final class InputStack {
 		if (this.bom != this.tom) {
 			this.bom = this.nextMarked(this.bom);
 			if (this.bom == this.tom) {
-				this.markState = InputStack.clear;
+				this.markState = InputStack.CLEAR;
 			}
 			return this.markList[this.bom];
 		}

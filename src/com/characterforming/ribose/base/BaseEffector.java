@@ -53,7 +53,7 @@ public abstract class BaseEffector<T extends ITarget> implements IEffector<T> {
 	 * @param target The target that binds the effector
 	 * @param name The effector name
 	 */
-	public BaseEffector(final T target, final String name) {
+	protected BaseEffector(final T target, final String name) {
 		this.name = Bytes.encode(Base.newCharsetEncoder(), name);
 		this.target = target;
 		this.output = null;
@@ -75,9 +75,6 @@ public abstract class BaseEffector<T extends ITarget> implements IEffector<T> {
 	public final T getTarget() {
 		return this.target;
 	}
-
-	@Override // @see com.characterforming.ribose.base.IEffector#invoke()
-	public abstract int invoke() throws EffectorException;
 
 	@Override // @see java.lang.Object#toString()
 	public String toString() {

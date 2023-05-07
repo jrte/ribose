@@ -36,7 +36,7 @@ final class TransducerStack {
 
 	private static TransducerState[] stack(final int initialSize) {
 		int size = initialSize > 4 ? initialSize : 4;
-		TransducerState stack[] = new TransducerState[size];
+		TransducerState[] stack = new TransducerState[size];
 		for (int i = size - 1; i >= 0; i--) {
 			stack[i] = new TransducerState();
 		}

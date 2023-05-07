@@ -232,7 +232,7 @@ public final class Base {
 	 * @see TYPE_REFERENCE_TRANSDUCER
 	 * @see TYPE_REFERENCE_VALUE
 	 */
-	static public byte getReferentType(final byte bytes[]) {
+	public static byte getReferentType(final byte[] bytes) {
 		if (bytes != null && !isReferenceOrdinal(bytes)) {
 			switch (bytes[0]) {
 				case TYPE_REFERENCE_TRANSDUCER:
@@ -253,7 +253,7 @@ public final class Base {
 	 * @param reference Bytes to check
 	 * @return the reference name if {@code bytes} encodes a reference, or null
 	 */
-	public static byte[] getReferenceName(final byte reference[]) {
+	public static byte[] getReferenceName(final byte[] reference) {
 		if (reference != null) {
 			switch (getReferentType(reference)) {
 			case TYPE_REFERENCE_TRANSDUCER:
@@ -280,7 +280,7 @@ public final class Base {
 	 * @return the reference ordinal
 	 * @throws RiboseException if bytes do not contain a well formed reference ordinal
 	 */
-	public static int decodeReferenceOrdinal(int type, final byte bytes[]) {
+	public static int decodeReferenceOrdinal(int type, final byte[] bytes) {
 		assert bytes != null 
 		&& getReferenceType(bytes) == type
 		&& ((bytes[1] == TYPE_REFERENCE_FIELD)
@@ -298,7 +298,7 @@ public final class Base {
 	 * @throws RiboseException
 	 */
 	public static byte[] encodeReferenceOrdinal(byte type, int ordinal) {
-		byte bytes[] = ordinal <= Base.MAX_ORDINAL
+		byte[] bytes = ordinal <= Base.MAX_ORDINAL
 		? new byte[] { TYPE_ORDINAL_INDICATOR, type, (byte) ((ordinal & 0xff00) >> 8), (byte) (ordinal & 0xff) }
 		: Bytes.EMPTY_BYTES;
 		return ordinal == decodeReferenceOrdinal(type, bytes) ? bytes : Bytes.EMPTY_BYTES;
@@ -312,7 +312,7 @@ public final class Base {
 	 * @return the decoded integer
 	 * @throws NumberFormatException on error
 	 */
-	static public int decodeInt(final byte bytes[], int length) throws NumberFormatException {
+	public static int decodeInt(final byte[] bytes, int length) throws NumberFormatException {
 		int value = 0;
 		if (length > bytes.length) {
 			length = bytes.length;

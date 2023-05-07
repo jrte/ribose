@@ -40,7 +40,7 @@ class Field implements IField {
 	private final Bytes name;
 	private final int ordinal;
 
-	private byte[] value;
+	private byte[] data;
 	private int length;
 
 	private final CharsetDecoder decoder;
@@ -57,7 +57,7 @@ class Field implements IField {
 		this.decoder = Base.newCharsetDecoder();
 		this.name = name;
 		this.ordinal = ordinal;
-		this.value = value;
+		this.data = value;
 		this.length = length;
 	}
 
@@ -65,9 +65,9 @@ class Field implements IField {
 		this.name = field.name;
 		this.ordinal = field.ordinal;
 		this.length = field.length;
-		this.value = new byte[this.length];
+		this.data = new byte[this.length];
 		this.decoder = Base.newCharsetDecoder();
-		System.arraycopy(field.value, 0, this.value, 0, field.length);
+		System.arraycopy(field.data, 0, this.data, 0, field.length);
 	}
 
 	@Override // @see com.characterforming.ribose.IField#getName()
@@ -87,13 +87,13 @@ class Field implements IField {
 	
 	@Override // @see com.characterforming.ribose.IField#copyValue()
 	public byte[] copyValue() {
-		return Arrays.copyOf(this.value, this.length);
+		return Arrays.copyOf(this.data, this.length);
 	}
 
 	@Override // @see com.characterforming.ribose.IField#decodeValue()
 	public char[] decodeValue() {
-		char chars[] = null;
-		ByteBuffer in = ByteBuffer.wrap(this.value, 0, this.getLength());
+		char[] chars = null;
+		ByteBuffer in = ByteBuffer.wrap(this.data, 0, this.getLength());
 		CharBuffer out = CharBuffer.allocate(this.getLength());
 		CoderResult result = this.decoder.reset().decode(in, out, true);
 		assert !result.isOverflow() && !result.isError();
@@ -112,10 +112,10 @@ class Field implements IField {
 	@Override // @see com.characterforming.ribose.IField#asInteger()
 	public long asInteger() {
 		long value = 0;
-		long sign = (this.value[0] == '-') ? -1 : 1;
+		long sign = (this.data[0] == '-') ? -1 : 1;
 		for (int i = sign > 0 ? 0 : 1; i < this.length; i++) {
-			if (Character.getType(this.value[i]) == Character.DECIMAL_DIGIT_NUMBER) {
-				value = (10 * value) + (this.value[i] - 48);
+			if (Character.getType(this.data[i]) == Character.DECIMAL_DIGIT_NUMBER) {
+				value = (10 * value) + (this.data[i] - 48);
 			} else {
 				throw new NumberFormatException(String.format(
 					"Not a numeric value '%1$s'", this.toString())); 
@@ -128,9 +128,9 @@ class Field implements IField {
 	public double asReal() {
 		long value = 0;
 		boolean mark = false;
-		double fraction = (this.value[0] == '-') ? -1.0 : 1.0;
+		double fraction = (this.data[0] == '-') ? -1.0 : 1.0;
 		for (int i = fraction < 0.0 ? 1 : 0; i < this.length; i++) {
-			byte digit = this.value[i];
+			byte digit = this.data[i];
 			if (Character.getType(digit) == Character.DECIMAL_DIGIT_NUMBER) {
 				value = (10 * value) + (digit - 48);
 				if (mark) {
@@ -143,48 +143,48 @@ class Field implements IField {
 					"Not a floating point value '%1$s'", this.toString())); 
 			}
 		}
-		return fraction * (double)value;
+		return fraction * value;
 	}
 
 	void clear() {
 		this.length = 0;
 	}
 
-	byte[] getValue() {
-		return this.value;
+	byte[] getData() {
+		return this.data;
 	}
 
 	void append(byte next) {
-		assert this.value != null;
+		assert this.data != null;
 		growValue(1);
-		this.value[this.length] = next;
+		this.data[this.length] = next;
 		this.length += 1;
 	}
 
-	void append(byte next[]) {
-		assert this.value != null;
+	void append(byte[] next) {
+		assert this.data != null;
 		growValue(next.length);
-		System.arraycopy(next, 0, this.value, this.length, next.length);
+		System.arraycopy(next, 0, this.data, this.length, next.length);
 		this.length += next.length;
 	}
 
 	void append(IField next) {
 		Field field = (Field)next;
 		growValue(field.length);
-		System.arraycopy(field.value, 0, this.value, this.length, field.length);
+		System.arraycopy(field.data, 0, this.data, this.length, field.length);
 		this.length += field.length;
 	}
 
 	private void growValue(int size) {
-		if ((this.length + size) > this.value.length) {
-			byte v[] = new byte[((this.length + size) * 5) >> 2];
-			System.arraycopy(this.value, 0, v, 0, this.length);
-			this.value = v;
+		if ((this.length + size) > this.data.length) {
+			byte[] v = new byte[((this.length + size) * 5) >> 2];
+			System.arraycopy(this.data, 0, v, 0, this.length);
+			this.data = v;
 		}
 	}
 
 	@Override // @see java.lang.Object#toString()
 	public String toString() {
-		return Bytes.decode(this.decoder, value, length).toString();
+		return Bytes.decode(this.decoder, data, length).toString();
 	}
 }

@@ -48,17 +48,10 @@ public abstract class BaseParameterizedEffector<T extends ITarget, P> extends Ba
 		super(target, name);
 	}
 
-	@Override // @see com.characterforming.ribose.IParameterizedEffector#newParameters(int)
-	public abstract void newParameters(int parameterCount);
-
 	@Override // @see com.characterforming.ribose.IParameterizedEffector#getParameterCount()
 	public int getParameterCount() {
-		assert this.parameters != null;
 		return (this.parameters != null) ? this.parameters.length : 0;
 	}
-
-	@Override // @see com.characterforming.ribose.IParameterizedEffector#compileParameter(int, byte[][])
-	public abstract P compileParameter(int parameterIndex, byte[][] parameterList) throws TargetBindingException;
 
 	@Override // @see com.characterforming.ribose.IParameterizedEffector#setParameter(int, Object)
 	@SuppressWarnings("unchecked")
@@ -75,7 +68,4 @@ public abstract class BaseParameterizedEffector<T extends ITarget, P> extends Ba
 	public P[] getParameters() {
 		return this.parameters;
 	}
-	
-	@Override // @see com.characterforming.ribose.IParameterizedEffector#invoke(int)
-	public abstract int invoke(int parameterIndex) throws EffectorException;
 }

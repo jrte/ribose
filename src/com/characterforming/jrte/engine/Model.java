@@ -78,9 +78,9 @@ public final class Model implements AutoCloseable {
 	private Transductor proxyTransductor;
 	private String modelVersion;
 
-	private volatile Transducer transducerObjectIndex[];
-	private Bytes transducerNameIndex[];
-	private long transducerOffsetIndex[];
+	private Transducer[] transducerObjectIndex;
+	private Bytes[] transducerNameIndex;
+	private long[] transducerOffsetIndex;
 
 	private RandomAccessFile io;
 	private boolean deleteOnClose;
@@ -607,7 +607,7 @@ public final class Model implements AutoCloseable {
 			if (t == null) {
 				try {
 					synchronized (this.transducerObjectIndex) {
-						t = this.transducerObjectIndex[transducerOrdinal];;
+						t = this.transducerObjectIndex[transducerOrdinal];
 						if (t == null) {
 							this.io.seek(transducerOffsetIndex[transducerOrdinal]);
 							final String name = this.getString();
@@ -853,7 +853,7 @@ public final class Model implements AutoCloseable {
 	}
 
 	void putBytes(final ByteBuffer byteBuffer) throws ModelException {
-		byte bytes[] = null;
+		byte[] bytes = null;
 		if (byteBuffer != null) {
 			bytes = new byte[byteBuffer.limit() - byteBuffer.position()];
 			byteBuffer.get(bytes, byteBuffer.position(), byteBuffer.limit());
@@ -916,7 +916,7 @@ public final class Model implements AutoCloseable {
 	}
 
 	void putOrdinalMap(final Map<Bytes, Integer> map) throws ModelException {
-		byte names[][] = new byte[map.size()][];
+		byte[][] names = new byte[map.size()][];
 		for (Entry<Bytes, Integer> entry : map.entrySet()) {
 			names[entry.getValue()] = entry.getKey().getData();
 		}

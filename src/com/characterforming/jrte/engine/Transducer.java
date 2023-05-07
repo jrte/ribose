@@ -20,8 +20,6 @@
 
 package com.characterforming.jrte.engine;
 
-import com.characterforming.ribose.base.ModelException;
-
 /**
  * @author Kim Briggs
  */
@@ -33,8 +31,7 @@ final class Transducer {
 	private final int[] effectorVector;
 	int inputEquivalents;
 
-	Transducer(String name, String targetName, int[] inputFilter, long[] transitionMatrix, int[] effectorVector)
-	throws ModelException {
+	Transducer(String name, String targetName, int[] inputFilter, long[] transitionMatrix, int[] effectorVector) {
 		this.name = name;
 		this.targetName = targetName;
 		this.inputFilter = inputFilter;
@@ -45,12 +42,12 @@ final class Transducer {
 
 	// encode state and action in transition matrix cell
 	static long transition(int state, int action) {
-		return ((long)action << 32) | (long)state;
+		return ((long)action << 32) | state;
 	}
 
 	// decode state from transition matrix cell
 	static int state(long transition) {
-		return (int)(transition & (long)0xffffffff);
+		return (int)(transition & 0xffffffff);
 	}
 
 	// decode action from transition matrix cell

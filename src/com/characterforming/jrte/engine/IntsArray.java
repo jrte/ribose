@@ -28,32 +28,32 @@ import java.util.Arrays;
  * @author Kim Briggs
  */
 final class IntsArray {
-	private final Ints[] intsArray;
+	private final Ints[] data;
 	private int hash;
 
 	public IntsArray(final int[][] intsArray) {
-		this.intsArray = new Ints[intsArray.length];
-		for (int i = 0; i < this.intsArray.length; i++) {
-			this.intsArray[i] = new Ints(intsArray[i]);
+		this.data = new Ints[intsArray.length];
+		for (int i = 0; i < this.data.length; i++) {
+			this.data[i] = new Ints(intsArray[i]);
 		}
 		this.hash = 0;
 	}
 
 	int[][] getInts() {
-		final int[][] ints = new int[this.intsArray.length][];
+		final int[][] ints = new int[this.data.length][];
 		for (int i = 0; i < ints.length; i++) {
-			ints[i] = this.intsArray[i].getInts();
+			ints[i] = this.data[i].getData();
 		}
 		return ints;
 	}
 
 	int[] getInts(final int index) {
-		return this.intsArray[index].getInts();
+		return this.data[index].getData();
 	}
 
 	private int hash() {
-		int h = this.intsArray.length;
-		for (final Ints element : this.intsArray) {
+		int h = this.data.length;
+		for (final Ints element : this.data) {
 			h = h * 31 + element.hashCode();
 		}
 		return h != 0 ? h : -1;
@@ -69,8 +69,8 @@ final class IntsArray {
 
 	@Override
 	public boolean equals(final Object other) {
-		return other == this || other != null && other instanceof IntsArray
+		return other == this || other instanceof IntsArray
 		&& ((IntsArray) other).hashCode() == this.hashCode()
-		&& Arrays.equals(((IntsArray) other).intsArray, this.intsArray);
+		&& Arrays.equals(((IntsArray) other).data, this.data);
 	}
 }

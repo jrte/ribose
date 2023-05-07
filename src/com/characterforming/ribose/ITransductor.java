@@ -365,7 +365,7 @@ public interface ITransductor extends ITarget {
 	 * @see #recycle(byte[])
 	 * @see #status()
 	 */
-	ITransductor run() throws RiboseException, DomainErrorException;
+	ITransductor run() throws RiboseException;
 
 	/**
 	 * Return a new or unmarked byte[] buffer if the previous buffer ({@code bytes})

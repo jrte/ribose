@@ -81,7 +81,7 @@ public class ModelCompiler implements ITarget {
 	private HashMap<Ints, Integer> effectorVectorMap;
 	private int[] effectorVectors;
 	private Header header = null;
-	private Transition transitions[] = null;
+	private Transition[] transitions = null;
 	private int[] inputEquivalenceIndex;
 	private int[][][] kernelMatrix;
 	private int transition = 0;
@@ -193,7 +193,7 @@ public class ModelCompiler implements ITarget {
 	}
 
 	class HeaderEffector extends BaseEffector<ModelCompiler> {
-		IField fields[];
+		IField[] fields;
 
 		HeaderEffector(ModelCompiler automaton) {
 			super(automaton, "header");
@@ -243,7 +243,7 @@ public class ModelCompiler implements ITarget {
 		final int from;
 		final int to;
 		final int tape;
-		final byte symbol[];
+		final byte[] symbol;
 		final boolean isFinal;
 
 		Transition(int from, int to, int tape, byte[] symbol) {
@@ -256,7 +256,7 @@ public class ModelCompiler implements ITarget {
 	}
 
 	class TransitionEffector extends BaseEffector<ModelCompiler> {
-		IField fields[];
+		IField[] fields;
 
 		TransitionEffector(ModelCompiler automaton) {
 			super(automaton, "transition");
@@ -359,40 +359,39 @@ public class ModelCompiler implements ITarget {
 			target.effectorVectorMap.put(new Ints(new int[] {0}), 0);
 			for (final Integer inrInputState : inrInputStates) {
 				for (final Transition t : target.getTransitions(inrInputState)) {
-					if (t.isFinal) {
-						continue;
-					}
-					if (t.tape != 0) {
-						target.error(String.format(ModelCompiler.AMBIGUOUS_STATE_MESSAGE,
-							target.getTransducerName(), t.from));
-						continue;
-					}
-					try {
-						final int rteState = target.getRteState(0, t.from);
-						final int inputOrdinal = target.model.getInputOrdinal(t.symbol);
-						final Chain chain = target.chain(t);
-						if (chain != null) {
-							final int[] effectVector = chain.getEffectVector();
-							transitionMatrix[inputOrdinal][rteState][0] = target.getRteState(0, chain.getOutS());
-							if (chain.isEmpty()) {
-								transitionMatrix[inputOrdinal][rteState][1] = 1;
-							} else if (chain.isScalar()) {
-								transitionMatrix[inputOrdinal][rteState][1] = effectVector[0];
-							} else if (chain.isParameterized()) {
-								transitionMatrix[inputOrdinal][rteState][1] = Transducer.action(-1 * effectVector[0], effectVector[1]);
-							} else {
-								Ints vector = new Ints(effectVector);
-								Integer vectorOrdinal = target.effectorVectorMap.get(vector);
-								if (vectorOrdinal == null) {
-									vectorOrdinal = target.effectorVectorMap.size();
-									target.effectorVectorMap.put(vector, vectorOrdinal);
-								}
-								transitionMatrix[inputOrdinal][rteState][1] = -vectorOrdinal;
-							}
+					if (!t.isFinal) {
+						if (t.tape != 0) {
+							target.error(String.format(ModelCompiler.AMBIGUOUS_STATE_MESSAGE,
+								target.getTransducerName(), t.from));
+							continue;
 						}
-					} catch (CompilationException e) {
-						target.error(String.format("%1$s: %2$s",
-							target.getTransducerName(), e.getMessage()));
+						try {
+							final int rteState = target.getRteState(0, t.from);
+							final int inputOrdinal = target.model.getInputOrdinal(t.symbol);
+							final Chain chain = target.chain(t);
+							if (chain != null) {
+								final int[] effectVector = chain.getEffectVector();
+								transitionMatrix[inputOrdinal][rteState][0] = target.getRteState(0, chain.getOutS());
+								if (chain.isEmpty()) {
+									transitionMatrix[inputOrdinal][rteState][1] = 1;
+								} else if (chain.isScalar()) {
+									transitionMatrix[inputOrdinal][rteState][1] = effectVector[0];
+								} else if (chain.isParameterized()) {
+									transitionMatrix[inputOrdinal][rteState][1] = Transducer.action(-1 * effectVector[0], effectVector[1]);
+								} else {
+									Ints vector = new Ints(effectVector);
+									Integer vectorOrdinal = target.effectorVectorMap.get(vector);
+									if (vectorOrdinal == null) {
+										vectorOrdinal = target.effectorVectorMap.size();
+										target.effectorVectorMap.put(vector, vectorOrdinal);
+									}
+									transitionMatrix[inputOrdinal][rteState][1] = -vectorOrdinal;
+								}
+							}
+						} catch (CompilationException e) {
+							target.error(String.format("%1$s: %2$s",
+								target.getTransducerName(), e.getMessage()));
+						}
 					}
 				}
 			}
@@ -429,7 +428,7 @@ public class ModelCompiler implements ITarget {
 		name = name.substring(0, name.length() - Base.AUTOMATON_FILE_SUFFIX.length());
 		this.transducerName = Bytes.encode(this.encoder, name);
 		int size = (int)inrFile.length();
-		byte bytes[] = null;
+		byte[] bytes = null;
 		try (DataInputStream f = new DataInputStream(new FileInputStream(inrFile))) {
 			int position = 0, length = size;
 			bytes = new byte[length];
@@ -666,7 +665,7 @@ public class ModelCompiler implements ITarget {
 		int vectorCount = this.effectorVectorMap.size();
 		int[][] effectVectors = new int[vectorCount > 4 ? (vectorCount * 3) >> 1 : 5][];
 		for (Entry<Ints, Integer> entry : this.effectorVectorMap.entrySet())  {
-			int[] vector = entry.getKey().getInts();
+			int[] vector = entry.getKey().getData();
 			effectVectors[entry.getValue()] = vector;
 		}
 		effectVectors = instrumentSumVectors(msumOrdinal, effectVectors, msumStateEffects);
@@ -796,7 +795,7 @@ public class ModelCompiler implements ITarget {
 		}
 	}
 
-	private int walk(int fromState, byte[] walkedBytes, int[] walkResult, int exitEquivalent[], int singletonEquivalenceMap[]) {
+	private int walk(int fromState, byte[] walkedBytes, int[] walkResult, int[] exitEquivalent, int[] singletonEquivalenceMap) {
 		int nulEquivalent = this.inputEquivalenceIndex[Signal.NUL.signal()];
 		int[] nulTransition = this.kernelMatrix[nulEquivalent][fromState];
 		int[] matchTransition = new int[] { 
@@ -861,9 +860,7 @@ public class ModelCompiler implements ITarget {
 						this.effectorVectorMap.put(vxkey, vectorOrdinal);
 						if (vectorOrdinal >= effectVectors.length) {
 							int[][] newv = new int[vectorOrdinal > 4 ? (vectorOrdinal * 3) >> 1 : 5][];
-							for (int i = 0; i < effectVectors.length; i++) {
-								newv[i] = effectVectors[i];
-							}
+							System.arraycopy(effectVectors, 0, newv, 0, effectVectors.length);
 							effectVectors = newv;
 						}
 						effectVectors[vectorOrdinal] = vectorex;
@@ -907,9 +904,7 @@ public class ModelCompiler implements ITarget {
 						this.effectorVectorMap.put(vxkey, vectorOrdinal);
 						if (vectorOrdinal >= effectVectors.length) {
 							int[][] newv = new int[vectorOrdinal > 4 ? (vectorOrdinal * 3) >> 1 : 5][];
-							for (int i = 0; i < effectVectors.length; i++) {
-								newv[i] = effectVectors[i];
-							}
+							System.arraycopy(effectVectors, 0, newv, 0, effectVectors.length);
 							effectVectors = newv;
 						}
 						effectVectors[vectorOrdinal] = vectorex;

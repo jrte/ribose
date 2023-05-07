@@ -157,7 +157,7 @@ public final class Transductor implements ITransductor, IOutput {
 				this.fieldHandles[fieldIndex] = new Field(entry.getKey(), fieldIndex, fieldBuffer, 0);
 			}
 			this.selected = this.fieldHandles[Model.ANONYMOUS_FIELD_ORDINAL];
-			this.inputStack = new InputStack(INITIAL_STACK_SIZE, this.model.getSignalCount(), this.fieldHandles.length);
+			this.inputStack = new InputStack(INITIAL_STACK_SIZE);
 			this.transducerStack = new TransducerStack(INITIAL_STACK_SIZE);
 		} else {
 			this.inputStack = null;
@@ -315,7 +315,7 @@ public final class Transductor implements ITransductor, IOutput {
 	}
 
 	@Override	// @see com.characterforming.ribose.ITransductor#run()
-	public ITransductor run() throws RiboseException, DomainErrorException {
+	public ITransductor run() throws RiboseException {
 		if (this.transducerStack.isEmpty()) {
 			throw new RiboseException("Transductor.run() called while transducer stack is empty");
 		}
@@ -341,7 +341,7 @@ I:			do {
 						token = signal;
 						signal = 0;
 					} else if (input.position < input.limit) {
-						token = 0xff & (int)input.array[input.position++];
+						token = 0xff & input.array[input.position++];
 					} else {
 						do {
 							input = this.inputStack.pop();
@@ -350,7 +350,7 @@ I:			do {
 								break T;
 							}
 						} while (input.position >= input.limit);
-						token = 0xff & (int)input.array[input.position++];
+						token = 0xff & input.array[input.position++];
 					}
 					
 					// absorb self-referencing (msum,mscan) or sequential (mproduct) transitions with nil effect
@@ -571,12 +571,12 @@ E:	do {
 					}
 					break;
 				case IN:
-					this.inputStack.push(this.selected.getValue(), this.selected.getLength());
+					this.inputStack.push(this.selected.getData(), this.selected.getLength());
 					aftereffects |= IEffector.RTX_INPUT;
 					break;
 				case OUT:
 					if (this.output != null) {
-						this.output.write(this.selected.getValue(), 0, this.selected.getLength());
+						this.output.write(this.selected.getData(), 0, this.selected.getLength());
 					}
 					break;
 				case MARK:
@@ -945,7 +945,7 @@ E:	do {
 						if (Base.getReferenceType(bytes) == Base.TYPE_REFERENCE_FIELD) {
 							Field field = (Field)getField(Base.decodeReferenceOrdinal(Base.TYPE_REFERENCE_FIELD, bytes));
 							if (field != null) {
-								super.target.output.write(field.getValue(), 0, field.getLength());
+								super.target.output.write(field.getData(), 0, field.getLength());
 							}
 						} else {
 							super.target.output.write(bytes, 0, bytes.length);

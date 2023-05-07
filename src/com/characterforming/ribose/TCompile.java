@@ -88,7 +88,7 @@ public final class TCompile extends ModelCompiler {
 	 * @throws IOException If logging subsystem can't initialize
 	 * @throws SecurityException If logging subsystem can't initialize
 	 */
-	public static void main(final String[] args) throws SecurityException, IOException {
+	public static void main(final String[] args) throws SecurityException {
 		File ginrAutomataDirectory = null;
 		File riboseModelFile = null;
 		Class<?> targetClass = null;

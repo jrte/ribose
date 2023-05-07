@@ -24,7 +24,7 @@ final class Input {
 	}
 
   static Input[] stack(final int initialSize) {
-  	Input stack[] = new Input[initialSize];
+  	Input[] stack = new Input[initialSize];
   	for (int i = 0; i < stack.length; i++) {
   		stack[i] = new Input();
   	}

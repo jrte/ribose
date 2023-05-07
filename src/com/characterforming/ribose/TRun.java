@@ -73,7 +73,7 @@ public final class TRun {
 	 */
 	public static void main(final String[] args) throws SecurityException, IOException {
 		int argc = args.length;
-		final boolean nil = (argc > 0) ? (args[0].compareTo("--nil") == 0) : false;
+		final boolean nil = argc > 0 && args[0].compareTo("--nil") == 0;
 		int arg = nil ? 1 : 0;
 		arg += (arg > (nil ? 1 : 0)) ? 1 : 0;
 		if ((argc - arg) != 3 && (argc - arg) != 4) {
@@ -136,7 +136,7 @@ public final class TRun {
 					if (ribose.transduce(runTarget, transducer, nil ? Signal.NIL : null, isr, outputEnabled ? osw : null)) {
 						if (input != null) {
 							long clen = input.length();
-							double t1 = System.nanoTime() - t0;
+							double t1 = (System.nanoTime() - t0);
 							double mbps = (t1 > 0) ? (clen*1000) / t1 : -1;
 							rtmLogger.log(Level.FINE, () -> String.format("%s\t%7.3f\t%d\t%s",
 								inputPath, mbps, clen, transducerName));
