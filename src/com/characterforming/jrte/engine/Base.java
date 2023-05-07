@@ -116,7 +116,7 @@ public final class Base {
 	 * @return the runtime logger
 	 */
 	public static Logger getCompileLogger() {
-		return Base.rteLogger;
+		return Base.rtcLogger;
 	}
 
 	/**
@@ -333,7 +333,7 @@ public final class Base {
 
 	private static final void startLogger(Logger logger, boolean useParentHandler) {
 		try {
-			FileHandler fh = new FileHandler(logger.getName() + "%g.log",
+			FileHandler fh = new FileHandler(logger.getName() + "-%g.log",
 				Base.FILE_LOGGER_LIMIT, Base.FILE_LOGGER_COUNT, true);
 			fh.setFormatter(new SimpleFormatter());
 			fh.setLevel(Level.FINE);
