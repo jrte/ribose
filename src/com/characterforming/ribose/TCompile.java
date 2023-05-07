@@ -94,6 +94,7 @@ public final class TCompile extends ModelCompiler {
 		String targetClassname = null;
 		Class<?> targetClass = null;
 		
+		Base.startLogging();
 		final Logger rtcLogger = Base.getCompileLogger();
 		boolean argsOk = (args.length == 4) && args[0].equals("--target");
 		if (argsOk) {
@@ -128,7 +129,7 @@ public final class TCompile extends ModelCompiler {
 			System.exit(1);
 		}
 		System.out.println(String.format("Ribose runtime compiler version %1$s%2$sCopyright (C) 2011,2022 Kim Briggs%2$sDistributed under GPLv3 (http://www.gnu.org/licenses/gpl-3.0.txt)", 
-			Base.RTE_VERSION, Base.lineEnd));
+			Base.RTE_VERSION, Base.LINEEND));
 		System.out.println(String.format("Compiling %1$s to runtime model %2$s", 
 			ginrAutomataDirectory.getPath(), riboseModelFile.getPath()));
 		

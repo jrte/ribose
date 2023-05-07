@@ -66,7 +66,7 @@ public enum Signal {
 	private final Bytes key;
 
 	private Signal() {
-		this.key = Base.RTE_SIGNAL_NAMES[this.ordinal()];
+		this.key = Base.getSignalName(this.ordinal());
 	}
 	
 	/**

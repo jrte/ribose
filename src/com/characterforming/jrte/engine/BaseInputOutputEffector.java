@@ -20,6 +20,8 @@
 
 package com.characterforming.jrte.engine;
 
+import java.util.logging.Level;
+
 import com.characterforming.ribose.base.BaseParameterizedEffector;
 import com.characterforming.ribose.base.Bytes;
 import com.characterforming.ribose.base.EffectorException;
@@ -88,7 +90,7 @@ abstract class BaseInputOutputEffector extends BaseParameterizedEffector<Transdu
 	public String showParameter(int parameterIndex) {
 		StringBuilder sb = new StringBuilder(256);
 		for (byte[] bytes : super.parameters[parameterIndex]) {
-			int ordinal = Base.isReferenceOrdinal(bytes) ? Base.decodeReferenceOrdinal(Base.TYPE_REFERENCE_FIELD, bytes) : -1;
+			final int ordinal = Base.isReferenceOrdinal(bytes) ? Base.decodeReferenceOrdinal(Base.TYPE_REFERENCE_FIELD, bytes) : -1;
 			if (ordinal >= 0) {
 				if (sb.length() > 0) {
 					sb.append(' ');
@@ -106,8 +108,7 @@ abstract class BaseInputOutputEffector extends BaseParameterizedEffector<Transdu
 					if (bytes[i] > 32 && bytes[i] < 127) {
 						sb.append((char)bytes[i]);
 					} else {
-						sb.append('#');
-						sb.append(Integer.toHexString(bytes[i]));
+						sb.append(String.format("#%02X", bytes[i]));
 					}
 				}
 			}

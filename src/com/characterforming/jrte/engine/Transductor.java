@@ -94,10 +94,10 @@ public final class Transductor implements ITransductor, IOutput {
 	private static final int nulSignal = Signal.nul.signal();
 	private static final int eosSignal = Signal.eos.signal();
 
-	private final int Mnone = 0;
-	private final int Msum = 1;
-	private final int Mproduct = 2;
-	private final int Mscan = 3;
+	private static final int Mnone = 0;
+	private static final int Msum = 1;
+	private static final int Mproduct = 2;
+	private static final int Mscan = 3;
 	private Signal prologue;
 	private final Model model;
 	private final TargetMode mode;
@@ -670,7 +670,7 @@ E:	do {
 		StringBuilder message = new StringBuilder(256);
 		message.append(String.format("Domain error on (%1$d~%2$d) in %3$s [%4$d]->[%5$d]%6$s,\tTransducer stack:%7$s",
 			this.errorInput, this.errorInput >= 0 ? top.inputFilter[this.errorInput] : this.errorInput, 
-			top.name, last, state, Base.lineEnd, Base.lineEnd));
+			top.name, last, state, Base.LINEEND, Base.LINEEND));
 		for (int i = this.transducerStack.tos(); i >= 0; i--) {
 			TransducerState t = this.transducerStack.get(i);
 			int s = t.state / t.inputEquivalents;
@@ -681,18 +681,19 @@ E:	do {
 						Transducer.state(t.transitionMatrix[t.state + j]) / t.inputEquivalents));
 				}
 			}
-			message.append(Base.lineEnd);
+			message.append(Base.LINEEND);
 		}
-		message.append(Base.lineEnd).append("\tInput stack:").append(Base.lineEnd);
+		message.append(Base.LINEEND).append("\tInput stack:").append(Base.LINEEND);
 		for (int i = this.inputStack.tos(); i >= 0; i--) {
 			final Input input = this.inputStack.get(i);
 			if (input.array == null) {
-				message.append("\t\t(null)").append(Base.lineEnd);
+				message.append("\t\t(null)").append(Base.LINEEND);
 			} else if (!input.hasRemaining()) {
-				message.append("[ ]").append(Base.lineEnd);
+				message.append("[ ]").append(Base.LINEEND);
 			} else if (Base.isReferenceOrdinal(input.array)) {
-				message.append("\t\t [ !").append(Integer.toString(Base.decodeReferenceOrdinal(Base.getReferenceType(input.array), input.array)))
-					.append(" ]").append(Base.lineEnd);
+				message.append("\t\t [ !")
+				.append(Integer.toString(Base.decodeReferenceOrdinal(Base.getReferenceType(input.array), input.array)))
+				.append(" ]").append(Base.LINEEND);
 			} else if (input.position < input.length) {
 				assert input.position < input.length && input.length <= input.array.length ;
 				int position = Math.max(0, input.position - 1);
@@ -718,9 +719,9 @@ E:	do {
 					}
 					start += 1;
 				}
-				message.append("> ]").append(Base.lineEnd);
+				message.append("> ]").append(Base.LINEEND);
 			} else {
-				message.append("\t\t[ < end-of-input > ]").append(Base.lineEnd);
+				message.append("\t\t[ < end-of-input > ]").append(Base.LINEEND);
 			}
 		}
 		return message.toString();

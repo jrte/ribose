@@ -94,30 +94,31 @@ public final class TRun {
 		final String inputPath = arg < argc ? args[arg++] : "-";
 		final String outputPath = arg < argc ? args[arg++] : null;
 		
-		final boolean outputEnabled = System.getProperty("jrte.out.enabled", "true").equals("true");
-		final CharsetEncoder encoder = Base.newCharsetEncoder();
+		Base.startLogging();
 		final Logger rteLogger = Base.getRuntimeLogger();
 		final Logger rtmLogger = Base.getMetricsLogger();
+		final CharsetEncoder encoder = Base.newCharsetEncoder();
+		final boolean outputEnabled = System.getProperty("jrte.out.enabled", "true").equals("true");
 		final File input = inputPath.charAt(0) == '-' ? null : new File(inputPath);
 		if (input != null && !input.exists()) {
-			System.out.println("No input file found at " + inputPath);
+			rteLogger.log(Level.SEVERE, "No input file found at {0}", inputPath);
 			System.exit(1);
 		}
 		final File model = new File(modelPath);
 		if (!model.exists()) {
-			System.out.println("No ribose model file found at " + modelPath);
+			rteLogger.log(Level.SEVERE, "No ribose model file found at {0}", modelPath);
 			System.exit(1);
 		}
 		OutputStream os = System.out;
 		if (outputEnabled && outputPath != null) {
 			File outputFile = new File(outputPath);
-			if (outputFile.exists()) {
-				outputFile.delete();
+			if (outputFile.exists() && !outputFile.delete()) {
+				rteLogger.log(Level.WARNING, "Unable to delete output file {0}", outputPath);
 			}
 			try {
 				os = new FileOutputStream(outputFile);
 			} catch (FileNotFoundException e) {
-				System.out.println("No path to output file at " + outputPath);
+				rteLogger.log(Level.SEVERE, "No path to output file at {0}", outputPath);
 				System.exit(1);
 			}
 		}
@@ -137,7 +138,8 @@ public final class TRun {
 							long clen = input.length();
 							double t1 = System.nanoTime() - t0;
 							double mbps = (t1 > 0) ? (double)(clen*1000) / t1 : -1;
-							rtmLogger.log(Level.FINE, String.format("%s\t%7.3f\t%d\t%s", inputPath, mbps, clen, transducerName));
+							rtmLogger.log(Level.FINE, () -> String.format("%s\t%7.3f\t%d\t%s",
+								inputPath, mbps, clen, transducerName));
 						}
 						exitCode = 0;
 					}

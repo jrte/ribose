@@ -52,6 +52,7 @@ public class TestRunner {
 			System.exit(1);
 		}
 
+		Base.startLogging();
 		final Logger rteLogger = Base.getRuntimeLogger();
 		final String modelPath = args[0];
 		final char[] achars = new char[10000000];

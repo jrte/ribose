@@ -224,9 +224,9 @@ public final class Model implements AutoCloseable {
 			setDeleteOnClose(false);
 			String msg = String.format(
 				"%1$s: target class %2$s%3$s%4$d transducers; %5$d effectors; %6$d fields; %7$d signal ordinals%8$s",
-				this.modelPath.getPath(), this.proxyTarget.getClass().getName(), Base.lineEnd,
+				this.modelPath.getPath(), this.proxyTarget.getClass().getName(), Base.LINEEND,
 				this.transducerOrdinalMap.size() - 1, this.effectorOrdinalMap.size(),
-				this.fieldOrdinalMap.size(), this.getSignalCount(), Base.lineEnd);
+				this.fieldOrdinalMap.size(), this.getSignalCount(), Base.LINEEND);
 			this.rtcLogger.log(Level.INFO, msg);
 		} catch (IOException e) {
 			throw new ModelException(
@@ -430,11 +430,11 @@ public final class Model implements AutoCloseable {
 		if (!checked) {
 			StringBuilder msg = new StringBuilder(256);
 			msg.append("Target ").append(target.getName()).append(" effectors do not match proxy effectors.")
-					.append(Base.lineEnd).append("\tTarget:");
+					.append(Base.LINEEND).append("\tTarget:");
 			for (IEffector<?> fx : boundFx) {
 				msg.append(' ').append(fx.getName());
 			}
-			msg.append(Base.lineEnd).append("\tProxy:");
+			msg.append(Base.LINEEND).append("\tProxy:");
 			for (IEffector<?> fx : this.proxyEffectors) {
 				msg.append(' ').append(fx.getName());
 			}

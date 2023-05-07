@@ -70,7 +70,7 @@ public final class Base {
 	public static final byte TYPE_REFERENCE_NONE = (byte) 0x0;
 
 	/** End of line sequence */
-	public static final String lineEnd = System.getProperty("line.separator", "\n");
+	public static final String LINEEND = System.getProperty("line.separator", "\n");
 
 	private static final int FILE_LOGGER_COUNT = 2;
 	private static final int FILE_LOGGER_LIMIT = 1024 * 1024;
@@ -78,50 +78,45 @@ public final class Base {
 	private static final int OUTPUT_BUFFER_SIZE = Integer.parseInt(System.getProperty("ribose.outbuffer.size", "8196"));
 	private static final Charset runtimeCharset = Charset.forName(System.getProperty("ribose.runtime.charset", "UTF-8"));
 	private static final CharsetEncoder encoder = runtimeCharset.newEncoder();
-	public static final Bytes[] RTE_SIGNAL_NAMES = {
-			Bytes.encode(Base.encoder, "nul"),
-			Bytes.encode(Base.encoder, "nil"),
-			Bytes.encode(Base.encoder, "eol"),
-			Bytes.encode(Base.encoder, "eos")
+	private static final Bytes[] RTE_SIGNAL_NAMES = {
+		Bytes.encode(Base.encoder, "nul"),
+		Bytes.encode(Base.encoder, "nil"),
+		Bytes.encode(Base.encoder, "eol"),
+		Bytes.encode(Base.encoder, "eos")
 	};
+	
+	private static final Logger rtcLogger = Logger.getLogger("ribose-compile");
+	private static final Logger rteLogger = Logger.getLogger("ribose-runtime");
+	private static final Logger rtmLogger = Logger.getLogger("ribose-metrics");
 
-	private static Logger rtcLogger = null;
-	private static Logger rteLogger = null;
-	private static Logger rtmLogger = null;
-
-	private static final String RTE_LOGGER_NAME = "ribose-runtime";
-	private static final String RTC_LOGGER_NAME = "ribose-compile";
-	private static final String RTM_LOGGER_NAME = "ribose-metrics";
-
+	/**
+	 * Get a signal name given its 0-based ordinal
+	 * 
+	 * @param signal 0-based (nul == 0) signal ordinal
+	 * @return the UTF-8 encoded name of the signal
+	 */
+	public static Bytes getSignalName(int signal) {
+		return Base.RTE_SIGNAL_NAMES[signal];
+	}
 	/**
 	 * Get a reference to the compiler logger. This should be used only
 	 * in compilation contexts.
 	 *
 	 * @return the compiler logger
 	 */
+	public static void startLogging() {
+		Base.startLogger(Base.rtcLogger, true);
+		Base.startLogger(Base.rteLogger, true);
+		Base.startLogger(Base.rtmLogger, false);
+	}
+
+	/**
+	 * Get a reference to the runtime logger.
+	 *
+	 * @return the runtime logger
+	 */
 	public static Logger getCompileLogger() {
-		if (Base.rtcLogger == null) {
-			synchronized (Base.RTE_VERSION) {
-				if (Base.rtcLogger == null) {
-					Base.rtcLogger = Logger.getLogger(Base.RTC_LOGGER_NAME);
-					try {
-						for (Handler h : Base.rtcLogger.getHandlers()) {
-							h.setLevel(Level.INFO);
-						}
-						FileHandler rtcHandler = new FileHandler(Base.rtcLogger.getName() + "%g.log",
-								Base.FILE_LOGGER_LIMIT, Base.FILE_LOGGER_COUNT, true);
-						rtcHandler.setFormatter(new SimpleFormatter());
-						rtcHandler.setLevel(Level.FINE);
-						Base.rtcLogger.addHandler(rtcHandler);
-					} catch (Exception e) {
-						Base.rtcLogger.getParent().log(Level.SEVERE, "Unable to attach file log handler for {0}",
-								Base.rtcLogger.getName());
-					}
-					Base.rtcLogger.setLevel(Level.FINE);
-				}
-			}
-		}
-		return Base.rtcLogger;
+		return Base.rteLogger;
 	}
 
 	/**
@@ -130,27 +125,6 @@ public final class Base {
 	 * @return the runtime logger
 	 */
 	public static Logger getRuntimeLogger() {
-		if (Base.rteLogger == null) {
-			synchronized (Base.RTE_VERSION) {
-				if (Base.rteLogger == null) {
-					Base.rteLogger = Logger.getLogger(Base.RTE_LOGGER_NAME);
-					try {
-						for (Handler h : Base.rteLogger.getHandlers()) {
-							h.setLevel(Level.INFO);
-						}
-						FileHandler rteHandler = new FileHandler(Base.rteLogger.getName() + "%g.log",
-								Base.FILE_LOGGER_LIMIT, Base.FILE_LOGGER_COUNT, true);
-						rteHandler.setFormatter(new SimpleFormatter());
-						rteHandler.setLevel(Level.FINE);
-						Base.rteLogger.addHandler(rteHandler);
-					} catch (Exception e) {
-						Base.rteLogger.getParent().log(Level.SEVERE,
-								"Unable to attach file log handler for " + Base.rteLogger.getName());
-					}
-					Base.rteLogger.setLevel(Level.FINE);
-				}
-			}
-		}
 		return Base.rteLogger;
 	}
 
@@ -161,25 +135,6 @@ public final class Base {
 	 * @return the compiler logger
 	 */
 	public static Logger getMetricsLogger() {
-		if (Base.rtmLogger == null) {
-			synchronized (Base.RTE_VERSION) {
-				if (Base.rtmLogger == null) {
-					Base.rtmLogger = Logger.getLogger(Base.RTM_LOGGER_NAME);
-					try {
-						FileHandler rtmHandler = new FileHandler(Base.rtmLogger.getName() + "%g.log",
-								Base.FILE_LOGGER_LIMIT, Base.FILE_LOGGER_COUNT, true);
-						rtmHandler.setFormatter(new SimpleFormatter());
-						rtmHandler.setLevel(Level.FINE);
-						Base.rtmLogger.addHandler(rtmHandler);
-						Base.rtmLogger.setUseParentHandlers(false);
-					} catch (Exception e) {
-						Base.rtmLogger.getParent().log(Level.SEVERE,
-								"Unable to attach file log handler for " + Base.rtmLogger.getName());
-					}
-					Base.rtmLogger.setLevel(Level.FINE);
-				}
-			}
-		}
 		return Base.rtmLogger;
 	}
 
@@ -187,30 +142,9 @@ public final class Base {
 	 * Finalize all loggers
 	 */
 	public static void endLogging() {
-		if (Base.rtcLogger != null) {
-			Handler[] handlers = Base.rtcLogger.getHandlers();
-			for (Handler h : handlers) {
-				if (h instanceof FileHandler) {
-					h.close();
-				}
-			}
-		}
-		if (Base.rteLogger != null) {
-			Handler[] handlers = Base.rteLogger.getHandlers();
-			for (Handler h : handlers) {
-				if (h instanceof FileHandler) {
-					h.close();
-				}
-			}
-		}
-		if (Base.rtmLogger != null) {
-			Handler[] handlers = Base.rtmLogger.getHandlers();
-			for (Handler h : handlers) {
-				if (h instanceof FileHandler) {
-					h.close();
-				}
-			}
-		}
+		Base.endLogger(Base.rtcLogger);
+		Base.endLogger(Base.rteLogger);
+		Base.endLogger(Base.rtmLogger);
 	}
 
 	/**
@@ -219,7 +153,7 @@ public final class Base {
 	 *
 	 * @return a new CharsetDecoder insstance
 	 */
-	static public CharsetDecoder newCharsetDecoder() {
+	public static CharsetDecoder newCharsetDecoder() {
 		return Base.runtimeCharset.newDecoder();
 	}
 
@@ -229,7 +163,7 @@ public final class Base {
 	 *
 	 * @return a new CharsetEncoder instance
 	 */
-	static public CharsetEncoder newCharsetEncoder() {
+	public static CharsetEncoder newCharsetEncoder() {
 		return Base.runtimeCharset.newEncoder();
 	}
 
@@ -238,7 +172,7 @@ public final class Base {
 	 *
 	 * @return input buffer size in bytes
 	 */
-	static public int getInBufferSize() {
+	public static int getInBufferSize() {
 		return Base.INPUT_BUFFER_SIZE;
 	}
 
@@ -247,7 +181,7 @@ public final class Base {
 	 *
 	 * @return output buffer size in bytes
 	 */
-	static public int getOutBufferSize() {
+	public static int getOutBufferSize() {
 		return Base.OUTPUT_BUFFER_SIZE;
 	}
 
@@ -258,7 +192,7 @@ public final class Base {
 	 * @param bytes Encoded reference ordinal
 	 * @return true if {@code bytes} encodes a reference ordinal
 	 */
-	static public boolean isReferenceOrdinal(final byte bytes[]) {
+	public static boolean isReferenceOrdinal(final byte[] bytes) {
 		return (bytes != null) && (bytes.length == 4) && (bytes[0] == TYPE_ORDINAL_INDICATOR);
 	}
 
@@ -273,7 +207,7 @@ public final class Base {
 	 * @see TYPE_REFERENCE_TRANSDUCER
 	 * @see TYPE_REFERENCE_VALUE
 	 */
-	static public byte getReferenceType(final byte bytes[]) {
+	public static byte getReferenceType(final byte[] bytes) {
 		if (isReferenceOrdinal(bytes)) {
 			switch (bytes[1]) {
 				case TYPE_REFERENCE_TRANSDUCER:
@@ -299,14 +233,15 @@ public final class Base {
 	 * @see TYPE_REFERENCE_VALUE
 	 */
 	static public byte getReferentType(final byte bytes[]) {
-		assert !isReferenceOrdinal(bytes);
-		switch (bytes[0]) {
-			case TYPE_REFERENCE_TRANSDUCER:
-			case TYPE_REFERENCE_SIGNAL:
-			case TYPE_REFERENCE_FIELD:
-				return bytes[0];
-			default:
-				break;
+		if (bytes != null && !isReferenceOrdinal(bytes)) {
+			switch (bytes[0]) {
+				case TYPE_REFERENCE_TRANSDUCER:
+				case TYPE_REFERENCE_SIGNAL:
+				case TYPE_REFERENCE_FIELD:
+					return bytes[0];
+				default:
+					break;
+			}
 		}
 		return TYPE_REFERENCE_NONE;
 	}
@@ -318,8 +253,9 @@ public final class Base {
 	 * @param reference Bytes to check
 	 * @return the reference name if {@code bytes} encodes a reference, or null
 	 */
-	static public byte[] getReferenceName(final byte reference[]) {
-		switch (getReferentType(reference)) {
+	public static byte[] getReferenceName(final byte reference[]) {
+		if (reference != null) {
+			switch (getReferentType(reference)) {
 			case TYPE_REFERENCE_TRANSDUCER:
 			case TYPE_REFERENCE_SIGNAL:
 			case TYPE_REFERENCE_FIELD:
@@ -328,8 +264,9 @@ public final class Base {
 				return name;
 			default:
 				break;
+			}
 		}
-		return null;
+		return Bytes.EMPTY_BYTES;
 	}
 
 	/**
@@ -341,12 +278,14 @@ public final class Base {
 	 * @param type  Expected reference type
 	 * @param bytes Bytes to check
 	 * @return the reference ordinal
+	 * @throws RiboseException if bytes do not contain a well formed reference ordinal
 	 */
-	static public int decodeReferenceOrdinal(int type, final byte bytes[]) {
-		assert getReferenceType(bytes) == type
-				&& ((bytes[1] == TYPE_REFERENCE_FIELD)
-						|| (bytes[1] == TYPE_REFERENCE_SIGNAL)
-						|| (bytes[1] == TYPE_REFERENCE_TRANSDUCER));
+	public static int decodeReferenceOrdinal(int type, final byte bytes[]) {
+		assert bytes != null 
+		&& getReferenceType(bytes) == type
+		&& ((bytes[1] == TYPE_REFERENCE_FIELD)
+			|| (bytes[1] == TYPE_REFERENCE_SIGNAL)
+			|| (bytes[1] == TYPE_REFERENCE_TRANSDUCER));
 		return (Byte.toUnsignedInt(bytes[2]) << 8) | Byte.toUnsignedInt(bytes[3]);
 	}
 
@@ -356,13 +295,13 @@ public final class Base {
 	 * @param type    The reference type
 	 * @param ordinal The reference ordinal
 	 * @return the enc oded reference ordinal
+	 * @throws RiboseException
 	 */
-	static public byte[] encodeReferenceOrdinal(byte type, int ordinal) {
-		assert ordinal <= Base.MAX_ORDINAL;
-		byte bytes[] = new byte[] { TYPE_ORDINAL_INDICATOR, type, (byte) ((ordinal & 0xff00) >> 8),
-				(byte) (ordinal & 0xff) };
-		assert ordinal == decodeReferenceOrdinal(type, bytes);
-		return bytes;
+	public static byte[] encodeReferenceOrdinal(byte type, int ordinal) {
+		byte bytes[] = ordinal <= Base.MAX_ORDINAL
+		? new byte[] { TYPE_ORDINAL_INDICATOR, type, (byte) ((ordinal & 0xff00) >> 8), (byte) (ordinal & 0xff) }
+		: Bytes.EMPTY_BYTES;
+		return ordinal == decodeReferenceOrdinal(type, bytes) ? bytes : Bytes.EMPTY_BYTES;
 	}
 
 	/**
@@ -375,7 +314,6 @@ public final class Base {
 	 */
 	static public int decodeInt(final byte bytes[], int length) throws NumberFormatException {
 		int value = 0;
-		assert bytes.length >= length;
 		if (length > bytes.length) {
 			length = bytes.length;
 		}
@@ -391,5 +329,26 @@ public final class Base {
 			throw new NumberFormatException("Base::decodeInt(): Not a number");
 		}
 		return sign * value;
+	}
+
+	private static final void startLogger(Logger logger, boolean useParentHandler) {
+		try {
+			FileHandler fh = new FileHandler(logger.getName() + "%g.log",
+				Base.FILE_LOGGER_LIMIT, Base.FILE_LOGGER_COUNT, true);
+			fh.setFormatter(new SimpleFormatter());
+			fh.setLevel(Level.FINE);
+			logger.addHandler(fh);
+			logger.setUseParentHandlers(useParentHandler);
+		} catch (Exception e) {
+			logger.getParent().log(Level.SEVERE, e, () -> String.format("Unable to attach file log handler for %1$s",
+				logger.getName()));
+		}
+		logger.setLevel(Level.FINE);
+	}
+
+	private static final void endLogger(Logger logger) {
+		for (Handler h : logger.getHandlers()) {
+			h.close();
+		}
 	}
 }

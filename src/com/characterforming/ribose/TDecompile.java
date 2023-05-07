@@ -21,6 +21,8 @@
  package com.characterforming.ribose;
 
 import java.io.File;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import com.characterforming.jrte.engine.Base;
 import com.characterforming.jrte.engine.ModelDecompiler;
@@ -85,9 +87,12 @@ public final class TDecompile {
 			System.out.println();
       System.exit(1);
     }
+		Base.startLogging();
+    Logger rteLogger = Base.getRuntimeLogger();
     File modelFile = (new File(args[0])).getAbsoluteFile();
     if (!modelFile.exists()) {
-      System.out.printf("Invalid model path: %s (%s)\n", args[0], modelFile.getAbsolutePath());
+      rteLogger.log(Level.SEVERE, () -> String.format("Invalid model path: %1$s (%2$s)%n",
+        args[0], modelFile.getAbsolutePath()));
       System.exit(1);
     }
     String transducerName = args[1];
