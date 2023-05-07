@@ -167,7 +167,6 @@ public final class Bytes {
 	}
 
 	private int hash() {
-		assert this.data != null;
 		int h = 0;
 		if (this.data != null) {
 			h = this.data.length;

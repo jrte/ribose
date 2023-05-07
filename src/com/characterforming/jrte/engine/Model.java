@@ -241,7 +241,9 @@ public final class Model implements AutoCloseable {
 			}
 			if (this.deleteOnClose) {
 				this.rtcLogger.log(Level.SEVERE,"Compilation failed for model {0}",	this.modelPath.getPath());
-				mapFile.delete();
+				if (!mapFile.delete()) {
+					this.rtcLogger.log(Level.WARNING, "Unable to delete {0}", mapFile.getPath());
+				}
 			}
 			this.close();
 		}

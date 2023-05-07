@@ -30,32 +30,32 @@ import com.characterforming.ribose.base.Bytes;
  * @author Kim Briggs
  */
 final class BytesArray {
-	private final Bytes[] bytesArray;
+	private final Bytes[] data;
 	private int hash;
 
 	BytesArray(final byte[][] bytesArray) {
-		this.bytesArray = new Bytes[bytesArray.length];
-		for (int i = 0; i < this.bytesArray.length; i++) {
-			this.bytesArray[i] = new Bytes(bytesArray[i]);
+		this.data = new Bytes[bytesArray.length];
+		for (int i = 0; i < this.data.length; i++) {
+			this.data[i] = new Bytes(bytesArray[i]);
 		}
 		this.hash = 0;
 	}
 
 	byte[][] getBytes() {
-		final byte[][] bytes = new byte[this.bytesArray.length][];
+		final byte[][] bytes = new byte[this.data.length][];
 		for (int i = 0; i < bytes.length; i++) {
-			bytes[i] = this.bytesArray[i].getData();
+			bytes[i] = this.data[i].getData();
 		}
 		return bytes;
 	}
 
 	byte[] getBytes(final int index) {
-		return this.bytesArray[index].getData();
+		return this.data[index].getData();
 	}
 
 	private int hash() {
-		int h = this.bytesArray.length;
-		for (final Bytes element : this.bytesArray) {
+		int h = this.data.length;
+		for (final Bytes element : this.data) {
 			h = h * 31 + element.hashCode();
 		}
 		return h != 0 ? h : -1;
@@ -71,6 +71,6 @@ final class BytesArray {
 
 	@Override
 	public boolean equals(final Object other) {
-		return other == this || other != null && other instanceof BytesArray && Arrays.equals(((BytesArray) other).bytesArray, this.bytesArray);
+		return other == this || other != null && other instanceof BytesArray && Arrays.equals(((BytesArray) other).data, this.data);
 	}
 }
