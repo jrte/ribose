@@ -50,31 +50,31 @@ public class ModelDecompiler {
 		Set<Map.Entry<Bytes, Integer>> effectorOrdinalMap = this.model.getEffectorOrdinalMap().entrySet();
 		String[] effectorNames = new String[effectorOrdinalMap.size()];
 		for (Map.Entry<Bytes, Integer> entry : effectorOrdinalMap) {
-			effectorNames[(int)entry.getValue()] = Bytes.decode(this.decoder, entry.getKey().getBytes(), entry.getKey().getLength()).toString();
+			effectorNames[(int)entry.getValue()] = Bytes.decode(this.decoder, entry.getKey().getData(), entry.getKey().getLength()).toString();
 		}
-		System.out.printf("%s\n\nInput equivalents (equivalent: input...)\n\n", transducerName);
+		System.err.printf("%s%n%nInput equivalents (equivalent: input...)%n%n", transducerName);
 		for (int i = 0; i < inputEquivalentCount; i++) {
 			int startByte = -1;
-			System.out.printf("%4d:", i);
+			System.err.printf("%4d:", i);
 			for (int j = 0; j < inputEquivalenceIndex.length; j++) {
 				if (inputEquivalenceIndex[j] != i) {
 					if (startByte >= 0) {
 						if (startByte < (j-2)) {
 							if (startByte > 32 && startByte <127) {
-								System.out.printf(" %c", (char)startByte);
+								System.err.printf(" %c", (char)startByte);
 							} else {
-								System.out.printf(" #%x", startByte);
+								System.err.printf(" #%x", startByte);
 							}
 							if ((j - 1) > 32 && (j - 1) <127) {
-								System.out.printf("-%c", (char)(j-1));
+								System.err.printf("-%c", (char)(j-1));
 							} else {
-								System.out.printf("-#%x", (j-1));
+								System.err.printf("-#%x", (j-1));
 							}
 						} else {
 							if (startByte > 32 && startByte < 127) {
-								System.out.printf(" %c", (char)startByte);
+								System.err.printf(" %c", (char)startByte);
 							} else {
-								System.out.printf(" #%x", startByte);
+								System.err.printf(" #%x", startByte);
 							}
 						}
 					}
@@ -87,18 +87,18 @@ public class ModelDecompiler {
 				int j = inputEquivalenceIndex.length;
 				if (j > (startByte + 1)) {
 					if (startByte > 32 && startByte <127) {
-						System.out.printf(" %c", (char)startByte);
+						System.err.printf(" %c", (char)startByte);
 					} else {
-						System.out.printf(" #%x", startByte);
+						System.err.printf(" #%x", startByte);
 					}
-					System.out.printf("-#%x", (j - 1));
+					System.err.printf("-#%x", (j - 1));
 				} else {
-					System.out.printf(" #%x", (j - 1));
+					System.err.printf(" #%x", (j - 1));
 				}
 			}
-			System.out.printf("\n");
+			System.err.printf("%n");
 		}
-		System.out.printf("\nState transitions (from equivalent -> to effect...)\n\n");
+		System.err.printf("%nState transitions (from equivalent -> to effect...)%n%n");
 		for (int i = 0; i < transitionMatrix.length; i++) {
 			int from = i / inputEquivalentCount;
 			int equivalent = i % inputEquivalentCount;
@@ -106,28 +106,28 @@ public class ModelDecompiler {
 			int effect = Transducer.action(transitionMatrix[i]);
 			assert (effect != 0) || (to == from);
 			if ((to != from) || (effect != 0)) {
-				System.out.printf("%3d %3d -> %3d", from, equivalent, to);
+				System.err.printf("%1$d %2$d -> %3$d", from, equivalent, to);
 				if (effect >= 0x10000) {
 					int effector = Transducer.effector(effect);
 					int parameter = Transducer.parameter(effect);
-					System.out.printf(" %s[", effectorNames[effector]);
-					System.out.printf(" %s ]", this.model.showParameter(effector, parameter));
+					System.err.printf(" %s[", effectorNames[effector]);
+					System.err.printf(" %s ]", this.model.showParameter(effector, parameter));
 				} else if (effect >= 0) {
 					if (effect > 1) {
-						System.out.printf(" %s", effectorNames[effect]);
+						System.err.printf(" %s", effectorNames[effect]);
 					}
 				} else {
 					for (int e = (-1 * effect); effectorVectors[e] != 0; e++) {
 						if (effectorVectors[e] > 0) {
-							System.out.printf(" %s", effectorNames[effectorVectors[e]]);
+							System.err.printf(" %s", effectorNames[effectorVectors[e]]);
 						} else {
 							int effector = -1 * effectorVectors[e++];
-							System.out.printf(" %s[", effectorNames[effector]);
-							System.out.printf(" %s ]", this.model.showParameter(effector, effectorVectors[e]));
+							System.err.printf(" %s[", effectorNames[effector]);
+							System.err.printf(" %s ]", this.model.showParameter(effector, effectorVectors[e]));
 						}
 					}
 				}
-				System.out.printf("\n");
+				System.err.printf("%n");
 			}
 		}
 	}

@@ -50,7 +50,7 @@ import com.characterforming.ribose.base.Signal;
  * <caption style="text-align:left"><b>TRun usage</b></caption>
  * <tr><td style="text-align:right"><b>java</b></td><td>-cp ribose-&lt;version&gt;.jar com.characterforming.ribose.TRun [--nil] [--target <i>classname</i>] <i>model transducer input [output]</i></td></tr>
  * <tr><td style="text-align:right">--target-path <i>paths:to:jars</i></td><td>Classpath containing jars for target class and dependencies.</td></tr>
- * <tr><td style="text-align:right">--nil</td><td>Push {@link com.characterforming.ribose.base.Signal#nil} to start the transduction (recommended).</td></tr>
+ * <tr><td style="text-align:right">--nil</td><td>Push {@link com.characterforming.ribose.base.Signal#NIL} to start the transduction (recommended).</td></tr>
  * <tr><td style="text-align:right"><i>model</i></td><td>The path to the model file containing the transducer.</td></tr>
  * <tr><td style="text-align:right"><i>transducer</i></td><td>The name of the transducer to start the transduction.</td></tr>
  * <tr><td style="text-align:right"><i>input</i></td><td>The path to the input file.</td></tr>
@@ -77,16 +77,16 @@ public final class TRun {
 		int arg = nil ? 1 : 0;
 		arg += (arg > (nil ? 1 : 0)) ? 1 : 0;
 		if ((argc - arg) != 3 && (argc - arg) != 4) {
-			System.out.println();
-			System.out.println("Usage: java [jvm-options] com.characterforming.ribose.TRun [--target-path <classpath>] [--nil] model transducer input [output]");
-			System.out.println("   --target-path    -- <classpath> for jars containing model target class and dependencies");
-			System.out.println("   --nil            -- push a <i>nil</i> signal to start the transduction (recommended)");
-			System.out.println("   model            -- path to model file");
-			System.out.println("   transducer       -- name of transducer to run");
-			System.out.println("   input            -- path to input file (or - to read System.in)");
-			System.out.println("   output           -- path to UTF-8 output file (optional, default is System.out)");
-			System.out.println("The model target class must have a default constructor and be included in the classpath.");
-			System.out.println();
+			System.err.println();
+			System.err.println("Usage: java [jvm-options] com.characterforming.ribose.TRun [--target-path <classpath>] [--nil] model transducer input [output]");
+			System.err.println("   --target-path    -- <classpath> for jars containing model target class and dependencies");
+			System.err.println("   --nil            -- push a <i>nil</i> signal to start the transduction (recommended)");
+			System.err.println("   model            -- path to model file");
+			System.err.println("   transducer       -- name of transducer to run");
+			System.err.println("   input            -- path to input file (or - to read System.in)");
+			System.err.println("   output           -- path to UTF-8 output file (optional, default is System.out)");
+			System.err.println("The model target class must have a default constructor and be included in the classpath.");
+			System.err.println();
 			System.exit(1);
 		}
 		final String modelPath = args[arg++];
@@ -133,11 +133,11 @@ public final class TRun {
 					Bytes transducer = Bytes.encode(encoder, transducerName);
 					ITarget runTarget = (ITarget) Class.forName(ribose.getTargetClassname()).getDeclaredConstructor().newInstance();
 					long t0 = System.nanoTime();
-					if (ribose.transduce(runTarget, transducer, nil ? Signal.nil : null, isr, outputEnabled ? osw : null)) {
+					if (ribose.transduce(runTarget, transducer, nil ? Signal.NIL : null, isr, outputEnabled ? osw : null)) {
 						if (input != null) {
 							long clen = input.length();
 							double t1 = System.nanoTime() - t0;
-							double mbps = (t1 > 0) ? (double)(clen*1000) / t1 : -1;
+							double mbps = (t1 > 0) ? (clen*1000) / t1 : -1;
 							rtmLogger.log(Level.FINE, () -> String.format("%s\t%7.3f\t%d\t%s",
 								inputPath, mbps, clen, transducerName));
 						}
@@ -146,7 +146,7 @@ public final class TRun {
 				}
 			} catch (final Exception e) {
 				rteLogger.log(Level.SEVERE, "Runtime failed", e);
-				System.out.println("Runtime failed, see log for details.");
+				System.err.println("Runtime failed, see log for details.");
 			} finally {
 				try {
 					osw.flush();

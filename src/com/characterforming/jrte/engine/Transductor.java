@@ -91,13 +91,13 @@ public final class Transductor implements ITransductor, IOutput {
 	@SuppressWarnings("unused")
 	private static final int MSCAN = 18;
 
-	private static final int nulSignal = Signal.nul.signal();
-	private static final int eosSignal = Signal.eos.signal();
+	private static final int SIGNUL = Signal.NUL.signal();
+	private static final int SIGEOS = Signal.EOS.signal();
 
-	private static final int Mnone = 0;
-	private static final int Msum = 1;
-	private static final int Mproduct = 2;
-	private static final int Mscan = 3;
+	private static final int MATCH_NONE = 0;
+	private static final int MATCH_SUM = 1;
+	private static final int MATCH_PRODUCT = 2;
+	private static final int MATCH_SCAN = 3;
 	private Signal prologue;
 	private final Model model;
 	private final TargetMode mode;
@@ -137,7 +137,7 @@ public final class Transductor implements ITransductor, IOutput {
 		this.fieldOrdinalMap = null;
 		this.output = System.getProperty("jrte.out.enabled", "true").equals("true") ? System.out : null;
 		this.selected = null;
-		this.matchMode = Mnone;
+		this.matchMode = MATCH_NONE;
 		this.matchSum = null;
 		this.matchProduct = null;
 		this.matchPosition = 0;
@@ -256,7 +256,9 @@ public final class Transductor implements ITransductor, IOutput {
 
 	@Override // @see com.characterforming.ribose.ITransductor#push(byte[], int)
 	public ITransductor push(final byte[] input, int limit) {
-		assert input.length >= limit;
+		if (input.length < limit) {
+			limit = input.length;
+		}
 		if (this.status() != Status.NULL) {
 			this.inputStack.push(input, limit);
 		}
@@ -305,7 +307,7 @@ public final class Transductor implements ITransductor, IOutput {
 				}
 			}
 		}
-		this.matchMode = Mnone;
+		this.matchMode = MATCH_NONE;
 		if (this.status() == Status.NULL) {
 			throw new RiboseException("run: Transductor instantiated as model for compiler is inoperable in the runtime");
 		}
@@ -352,15 +354,15 @@ I:			do {
 					}
 					
 					// absorb self-referencing (msum,mscan) or sequential (mproduct) transitions with nil effect
-					if (this.matchMode != Mnone && token < nulSignal) {
+					if (this.matchMode != MATCH_NONE && token < SIGNUL) {
 						switch (this.matchMode) {
-						case Msum:
+						case MATCH_SUM:
 							token = sumTrap(input, token);
 							break;
-						case Mproduct:
+						case MATCH_PRODUCT:
 							token = productTrap(input, token);
 							break;
-						case Mscan:
+						case MATCH_SCAN:
 							token = scanTrap(input, token);
 							break;
 						default:
@@ -399,8 +401,8 @@ S:				do {
 						}
 						if (0 != (aftereffects & IEffector.RTX_SIGNAL)) {
 							signal = aftereffects >>> 16;
-							if ((signal < nulSignal) || (signal >= this.signalLimit)) {
-								signal = nulSignal;
+							if ((signal < SIGNUL) || (signal >= this.signalLimit)) {
+								signal = SIGNUL;
 							}
 						}
 						int s = aftereffects & (IEffector.RTX_START | IEffector.RTX_STOP);
@@ -420,9 +422,9 @@ S:				do {
 			if (this.output != null) {
 				this.output.flush();
 			}
-			if (token == nulSignal) {
+			if (token == SIGNUL) {
 				throw new DomainErrorException(this.getErrorInput(last, state));
-			} else if (token == eosSignal) {
+			} else if (token == SIGEOS) {
 				this.inputStack.pop();
 				assert this.inputStack.isEmpty();
 			}
@@ -535,10 +537,10 @@ E:	do {
 			} else {
 				switch (action) {
 				case NUL:
-					if ((token != nulSignal && token != eosSignal)) {
+					if ((token != SIGNUL && token != SIGEOS)) {
 						++this.metrics.errors;
 						this.errorInput = token;
-						aftereffects |= IEffector.rtxSignal(nulSignal);
+						aftereffects |= IEffector.rtxSignal(SIGNUL);
 					} else {
 						aftereffects |= IEffector.RTX_STOPPED;
 					}
@@ -611,7 +613,7 @@ E:	do {
 			}
 		}
 		this.metrics.sum += (input.position - anchor);
-		this.matchMode = Mnone;
+		this.matchMode = MATCH_NONE;
 		return token;
 	}
 
@@ -632,12 +634,12 @@ E:	do {
 				}
 			} else {
 				this.errorInput = token;
-				token = nulSignal;
+				token = SIGNUL;
 				break;
 			}
 		}
 		this.metrics.product += mpos;
-		this.matchMode = Mnone;
+		this.matchMode = MATCH_NONE;
 		return token;
 	}
 
@@ -653,7 +655,7 @@ E:	do {
 			}
 		}
 		this.metrics.scan += (input.position - anchor);
-		this.matchMode = Mnone;
+		this.matchMode = MATCH_NONE;
 		return token;
 	}
 
@@ -860,7 +862,7 @@ E:	do {
 
 		@Override
 		public int invoke() throws EffectorException {
-			return IEffector.rtxSignal(Signal.nil.signal());
+			return IEffector.rtxSignal(Signal.NIL.signal());
 		}
 
 		@Override
@@ -1018,7 +1020,7 @@ E:	do {
 				throw new TargetBindingException(String.format("%1$s.%2$s: invalid signal '%3$%s' for count effector",
 					super.getTarget().getName(), super.getName(), Bytes.decode(super.getDecoder(), parameterList[1], parameterList[1].length)));
 			}
-			assert super.getParameter(parameterIndex)[1] >= nulSignal;
+			assert super.getParameter(parameterIndex)[1] >= SIGNUL;
 			return super.getParameter(parameterIndex);
 		}
 
@@ -1128,12 +1130,12 @@ E:	do {
 
 		@Override
 		public int invoke(final int parameterIndex) throws EffectorException {
-			if (matchMode == Mnone) {
-				matchMode = Msum;
+			if (matchMode == MATCH_NONE) {
+				matchMode = MATCH_SUM;
 				matchSum = super.parameters[parameterIndex];
 			} else {
 				throw new EffectorException(String.format("Illegal attempt to override match mode %d with MSUM=%d",
-					matchMode, Msum));
+					matchMode, MATCH_SUM));
 			}
 			return IEffector.RTX_NONE;
 		}
@@ -1208,13 +1210,13 @@ E:	do {
 
 		@Override
 		public int invoke(final int parameterIndex) throws EffectorException {
-			if (matchMode == Mnone) {
-				matchMode = Mproduct;
+			if (matchMode == MATCH_NONE) {
+				matchMode = MATCH_PRODUCT;
 				matchProduct = super.parameters[parameterIndex];
 				matchPosition = 0;
 			} else {
 				throw new EffectorException(String.format("Illegal attempt to override match mode %d with MPRODUCT=%d",
-					matchMode, Mproduct));
+					matchMode, MATCH_PRODUCT));
 			}
 			return IEffector.RTX_NONE;
 		}
@@ -1263,12 +1265,12 @@ E:	do {
 
 		@Override
 		public int invoke(final int parameterIndex) throws EffectorException {
-			if (matchMode == Mnone) {
-				matchMode = Mscan;
+			if (matchMode == MATCH_NONE) {
+				matchMode = MATCH_SCAN;
 				matchByte = super.parameters[parameterIndex];
 			} else {
 				throw new EffectorException(String.format("Illegal attempt to override match mode %d with MSCAN=%d",
-					matchMode, Mscan));
+					matchMode, MATCH_SCAN));
 			}
 			return IEffector.RTX_NONE;
 		}

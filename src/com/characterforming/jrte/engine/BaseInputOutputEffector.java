@@ -20,8 +20,6 @@
 
 package com.characterforming.jrte.engine;
 
-import java.util.logging.Level;
-
 import com.characterforming.ribose.base.BaseParameterizedEffector;
 import com.characterforming.ribose.base.Bytes;
 import com.characterforming.ribose.base.EffectorException;

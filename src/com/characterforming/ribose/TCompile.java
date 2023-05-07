@@ -91,46 +91,47 @@ public final class TCompile extends ModelCompiler {
 	public static void main(final String[] args) throws SecurityException, IOException {
 		File ginrAutomataDirectory = null;
 		File riboseModelFile = null;
-		String targetClassname = null;
 		Class<?> targetClass = null;
 		
 		Base.startLogging();
 		final Logger rtcLogger = Base.getCompileLogger();
 		boolean argsOk = (args.length == 4) && args[0].equals("--target");
 		if (argsOk) {
-			targetClassname = args[1];
+			final String targetClassname = args[1];
 			ginrAutomataDirectory = new File(args[2]);
 			riboseModelFile = new File(args[3]);
 			try {
 				targetClass = Class.forName(targetClassname);
 			} catch (Exception e) {
-				rtcLogger.log(Level.SEVERE, String.format("target '%1$s' could not be instantiated as model target", targetClassname), e);
+				rtcLogger.log(Level.SEVERE, e, () -> String.format("target '%1$s' could not be instantiated as model target", targetClassname));
 				argsOk = false;
 			}
 			if (!ginrAutomataDirectory.isDirectory()) {
-				rtcLogger.log(Level.SEVERE, String.format("ginr-automata-dir '%1$s' is not a directory", ginrAutomataDirectory.getPath()));
+				final String directoryPath = ginrAutomataDirectory.getPath();
+				rtcLogger.log(Level.SEVERE, () -> String.format("ginr-automata-dir '%1$s' is not a directory", directoryPath));
 				argsOk = false;
 			}
 			if (riboseModelFile.isDirectory()) {
-				rtcLogger.log(Level.SEVERE, String.format("model-path '%1$s' is a directory", riboseModelFile.getPath()));
+				final String riboseModelPath = riboseModelFile.getPath();
+				rtcLogger.log(Level.SEVERE, () -> String.format("model-path '%1$s' is a directory", riboseModelPath));
 				argsOk = false;
 			}
 		}
 	
 		if (!argsOk) {
-			System.out.println();
-			System.out.println("Usage: java [jvm-options] com.characterforming.ribose.TCompile --target <classname> --target-path <classpath> <automata-path> <model-path>");
-			System.out.println("   --target         -- fully qualified <classname> of the target class (implements ITarget)");
-			System.out.println("   --target-path    -- <classpath> for jars containing target class and dependencies");
-			System.out.println("   automata-path    -- path to directory containing transducer automata compiled by ginr");
-			System.out.println("   model-path       -- path for output model file");
-			System.out.println("The target class must have a default constructor and be included in the classpath.");
-			System.out.println();
+			System.err.println();
+			System.err.println("Usage: java [jvm-options] com.characterforming.ribose.TCompile --target <classname> --target-path <classpath> <automata-path> <model-path>");
+			System.err.println("   --target         -- fully qualified <classname> of the target class (implements ITarget)");
+			System.err.println("   --target-path    -- <classpath> for jars containing target class and dependencies");
+			System.err.println("   automata-path    -- path to directory containing transducer automata compiled by ginr");
+			System.err.println("   model-path       -- path for output model file");
+			System.err.println("The target class must have a default constructor and be included in the classpath.");
+			System.err.println();
 			System.exit(1);
 		}
-		System.out.println(String.format("Ribose runtime compiler version %1$s%2$sCopyright (C) 2011,2022 Kim Briggs%2$sDistributed under GPLv3 (http://www.gnu.org/licenses/gpl-3.0.txt)", 
+		System.err.println(String.format("Ribose runtime compiler version %1$s%2$sCopyright (C) 2011,2022 Kim Briggs%2$sDistributed under GPLv3 (http://www.gnu.org/licenses/gpl-3.0.txt)", 
 			Base.RTE_VERSION, Base.LINEEND));
-		System.out.println(String.format("Compiling %1$s to runtime model %2$s", 
+		System.err.println(String.format("Compiling %1$s to runtime model %2$s", 
 			ginrAutomataDirectory.getPath(), riboseModelFile.getPath()));
 		
 		int exitCode = 0;
@@ -140,11 +141,11 @@ public final class TCompile extends ModelCompiler {
 			}
 		} catch (Exception e) {
 			rtcLogger.log(Level.SEVERE, "Compiler failed", e);
-			System.out.println("Compiler failed, see log for details.");
+			System.err.println("Compiler failed, see log for details.");
 			exitCode = 1;
 		} finally {
 			if (exitCode != 0) {
-				System.out.println("Runtime compilation failed, see log for details.");
+				System.err.println("Runtime compilation failed, see log for details.");
 			}
 			Base.endLogging();
 		}

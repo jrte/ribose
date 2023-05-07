@@ -39,7 +39,8 @@ public final class Bytes {
 	private static final char[] HEX = "0123456789ABCDEF".toCharArray();
 	private static final char[] EMPTY_CHARS = new char[] { };
 	public static final byte[] EMPTY_BYTES = new byte[] { };
-	private final byte[] bytes;
+	public static final Integer[] EMPTY_INTEGER = new Integer[] { };
+	private final byte[] data;
 	private int hash;
 
 	/**
@@ -48,7 +49,7 @@ public final class Bytes {
 	 * @param bytes The data to wrap
 	 */
 	public Bytes(final byte[] bytes) {
-		this.bytes = bytes;
+		this.data = bytes;
 		this.hash = 0;
 	}
 	
@@ -63,8 +64,8 @@ public final class Bytes {
 		assert from.length >= offset && from.length >= (offset + length);
 		offset = from.length >= offset ? offset : from.length;
 		length = from.length >= (offset + length) ? length : from.length - offset;
-		this.bytes = new byte[length];
-		System.arraycopy(from, offset, bytes, 0, length);
+		this.data = new byte[length];
+		System.arraycopy(from, offset, data, 0, length);
 		this.hash = 0;
 	}
 
@@ -127,7 +128,7 @@ public final class Bytes {
 	 */
 	public int getLength() {
 		int length = 0;
-		while (length < bytes.length && this.bytes[length] != 0) {
+		while (length < data.length && this.data[length] != 0) {
 			++length;
 		}
 		return length;
@@ -139,14 +140,14 @@ public final class Bytes {
 	 * 
 	 * @return the contained bytes
 	 */
-	public byte[] getBytes() {
-		return this.bytes;
+	public byte[] getData() {
+		return this.data;
 	}
 
 	@Override
 	/** Decode contents to a String. */
 	public String toString() {
-		return Bytes.decode(Base.newCharsetDecoder(), this.getBytes(), this.getLength()).toString();
+		return Bytes.decode(Base.newCharsetDecoder(), this.getData(), this.getLength()).toString();
 	}
 	
 	/**
@@ -155,9 +156,9 @@ public final class Bytes {
 	 * @return the hex string
 	 */
 	public String toHexString() {
-		char[] hex = new char[2 * this.bytes.length];
-		for (int j = 0; j < this.bytes.length && this.bytes[j] != 0; j++) {
-			int k = this.bytes[j] & 0xFF;
+		char[] hex = new char[2 * this.data.length];
+		for (int j = 0; j < this.data.length && this.data[j] != 0; j++) {
+			int k = this.data[j] & 0xFF;
 			hex[j * 2] = HEX[k >> 4];
 			hex[j * 2 + 1] = HEX[k & 0x0F];
 		}
@@ -166,11 +167,11 @@ public final class Bytes {
 	}
 
 	private int hash() {
-		assert this.bytes != null;
+		assert this.data != null;
 		int h = 0;
-		if (this.bytes != null) {
-			h = this.bytes.length;
-			for (final byte b : this.bytes) {
+		if (this.data != null) {
+			h = this.data.length;
+			for (final byte b : this.data) {
 				h = h * 31 + b;
 			}
 		}
@@ -192,6 +193,6 @@ public final class Bytes {
 	@Override
 	/** Test for equality of contents. */
 	public boolean equals(final Object other) {
-		return other instanceof Bytes && Arrays.equals(((Bytes) other).bytes, this.bytes);
+		return other instanceof Bytes && Arrays.equals(((Bytes) other).data, this.data);
 	}
 }

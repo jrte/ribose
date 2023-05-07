@@ -107,23 +107,17 @@ public final class Runtime implements IRuntime {
 						}
 					} while (trex.status().isRunnable());
 					if (trex.status().isPaused()) {
-						trex.signal(Signal.eos).run();
+						trex.signal(Signal.EOS).run();
 					}
 					assert !trex.status().isRunnable();
 					trex.stop();
 					assert trex.status().isStopped();
 				}
 			}
-		} catch (ModelException e) {
+		} catch (ModelException | DomainErrorException | IOException e) {
 			this.log(target, transducer, e);
 			return false;
-		} catch (DomainErrorException e) {
-			this.log(target, transducer, e);
-			return false;
-		} catch (IOException e) {
-			this.log(target, transducer, e);
-			return false;
-		}
+		}  
 		return true;
 	}
 

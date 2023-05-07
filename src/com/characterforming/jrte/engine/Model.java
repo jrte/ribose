@@ -149,8 +149,8 @@ public final class Model implements AutoCloseable {
 		this.proxyEffectors = new IEffector<?>[trexFx.length + targetFx.length];
 		System.arraycopy(trexFx, 0, this.proxyEffectors, 0, trexFx.length);
 		System.arraycopy(targetFx, 0, this.proxyEffectors, trexFx.length, targetFx.length);
-		this.effectorParametersMaps = new ArrayList<HashMap<BytesArray, Integer>>(this.proxyEffectors.length);
-		this.effectorOrdinalMap = new HashMap<Bytes, Integer>((this.proxyEffectors.length * 5) >> 2);
+		this.effectorParametersMaps = new ArrayList<>(this.proxyEffectors.length);
+		this.effectorOrdinalMap = new HashMap<>((this.proxyEffectors.length * 5) >> 2);
 		for (int effectorOrdinal = 0; effectorOrdinal < this.proxyEffectors.length; effectorOrdinal++) {
 			this.effectorParametersMaps.add(null);
 			this.effectorOrdinalMap.put(this.proxyEffectors[effectorOrdinal].getName(), effectorOrdinal);
@@ -174,9 +174,9 @@ public final class Model implements AutoCloseable {
 	public boolean create() throws ModelException {
 		assert this.modelPath.exists();
 		assert this.ioMode.equals("rw");
-		this.signalOrdinalMap = new HashMap<Bytes, Integer>(256);
-		this.transducerOrdinalMap = new HashMap<Bytes, Integer>(256);
-		this.fieldOrdinalMap = new HashMap<Bytes, Integer>(256);
+		this.signalOrdinalMap = new HashMap<>(256);
+		this.transducerOrdinalMap = new HashMap<>(256);
+		this.fieldOrdinalMap = new HashMap<>(256);
 		for (int ordinal = 0; ordinal < Base.RTE_SIGNAL_BASE; ordinal++) {
 			Bytes name = new Bytes(new byte[] { 0, (byte) ordinal });
 			this.signalOrdinalMap.put(name, ordinal);
@@ -319,7 +319,7 @@ public final class Model implements AutoCloseable {
 	private byte[][] getValueNames(HashMap<Bytes, Integer> nameOrdinalMap) {
 		byte[][] names = new byte[nameOrdinalMap.size()][];
 		for (Entry<Bytes, Integer> e : nameOrdinalMap.entrySet()) {
-			names[e.getValue()] = e.getKey().getBytes();
+			names[e.getValue()] = e.getKey().getData();
 		}
 		return names;
 	}
@@ -779,7 +779,7 @@ public final class Model implements AutoCloseable {
 
 	HashMap<Bytes, Integer> getOrdinalMap() throws ModelException {
 		byte[][] bytesArray = this.getBytesArray();
-		HashMap<Bytes, Integer> map = new HashMap<Bytes, Integer>((bytesArray.length * 5) >> 2);
+		HashMap<Bytes, Integer> map = new HashMap<>((bytesArray.length * 5) >> 2);
 		for (int ordinal = 0; ordinal < bytesArray.length; ordinal++) {
 			map.put(new Bytes(bytesArray[ordinal]), ordinal);
 		}
@@ -846,7 +846,7 @@ public final class Model implements AutoCloseable {
 
 	void putBytes(final Bytes bytes) throws ModelException {
 		if (bytes != null) {
-			this.putBytes(bytes.getBytes());
+			this.putBytes(bytes.getData());
 		}
 	}
 
@@ -916,7 +916,7 @@ public final class Model implements AutoCloseable {
 	void putOrdinalMap(final Map<Bytes, Integer> map) throws ModelException {
 		byte names[][] = new byte[map.size()][];
 		for (Entry<Bytes, Integer> entry : map.entrySet()) {
-			names[entry.getValue()] = entry.getKey().getBytes();
+			names[entry.getValue()] = entry.getKey().getData();
 		}
 		this.putBytesArray(names);
 	}

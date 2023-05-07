@@ -91,7 +91,7 @@ public class ModelCompiler implements ITarget {
 	protected ModelCompiler(final Model model) {
 		this.model = model;
 		this.transductor = null;
-		this.errors = new ArrayList<String>();
+		this.errors = new ArrayList<>();
 		this.encoder = Base.newCharsetEncoder();
 		this.decoder = Base.newCharsetDecoder();
 		this.rtcLogger = Base.getCompileLogger();
@@ -232,7 +232,7 @@ public class ModelCompiler implements ITarget {
 					target.getTransducerName(), h.tapes));
 			}
 			target.transitions = new Transition[h.transitions];
-			target.stateTransitionMap = new HashMap<Integer, ArrayList<Transition>>((h.states * 5) >> 2);
+			target.stateTransitionMap = new HashMap<>((h.states * 5) >> 2);
 			return IEffector.RTX_NONE;
 		}
 	}
@@ -283,41 +283,43 @@ public class ModelCompiler implements ITarget {
 				(int)fields[2].asInteger(),
 				fields[3].copyValue()
 			);
-			if (t.isFinal) {
-				return IEffector.RTX_NONE;
-			}	else if (t.tape < 0) {
-				target.error(String.format("%1$s: Epsilon transition from state %2$d to %3$d (use :dfamin to remove these)",
-					target.getTransducerName(), t.from, t.to));
-			} else if (t.symbol.length == 0) {
-				target.error(String.format("%1$s: Empty symbol on tape %2$d",
-					target.getTransducerName(), t.tape));
-			} else {
-				HashMap<Integer, Integer> rteStates = target.stateMaps[t.tape];
-				if (rteStates == null) {
-					rteStates = target.stateMaps[t.tape] = new HashMap<Integer, Integer>(256);
+			if (!t.isFinal) {
+				if (t.tape < 0) {
+					target.error(String.format("%1$s: Epsilon transition from state %2$d to %3$d (use :dfamin to remove these)",
+						target.getTransducerName(), t.from, t.to));
+				} else if (t.symbol.length == 0) {
+					target.error(String.format("%1$s: Empty symbol on tape %2$d",
+						target.getTransducerName(), t.tape));
+				} else {
+					HashMap<Integer, Integer> rteStates = target.stateMaps[t.tape];
+					if (rteStates == null) {
+						rteStates = target.stateMaps[t.tape] = new HashMap<>(256);
+					}
+					if (!rteStates.containsKey(t.from)) {
+						rteStates.put(t.from, rteStates.size());
+					}
+					switch (t.tape) {
+					case 0:
+						target.compileInputToken(t.symbol);
+						break;
+					case 1:
+						target.compileEffectorToken(t.symbol);
+						break;
+					case 2:
+						target.compileParameterToken(t.symbol);
+						break;
+					default:
+						assert false;
+					}
+					ArrayList<Transition> outgoing = target.stateTransitionMap.get(t.from);
+					if (outgoing == null) {
+						outgoing = new ArrayList<>(16);
+						target.stateTransitionMap.put(t.from, outgoing);
+					}
+					outgoing.add(t);
+					target.transitions[target.transition] = t;
+					++target.transition;
 				}
-				if (!rteStates.containsKey(t.from)) {
-					rteStates.put(t.from, rteStates.size());
-				}
-				switch (t.tape) {
-				case 0:
-					target.compileInputToken(t.symbol);
-					break;
-				case 1:
-					target.compileEffectorToken(t.symbol);
-				break;
-				case 2:
-					target.compileParameterToken(t.symbol);
-					break;
-				}
-				ArrayList<Transition> outgoing = target.stateTransitionMap.get(t.from);
-				if (outgoing == null) {
-					outgoing = new ArrayList<Transition>(16);
-					target.stateTransitionMap.put(t.from, outgoing);
-				}
-				outgoing.add(t);
-				target.transitions[target.transition] = t;
-				++target.transition;
 			}
 			return IEffector.RTX_NONE;
 		}
@@ -339,8 +341,8 @@ public class ModelCompiler implements ITarget {
 				throw new EffectorException(msg);
 			}
 
-			for (final ArrayList<Transition> transitions : target.stateTransitionMap.values()) {
-				transitions.trimToSize();
+			for (final ArrayList<Transition> transitionList : target.stateTransitionMap.values()) {
+				transitionList.trimToSize();
 			}
 
 			final int[][][] transitionMatrix = new int[target.model.getSignalLimit()][inrInputStates.length][2];
@@ -351,7 +353,7 @@ public class ModelCompiler implements ITarget {
 				}
 			}
 
-			target.effectorVectorMap = new HashMap<Ints, Integer>(1024);
+			target.effectorVectorMap = new HashMap<>(1024);
 			target.effectorVectorMap.put(new Ints(new int[] {0}), 0);
 			for (final Integer inrInputState : inrInputStates) {
 				for (final Transition t : target.getTransitions(inrInputState)) {
@@ -446,12 +448,11 @@ public class ModelCompiler implements ITarget {
 		}
 		try {
 			this.stateMaps = (HashMap<Integer, Integer>[])new HashMap<?,?>[3];
-			this.stateTransitionMap = new HashMap<Integer, ArrayList<Transition>>(size >> 3);
+			this.stateTransitionMap = new HashMap<>(size >> 3);
 			Bytes automaton = Bytes.encode(this.encoder, "Automaton");
-			if (this.transductor.stop().push(bytes, size).signal(Signal.nil).start(automaton).status().isRunnable()) {
-				if (this.transductor.run().status().isPaused()) {
-					this.transductor.signal(Signal.eos).run();
-				}
+			if (this.transductor.stop().push(bytes, size).signal(Signal.NIL).start(automaton).status().isRunnable()
+			&& this.transductor.run().status().isPaused()) {
+				this.transductor.signal(Signal.EOS).run();
 			}
 			assert !this.transductor.status().isRunnable();
 			this.transductor.stop();
@@ -485,13 +486,13 @@ public class ModelCompiler implements ITarget {
 	private void factor(final int[][][] transitionMatrix) {
 		// factor matrix modulo input equivalence
 		final HashMap<IntsArray, HashSet<Integer>> rowEquivalenceMap =
-			new HashMap<IntsArray, HashSet<Integer>>((5 * transitionMatrix.length) >> 2);
+			new HashMap<>((5 * transitionMatrix.length) >> 2);
 		for (int token = 0; token < transitionMatrix.length; token++) {
 			assert transitionMatrix[token].length == transitionMatrix[0].length;
 			final IntsArray row = new IntsArray(transitionMatrix[token]);
 			HashSet<Integer> equivalentInputOrdinals = rowEquivalenceMap.get(row);
 			if (equivalentInputOrdinals == null) {
-				equivalentInputOrdinals = new HashSet<Integer>(16);
+				equivalentInputOrdinals = new HashSet<>(16);
 				rowEquivalenceMap.put(row, equivalentInputOrdinals);
 			}
 			equivalentInputOrdinals.add(token);
@@ -508,7 +509,7 @@ public class ModelCompiler implements ITarget {
 		}
 		final int nInputs = equivalenceIndex;
 		final int nStates = transitionMatrix[0].length;
-		final int nulSignal = Signal.nul.signal();
+		final int nulSignal = Signal.NUL.signal();
 		final int nulEquivalent = this.inputEquivalenceIndex[nulSignal];
 		final int msumOrdinal = this.model.getEffectorOrdinal(Bytes.encode(this.encoder, "msum"));
 		final int mproductOrdinal = this.model.getEffectorOrdinal(Bytes.encode(this.encoder, "mproduct"));
@@ -535,8 +536,8 @@ public class ModelCompiler implements ITarget {
 			boolean[] allBytes = new boolean[nulSignal];
 			Arrays.fill(allBytes, false);
 			for (int input = 0; input < nInputs; input++) {
-				int[] transition = this.kernelMatrix[input][state];
-				if (transition[0] == state && transition[1] == 1) {
+				int[] cell = this.kernelMatrix[input][state];
+				if (cell[0] == state && cell[1] == 1) {
 					for (int index = 0; index < equivalenceLengths[input]; index++) {
 						selfBytes[selfIndex] = equivalentInputs[input][index];
 						allBytes[Byte.toUnsignedInt(selfBytes[selfIndex])] = true;
@@ -587,9 +588,9 @@ public class ModelCompiler implements ITarget {
 			exitEquivalent[state] = -1;
 			for (int input = 0; input < nInputs; input++) {
 				if (input != nulEquivalent) {
-					int[] transition = this.kernelMatrix[input][state];
-					if (transition[0] != state) {
-						if (transition[1] == 1 && exitEquivalent[state] < 0
+					int[] cell = this.kernelMatrix[input][state];
+					if (cell[0] != state) {
+						if (cell[1] == 1 && exitEquivalent[state] < 0
 						&& inputEquivalenceToken[input] >= 0) {
 							assert exitEquivalent[state] == -1;
 							exitEquivalent[state] = input;
@@ -597,7 +598,7 @@ public class ModelCompiler implements ITarget {
 							exitEquivalent[state] = -1;
 							break;
 						}
-					} else if (transition[1] != 0) {
+					} else if (cell[1] != 0) {
 							exitEquivalent[state] = -1;
 							break;
 					}
@@ -647,9 +648,9 @@ public class ModelCompiler implements ITarget {
 							assert exitEquivalent[state] >= 0;
 							assert walkedBytes[i] == inputEquivalenceToken[exitEquivalent[state]];
 							assert this.inputEquivalenceIndex[walkedBytes[i]] == exitEquivalent[state];
-							int[] transition = this.kernelMatrix[exitEquivalent[state]][state];
-							assert transition[1] == 1;
-							state = transition[0];
+							int[] cell = this.kernelMatrix[exitEquivalent[state]][state];
+							assert cell[1] == 1;
+							state = cell[0];
 						}
 						assert exitEquivalent[state] == walkResult[2];
 						assert this.inputEquivalenceIndex[walkedBytes[walkResult[0] - 1]] == exitEquivalent[state];
@@ -689,8 +690,8 @@ public class ModelCompiler implements ITarget {
 		this.effectorVectors[0] = 0;
 		for (int input = 0; input < nInputs; input++) {
 			for (int state = 0; state < nStates; state++) {
-				int[] transition = this.kernelMatrix[input][state];
-				int effectOrdinal = transition[1];
+				int[] cell = this.kernelMatrix[input][state];
+				int effectOrdinal = cell[1];
 				if (effectOrdinal < 0) {
 					effectOrdinal *= -1;
 					if (effectorVectorPosition[effectOrdinal] < 0) {
@@ -698,7 +699,7 @@ public class ModelCompiler implements ITarget {
 						effectorVectorPosition[effectOrdinal] = position;
 						position += effectVectors[effectOrdinal].length;
 					}
-					transition[1] = -1 * effectorVectorPosition[effectOrdinal];
+					cell[1] = -1 * effectorVectorPosition[effectOrdinal];
 				}
 			}
 		}
@@ -712,10 +713,10 @@ public class ModelCompiler implements ITarget {
 			assert (exitEquivalent[state] >= 0) || (mproductStateEffects[state] == null);
 			if (mproductStateEffects[state] != null
 			&& mproductEndpoints[state][1] != exitEquivalent[state]) {
-				int transition[] = this.kernelMatrix[exitEquivalent[state]][state];
-				if (transition[1] > 0) {
-					transition[0] = state;
-					transition[1] = 0;
+				int[] cell = this.kernelMatrix[exitEquivalent[state]][state];
+				if (cell[1] > 0) {
+					cell[0] = state;
+					cell[1] = 0;
 				}
 			}
 		}
@@ -761,7 +762,7 @@ public class ModelCompiler implements ITarget {
 			final IntsArray row = new IntsArray(this.kernelMatrix[input]);
 			HashSet<Integer> equivalentClassOrdinals = rowEquivalenceMap.get(row);
 			if (equivalentClassOrdinals == null) {
-				equivalentClassOrdinals = new HashSet<Integer>(16);
+				equivalentClassOrdinals = new HashSet<>(16);
 				rowEquivalenceMap.put(row, equivalentClassOrdinals);
 			}
 			equivalentClassOrdinals.add(input);
@@ -796,7 +797,7 @@ public class ModelCompiler implements ITarget {
 	}
 
 	private int walk(int fromState, byte[] walkedBytes, int[] walkResult, int exitEquivalent[], int singletonEquivalenceMap[]) {
-		int nulEquivalent = this.inputEquivalenceIndex[Signal.nul.signal()];
+		int nulEquivalent = this.inputEquivalenceIndex[Signal.NUL.signal()];
 		int[] nulTransition = this.kernelMatrix[nulEquivalent][fromState];
 		int[] matchTransition = new int[] { 
 			nulTransition[0] != fromState ? nulTransition[0] : Integer.MIN_VALUE, 
@@ -811,7 +812,7 @@ public class ModelCompiler implements ITarget {
 		while (exitInput >= 0 && walkLength < walkedBytes.length
 		&& this.kernelMatrix[exitInput][walkState][1] == 1) {
 			assert singletonEquivalenceMap[exitInput] >= 0
-			&& singletonEquivalenceMap[exitInput] < Signal.nul.signal();
+			&& singletonEquivalenceMap[exitInput] < Signal.NUL.signal();
 			int[] errorTransition = this.kernelMatrix[nulEquivalent][walkState];
 			int errorState = matchTransition[0] != Integer.MIN_VALUE ? matchTransition[0] : walkState;
 			if (errorTransition[1] == matchTransition[1] && errorTransition[0] == errorState) {
@@ -838,15 +839,15 @@ public class ModelCompiler implements ITarget {
 		int nStates = this.kernelMatrix[0].length;
 		for (int input = 0; input < nInputs; input++) {
 			for (int state = 0; state < nStates; state++) {
-				int[] transition = this.kernelMatrix[input][state];
-				if ((transition[0] == state) || (transition[1] == 0) || (msumEffects[transition[0]] == null)) {
+				int[] cell = this.kernelMatrix[input][state];
+				if ((cell[0] == state) || (cell[1] == 0) || (msumEffects[cell[0]] == null)) {
 					continue;
 				}
-				int vectorLength = msumEffects[transition[0]].length;
-				int vectorOrdinal = transition[1];
+				int vectorLength = msumEffects[cell[0]].length;
+				int vectorOrdinal = cell[1];
 				if ((vectorOrdinal > 0)
 				|| (effectVectors[-1 * vectorOrdinal][effectVectors[-1 * vectorOrdinal].length - vectorLength] != msumOrdinal)) {
-					int[] effect = msumEffects[transition[0]];
+					int[] effect = msumEffects[cell[0]];
 					int[] vector = vectorOrdinal > 0
 						? (vectorOrdinal > 1 ? new int[] { vectorOrdinal, 0 } : new int[] { vectorOrdinal })
 						: effectVectors[-1 * vectorOrdinal];
@@ -867,7 +868,7 @@ public class ModelCompiler implements ITarget {
 						}
 						effectVectors[vectorOrdinal] = vectorex;
 					}
-					transition[1] = -1 * vectorOrdinal;
+					cell[1] = -1 * vectorOrdinal;
 				}
 			}
 		}
@@ -879,13 +880,13 @@ public class ModelCompiler implements ITarget {
 		int nStates = this.kernelMatrix[0].length;
 		for (int input = 0; input < nInputs; input++) {
 			for (int state = 0; state < nStates; state++) {
-				int[] transition = this.kernelMatrix[input][state];
-				if ((transition[1] == 0) || (mproductEffects[transition[0]] == null)) {
+				int[] cell = this.kernelMatrix[input][state];
+				if ((cell[1] == 0) || (mproductEffects[cell[0]] == null)) {
 					continue;
 				}
-				int startState = transition[0];
+				int startState = cell[0];
 				int vectorLength = mproductEffects[startState].length;
-				int vectorOrdinal = transition[1];
+				int vectorOrdinal = cell[1];
 				if ((vectorOrdinal > 0)
 				|| (effectVectors[-1 * vectorOrdinal][effectVectors[-1 * vectorOrdinal].length - vectorLength] != mproductOrdinal)) {
 					int endState = mproductEndpoints[startState][0];
@@ -913,7 +914,7 @@ public class ModelCompiler implements ITarget {
 						}
 						effectVectors[vectorOrdinal] = vectorex;
 					}
-					transition[1] = -1 * vectorOrdinal;
+					cell[1] = -1 * vectorOrdinal;
 					assert vectorOrdinal > 0;
 				}
 			}
@@ -993,7 +994,7 @@ public class ModelCompiler implements ITarget {
 				effectorVector[effectorPos] = 0;
 				++effectorPos;
 			}
-			if (outT == null || outT.size() == 0 || outT.size() == 1 && outT.get(0).isFinal) {
+			if (outT == null || outT.isEmpty() || outT.size() == 1 && outT.get(0).isFinal) {
 				return new Chain(Arrays.copyOf(effectorVector, effectorPos), 0);
 			} else if (outT.size() == 1 && outT.get(0).tape == 0) {
 				return new Chain(Arrays.copyOf(effectorVector, effectorPos), outT.get(0).from);
@@ -1006,7 +1007,7 @@ public class ModelCompiler implements ITarget {
 						outS = t.from;
 					}
 				}
-				if (this.errors.size() == 0) {
+				if (this.errors.isEmpty()) {
 					return new Chain(Arrays.copyOf(effectorVector, effectorPos), outS);
 				}
 			} else {
@@ -1029,18 +1030,19 @@ public class ModelCompiler implements ITarget {
 		this.model.putIntArray(this.inputEquivalenceIndex);
 		this.model.putTransitionMatrix(this.kernelMatrix);
 		this.model.putIntArray(this.effectorVectors);
-		int transitions = 0;
+		int t = 0;
 		for (final int[][] row : this.kernelMatrix) {
 			for (final int[] col : row) {
 				if (col[1] != 0) {
-					transitions++;
+					t++;
 				}
 			}
 		}
-		double sparsity = 100 - (double)(100 * transitions)/(double)(this.kernelMatrix.length * this.kernelMatrix[0].length);
-		this.rtcLogger.log(Level.INFO, String.format("%1$20s: %2$5d input classes %3$5d states %4$5d transitions (%5$.0f%% nul)",
-			this.getTransducerName(), this.kernelMatrix.length, this.kernelMatrix[0].length, transitions, sparsity));
-		System.out.flush();
+		final int transitionCount = t;
+		double sparsity = 100 - (double)(100 * transitionCount)/(double)(this.kernelMatrix.length * this.kernelMatrix[0].length);
+		this.rtcLogger.log(Level.INFO, () -> String.format("%1$20s: %2$5d input classes %3$5d states %4$5d transitions (%5$.0f%% nul)",
+			this.getTransducerName(), this.kernelMatrix.length, this.kernelMatrix[0].length, transitionCount, sparsity));
+		System.err.flush();
 	}
 
 	private String getTransducerName() {

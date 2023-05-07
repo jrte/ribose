@@ -30,7 +30,7 @@ import com.characterforming.ribose.base.ModelException;
 
 /**
  * Provides a {@link TDecompile#main(String[])} method to decompile a transducer from a
- * ribose model to {@code System.out}. This enumerates and lists the members of the input
+ * ribose model to {@code System.err}. This enumerates and lists the members of the input
  * equivalence classes and lists the nonnull transitions in the kernel matrix of the 
  * transducer.
  * 
@@ -78,13 +78,13 @@ public final class TDecompile {
    */
   public static void main(final String[] args) throws ModelException {
     if (args.length != 2) {
-      System.out.println();
-			System.out.println("Usage: java [jvm-options] com.characterforming.ribose.TDecompile [--target-path <classpath>] model transducer");
-			System.out.println("   --target-path    -- <classpath> for jars containing model target class and dependencies");
-			System.out.println("   model            -- path to model file");
-			System.out.println("   transducer       -- name of transducer to decompile");
-			System.out.println("The model target class must have a default constructor and be included in the classpath.");
-			System.out.println();
+      System.err.println();
+			System.err.println("Usage: java [jvm-options] com.characterforming.ribose.TDecompile [--target-path <classpath>] model transducer");
+			System.err.println("   --target-path    -- <classpath> for jars containing model target class and dependencies");
+			System.err.println("   model            -- path to model file");
+			System.err.println("   transducer       -- name of transducer to decompile");
+			System.err.println("The model target class must have a default constructor and be included in the classpath.");
+			System.err.println();
       System.exit(1);
     }
 		Base.startLogging();
