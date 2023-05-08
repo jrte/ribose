@@ -74,9 +74,8 @@ public final class TDecompile {
    * Decompile a transducer, rendering input equivalence classes and state transitions with effects.
    * 
    * @param args command line arguments
-   * @throws ModelException on error
    */
-  public static void main(final String[] args) throws ModelException {
+  public static void main(final String[] args) {
     if (args.length != 2) {
       System.err.println();
 			System.err.println("Usage: java [jvm-options] com.characterforming.ribose.TDecompile [--target-path <classpath>] model transducer");
@@ -87,17 +86,31 @@ public final class TDecompile {
 			System.err.println();
       System.exit(1);
     }
-		Base.startLogging();
+    final String transducerName = args[1];
+    final File modelFile = new File(args[0]);
+
+		int exitCode = 1;
+    Base.startLogging();
     Logger rteLogger = Base.getRuntimeLogger();
-    File modelFile = (new File(args[0])).getAbsoluteFile();
-    if (!modelFile.exists()) {
-      rteLogger.log(Level.SEVERE, () -> String.format("Invalid model path: %1$s (%2$s)%n",
-        args[0], modelFile.getAbsolutePath()));
-      System.exit(1);
+    ModelDecompiler decompiler = null;
+    try {
+      decompiler = new ModelDecompiler(modelFile);
+    } catch (ModelException e) {
+      final String format = modelFile.exists()
+      ? "Failed to open model file: %1$s (%2$s)%n"
+      : "Invalid model path: %1$s (%2$s)%n";
+      rteLogger.log(Level.SEVERE, e, () -> String.format(format,
+       args[0], modelFile.getAbsolutePath()));
     }
-    String transducerName = args[1];
-    ModelDecompiler decompiler = new ModelDecompiler(modelFile);
-    decompiler.decompile(transducerName);
+    if (decompiler != null) try {
+      decompiler.decompile(transducerName);
+      exitCode = 0;
+    } catch (ModelException e) {
+      final String format = "Failed to load %1$s";
+      rteLogger.log(Level.SEVERE, e, () -> String.format(format, 
+        transducerName));
+    }
     Base.endLogging();
+    System.exit(exitCode);
   }
 }
