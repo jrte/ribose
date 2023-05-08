@@ -73,8 +73,8 @@ public class FileRunner {
 		final boolean jrteOutEnabled = System.getProperty("jrte.out.enabled", "false").equals("true");
 		final boolean regexOutEnabled = !regex.isEmpty() && System.getProperty("regex.out.enabled", "false").equals("true");
 		if (jrteOutEnabled && regexOutEnabled) {
-			System.err.println(String.format("Usage: java -cp <classpath> [-Djrte.out.enabled=true ^|^ -Dregex.out.enabled=true] %s [--nil] <transducer-name> <input-path> <model-path> [regex]%s(jrteOutputEnabled and regexOutputEnabled can't both be true)",
-				FileRunner.class.getName(), Base.LINEEND));
+			System.err.println(String.format("Usage: java -cp <classpath> [-Djrte.out.enabled=true ^|^ -Dregex.out.enabled=true] %s [--nil] <transducer-name> <input-path> <model-path> [regex]%n(jrteOutputEnabled and regexOutputEnabled can't both be true)",
+				FileRunner.class.getName()));
 			System.exit(1);
 		}
 

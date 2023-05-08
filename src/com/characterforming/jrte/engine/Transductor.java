@@ -670,9 +670,9 @@ E:	do {
 		last /= top.inputEquivalents;
 		state /= top.inputEquivalents;
 		StringBuilder message = new StringBuilder(256);
-		message.append(String.format("Domain error on (%1$d~%2$d) in %3$s [%4$d]->[%5$d]%6$s,\tTransducer stack:%7$s",
+		message.append(String.format("Domain error on (%1$d~%2$d) in %3$s [%4$d]->[%5$d]%n,\tTransducer stack:%n",
 			this.errorInput, this.errorInput >= 0 ? top.inputFilter[this.errorInput] : this.errorInput, 
-			top.name, last, state, Base.LINEEND, Base.LINEEND));
+			top.name, last, state));
 		for (int i = this.transducerStack.tos(); i >= 0; i--) {
 			TransducerState t = this.transducerStack.get(i);
 			int s = t.state / t.inputEquivalents;

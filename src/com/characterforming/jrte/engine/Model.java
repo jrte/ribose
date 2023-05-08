@@ -223,10 +223,9 @@ public final class Model implements AutoCloseable {
 			saveMapFile(mapFile);
 			setDeleteOnClose(false);
 			String msg = String.format(
-				"%1$s: target class %2$s%3$s%4$d transducers; %5$d effectors; %6$d fields; %7$d signal ordinals%8$s",
-				this.modelPath.getPath(), this.proxyTarget.getClass().getName(), Base.LINEEND,
-				this.transducerOrdinalMap.size() - 1, this.effectorOrdinalMap.size(),
-				this.fieldOrdinalMap.size(), this.getSignalCount(), Base.LINEEND);
+				"%1$s: target class %2$s%n%3$d transducers; %4$d effectors; %5$d fields; %6$d signal ordinals%n",
+				this.modelPath.getPath(), this.proxyTarget.getClass().getName(), this.transducerOrdinalMap.size() - 1,
+				this.effectorOrdinalMap.size(),	this.fieldOrdinalMap.size(), this.getSignalCount());
 			this.rtcLogger.log(Level.INFO, msg);
 		} catch (IOException e) {
 			throw new ModelException(

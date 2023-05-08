@@ -124,38 +124,28 @@ public final class TRun {
 		}
 
 		int exitCode = 1;
-		try (BufferedOutputStream osw = new BufferedOutputStream(os, Base.getOutBufferSize())) {
-			try (
-				IRuntime ribose = Ribose.loadRiboseModel(model);
-				InputStream isr = input != null ? new FileInputStream(input) : System.in;
-			) {
-				if (ribose != null) {
-					Bytes transducer = Bytes.encode(encoder, transducerName);
-					ITarget runTarget = (ITarget) Class.forName(ribose.getTargetClassname()).getDeclaredConstructor().newInstance();
-					long t0 = System.nanoTime();
-					if (ribose.transduce(runTarget, transducer, nil ? Signal.NIL : null, isr, outputEnabled ? osw : null)) {
-						if (input != null) {
-							long clen = input.length();
-							double t1 = (System.nanoTime() - t0);
-							double mbps = (t1 > 0) ? (clen*1000) / t1 : -1;
-							rtmLogger.log(Level.FINE, () -> String.format("%s\t%7.3f\t%d\t%s",
-								inputPath, mbps, clen, transducerName));
-						}
-						exitCode = 0;
-					}
+		try (
+			IRuntime ribose = Ribose.loadRiboseModel(model);
+			InputStream isr = input != null ? new FileInputStream(input) : System.in;
+			BufferedOutputStream osw = new BufferedOutputStream(os, Base.getOutBufferSize());
+		) {
+			Bytes transducer = Bytes.encode(encoder, transducerName);
+			ITarget runTarget = (ITarget) Class.forName(ribose.getTargetClassname()).getDeclaredConstructor().newInstance();
+			long t0 = System.nanoTime();
+			if (ribose.transduce(runTarget, transducer, nil ? Signal.NIL : null, isr, outputEnabled ? osw : null)) {
+				if (input != null) {
+					long clen = input.length();
+					double t1 = (System.nanoTime() - t0);
+					double mbps = (t1 > 0) ? (clen*1000) / t1 : -1;
+					rtmLogger.log(Level.FINE, () -> String.format("%s\t%7.3f\t%d\t%s",
+						inputPath, mbps, clen, transducerName));
 				}
-			} catch (final Exception e) {
-				rteLogger.log(Level.SEVERE, "Runtime failed", e);
-				System.err.println("Runtime failed, see log for details.");
-			} finally {
-				try {
-					osw.flush();
-				} catch (IOException e) {
-					String message = String.format("Unable to flush final output to %s", outputPath);
-					rteLogger.log(Level.SEVERE, message, e);
-					exitCode = 1;
-				}
+				exitCode = 0;
 			}
+			osw.flush();
+		} catch (final Exception e) {
+			rteLogger.log(Level.SEVERE, "Runtime failed", e);
+			System.err.println("Runtime failed, see log for details.");
 		} finally {
 			Base.endLogging();
 			System.exit(exitCode);

@@ -129,20 +129,19 @@ public final class TCompile extends ModelCompiler {
 			System.err.println();
 			System.exit(1);
 		}
-		System.err.println(String.format("Ribose runtime compiler version %1$s%2$sCopyright (C) 2011,2022 Kim Briggs%2$sDistributed under GPLv3 (http://www.gnu.org/licenses/gpl-3.0.txt)", 
-			Base.RTE_VERSION, Base.LINEEND));
+		System.err.println(String.format("Ribose runtime compiler version %1$s%n$sCopyright (C) 2011,2022 Kim Briggs%n$sDistributed under GPLv3 (http://www.gnu.org/licenses/gpl-3.0.txt)", 
+			Base.RTE_VERSION));
 		System.err.println(String.format("Compiling %1$s to runtime model %2$s", 
 			ginrAutomataDirectory.getPath(), riboseModelFile.getPath()));
 		
-		int exitCode = 0;
+		int exitCode = 1;
 		try {
-			if (!Ribose.compileRiboseModel(targetClass, ginrAutomataDirectory, riboseModelFile)) {
-				exitCode = 1;
+			if (Ribose.compileRiboseModel(targetClass, ginrAutomataDirectory, riboseModelFile)) {
+				exitCode = 0;
 			}
 		} catch (Exception e) {
 			rtcLogger.log(Level.SEVERE, "Compiler failed", e);
 			System.err.println("Compiler failed, see log for details.");
-			exitCode = 1;
 		} finally {
 			if (exitCode != 0) {
 				System.err.println("Runtime compilation failed, see log for details.");
