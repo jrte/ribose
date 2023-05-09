@@ -2,26 +2,20 @@
 jrte=$(realpath $(dirname $0)/../..)
 jars=$jrte/jars
 version=$(cat $jrte/version)
-path="$jars/$version.jar:$jars/$version-test.jar"
-if (($#>2)); then
-	if (($#>3)) && [[ "$1" == "--target-path" ]]; then
-		target=$(realpath "$2")
-		if [[ ! -z "$target" ]]; then
-			path="$path:$target"
-			shift 2
-		fi
+path="$jars/$version.jar"
+if (($#>3)) && [[ "$1" == "--target-path" ]]; then
+	tpath=$(realpath "$2")
+	if [[ -e "$tpath" ]]; then
+		path="$path:$tpath"
+		shift 2
 	fi
 fi
 if (($#==2)); then
-	model=$(realpath "$1")
-	if [[ ! -f "$model" ]]; then
-		echo "Not found: $model"
-		exit 1
-	fi
+	model="$1"
 	transducer="$2"
+	${JAVA_HOME}/bin/java -ea -cp "$path" com.characterforming.ribose.TDecompile "$model" "$transducer"
 else 
 	echo "Usage: decompile [--target-path <target-classpath>] <model-file-path> <transducer>"
 	echo "Decompile ribose transducer from model in <model-file-path>."
 	exit 1
 fi	
-${JAVA_HOME}/bin/java -ea -cp "$path" com.characterforming.ribose.TDecompile "$model" "$transducer"
