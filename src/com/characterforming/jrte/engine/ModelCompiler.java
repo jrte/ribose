@@ -168,7 +168,7 @@ public class ModelCompiler implements ITarget {
 					return false;
 				}
 			}
-			return compiler.getErrors().isEmpty();
+			return compiler.getErrors().isEmpty() && targetModel.save();
 		} catch (ModelException e) {
 			String msg = String.format("Exception caught compiling automata directory '%1$s'", inrAutomataDirectory.getPath());
 			rtcLogger.log(Level.SEVERE, msg, e);

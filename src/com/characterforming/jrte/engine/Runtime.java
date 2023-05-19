@@ -67,10 +67,9 @@ public final class Runtime implements IRuntime {
 	 * @param target The targetinstance to bind to transductors
 	 * @throws ModelException
 	 */
-	public Runtime(Model model) throws ModelException {
+	public Runtime(Model model) {
 		this.rteLogger = Base.getRuntimeLogger();
 		this.model = model;
-		this.model.load();
 	}
 
 	@Override // @see com.characterforming.ribose.IRuntime#transductor(ITarget)

@@ -85,7 +85,6 @@ public final class TCompile extends ModelCompiler {
 	 * Runs the ribose model compiler to refresh the model compiler model.
 	 * 
 	 * @param args <i>target-classname automata-directory-path runtime-model-path</i>
-	 * @throws IOException If logging subsystem can't initialize
 	 * @throws SecurityException If logging subsystem can't initialize
 	 */
 	public static void main(final String[] args) throws SecurityException {

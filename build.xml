@@ -123,7 +123,7 @@
 
 	<target name="package" depends="ribose,package-test,compile-test-model,javadoc"/>
 
-	<target name="ribose" depends="init-ribose,package-java,build-compiler-model"
+	<target name="ribose" depends="init-ribose,package-java,javadoc,build-compiler-model"
 		description="Clean build for java and patterns"/>
 
 	<target name="ci-test" depends="clean,test,env"

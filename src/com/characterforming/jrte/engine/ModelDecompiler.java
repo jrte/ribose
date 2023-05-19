@@ -30,105 +30,104 @@ import com.characterforming.ribose.base.Bytes;
 import com.characterforming.ribose.base.ModelException;
 
 public class ModelDecompiler {
-	private final Model model;
+	private final File modelFile;
 	private final CharsetDecoder decoder;
 	private final CharsetEncoder encoder;
 
-	public ModelDecompiler(File modelFile) throws ModelException {
-		this.model = new Model(modelFile);
-		this.model.load();
+	public ModelDecompiler(File modelFile) {
+		this.modelFile = modelFile;
 		this.decoder = Base.newCharsetDecoder();
 		this.encoder = Base.newCharsetEncoder();
 	}
 
 	public void decompile(final String transducerName) throws ModelException {
-		Transducer trex = this.model.loadTransducer(this.model.getTransducerOrdinal(Bytes.encode(encoder, transducerName)));
-		int[] effectorVectors = trex.getEffectorVector();
-		int[] inputEquivalenceIndex = trex.getInputFilter();
-		long[] transitionMatrix = trex.getTransitionMatrix();
-		int inputEquivalentCount = trex.getInputEquivalentsCount();
-		Set<Map.Entry<Bytes, Integer>> effectorOrdinalMap = this.model.getEffectorOrdinalMap().entrySet();
-		String[] effectorNames = new String[effectorOrdinalMap.size()];
-		for (Map.Entry<Bytes, Integer> entry : effectorOrdinalMap) {
-			effectorNames[entry.getValue()] = Bytes.decode(this.decoder, entry.getKey().getData(), entry.getKey().getLength()).toString();
-		}
-		System.err.printf("%s%n%nInput equivalents (equivalent: input...)%n%n", transducerName);
-		for (int i = 0; i < inputEquivalentCount; i++) {
-			int startByte = -1;
-			System.err.printf("%4d:", i);
-			for (int j = 0; j < inputEquivalenceIndex.length; j++) {
-				if (inputEquivalenceIndex[j] != i) {
-					if (startByte >= 0) {
-						if (startByte < (j-2)) {
-							if (startByte > 32 && startByte <127) {
-								System.err.printf(" %c", (char)startByte);
+		try (Model model = Model.load(this.modelFile)) {
+			Transducer trex = model.loadTransducer(model.getTransducerOrdinal(Bytes.encode(encoder, transducerName)));
+			int[] effectorVectors = trex.getEffectorVector();
+			int[] inputEquivalenceIndex = trex.getInputFilter();
+			long[] transitionMatrix = trex.getTransitionMatrix();
+			int inputEquivalentCount = trex.getInputEquivalentsCount();
+			Set<Map.Entry<Bytes, Integer>> effectorOrdinalMap = model.getEffectorOrdinalMap().entrySet();
+			String[] effectorNames = new String[effectorOrdinalMap.size()];
+			for (Map.Entry<Bytes, Integer> entry : effectorOrdinalMap) {
+				effectorNames[entry.getValue()] = Bytes.decode(this.decoder, entry.getKey().getData(), entry.getKey().getLength()).toString();
+			}
+			System.out.printf("%s%n%nInput equivalents (equivalent: input...)%n%n", transducerName);
+			for (int i = 0; i < inputEquivalentCount; i++) {
+				int startToken = -1;
+				System.out.printf("%4d:", i);
+				for (int j = 0; j < inputEquivalenceIndex.length; j++) {
+					if (inputEquivalenceIndex[j] != i) {
+						if (startToken >= 0) {
+							if (startToken < (j-2)) {
+								this.printStart(startToken);
+								this.printEnd(j-1);
 							} else {
-								System.err.printf(" #%x", startByte);
-							}
-							if ((j - 1) > 32 && (j - 1) <127) {
-								System.err.printf("-%c", (char)(j-1));
-							} else {
-								System.err.printf("-#%x", (j-1));
-							}
-						} else {
-							if (startByte > 32 && startByte < 127) {
-								System.err.printf(" %c", (char)startByte);
-							} else {
-								System.err.printf(" #%x", startByte);
+								this.printStart(startToken);
 							}
 						}
+						startToken = -1;
+					} else if (startToken < 0) {
+						startToken = j;
 					}
-					startByte = -1;
-				} else if (startByte < 0) {
-					startByte = j;
 				}
+				if (startToken >= 0) {
+					int endToken = inputEquivalenceIndex.length - 1;
+					this.printStart(startToken);
+					if (startToken < endToken) {
+						this.printEnd(endToken);
+					}
+				}
+				System.out.printf("%n");
 			}
-			if (startByte >= 0) {
-				int j = inputEquivalenceIndex.length;
-				if (j > (startByte + 1)) {
-					if (startByte > 32 && startByte <127) {
-						System.err.printf(" %c", (char)startByte);
+			System.out.printf("%nState transitions (from equivalent -> to effect...)%n%n");
+			for (int i = 0; i < transitionMatrix.length; i++) {
+				int from = i / inputEquivalentCount;
+				int equivalent = i % inputEquivalentCount;
+				int to = Transducer.state(transitionMatrix[i]) / inputEquivalentCount;
+				int effect = Transducer.action(transitionMatrix[i]);
+				assert (effect != 0) || (to == from);
+				if ((to != from) || (effect != 0)) {
+					System.out.printf("%1$d %2$d -> %3$d", from, equivalent, to);
+					if (effect >= 0x10000) {
+						int effector = Transducer.effector(effect);
+						int parameter = Transducer.parameter(effect);
+						System.out.printf(" %s[", effectorNames[effector]);
+						System.out.printf(" %s ]", model.showParameter(effector, parameter));
+					} else if (effect >= 0) {
+						if (effect > 1) {
+							System.out.printf(" %s", effectorNames[effect]);
+						}
 					} else {
-						System.err.printf(" #%x", startByte);
-					}
-					System.err.printf("-#%x", (j - 1));
-				} else {
-					System.err.printf(" #%x", (j - 1));
-				}
-			}
-			System.err.printf("%n");
-		}
-		System.err.printf("%nState transitions (from equivalent -> to effect...)%n%n");
-		for (int i = 0; i < transitionMatrix.length; i++) {
-			int from = i / inputEquivalentCount;
-			int equivalent = i % inputEquivalentCount;
-			int to = Transducer.state(transitionMatrix[i]) / inputEquivalentCount;
-			int effect = Transducer.action(transitionMatrix[i]);
-			assert (effect != 0) || (to == from);
-			if ((to != from) || (effect != 0)) {
-				System.err.printf("%1$d %2$d -> %3$d", from, equivalent, to);
-				if (effect >= 0x10000) {
-					int effector = Transducer.effector(effect);
-					int parameter = Transducer.parameter(effect);
-					System.err.printf(" %s[", effectorNames[effector]);
-					System.err.printf(" %s ]", this.model.showParameter(effector, parameter));
-				} else if (effect >= 0) {
-					if (effect > 1) {
-						System.err.printf(" %s", effectorNames[effect]);
-					}
-				} else {
-					for (int e = (-1 * effect); effectorVectors[e] != 0; e++) {
-						if (effectorVectors[e] > 0) {
-							System.err.printf(" %s", effectorNames[effectorVectors[e]]);
-						} else {
-							int effector = -1 * effectorVectors[e++];
-							System.err.printf(" %s[", effectorNames[effector]);
-							System.err.printf(" %s ]", this.model.showParameter(effector, effectorVectors[e]));
+						for (int e = (-1 * effect); effectorVectors[e] != 0; e++) {
+							if (effectorVectors[e] > 0) {
+								System.out.printf(" %s", effectorNames[effectorVectors[e]]);
+							} else {
+								int effector = -1 * effectorVectors[e++];
+								System.out.printf(" %s[", effectorNames[effector]);
+								System.out.printf(" %s ]", model.showParameter(effector, effectorVectors[e]));
+							}
 						}
 					}
+					System.out.printf("%n");
 				}
-				System.err.printf("%n");
 			}
+		}
+	}
+
+	private void printStart(int startByte) {
+		if (startByte > 32 && startByte <127) {
+			System.out.printf(" %c", (char)startByte);
+		} else {
+			System.out.printf(" #%x", startByte);
+		}
+	}
+
+	private void printEnd(int endByte) {
+		if (endByte > 32 && endByte <127) {
+			System.out.printf("-%c", (char)endByte);
+		} else {
+			System.out.printf("-#%x", endByte);
 		}
 	}
 }

@@ -77,17 +77,12 @@ public final class Ribose {
 
 	private static boolean compileRiboseModel(String targetClassname, File riboseModelFile, File ginrAutomataDirectory) {
 		boolean saved = false;
-		try (Model model = new Model(riboseModelFile, targetClassname)) {
-			saved = model.create()
-			&& ModelCompiler.compileAutomata(model, ginrAutomataDirectory)
-			&& model.save();
+		try (Model model = Model.create(riboseModelFile, targetClassname)) {
+			return ModelCompiler.compileAutomata(model, ginrAutomataDirectory);
 		} catch (Exception e) {
 			Base.getCompileLogger().log(Level.SEVERE, String.format("Exception compiling model '%1$s' from '%2$s'",
 				riboseModelFile.getPath(), ginrAutomataDirectory.getPath()), e);
-		} finally {
-			if (!saved && riboseModelFile.exists()) {
-				riboseModelFile.deleteOnExit();
-			}
+			riboseModelFile.deleteOnExit();
 		}
 		return saved;
 	}
@@ -102,6 +97,6 @@ public final class Ribose {
 	 * @throws ModelException on error
 	 */
 	public static IRuntime loadRiboseModel(File riboseModelFile) throws ModelException {
-		return new Runtime(new Model(riboseModelFile));
+		return new Runtime(Model.load(riboseModelFile));
 	}	
 }

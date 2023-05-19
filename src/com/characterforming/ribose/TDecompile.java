@@ -95,14 +95,6 @@ public final class TDecompile {
     ModelDecompiler decompiler = null;
     try {
       decompiler = new ModelDecompiler(modelFile);
-    } catch (ModelException e) {
-      final String format = modelFile.exists()
-      ? "Failed to open model file: %1$s (%2$s)%n"
-      : "Invalid model path: %1$s (%2$s)%n";
-      rteLogger.log(Level.SEVERE, e, () -> String.format(format,
-       args[0], modelFile.getAbsolutePath()));
-    }
-    if (decompiler != null) try {
       decompiler.decompile(transducerName);
       exitCode = 0;
     } catch (ModelException e) {
