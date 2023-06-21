@@ -1,5 +1,5 @@
-PastePauseTest = (
-	nil? ((a, paste)* (b, clear pause))* (eos, stop)
+PastePauseTest = nil? (
+	((a, paste)* (b, clear pause))* (eos, stop)
 ):dfamin;
 
 PastePauseTest:save `build/automata/PastePauseTest.dfa`;

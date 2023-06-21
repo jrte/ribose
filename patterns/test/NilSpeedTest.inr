@@ -1,5 +1,5 @@
-NilSpeedTest = (
-	nil (a*b)* (eos, stop)
+NilSpeedTest = nil? (
+	(a*b)* (eos, stop)
 ):dfamin;
 
 NilSpeedTest$(0,1 2):prsseq `build/automata/NilSpeedTest.pr`;

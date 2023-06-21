@@ -1,24 +1,24 @@
 Sign = ('-', paste)?;
 Number = (digit, paste)+;
 Symbol = [count[`~length` `!eol`]] (byte, paste count)* eol;
-Field = clear[X] select[X];
-Next = Field@(X,`~from`)*;
+Field = select[X] clear;
+Next = Field@(X,`~from`);
 Eol = cr? nl;
 Inr = 'INR';
 
-Automaton = (nil?
-	(Inr, Field@(X,`~version`)*) Number
-	(tab, Field@(X,`~tapes`)*) Number
-	(tab, Field@(X,`~transitions`)*) Number
-	(tab, Field@(X,`~states`)*) Number
-	(tab, Field@(X,`~symbols`)*) Number
+Automaton = nil? (
+	(Inr, Field@(X,`~version`)) Number
+	(tab, Field@(X,`~tapes`)) Number
+	(tab, Field@(X,`~transitions`)) Number
+	(tab, Field@(X,`~states`)) Number
+	(tab, Field@(X,`~symbols`)) Number
 	(Eol, header) [Next]
 	(
 		Number
-		(tab, Field@(X,`~to`)*) Number
-		(tab, Field@(X,`~tape`)*) Sign? Number
-		(tab, Field@(X,`~length`)*) Number
-		(tab, Field@(X,`~symbol`)*) Symbol
+		(tab, Field@(X,`~to`)) Number
+		(tab, Field@(X,`~tape`)) Sign? Number
+		(tab, Field@(X,`~length`)) Number
+		(tab, Field@(X,`~symbol`)) Symbol
 		(Eol, transition) [Next]
 	)*
 	(eos, automaton stop)

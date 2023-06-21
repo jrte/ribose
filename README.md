@@ -16,20 +16,20 @@ The ribose runtime operates multiple concurrent transductions, each encapsulated
 
 The ribose model compiler and runtime are simple, compact (≾120K) and free from external dependencies. The ribose runtime transduces `byte*` streams simply and only because `byte` is the least common denominator for data representation in most networks and computing machines. Ginr compiles complex Unicode glyphs in ribose patterns to multiple UTF-8 byte transitions, so all ribose transductions are effected in the byte domain and only extracted features are decoded and widened to 16-bit Unicode code points. Binary data can be embedded with text (eg, **\`a\x00b\`**), using self-terminating binary patterns or prior length information, as long as they are distinguishable from other artifacts in the information stream. Raw binary encodings may be especially useful in domains, such as online gaming or realtime process control, that demand compact and efficient messaging protocols with relaxed readability requirements. Semantic effectors may also inject previously captured bytes or out-of-band signals, such as countdown termination, into the input stream to direct the course of transductions.
 ### _Example_
-A simple example, taken from the ribose transducer that reduces the serialized form of compiled ginr automata to construct ribose transducers: The input pattern `('INR' (digit+ tab):4 digit+ nl)` is extended to check for a specific tag and marshal 5 integer fields into an immutable `Header` value object. Fields are extracted in raw `byte[]` arrays using the `clear`, `select` and `paste` effectors before the domain-specific `header` effector is finally invoked to decode and marshal them into a `Header` object.
+A simple example, taken from the ribose transducer that reduces the serialized form of compiled ginr automata to construct ribose transducers: The input pattern `('INR' (digit+ tab):4 digit+ nl)` is extended to check for a specific tag and marshal 5 integer fields into an immutable `Header` value object. Fields are extracted to raw `byte[]` arrays using the `clear`, `select` and `paste` effectors until a newline triggers the domain-specific `header` effector to decode and marshal them into a `Header` object.
 ```
 # INR210	3	565	127	282
-
+inr = 'INR';
 Header = (
-  ('INR', clear[`~version`] select[`~version`]) (digit, paste)+
-  (tab, clear[`~tapes`] select[`~tapes`]) (digit, paste)+
-  (tab, clear[`~transitions`] select[`~transitions`]) (digit, paste)+
-  (tab, clear[`~states`] select[`~states`]) (digit, paste)+
-  (tab, clear[`~symbols`] select[`~symbols`]) (digit, paste)+
+  (inr, select[`~version`] clear) (digit, paste)+
+  (tab, select[`~tapes`] clear) (digit, paste)+
+  (tab, select[`~transitions`] clear) (digit, paste)+
+  (tab, select[`~states`] clear) (digit, paste)+
+  (tab, select[`~symbols`] clear) (digit, paste)+
   (nl, header)
 );
 ```
-The expression here is intentionally explicit and redundant to show the algebraic binary structure of ribose transducer patterns. The branching and repeating patterns expressed in the input syntax drive the selection of non-branching effect vectors, obviating much of the fine-grained control logic that would otherwise be expressed in line with effect in a typical programming language without support from an external parsing library. Most of the work is performed by transductor effectors that latch bytes into named fields that, when complete, are decoded and assimilated into the target domain by a tightly focussed domain-specific effector.
+Generally, the branching and repeating patterns expressed in the input syntax drive the selection of non-branching effect vectors, obviating much of the fine-grained control logic that would otherwise be expressed in line with effect in a typical programming language without support from an external parsing library. Most of the work is performed by transductor effectors that latch bytes into named fields that, when complete, are decoded and assimilated into the target domain by a tightly focussed domain-specific effector.
 
 Expressions such as this can be combined with other expressions using concatenation, union, repetition and composition operators to construct more complex patterns. More generally, ribose patterns are amenable to algebraic manipulation in the `*`-semiring, and ginr enables this to be exploited to considerable advantage. For example `Transducer = Header Transition* eos` covers a complete serialized automaton, `Transducer210 = ('INR210' byte* eos) @@ Transducer` restricts `Transducer` to accept only version 210 automata (ginr's `@` composition operator absorbs matching input and reduces pattern arity, the `@@` join operator retains matching input and preserves arity).
 ### _Ginr_`*`
@@ -81,7 +81,7 @@ This next example computes unary Fibonacci numbers from unary inputs, using tran
 ```
 Fibonacci = (
   (
-    ('0', select[`~q`] paste['1')
+    ('0', select[`~q`] paste['1'])
     ('0', select[`~r`] cut[`~p`] select[`~p`] copy[`~q`] select[`~q`] cut[`~r`])*
   )?
   (nl, paste out stop)
@@ -113,7 +113,7 @@ This example was previewed above. It is taken from the ribose model compiler, wh
 ```
 # INR210	3	565	127	282
 
-Field = clear[X] select[X];
+Field = select[X] clear;
 Number = (digit, paste)+;
 Header = (
   ('INR', Field @ (X,`~version`)*) Number
@@ -222,9 +222,7 @@ null = (
 );
 
 # transduce recognized intervals, ignore null input
-Tintervals = (
-  (interval* null*)*
-);
+Tintervals = (interval* null*)*;
 ```
 Nullification can be applied similarly to subpatterns to effect fine-grained context-sensitive error handling. The general technique of flattening a transducer pattern and transforming it with an editor pattern while projecting the result back onto the original tapes can be applied in many other ways. Like [CRISPR](https://www.newscientist.com/definition/what-is-crispr/) in genetics, it can be used to inject new behaviors or alter existing behaviors in transducer patterns. The `null` expression above preserves the interleaving of input and effectors in the nullified `interval` pattern up to the first `nul` signal and replaces the remainder with a pattern that synchronizes at the opening of the next XML stanza. If no effectors are involved the same result can be expressed more succinctly as shown in the next example.
 ## Resolving Ambiguous Inputs (Classification)
