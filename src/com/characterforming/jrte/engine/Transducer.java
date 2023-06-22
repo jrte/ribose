@@ -31,15 +31,6 @@ final class Transducer {
 	private final int[] effectorVector;
 	int inputEquivalents;
 
-	Transducer() {
-		this.name = null;
-		this.targetName = null;
-		this.inputFilter = null;
-		this.transitionMatrix = null;
-		this.effectorVector = null;
-		this.inputEquivalents = 0;
-	}
-
 	Transducer(String name, String targetName, int[] inputFilter, long[] transitionMatrix, int[] effectorVector) {
 		this.name = name;
 		this.targetName = targetName;
@@ -77,10 +68,6 @@ final class Transducer {
 	// decode parameter ordinal from action commponent of transition matrix cell
 	static int parameter(int action) {
 		return action & 0xffff;
-	}
-
-	boolean isLoaded() {
-		return null != this.name;
 	}
 
 	String getName() {

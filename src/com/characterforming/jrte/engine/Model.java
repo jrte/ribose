@@ -299,7 +299,6 @@ public final class Model implements AutoCloseable {
 		model.transducerOffsetIndex = new long[transducerCount];
 		for (int transducerOrdinal = 0; transducerOrdinal < transducerCount; transducerOrdinal++) {
 			model.transducerNameIndex[transducerOrdinal] = new Bytes(model.getBytes());
-			model.transducerObjectIndex.set(transducerOrdinal, new Transducer());
 			model.transducerOffsetIndex[transducerOrdinal] = model.getLong();
 			assert model.transducerOrdinalMap.get(model.transducerNameIndex[transducerOrdinal]) == transducerOrdinal;
 		}
@@ -602,37 +601,33 @@ public final class Model implements AutoCloseable {
 	}
 
 	Transducer loadTransducer(final Integer transducerOrdinal) throws ModelException {
-		if (0 <= transducerOrdinal && transducerOrdinal < this.transducerAccessIndex.length()) {
-			int access = this.transducerAccessIndex.compareAndExchange(transducerOrdinal, 0, 1);
-			Transducer t = this.transducerObjectIndex.get(transducerOrdinal);
-			if (access < 2) synchronized (t) {
-				if (access == 0) {
-					try {
-						assert !t.isLoaded();
-						this.io.seek(transducerOffsetIndex[transducerOrdinal]);
-						final String name = this.getString();
-						final String target = this.getString();
-						final int[] inputs = this.getIntArray();
-						final long[] transitions = this.getTransitionMatrix();
-						final int[] effects = this.getIntArray();
-						this.transducerObjectIndex.compareAndExchange(transducerOrdinal, t, new Transducer(name, target,	inputs, transitions, effects));
-						access = this.transducerAccessIndex.compareAndExchange(transducerOrdinal, 1, 2);
-						assert access == 1;
-					} catch (final IOException e) {
-						throw new ModelException(
-							String.format("RuntimeModel.loadTransducer(ordinal:%d) caught an IOException after seek to %d",
-							transducerOrdinal, transducerOffsetIndex[transducerOrdinal]), e);
-					}
-				}
-				t = this.transducerObjectIndex.get(transducerOrdinal);
-			}
-			assert 2 == this.transducerAccessIndex.get(transducerOrdinal);
-			assert t.isLoaded();
-			return t;
-		} else {
+		if (0 > transducerOrdinal || transducerOrdinal >= this.transducerAccessIndex.length()) {
 			throw new ModelException(String.format("RuntimeModel.loadTransducer(ordinal:%d) ordinal out of range [0,%d)",
 				transducerOrdinal, this.transducerObjectIndex.length()));
 		}
+		if (0 == this.transducerAccessIndex.compareAndExchange(transducerOrdinal, 0, 1)) {
+			try {
+				this.io.seek(transducerOffsetIndex[transducerOrdinal]);
+			} catch (final IOException e) {
+				throw new ModelException(
+					String.format("RuntimeModel.loadTransducer(ordinal:%d) caught an IOException after seek to %d",
+					transducerOrdinal, transducerOffsetIndex[transducerOrdinal]), e);
+			}
+			final String name = this.getString();
+			final String target = this.getString();
+			final int[] inputs = this.getIntArray();
+			final long[] transitions = this.getTransitionMatrix();
+			final int[] effects = this.getIntArray();
+			final Transducer newt = new Transducer(name, target, inputs, transitions, effects);
+			final Transducer oldt = this.transducerObjectIndex.compareAndExchange(transducerOrdinal, null, newt);
+			final int access = this.transducerAccessIndex.compareAndExchange(transducerOrdinal, 1, 2);
+			assert null == oldt && 1 == access;
+		} else while (1 == this.transducerAccessIndex.compareAndExchange(transducerOrdinal, 1, 1)) {
+			java.lang.Thread.onSpinWait();
+		}
+		final Transducer t = this.transducerObjectIndex.get(transducerOrdinal);
+		assert t != null && 2 == this.transducerAccessIndex.get(transducerOrdinal);
+		return t;
 	}
 
 	int getInt() throws ModelException {
