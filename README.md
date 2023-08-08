@@ -336,11 +336,11 @@ Good luck with all that.
 # Disclaimer
 Ribose is presented for demonstration only and is not regularly maintained. You may use it to compile and run the included examples, or create your own transducers to play with. Or clone and refine it and make it available to the rest of the world. Transcode it to **C** and wrap it in a Python thing. Do what you will, it's open source.
 
-Binary executable copies of `ginr` (for Linux) and `ginr.exe` (for Windows) are included in `etc/ginr` for personal use (with the author's permission); ginr guidance is [reposted in the sidebar](https://github.com/jrte/ribose/wiki/Ginr) on the ribose wiki. You are encouraged to clone or download and build ginr directly from the [ginr repo](https://github.com/ntozubod/ginr).
+Binary executable copies of `ginr` (for Linux) and `ginr.exe` (for Windows) are included in `etc/ginr` for personal use (with the author's permission); ginr guidance is [reposted in the sidebar](https://github.com/jrte/ribose/wiki/Ginr) in the ribose wiki. You are encouraged to clone or download and build ginr directly from the [ginr repo](https://github.com/ntozubod/ginr).
 
-Ribose has been developed and tested with OpenJDK 11 in Ubuntu and OpenJDK 11 and 17 in Windows 10. It should build on any unix-ish platform, including `git bash` or `Msys2\mingw` for Windows, with `ant`, `java`, `bash`, `cat`, `wc`, `grep` in the executable search path. The `JAVA_HOME` and `ANT_HOME` environment variables must be set properly, eg `export JAVA_HOME=$(realpath ~/jdk-17.0.7)`.
+Ribose has been developed and tested with OpenJDK 11 and 17 in Ubuntu 18 and Windows 10. It should build on any unix-ish platform, including `git bash` or `Msys2\mingw` for Windows, with `ant`, `java`, `bash`, `cat`, `wc`, `grep` in the executable search path. The `JAVA_HOME` and `ANT_HOME` environment variables must be set properly, eg `export JAVA_HOME=$(realpath ~/jdk-17.0.7)`.
 
-Clone the ribose repo and run `ant clean package` to percolate the ribose and test libraries and API documentation into the `jars/` and `javadoc/` directories and build the ribose compiler and test models from transducer patterns in the `patterns/` directory. The `ant test` target runs the CI test suite. The default target selected with `ant` alone performs a clean build and runs the CI tests.
+Clone the ribose repo and run `ant clean package` to percolate the ribose and test libraries and API documentation into the `jars/` and `javadoc/` directories. This will also build the ribose compiler and test models from transducer patterns in the `patterns/` directory. The `ant test` target runs the CI test suite. The default target selected with `ant` alone performs a clean build and runs the CI tests.
 
 ```
 -: # set home paths for java and ant
