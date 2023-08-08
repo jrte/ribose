@@ -329,7 +329,7 @@ public final class Transductor implements ITransductor, IOutput {
 		Input input = Input.empty;
 		try {
 T:		do {
-				// start a pushed transducer
+				// start a pushed transducer, or resume caller after pushed transducer is popped
 				this.transducer = this.transducerStack.peek();
 				final int[] inputFilter = this.transducer.inputFilter;
 				final long[] transitionMatrix = this.transducer.transitionMatrix;
@@ -340,16 +340,14 @@ I:			do {
 					if (signal > 0) {
 						token = signal;
 						signal = 0;
-					} else if (input.position < input.limit) {
-						token = 0xff & input.array[input.position++];
 					} else {
-						do {
+						while (input.position >= input.limit) {
 							input = this.inputStack.pop();
 							if (input == Input.empty) {
-								token = 0;
+								token = -1;
 								break T;
 							}
-						} while (input.position >= input.limit);
+						}
 						token = 0xff & input.array[input.position++];
 					}
 					
@@ -377,9 +375,8 @@ I:			do {
 					// trap runs in (nil* paste*)* effector space
 					int action;
 S:				do {
-						last = state;
-						final long transition = transitionMatrix[state + inputFilter[token]];
-						state = Transducer.state(transition);
+						long transition = transitionMatrix[state + inputFilter[token]];
+						last = state; state = Transducer.state(transition);
 						action = Transducer.action(transition);
 						if (action == PASTE) {
 							this.selected.append((byte)token);
@@ -387,7 +384,7 @@ S:				do {
 							break S;
 						}
 						if (input.position < input.limit) {
-							token = input.array[input.position++];
+							token = 0xff & input.array[input.position++];
 						} else {
 							continue I;
 						}
@@ -405,14 +402,14 @@ S:				do {
 								signal = SIGNUL;
 							}
 						}
-						int s = aftereffects & (IEffector.RTX_START | IEffector.RTX_STOP);
-						if (s == IEffector.RTX_START
-						&& this.transducer == this.transducerStack.get(this.transducerStack.tos() - 1)) {
+						int stackeffect = aftereffects & (IEffector.RTX_START | IEffector.RTX_STOP);
+						if (stackeffect == IEffector.RTX_START) {
+							assert this.transducerStack.tos() > 0 && this.transducer == this.transducerStack.get(this.transducerStack.tos() - 1);
 							this.transducer.state = state;
 						}
 						if (0 != (aftereffects & (IEffector.RTX_PAUSE | IEffector.RTX_STOPPED))) {
 							break T;
-						} else if (s != 0) {
+						} else if (stackeffect != 0) {
 							break I;
 						}
 					}
@@ -606,7 +603,7 @@ E:	do {
 		final long[] matchMask = this.matchSum;
 		while (0 != (matchMask[token >> 6] & (1L << (token & 0x3f)))) {
 			if (input.position < input.limit) {
-				token = Byte.toUnsignedInt(input.array[input.position++]);
+				token = 0xff & input.array[input.position++];
 			} else {
 				this.metrics.sum += (input.position - anchor);
 				return -1;
@@ -627,7 +624,7 @@ E:	do {
 				if (mpos == mlen) {
 					break;
 				} else if (input.position < input.limit) {
-					token = Byte.toUnsignedInt(input.array[input.position++]);
+					token = 0xff & input.array[input.position++];
 				} else {
 					this.matchPosition = mpos;
 					return -1;
@@ -648,7 +645,7 @@ E:	do {
 		final int matchToken = this.matchByte;
 		while (token != matchToken) {
 			if (input.position < input.limit) {
-				token = Byte.toUnsignedInt(input.array[input.position++]);
+				token = 0xff & input.array[input.position++];
 			} else {
 				this.metrics.scan += (input.position - anchor);
 				return -1;
@@ -1148,12 +1145,12 @@ E:	do {
 		@Override
 		public long[] compileParameter(final int parameterIndex, final byte[][] parameterList) throws TargetBindingException {
 			if (parameterList.length != 1) {
-				throw new TargetBindingException("The msum effector accepts at most one parameter");
+				throw new TargetBindingException("The msum effector accepts at most one parameter (a byte array of length >1)");
 			}
 			long[] byteMap = new long[] {0, 0, 0, 0};
 			for (byte b : parameterList[0]) {
-				final int bint = Byte.toUnsignedInt(b);
-				byteMap[bint >> 6] |= 1L << (bint & 0x3f);
+				final int i = Byte.toUnsignedInt(b);
+				byteMap[i >> 6] |= 1L << (i & 0x3f);
 			}
 			super.setParameter(parameterIndex, byteMap);
 			return super.parameters[parameterIndex];
@@ -1229,7 +1226,7 @@ E:	do {
 		@Override
 		public int[] compileParameter(final int parameterIndex, final byte[][] parameterList) throws TargetBindingException {
 			if (parameterList.length != 1) {
-				throw new TargetBindingException("The mproduct effector accepts at most one parameter");
+				throw new TargetBindingException("The mproduct effector accepts at most one parameter (a byte array of length >1)");
 			}
 			byte[] b = parameterList[0];
 			int[] p = new int[b.length];
@@ -1283,9 +1280,9 @@ E:	do {
 		@Override
 		public Integer compileParameter(final int parameterIndex, final byte[][] parameterList) throws TargetBindingException {
 			if (parameterList.length != 1) {
-				throw new TargetBindingException("The mproduct effector accepts at most one parameter");
+				throw new TargetBindingException("The mscan effector accepts at most one parameter (a byte array of length 1)");
 			}
-			super.setParameter(parameterIndex, Byte.toUnsignedInt(parameterList[0][0]));
+			super.setParameter(parameterIndex, 0xff & parameterList[0][0]);
 			return super.parameters[parameterIndex];
  		}
 

@@ -229,7 +229,7 @@ public class ModelCompiler implements ITarget {
 				target.error(String.format("%1$s: Invalid INR version %2$d",
 					target.getTransducerName(), h.version));
 			}
-			if ((h.tapes < 2) || (h.tapes > 3)) {
+			if (h.tapes > 3) {
 				target.error(String.format("%1$s: Invalid tape count %2$d",
 					target.getTransducerName(), h.tapes));
 			}

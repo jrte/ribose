@@ -60,12 +60,17 @@ save = out[`~timestamp` '|' `~hostname` '|' `~tag` '|' `~in` '|' `~out`
 
 continue = clear[`~*`] select[`~timestamp`];
 
-LinuxKernel = (
-	(nil, continue)
+done = [continue] (((a0$(0,0))* (eos, nul)) @ null);
+
+LinuxKernel = nil (
 	(
-		iptables (nl, save continue)
-	|	null? (nl, continue)
+		[continue]
+		(
+			iptables ((nl, save) | (eos, save stop))
+		|	null? (nl | (eos, stop))
+		)
 	)*
+	done
 ):dfamin;
 
 ### LinuxKernelStrict
@@ -77,22 +82,25 @@ LinuxKernel = (
 ###
 
 LinuxKernelDropped = (
-	header (space, select[`~tag`]) ('DROPPED' @@ PasteAny) fields (nl, save signal[`!nil`] stop)
+	header (space, select[`~tag`]) ('DROPPED' @@ PasteAny) fields
+	((nl, save signal[`!nil`] stop) | (eos, save signal[`!eos`] stop))
 ):dfamin;
 
 LinuxKernelLimited = (
-	header (space, select[`~tag`]) ('LIMITED' @@ PasteAny) fields (nl, save signal[`!nil`] stop)
+	header (space, select[`~tag`]) ('LIMITED' @@ PasteAny) fields
+	((nl, save signal[`!nil`] stop) | (eos, save signal[`!eos`] stop))
 ):dfamin;
 
 LinuxKernelAborted = (
-	header (space, select[`~tag`]) ('ABORTED' @@ PasteAny) fields (nl, save signal[`!nil`] stop)
+	header (space, select[`~tag`]) ('ABORTED' @@ PasteAny) fields
+	((nl, save signal[`!nil`] stop) | (eos, save signal[`!eos`] stop))
 ):dfamin;
 
 dropped = LinuxKernelDropped$0;
 limited = LinuxKernelLimited$0;
 aborted = LinuxKernelAborted$0;
 
-iptables = (dropped | limited | aborted) / nl;
+iptables = (dropped | limited | aborted) / (nl | eos);
 null = ((iptables:pref) - iptables) nul (byte - nl)*;
 next = reset continue;
 
@@ -103,9 +111,11 @@ LinuxKernelStrict = (
 			(dropped, next start[`@LinuxKernelDropped`])
 		|	(limited, next start[`@LinuxKernelLimited`])
 		|	(aborted, next start[`@LinuxKernelAborted`])
-		| (null nl, signal[`!nil`])
-		)?
+		| (null  nl, signal[`!nil`]) 
+		| (null eos, signal[`!eos`])
+		)
 	)*
+	(eos, stop)
 ):dfamin;
 
 ### LinuxKernelLoose
@@ -125,9 +135,11 @@ LinuxKernelLoose = (
 		(nil, mark)
 		(
 			(type, next start[`@LinuxKernelCapture`])
-		|	(null nl, signal[`!nil`])
-		)?
+		| (null  nl, signal[`!nil`]) 
+		| (null eos, signal[`!eos`])
+		)
 	)*
+	(eos, stop)
 ):dfamin;
 
 ### LinuxKernelNil
@@ -135,7 +147,7 @@ LinuxKernelLoose = (
 ###
 
 LinuxKernelNil = (
-	(LinuxKernel$0) (eos, stop)
+	(LinuxKernel$0) eos
 ):dfamin;
 
 LinuxKernelDropped:save `build/automata/LinuxKernelDropped.dfa`;

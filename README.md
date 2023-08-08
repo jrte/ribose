@@ -336,7 +336,7 @@ Good luck with all that.
 # Disclaimer
 Ribose is presented for demonstration only and is not regularly maintained. You may use it to compile and run the included examples, or create your own transducers to play with. Or clone and refine it and make it available to the rest of the world. Transcode it to **C** and wrap it in a Python thing. Do what you will, it's open source.
 
-Binary executable copies of `ginr` (for Linux) and `ginr.exe` (for Windows) are included in `etc/ginr` for personal use (with the author's permission); ginr guidance is [reposted in the sidebar](https://github.com/jrte/ribose/wiki) on the ribose wiki. You are encouraged to clone or download and build ginr directly from the [ginr repo](https://github.com/ntozubod/ginr).
+Binary executable copies of `ginr` (for Linux) and `ginr.exe` (for Windows) are included in `etc/ginr` for personal use (with the author's permission); ginr guidance is [reposted in the sidebar](https://github.com/jrte/ribose/wiki/Ginr) on the ribose wiki. You are encouraged to clone or download and build ginr directly from the [ginr repo](https://github.com/ntozubod/ginr).
 
 Ribose has been developed and tested with OpenJDK 11 in Ubuntu and OpenJDK 11 and 17 in Windows 10. It should build on any unix-ish platform, including `git bash` or `Msys2\mingw` for Windows, with `ant`, `java`, `bash`, `cat`, `wc`, `grep` in the executable search path. The `JAVA_HOME` and `ANT_HOME` environment variables must be set properly, eg `export JAVA_HOME=$(realpath ~/jdk-17.0.7)`.
 
