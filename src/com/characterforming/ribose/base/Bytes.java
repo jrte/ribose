@@ -36,10 +36,12 @@ import com.characterforming.jrte.engine.Base;
  * @author Kim Briggs
  */
 public final class Bytes {
+	/** An empty byte array */
+	public static final byte[] EMPTY_BYTES = new byte[] { };
+	/** An empty Integer array */
+	public static final Integer[] EMPTY_INTEGER = new Integer[] { };
 	private static final char[] HEX = "0123456789ABCDEF".toCharArray();
 	private static final char[] EMPTY_CHARS = new char[] { };
-	public static final byte[] EMPTY_BYTES = new byte[] { };
-	public static final Integer[] EMPTY_INTEGER = new Integer[] { };
 	private final byte[] data;
 	private int hash;
 

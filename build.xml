@@ -146,7 +146,7 @@
 
 	<target name="check-package-java" depends="compile-java">
 		<uptodate targetfile="${jars.dir}/${ribose.version}.jar" property="jar.uptodate">
-			<srcfiles dir="${build.java.classes}" excludes="VERSION **/${java.test.dir}/**"/>
+			<srcfiles dir="${build.java.classes}" excludes="VERSION **/${java.test.dir}/**,**/TCompile.model"/>
 			<srcfiles dir="." includes="LICENSE*"/>
 		</uptodate>
 	</target>
@@ -170,7 +170,7 @@
   <target name="javadoc" unless="javadoc.uptodate" depends="check-javadoc">
   	<delete dir="javadoc" includes="**/*"/>
     <javadoc executable="${jdk}/bin/javadoc" access="protected" overview="overview.html" sourcepath="src" destdir="javadoc" splitindex="false"
-			use="true" version="true" nodeprecated="false" nodeprecatedlist="false" noindex="false" nonavbar="false" notree="false"
+			use="true" version="true" nodeprecated="false" nodeprecatedlist="false" noindex="false" nonavbar="false" notree="false" verbose="false"
 			packagenames="com.characterforming.ribose.base,com.characterforming.ribose"
 			doctitle="The General Idea" failonerror="false" failonwarning="false">
 			<group title="Ribose" packages="com.characterforming.ribose*"/>
@@ -179,14 +179,15 @@
 		<jar basedir="javadoc" destfile="jars/${ribose.version}-api.jar"/>
 	</target>
 
-	<target name="check-compiler-model">
-		<uptodate targetfile="TCompile.model" property="tcompile.uptodate">
-			<srcfiles dir="${jars.dir}" includes="${ribose.version}.jar"/>
-			<srcfiles dir="${ribose.patterns}" includes="**/*"/>
+	<target name="check-compiler-model" depends="package-java">
+		<uptodate targetfile="./TCompile.model" property="tcompile.uptodate">
+			<srcfiles dir="jars" includes="${ribose.version}.jar"/>
+			<srcfiles dir="${ribose.patterns}" includes="*.inr"/>
+			<srcfiles dir="etc/ginr" includes="ginr*"/>
 		</uptodate>
 	</target>
 
-	<target name="build-compiler-model" depends="package-java,check-compiler-model" unless="tcompile.uptodate">
+	<target name="build-compiler-model" depends="check-compiler-model" unless="tcompile.uptodate">
 		<delete verbose="true">
 			<fileset dir="${build.compiler.model}" includes="TCompile.*"/>
 		</delete>
@@ -203,11 +204,12 @@
 		</move>
 		<copy file="./TCompile.model" todir="${build.java.classes}/com/characterforming/jrte/engine" overwrite="true" force="true"/>
 		<jar update="true" basedir="${build.java.classes}" destfile="jars/${ribose.version}.jar" includes="**/TCompile.model"/>
+		<touch file="./TCompile.model"/>
 	</target>
 
 	<target name="check-test-patterns" depends="ribose">
 		<uptodate targetfile="build/Test.model" property="test.patterns.uptodate">
-			<srcfiles dir="patterns" includes="alpha.inr,after.inr,${test.patterns}/*.inr"/>
+			<srcfiles dir="patterns" includes="alpha.inr,after.inr"/>
 			<srcfiles dir="${test.patterns}" includes="*.inr"/>
 			<srcfiles dir="etc/ginr" includes="ginr*"/>
 		</uptodate>

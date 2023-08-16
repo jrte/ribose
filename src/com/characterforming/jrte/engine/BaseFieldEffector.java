@@ -22,7 +22,6 @@ package com.characterforming.jrte.engine;
 
 import com.characterforming.ribose.base.BaseParameterizedEffector;
 import com.characterforming.ribose.base.Bytes;
-import com.characterforming.ribose.base.EffectorException;
 import com.characterforming.ribose.base.TargetBindingException;
 
 /**
@@ -42,12 +41,6 @@ abstract class BaseFieldEffector extends BaseParameterizedEffector<Transductor, 
 	protected BaseFieldEffector(final Transductor transductor, final String name) {
 		super(transductor, name);
 	}
-
-	@Override // IParameterizedEffector#invoke(int)
-	public abstract int invoke(int parameterIndex) throws EffectorException;
-
-	@Override // IParameterizedEffector#invoke()
-	public abstract int invoke() throws EffectorException;
 
 	@Override // IParameterizedEffector#newParameters(int)
 	public void newParameters(int parameterCount) {
@@ -77,7 +70,7 @@ abstract class BaseFieldEffector extends BaseParameterizedEffector<Transductor, 
 
 	@Override
 	public String showParameter(int parameterIndex) {
-		byte[] name = super.target.getModel().getFieldName(super.parameters[parameterIndex]);
+		byte[] name = super.target.getField(super.parameters[parameterIndex]).getName().getData();
 		byte[] field = new byte[name.length + 1];
 		field[0] = Base.TYPE_REFERENCE_FIELD;
 		System.arraycopy(name, 0, field, 1, name.length);

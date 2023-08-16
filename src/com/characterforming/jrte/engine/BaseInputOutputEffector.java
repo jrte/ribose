@@ -39,9 +39,6 @@ abstract class BaseInputOutputEffector extends BaseParameterizedEffector<Transdu
 		super(transductor, name);
 	}
 
-	@Override //com.characterforming.ribose.IParameterizedEffector#invoke(int)
-	public abstract int invoke(int parameterIndex) throws EffectorException;
-
 	@Override // @see com.characterforming.ribose.IParameterizedEffector#invoke()
 	public int invoke() throws EffectorException {
 		throw new EffectorException(String.format("The %1$s effector requires at least one parameter", super.getName()));
@@ -93,7 +90,7 @@ abstract class BaseInputOutputEffector extends BaseParameterizedEffector<Transdu
 				if (sb.length() > 0) {
 					sb.append(' ');
 				}
-				bytes = super.target.getModel().getFieldName(ordinal);
+				bytes = super.target.getField(ordinal).getName().getData();
 				byte[] name = new byte[bytes.length + 1];
 				System.arraycopy(bytes, 0, name, 1, bytes.length);
 				name[0] = Base.TYPE_REFERENCE_FIELD;

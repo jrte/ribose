@@ -98,6 +98,7 @@ public final class Transductor implements ITransductor, IOutput {
 	private static final int MATCH_SUM = 1;
 	private static final int MATCH_PRODUCT = 2;
 	private static final int MATCH_SCAN = 3;
+	
 	private Signal prologue;
 	private final Model model;
 	private final TargetMode mode;
@@ -149,14 +150,6 @@ public final class Transductor implements ITransductor, IOutput {
 		this.metrics = new Metrics();
 
 		if (this.mode == TargetMode.RUN) {
-			this.fieldOrdinalMap = this.model.getFieldMap();
-			this.fieldHandles = new Field[this.fieldOrdinalMap.size()];
-			for (final Entry<Bytes, Integer> entry : this.fieldOrdinalMap.entrySet()) {
-				final int fieldIndex = entry.getValue();
-				byte[] fieldBuffer = new byte[INITIAL_FIELD_VALUE_BYTES];
-				this.fieldHandles[fieldIndex] = new Field(entry.getKey(), fieldIndex, fieldBuffer, 0);
-			}
-			this.selected = this.fieldHandles[Model.ANONYMOUS_FIELD_ORDINAL];
 			this.inputStack = new InputStack(INITIAL_STACK_SIZE);
 			this.transducerStack = new TransducerStack(INITIAL_STACK_SIZE);
 		} else {
@@ -317,7 +310,7 @@ public final class Transductor implements ITransductor, IOutput {
 	@Override	// @see com.characterforming.ribose.ITransductor#run()
 	public ITransductor run() throws RiboseException {
 		if (this.transducerStack.isEmpty()) {
-			throw new RiboseException("Transductor.run() called while transducer stack is empty");
+			return this;
 		}
 		this.metrics.reset();
 		this.errorInput = -1;
@@ -481,10 +474,6 @@ S:				do {
 	public IField getSelectedField() {
 		assert this.selected != null;
 		return this.selected;
-	}
-
-	Model getModel() {
-		return this.model;
 	}
 
 	void setEffectors(IEffector<?>[] effectors) {
@@ -875,7 +864,7 @@ E:	do {
 			assert !Base.isReferenceOrdinal(parameterList[0]);
 			if (Base.getReferentType(parameterList[0]) == Base.TYPE_REFERENCE_SIGNAL) {
 				final Bytes name = new Bytes(Base.getReferenceName(parameterList[0]));
-				final int ordinal = getModel().getSignalOrdinal(name);
+				final int ordinal = model.getSignalOrdinal(name);
 				if (ordinal >= 0) {
 					super.setParameter(parameterIndex, ordinal);
 				} else {
@@ -891,7 +880,7 @@ E:	do {
 		@Override
 		public String showParameter(int parameterIndex) {
 			Integer signal = super.getParameter(parameterIndex);
-			byte[] name = getModel().getSignalName(signal);
+			byte[] name = model.getSignalName(signal);
 			return Bytes.decode(super.getDecoder(), name, name.length).toString();
 		}
 	}
@@ -1011,7 +1000,7 @@ E:	do {
 			assert !Base.isReferenceOrdinal(parameterList[1]) : "Reference ordinal presented for <signal> to CountEffector[<count> <signal>]";
 			if (Base.getReferentType(parameterList[1]) == Base.TYPE_REFERENCE_SIGNAL) {
 				super.setParameter(parameterIndex, new int[] { 
-					count, getModel().getSignalOrdinal(new Bytes(Base.getReferenceName(parameterList[1])))
+					count, model.getSignalOrdinal(new Bytes(Base.getReferenceName(parameterList[1])))
 				});
 			} else {
 				throw new TargetBindingException(String.format("%1$s.%2$s: invalid signal '%3$%s' for count effector",
@@ -1026,7 +1015,7 @@ E:	do {
 			int[] param = super.parameters[parameterIndex];
 			StringBuilder sb = new StringBuilder();
 			if (param[0] < 0) {
-				byte[] name = getModel().getFieldName(-1 - param[0]);
+				byte[] name = model.getFieldName(-1 - param[0]);
 				byte[] field = new byte[name.length + 1];
 				field[0] = Base.TYPE_REFERENCE_FIELD;
 				System.arraycopy(name, 0, field, 1, name.length);
@@ -1035,7 +1024,7 @@ E:	do {
 				sb.append(Integer.toString(param[0]));
 			}
 			sb.append(" ");
-			byte[] signal = this.getTarget().getModel().getSignalName(param[1]);
+			byte[] signal = model.getSignalName(param[1]);
 			sb.append(Bytes.decode(super.getDecoder(), signal, signal.length).toString());
 			return sb.toString();
 		}
@@ -1064,7 +1053,7 @@ E:	do {
 			assert !Base.isReferenceOrdinal(parameterList[0]);
 			if (Base.getReferentType(parameterList[0]) == Base.TYPE_REFERENCE_TRANSDUCER) {
 				final Bytes name = new Bytes(Base.getReferenceName(parameterList[0]));
-				final int ordinal = getModel().getTransducerOrdinal(name);
+				final int ordinal = model.getTransducerOrdinal(name);
 				if (ordinal >= 0) {
 					super.setParameter(parameterIndex, ordinal);
 				} else {
@@ -1093,7 +1082,7 @@ E:	do {
 		public String showParameter(int parameterIndex) {
 			int ordinal = super.getParameter(parameterIndex);
 			if (ordinal >= 0) {
-				byte[] bytes = getModel().getTransducerName(ordinal);
+				byte[] bytes = model.getTransducerName(ordinal);
 				byte[] name = new byte[bytes.length + 1];
 				System.arraycopy(bytes, 0, name, 1, bytes.length);
 				name[0] = Base.TYPE_REFERENCE_TRANSDUCER;

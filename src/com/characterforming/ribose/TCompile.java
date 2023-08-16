@@ -21,7 +21,6 @@
  package com.characterforming.ribose;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -128,7 +127,7 @@ public final class TCompile extends ModelCompiler {
 			System.err.println();
 			System.exit(1);
 		}
-		System.err.println(String.format("Ribose runtime compiler version %1$s%n$sCopyright (C) 2011,2022 Kim Briggs%n$sDistributed under GPLv3 (http://www.gnu.org/licenses/gpl-3.0.txt)", 
+		System.err.println(String.format("Ribose runtime compiler version %1$s%nCopyright (C) 2011,2022 Kim Briggs%nDistributed under GPLv3 (http://www.gnu.org/licenses/gpl-3.0.txt)", 
 			Base.RTE_VERSION));
 		System.err.println(String.format("Compiling %1$s to runtime model %2$s", 
 			ginrAutomataDirectory.getPath(), riboseModelFile.getPath()));

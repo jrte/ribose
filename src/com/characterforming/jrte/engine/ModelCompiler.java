@@ -202,7 +202,6 @@ public class ModelCompiler implements ITarget {
 		@Override
 		public
 		void setOutput(IOutput output) throws TargetBindingException {
-			assert target.model != null;
 			super.setOutput(output);
 			fields = new IField[] {
 				super.output.getField(Bytes.encode(super.getEncoder(), "version")),
@@ -265,7 +264,6 @@ public class ModelCompiler implements ITarget {
 		@Override
 		public
 		void setOutput(IOutput output) throws TargetBindingException {
-			assert target.model != null;
 			super.setOutput(output);
 			fields = new IField[] {
 				super.output.getField(Bytes.encode(super.getEncoder(), "from")),
@@ -498,6 +496,7 @@ public class ModelCompiler implements ITarget {
 			}
 			equivalentInputOrdinals.add(token);
 		}
+		// construct kernel matrix from input equivalents
 		this.inputEquivalenceIndex = new int[transitionMatrix.length];
 		this.kernelMatrix = new int[rowEquivalenceMap.size()][][];
 		int equivalenceIndex = 0;
@@ -508,6 +507,7 @@ public class ModelCompiler implements ITarget {
 			}
 			this.kernelMatrix[equivalenceIndex++] = row.getInts();
 		}
+		// instrument sum and product traps, compress kernel matrix and extract effect vectors
 		final int nInputs = equivalenceIndex;
 		final int nStates = transitionMatrix[0].length;
 		final int nulSignal = Signal.NUL.signal();
@@ -565,7 +565,6 @@ public class ModelCompiler implements ITarget {
 			}
 		}
 		// mproduct instrumentation
-		@SuppressWarnings("unused")
 		int[] inputEquivalentCardinality = new int[nInputs];
 		int[] inputEquivalenceToken = new int[nInputs];
 		Arrays.fill(inputEquivalenceToken, -1);
@@ -720,11 +719,15 @@ public class ModelCompiler implements ITarget {
 			}
 		}
 		assertKernelSanity();
-		assert walkStack.size() == 0;
+		int[] stateMap = new int[nStates];
+		Arrays.fill(stateMap, -1);
 		Arrays.fill(walkedStates, false);
+		assert walkStack.size() == 0;
+		int mStates = 0;
 		walkStack.push(0);
 		while (walkStack.size() > 0) {
 			int state = walkStack.pop();
+			stateMap[state] = mStates++;
 			assert !walkedStates[state];
 			walkedStates[state] = true;
 			for (int input = 0; input < nInputs; input++) {
@@ -734,25 +737,18 @@ public class ModelCompiler implements ITarget {
 				}
 			}
 		}
-		int mStates = 0;
-		int[] stateMap = new int[nStates];
-		for (int state = 0; state < nStates; state++) {
-			stateMap[state] = walkedStates[state] ? mStates++ : - 1;
-		}
+		int[][][] finalMatrix = new int[rowEquivalenceMap.size()][mStates][2];
 		for (int input = 0; input < nInputs; input++) {
-			int mState = 0;
-			int[][] newRow = new int[mStates][];
-			int[][] oldRow = this.kernelMatrix[input];
+			int[][] row = this.kernelMatrix[input];
 			for (int state = 0; state < nStates; state++) {
 				if (walkedStates[state]) {
-					newRow[mState] = oldRow[state];
-					assert stateMap[newRow[mState][0]] >= 0;
-					newRow[mState][0] = stateMap[newRow[mState][0]];
-					mState++;
+					int[] cell = finalMatrix[input][stateMap[state]];
+					cell[0] = stateMap[row[state][0]];
+					cell[1] = row[state][1];
 				}
 			}
-			this.kernelMatrix[input] = newRow;
 		}
+		this.kernelMatrix = finalMatrix;
 		assertKernelSanity();
 		// Coalesce equivalence classes
 		rowEquivalenceMap.clear();

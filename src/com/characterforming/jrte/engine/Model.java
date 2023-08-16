@@ -41,7 +41,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import com.characterforming.ribose.IEffector;
-import com.characterforming.ribose.IOutput;
 import com.characterforming.ribose.IParameterizedEffector;
 import com.characterforming.ribose.ITarget;
 import com.characterforming.ribose.base.Bytes;
@@ -155,8 +154,8 @@ public final class Model implements AutoCloseable {
 		this.effectorParametersMaps = new ArrayList<>(this.proxyEffectors.length);
 		this.effectorOrdinalMap = new HashMap<>((this.proxyEffectors.length * 5) >> 2);
 		for (int effectorOrdinal = 0; effectorOrdinal < this.proxyEffectors.length; effectorOrdinal++) {
-			this.effectorParametersMaps.add(null);
 			this.effectorOrdinalMap.put(this.proxyEffectors[effectorOrdinal].getName(), effectorOrdinal);
+			this.effectorParametersMaps.add(null);
 		}
 		this.proxyTransductor.setEffectors(this.proxyEffectors);
 	}
@@ -363,7 +362,8 @@ public final class Model implements AutoCloseable {
 		System.arraycopy(trexFx, 0, boundFx, 0, trexFx.length);
 		System.arraycopy(targetFx, 0, boundFx, trexFx.length, targetFx.length);
 		checkTargetEffectors(trex, boundFx);
-		trex.setEffectors(this.bindParameters(trex, boundFx));
+		trex.setFieldOrdinalMap(this.fieldOrdinalMap);
+		this.bindParameters(trex, boundFx);
 		return trex;
 	}
 
@@ -497,10 +497,10 @@ public final class Model implements AutoCloseable {
 		return parametersMap.computeIfAbsent(new BytesArray(parameterBytes), absent -> mapSize);
 	}
 
-	private IEffector<?>[] bindParameters(IOutput output, IEffector<?>[] runtimeEffectors) throws TargetBindingException {
+	private IEffector<?>[] bindParameters(Transductor trex, IEffector<?>[] runtimeEffectors) throws TargetBindingException {
 		assert runtimeEffectors.length == this.proxyEffectors.length;
 		for (int i = 0; i < this.proxyEffectors.length; i++) {
-			runtimeEffectors[i].setOutput(output);
+			runtimeEffectors[i].setOutput(trex);
 			if (this.proxyEffectors[i] instanceof IParameterizedEffector<?, ?>) {
 				IParameterizedEffector<?, ?> modelEffector = (IParameterizedEffector<?, ?>) this.proxyEffectors[i];
 				IParameterizedEffector<?, ?> boundEffector = (IParameterizedEffector<?, ?>) runtimeEffectors[i];
@@ -510,7 +510,8 @@ public final class Model implements AutoCloseable {
 					boundEffector.setParameter(j, modelEffector.getParameter(j));
 				}
 			}
-		}
+		}		
+		trex.setEffectors(runtimeEffectors);
 		return runtimeEffectors;
 	}
 
