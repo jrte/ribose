@@ -124,7 +124,7 @@ import com.characterforming.ribose.base.Signal;
  * <br><br>
  * <table style="font-size:12px">
  * <caption style="text-align:left"><b>Built-in ribose effectors</b></caption>
- * <tr><th style="text-align:right">syntax</th><th style="text-align:left">semantics</th></tr>
+ * <tr><th style="text-align:right"><i>syntax</i></th><th style="text-align:left">semantics</th></tr>
  * <tr><td style="text-align:right"><i>nul</i></td><td>Signal <b>nul</b> to indicate no transition defined for current input</td></tr>
  * <tr><td style="text-align:right"><i>nil</i></td><td>Does nothing</td></tr>
  * <tr><td style="text-align:right"><i>paste</i></td><td>Append current input to selected field</td></tr>

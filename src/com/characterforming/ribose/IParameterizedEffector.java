@@ -20,23 +20,24 @@
 
 package com.characterforming.ribose;
 
+import com.characterforming.ribose.base.BaseParameterizedEffector;
 import com.characterforming.ribose.base.EffectorException;
 import com.characterforming.ribose.base.TargetBindingException;
 
 /**
  * Interface for parameterized effectors extends {@link IEffector} with a monadic
  * {@link #invoke(int)} method. Parameters are compiled from arrays of byte arrays
- * into an array of some parameter type <b>P</b> that is constructible from one or more
- * arrays of bytes. Compiled parameter values are referenced by their index in
+ * into an array of some parameter type <b>P</b> that is constructible from 
+ * <code>byte[][]</code>. Compiled parameter values are referenced by their index in
  * the resulting array. At runtime, the {@link #invoke(int)} method is called
  * with the parameter index to indicate which instance of <b>P</b> to apply
  * to the invocation. This method returns an {@link IEffector} {@code RTX} value
  * as for {@link IEffector#invoke()}; see the javadoc comments for {@link IEffector}
  * for instructions regarding {@code RTX} codes.
  * <br><br>
- * Parameterized effectors are required to construct an array <b>P[]</b> of parameter
+ * Parameterized effectors are required to allocate an array <b>P[]</b> of parameter
  * instances when a ribose model is compiled and again when a ribose model is loaded
- * into a ribose runtime. The runtime will call {@link #newParameters(int)} to
+ * into a ribose runtime. The runtime will call {@link #allocateParameters(int)} to
  * set the size of the parameter array and then call {@link #compileParameter(int, byte[][])}
  * for each parameter list. In ribose transducer patterns parameters are presented
  * to effectors on tape 2 (the parameter tape) as a list of one or more backquoted
@@ -55,8 +56,19 @@ import com.characterforming.ribose.base.TargetBindingException;
  * ({@link IOutput#getSelectedField()}) canonically as a long integer.
  * <br><br>
  * In runtime contexts the effector is invoked in a proxy target to precompile
- * its parameters as above. The precompiled parameters are passed on to the
- * effector instance in the live runtime target via {@link #setParameter(int, Object)}.
+ * its parameters as above. The precompiled parameters are passed on to live
+ * effector instances in live runtime targets via a proxy effector instance of 
+ * the same generic type in {@link BaseParameterizedEffector#setParameters(Object)}.
+ * <br><br>
+ * <b>NOTE:</b> Precompiled parameter objects are singletons shared by all active transductor
+ * effectors and are not thread safe unless effectively final and immutable. For example, a
+ * <code>DateEffector&lt;MyTarget, SimpleDateFormat&gt;</code> is unsafe because multiple 
+ * concurrent transductors may access the parametric <code>SimpleDateFormat</code> singletons
+ * simultaneously. However, <code>DateEffector&lt;MyTarget, String&gt;</code> may maintain
+ * its own array of <code>SimpleDateFormat</code> using the <code>String</code> parameters
+ * to instantiate specialized <code>SimpleDateFormat</code> instances, since unique effector
+ * instances are bound to each transductor (effector parameter instances are bound to the
+ * underlying model).
  *
  * @author Kim Briggs
  * @param <T> The effector target type
@@ -64,70 +76,6 @@ import com.characterforming.ribose.base.TargetBindingException;
  *           P(byte[][]))
  */
 public interface IParameterizedEffector<T extends ITarget, P> extends IEffector<T> {
-	/**
-	 * Create a parameters array (P[]) with capacity for a specified number of P
-	 * instances. This array is populated in with enumerated parameter instances
-	 * in subsequent calls to {@link #compileParameter(int, byte[][])} (when
-	 * compiling or loading ribose models) or {@link #setParameter(int, Object)}
-	 * (when setting up a runtime transductor).
-	 *
-	 * @param parameterCount The size of the array to create
-	 */
-	void newParameters(int parameterCount);
-
-	/**
-	 * Get the number of compiled parameters that are bound to the effector.
-	 *
-	 * @return The number of compiled parameters
-	 */
-	int getParameterCount();
-
-	/**
-	 * Compile and set a parameter value from effector arguments specified in
-	 * model transducers. The parameter value, which may be a scalar or an
-	 * array, is to be compiled from an array of byte arrays. The implementation
-	 * class must call {@link #setParameter(int, Object)} to set the result in
-	 * the P[] array instantiated in the base class by {@link #newParameters(int)}.
-	 *
-	 * @param parameterIndex The array index in the parameters array P[] to set with the parameter value
-	 * @param parameterList An array of parameters, where each parameter is an array of bytes.
-	 * @return the compiled parameter value object
-	 * @throws TargetBindingException on error
-	 */
-	P compileParameter(int parameterIndex, byte[][] parameterList) throws TargetBindingException;
-
-	/**
-	 * Set a precompiled parameter value.
-	 *
-	 * @param parameterIndex The array index in the parameters array P[] to set with the parameter value
-	 * @param parameter the parameter value to set
-	 */
-	void setParameter(int parameterIndex, Object parameter);
-
-	/**
-	 * Get a compiled parameter value.
-	 *
-	 * @param parameterIndex The parameter index
-	 * @return The parameter value at the index
-	 */
-	P getParameter(int parameterIndex);
-
-	/**
-	 * Get the compiled parameter array.
-	 *
-	 * @return The parameter array
-	 */
-	P[] getParameters();
-
-	/**
-	 * Render a parameter object in a printable format
-	 * @param parameterIndex the parameter index
-	 * @return a printable string
-	 */
-	default String showParameter(int parameterIndex) {
-		return Integer.toString(parameterIndex);
-	}
-
 	/**
 	 * Parameterized effector invocation receives the index of the {@code P}
 	 * instance to apply for the invocation.
@@ -137,4 +85,48 @@ public interface IParameterizedEffector<T extends ITarget, P> extends IEffector<
 	 * @throws EffectorException on error
 	 */
 	int invoke(int parameterIndex) throws EffectorException;
+
+	/**
+	 * Allocate an array (<code>P[]</code>) to hold precompiled parameter objects
+	 * 
+	 * @param parameterCount the size of parameter array to allocate
+	 */
+	void allocateParameters(int parameterCount);
+
+	/**
+	 * Compile and set a parameter value from effector arguments specified in
+	 * model transducers. The parameter value, which may be a scalar or an
+	 * array, is to be compiled from an array of byte arrays. The effector 
+	 * implmentation class must set the result in its P[] array (instantiated
+	 * by {@link #allocateParameters(int)}).
+	 *
+	 * @param parameterIndex The array index in the parameters array P[] to set with the parameter value
+	 * @param parameterList An array of parameters, where each parameter is an array of bytes.
+	 * @return the compiled parameter value object
+	 * @throws TargetBindingException on error
+	 */
+	P compileParameter(int parameterIndex, byte[][] parameterList) throws TargetBindingException;
+
+	/**
+	 * Get the compiled parameter array.
+	 *
+	 * @return The parameter array
+	 */
+	P[] getParameters();
+
+	/**
+	 * Set precompiled parameters from proxy effector.
+	 *
+	 * @param proxy The proxy effector (<code>IParameterizedEffector&lt;T,P&gt;</code>) instance maintaining the precompiled paramwter objects
+	 */
+	void setParameters(Object proxy);
+
+		/**
+	 * Render a parameter object in a printable format
+	 * @param parameterIndex the parameter index
+	 * @return a printable string
+	 */
+	default String showParameter(int parameterIndex) {
+		return Integer.toString(parameterIndex);
+	}
 }

@@ -42,14 +42,9 @@ abstract class BaseFieldEffector extends BaseParameterizedEffector<Transductor, 
 		super(transductor, name);
 	}
 
-	@Override // IParameterizedEffector#newParameters(int)
-	public void newParameters(int parameterCount) {
-		super.parameters = new Integer[parameterCount];
-	}
-
-	@Override // IParameterizedEffector#getParameter(int)
-	public Integer getParameter(int parameterOrdinal) {
-		return this.parameters[parameterOrdinal];
+	@Override // @see com.characterforming.ribose.IParameterizedEffector#iallocateParameters(int)
+	public void allocateParameters(int parameterCount) {
+		this.parameters = new Integer[parameterCount];
 	}
 
 	@Override // IParameterizedEffector#setParameter(int, byte[][])
@@ -64,7 +59,7 @@ abstract class BaseFieldEffector extends BaseParameterizedEffector<Transductor, 
 			throw new TargetBindingException(String.format("%1$s.%2$s: field name '%3$s' not enumerated for parameter compilation", 
 				super.target.getName(), super.getName().toString(), fieldName.toString()));
 		}
-		super.setParameter(parameterIndex, fieldOrdinal);
+		super.parameters[parameterIndex] = fieldOrdinal;
 		return fieldOrdinal;
 	}
 

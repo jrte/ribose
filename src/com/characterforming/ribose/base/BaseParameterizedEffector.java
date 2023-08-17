@@ -25,7 +25,7 @@ import com.characterforming.ribose.ITarget;
 
 /**
  * Base {@link IParameterizedEffector} implementation class extends {@link BaseEffector} to 
- * support specialized effectors. The {@link #newParameters(int)}, {@link #compileParameter(int, byte[][])},
+ * support specialized effectors. The {@link #allocateParameters(int)}, {@link #compileParameter(int, byte[][])},
  * {@link #invoke()}, and {@link #invoke(int)} methods must be implemented by subclasses. 
  * 
  * @param <T> The effector target type
@@ -47,25 +47,16 @@ public abstract class BaseParameterizedEffector<T extends ITarget, P> extends Ba
 	protected BaseParameterizedEffector(final T target, final String name) {
 		super(target, name);
 	}
-
-	@Override // @see com.characterforming.ribose.IParameterizedEffector#getParameterCount()
-	public int getParameterCount() {
-		return (this.parameters != null) ? this.parameters.length : 0;
-	}
-
-	@Override // @see com.characterforming.ribose.IParameterizedEffector#setParameter(int, Object)
-	@SuppressWarnings("unchecked")
-	public void setParameter(int parameterIndex, Object parameter) {
-		this.parameters[parameterIndex] = (P)parameter;
-	}
-
-	@Override // com.characterforming.ribose.IParameterizedEffector#getParameter(int)
-	public P getParameter(final int parameterIndex) {
-		return this.parameters[parameterIndex];
-	}
 	
 	@Override // com.characterforming.ribose.IParameterizedEffector#getParameter(int)
 	public P[] getParameters() {
 		return this.parameters;
+	}
+
+	@Override // com.characterforming.ribose.IParameterizedEffector#setParameters(Object))
+	@SuppressWarnings("unchecked")
+	public void setParameters(Object proxy) {
+		IParameterizedEffector<T, P> proxyEffector = (IParameterizedEffector<T, P>)proxy;
+		this.parameters = proxyEffector.getParameters();
 	}
 }

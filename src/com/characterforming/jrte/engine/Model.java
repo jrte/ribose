@@ -76,7 +76,6 @@ public final class Model implements AutoCloseable {
 	private HashMap<Bytes, Integer> effectorOrdinalMap;
 	private ArrayList<HashMap<BytesArray, Integer>> effectorParametersMaps;
 	private IEffector<?>[] proxyEffectors;
-	private Transductor proxyTransductor;
 	private String modelVersion;
 
 	private AtomicIntegerArray transducerAccessIndex;
@@ -144,9 +143,9 @@ public final class Model implements AutoCloseable {
 	}
 
 	private void initialize(TargetMode targetMode) throws ModelException {
-		this.proxyTransductor = new Transductor(this, targetMode);
-		this.proxyTransductor.setFieldOrdinalMap(this.fieldOrdinalMap);
-		IEffector<?>[] trexFx = this.proxyTransductor.getEffectors();
+		Transductor proxyTransductor = new Transductor(this, targetMode);
+		proxyTransductor.setFieldOrdinalMap(this.fieldOrdinalMap);
+		IEffector<?>[] trexFx = proxyTransductor.getEffectors();
 		IEffector<?>[] targetFx = this.proxyTarget.getEffectors();
 		this.proxyEffectors = new IEffector<?>[trexFx.length + targetFx.length];
 		System.arraycopy(trexFx, 0, this.proxyEffectors, 0, trexFx.length);
@@ -157,7 +156,7 @@ public final class Model implements AutoCloseable {
 			this.effectorOrdinalMap.put(this.proxyEffectors[effectorOrdinal].getName(), effectorOrdinal);
 			this.effectorParametersMaps.add(null);
 		}
-		this.proxyTransductor.setEffectors(this.proxyEffectors);
+		assert proxyTransductor == (Transductor)this.proxyEffectors[0].getTarget();
 	}
 
 	/**
@@ -301,13 +300,12 @@ public final class Model implements AutoCloseable {
 			model.transducerOffsetIndex[transducerOrdinal] = model.getLong();
 			assert model.transducerOrdinalMap.get(model.transducerNameIndex[transducerOrdinal]) == transducerOrdinal;
 		}
-		assert model.proxyTransductor == (Transductor)model.proxyEffectors[0].getTarget();
 		for (int effectorOrdinal = 0; effectorOrdinal < model.effectorOrdinalMap.size(); effectorOrdinal++) {
 			byte[][][] effectorParameters = model.getBytesArrays();
 			assert effectorParameters != null;
 			if (model.proxyEffectors[effectorOrdinal] instanceof IParameterizedEffector<?,?>) {
 				IParameterizedEffector<?,?> effector = (IParameterizedEffector<?,?>)model.proxyEffectors[effectorOrdinal];
-				effector.newParameters(effectorParameters.length);
+				effector.allocateParameters(effectorParameters.length);
 				for (int index = 0; index < effectorParameters.length; index++) {
 					effector.compileParameter(index, effectorParameters[index]);
 				}
@@ -452,20 +450,19 @@ public final class Model implements AutoCloseable {
 			if (parameters != null) {
 				if (effector instanceof IParameterizedEffector<?,?>) {
 					final IParameterizedEffector<?,?> parameterizedEffector = (IParameterizedEffector<?,?>) effector;
-					parameterizedEffector.newParameters(parameters.size());
-					byte[][][] effectorParameters = new byte[parameters.size()][][];
+					parameterizedEffector.allocateParameters(parameters.size());
+					byte[][][] effectorParameterTokens = new byte[parameters.size()][][];
 					for (Map.Entry<BytesArray, Integer> e : parameters.entrySet()) {
 						try {
-							int v = e.getValue();
-							byte[][] p = e.getKey().getBytes();
-							parameterizedEffector.compileParameter(v, p);
-							effectorParameters[v] = p;
+							int index = e.getValue();
+							effectorParameterTokens[index] = e.getKey().getBytes();
+							parameterizedEffector.compileParameter(index, effectorParameterTokens[index]);
 						} catch (TargetBindingException x) {
 							this.rtcLogger.log(Level.SEVERE, x.getMessage());
 							fail = true;
 						}
 					}
-					this.putBytesArrays(effectorParameters);
+					this.putBytesArrays(effectorParameterTokens);
 				} else if (parameters.size() > 0) {
 					this.rtcLogger.log(Level.SEVERE, () -> String.format("%1$s.%2$s: effector does not accept parameters",
 						this.proxyTarget.getName(), effector.getName()));
@@ -502,13 +499,9 @@ public final class Model implements AutoCloseable {
 		for (int i = 0; i < this.proxyEffectors.length; i++) {
 			runtimeEffectors[i].setOutput(trex);
 			if (this.proxyEffectors[i] instanceof IParameterizedEffector<?, ?>) {
-				IParameterizedEffector<?, ?> modelEffector = (IParameterizedEffector<?, ?>) this.proxyEffectors[i];
+				IParameterizedEffector<?, ?> proxyEffector = (IParameterizedEffector<?, ?>) this.proxyEffectors[i];
 				IParameterizedEffector<?, ?> boundEffector = (IParameterizedEffector<?, ?>) runtimeEffectors[i];
-				int parameterCount = modelEffector.getParameterCount();
-				boundEffector.newParameters(parameterCount);
-				for (int j = 0; j < parameterCount; j++) {
-					boundEffector.setParameter(j, modelEffector.getParameter(j));
-				}
+				boundEffector.setParameters(proxyEffector);
 			}
 		}		
 		trex.setEffectors(runtimeEffectors);

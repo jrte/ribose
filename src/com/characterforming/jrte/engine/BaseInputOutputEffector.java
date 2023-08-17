@@ -44,9 +44,9 @@ abstract class BaseInputOutputEffector extends BaseParameterizedEffector<Transdu
 		throw new EffectorException(String.format("The %1$s effector requires at least one parameter", super.getName()));
 	}
 
-	@Override // @see com.characterforming.ribose.IParameterizedEffector#newParameters(int)
-	public final void newParameters(final int parameterCount) {
-		super.parameters = new byte[parameterCount][][];
+	@Override // @see com.characterforming.ribose.IParameterizedEffector#iallocateParameters(int)
+	public void allocateParameters(int parameterCount) {
+		this.parameters = new byte[parameterCount][][];
 	}
 
 	@Override // @see com.characterforming.ribose.IParameterizedEffector#setParameter(int, byte[][])

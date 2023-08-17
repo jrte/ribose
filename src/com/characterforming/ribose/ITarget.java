@@ -35,7 +35,7 @@ import com.characterforming.ribose.base.TargetBindingException;
  * effectors and compile effector parameters when a model is constructed and again
  * when a model is loaded for runtime use. In those contexts, {@link ITarget#getEffectors()}
  * is called to obtain an enumeration of the proxy target's effectors. For each
- * parameterized proxy effector, {@link IParameterizedEffector#newParameters(int)}
+ * parameterized proxy effector, {@link IParameterizedEffector#allocateParameters(int)}
  * is called first, indicating the number of parameters to be compiled. Then
  * {@link IParameterizedEffector#compileParameter(int, byte[][])} is called
  * for each parameter. No other methods are called on the proxy target or
@@ -47,7 +47,7 @@ import com.characterforming.ribose.base.TargetBindingException;
  * externally and passed to the {@link IRuntime#transductor(ITarget)} method
  * to create {@code ITransductor} instances. When a runtime target is bound to a
  * transductor each parameterized effector receives a call to
- * {@link IParameterizedEffector#setParameter(int, Object)} to set the precompiled
+ * {@link IParameterizedEffector#setParameters(Object)} to set the precompiled
  * parameter for the specified parameter index. {@link ITransductor} instances are
  * restartable and reuseable and may serially run more than one transduction using
  * the same target instance. Each transduction is assumed to be a single-threaded
