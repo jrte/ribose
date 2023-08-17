@@ -45,12 +45,12 @@ abstract class BaseInputOutputEffector extends BaseParameterizedEffector<Transdu
 	}
 
 	@Override // @see com.characterforming.ribose.IParameterizedEffector#iallocateParameters(int)
-	public void allocateParameters(int parameterCount) {
-		super.parameters = new byte[parameterCount][][];
+	public byte[][][] allocateParameters(int parameterCount) {
+		return new byte[parameterCount][][];
 	}
 
 	@Override // @see com.characterforming.ribose.IParameterizedEffector#setParameter(int, byte[][])
-	public byte[][] compileParameter(final int parameterIndex, final byte[][] parameterList) throws TargetBindingException {
+	public byte[][] compileParameter(final byte[][] parameterList) throws TargetBindingException {
 		if (parameterList.length < 1) {
 			throw new TargetBindingException(String.format("%1$s.%2$s: effector requires at least one parameter",
 				super.target.getName(), super.getName()));
@@ -77,13 +77,13 @@ abstract class BaseInputOutputEffector extends BaseParameterizedEffector<Transdu
 				parameter[i] = parameterList[i];
 			}
 		}
-		return super.setParameter(parameterIndex, parameter);
+		return parameter;
 	}
 
 	@Override
 	public String showParameter(int parameterIndex) {
 		StringBuilder sb = new StringBuilder(256);
-		for (byte[] bytes : super.parameters[parameterIndex]) {
+		for (byte[] bytes : super.getParameter(parameterIndex)) {
 			final int ordinal = Base.isReferenceOrdinal(bytes) ? Base.decodeReferenceOrdinal(Base.TYPE_REFERENCE_FIELD, bytes) : -1;
 			if (ordinal >= 0) {
 				if (sb.length() > 0) {

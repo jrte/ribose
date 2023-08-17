@@ -40,7 +40,7 @@ import com.characterforming.ribose.base.TargetBindingException;
  * target's effectors. In the proxy target, for each parameterized proxy effector, 
  * {@link IParameterizedEffector#allocateParameters(int)} is called first, to allocate
  * an array to contain the precompiled parameters. The model compiler or loader then calls 
- * the proxy effector's {@link IParameterizedEffector#compileParameter(int, byte[][])}
+ * the proxy effector's {@link IParameterizedEffector#compileParameter(byte[][])}
  * method for each parameter. No other methods are called on the proxy target or
  * effectors during model compilation and loading, and proxy target and effector
  * instances are never involved in live transduction processes.
@@ -49,7 +49,7 @@ import com.characterforming.ribose.base.TargetBindingException;
  * persists for the lifetime of the transductor. Live runtime targets are instantiated
  * externally and passed to the {@link IRuntime#transductor(ITarget)} method
  * to create {@code ITransductor} instances. Live target effectors receive precompiled
- * parameter via {@link IParameterizedEffector#setParameters(Object)} method, which 
+ * parameters via {@link IParameterizedEffector#setParameters(Object)} method, which 
  * is fully implemented in {@link BaseParameterizedEffector} for all {@code IParameterizedEffector}
  * implemenations. Subsequently, only the {@link IParameterizedEffector#invoke()} and
  * {@link IParameterizedEffector#invoke(int)} methods are called on live effector instances.

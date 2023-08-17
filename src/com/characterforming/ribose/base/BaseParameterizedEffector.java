@@ -25,8 +25,9 @@ import com.characterforming.ribose.ITarget;
 
 /**
  * Base {@link IParameterizedEffector} implementation class extends {@link BaseEffector} to 
- * support specialized effectors. The {@link #allocateParameters(int)}, {@link #compileParameter(int, byte[][])},
- * {@link #invoke()}, and {@link #invoke(int)} methods must be implemented by subclasses. 
+ * support specialized effectors. The {@link IParameterizedEffector#allocateParameters(int)},
+ * {@link IParameterizedEffector#compileParameter(byte[][])}, {@link IParameterizedEffector#invoke()},
+ * and {@link IParameterizedEffector#invoke(int)} methods must be implemented by subclasses. 
  * 
  * @param <T> The effector target type
  * @param <P> The effector parameter type, constructible from byte[][] (eg new P(byte[][]))
@@ -36,7 +37,7 @@ import com.characterforming.ribose.ITarget;
 public abstract class BaseParameterizedEffector<T extends ITarget, P> extends BaseEffector<T> implements IParameterizedEffector<T, P> {
 
 	/** Effector parameters are indexed and selected by parameter ordinal.  */
-	protected P[] parameters = null;
+	private P[] parameters = null;
 
 	/**
 	 * Constructor
@@ -58,6 +59,21 @@ public abstract class BaseParameterizedEffector<T extends ITarget, P> extends Ba
 	public void setParameters(Object proxy) {
 		IParameterizedEffector<T, P> proxyEffector = (IParameterizedEffector<T, P>)proxy;
 		this.parameters = proxyEffector.getParameters();
+	}
+
+	/**
+	 * Allocate and populate the {@code parameters} array with precompiled
+	 * parameter ({@code P}) instances, compiled from a list of parameter
+	 * token arrays. This method is for internal use only. 
+	 * 
+	 * @param parameterTokensArray an array of byte[][] (raw effector parameter tokens)
+	 * @throws TargetBindingException if a parameter fails to compile
+	 */
+	public void compileParameters(byte[][][] parameterTokensArray) throws TargetBindingException {
+		this.parameters = this.allocateParameters(parameterTokensArray.length);
+		for (int i = 0; i < parameterTokensArray.length; i++) {
+			this.parameters[i] = this.compileParameter(parameterTokensArray[i]);
+		}
 	}
 
 	/**

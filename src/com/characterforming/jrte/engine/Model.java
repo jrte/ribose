@@ -43,6 +43,7 @@ import java.util.logging.Logger;
 import com.characterforming.ribose.IEffector;
 import com.characterforming.ribose.IParameterizedEffector;
 import com.characterforming.ribose.ITarget;
+import com.characterforming.ribose.base.BaseParameterizedEffector;
 import com.characterforming.ribose.base.Bytes;
 import com.characterforming.ribose.base.CompilationException;
 import com.characterforming.ribose.base.ModelException;
@@ -304,11 +305,9 @@ public final class Model implements AutoCloseable {
 			byte[][][] effectorParameters = model.getBytesArrays();
 			assert effectorParameters != null;
 			if (model.proxyEffectors[effectorOrdinal] instanceof IParameterizedEffector<?,?>) {
-				IParameterizedEffector<?,?> effector = (IParameterizedEffector<?,?>)model.proxyEffectors[effectorOrdinal];
-				effector.allocateParameters(effectorParameters.length);
-				for (int index = 0; index < effectorParameters.length; index++) {
-					effector.compileParameter(index, effectorParameters[index]);
-				}
+				assert model.proxyEffectors[effectorOrdinal] instanceof BaseParameterizedEffector<?,?>;
+				BaseParameterizedEffector<?,?> effector = (BaseParameterizedEffector<?,?>)model.proxyEffectors[effectorOrdinal];
+				effector.compileParameters(effectorParameters);
 			}
 		}
 		return model;
@@ -449,19 +448,13 @@ public final class Model implements AutoCloseable {
 			HashMap<BytesArray, Integer> parameters = this.effectorParametersMaps.get(effectorOrdinal);
 			if (parameters != null) {
 				if (effector instanceof IParameterizedEffector<?,?>) {
-					final IParameterizedEffector<?,?> parameterizedEffector = (IParameterizedEffector<?,?>) effector;
-					parameterizedEffector.allocateParameters(parameters.size());
+					assert effector instanceof BaseParameterizedEffector<?,?>;
+					final BaseParameterizedEffector<?,?> parameterizedEffector = (BaseParameterizedEffector<?,?>)effector;
 					byte[][][] effectorParameterTokens = new byte[parameters.size()][][];
 					for (Map.Entry<BytesArray, Integer> e : parameters.entrySet()) {
-						try {
-							int index = e.getValue();
-							effectorParameterTokens[index] = e.getKey().getBytes();
-							parameterizedEffector.compileParameter(index, effectorParameterTokens[index]);
-						} catch (TargetBindingException x) {
-							this.rtcLogger.log(Level.SEVERE, x.getMessage());
-							fail = true;
-						}
+						effectorParameterTokens[e.getValue()] = e.getKey().getBytes();
 					}
+					parameterizedEffector.compileParameters(effectorParameterTokens);
 					this.putBytesArrays(effectorParameterTokens);
 				} else if (parameters.size() > 0) {
 					this.rtcLogger.log(Level.SEVERE, () -> String.format("%1$s.%2$s: effector does not accept parameters",

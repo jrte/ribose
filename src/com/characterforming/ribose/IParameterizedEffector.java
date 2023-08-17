@@ -28,7 +28,7 @@ import com.characterforming.ribose.base.TargetBindingException;
  * Interface for parameterized effectors extends {@link IEffector} with a monadic
  * {@link #invoke(int)} method. Parameters are compiled from arrays of byte arrays
  * into an array of some parameter type <b>P</b> that is constructible from 
- * <code>byte[][]</code>. Compiled parameter values are referenced by their index in
+ * <code>byte[][]</code>. Compiled parameter instances are referenced by their index in
  * the resulting array. At runtime, the {@link #invoke(int)} method is called
  * with the parameter index to indicate which instance of <b>P</b> to apply
  * to the invocation. This method returns an {@link IEffector} {@code RTX} value
@@ -36,39 +36,30 @@ import com.characterforming.ribose.base.TargetBindingException;
  * for instructions regarding {@code RTX} codes.
  * <br><br>
  * Parameterized effectors are required to allocate an array <b>P[]</b> of parameter
- * instances when a ribose model is compiled and again when a ribose model is loaded
- * into a ribose runtime. The runtime will call {@link #allocateParameters(int)} to
- * set the size of the parameter array and then call {@link #compileParameter(int, byte[][])}
- * for each parameter list. In ribose transducer patterns parameters are presented
- * to effectors on tape 2 (the parameter tape) as a list of one or more backquoted
- * tokens, eg {@code out[`~field` `,`]}. Parameter tokens may contain text, which
+ * instances and populate this array with compiled <b>P</b> instances. The runtime 
+ * will call {@link #allocateParameters(int)} to obtain the parameter array and then
+ * call {@link #compileParameter(byte[][])} for each  parameter to populate the array.
+ * In ribose transducer patterns parameters are presented to effectors on tape 2
+ * (the parameter tape) as a list of one or more backquoted tokens, eg {@code out[`~field` `,`]}.
+ * Parameter tokens are represented as arrays of raw bytes which may contain text, which
  * ginr encodes as UTF-8 bytes, binary data encoded using {@code \xHH} hexadecimal
- * representation for unprintable bytes, or fields (`~field`), transducer
- * names (`@transducer`) or signals (`!signal`). In compiled ribose models parameters
- * are rendered as arrays of byte arrays ({@code byte[][]}) to be presented to
- * {@link #compileParameter(int, byte[][])}. The effector implementation must compile
- * each parameter list to an instance of the effectors parameter type <b>P</b>.
+ * representation for unprintable bytes, or fields (`~field`), transducer names 
+ * (`@transducer`) or signals (`!signal`). 
  * <br><br>
- * For example, a {@code date[]} effector might accept date format strings as parameters
- * and compile them to {@code DateFormat} instances in its parameter array. At runtime,
- * the date effector will be invoked with an integer indicating the index of the
- * date formatter to be applied to render the UTF-8 bytes in the selected field
- * ({@link IOutput#getSelectedField()}) canonically as a long integer.
+ * Precompiled parameters are maintained in the model at runtime and are shared as
+ * immutable (or thread safe) singletons among active transducers. If associated
+ * data are required per transductor, a parallel array of derivative mutable 
+ * objects can be instantiated in the effector instance, since each transductor
+ * maintains its own effector instances. For example, <code>DateEffector&lt;MyTarget, SimpleDateFormat&gt;</code>
+ * is unsafe because multiple concurrent transductors may access the parametric 
+ * <code>SimpleDateFormat</code> singletons simultaneously. However, 
+ * <code>DateEffector&lt;MyTarget, String&gt;</code> may maintain its own mutable
+ * array of <code>SimpleDateFormat</code> using the <code>String</code> parameters
+ * to instantiate specialized <code>SimpleDateFormat</code> instances.
  * <br><br>
- * In runtime contexts the effector is invoked in a proxy target to precompile
- * its parameters as above. The precompiled parameters are passed on to live
- * effector instances in live runtime targets via a proxy effector instance of 
- * the same generic type in {@link BaseParameterizedEffector#setParameters(Object)}.
- * <br><br>
- * <b>NOTE:</b> Precompiled parameter objects are singletons shared by all active transductor
- * effectors and are not thread safe unless effectively final and immutable. For example, a
- * <code>DateEffector&lt;MyTarget, SimpleDateFormat&gt;</code> is unsafe because multiple 
- * concurrent transductors may access the parametric <code>SimpleDateFormat</code> singletons
- * simultaneously. However, <code>DateEffector&lt;MyTarget, String&gt;</code> may maintain
- * its own array of <code>SimpleDateFormat</code> using the <code>String</code> parameters
- * to instantiate specialized <code>SimpleDateFormat</code> instances, since unique effector
- * instances are bound to each transductor (effector parameter instances are bound to the
- * underlying model).
+ * All {@code IParameterizedEffector} implementations must be subclasses of
+ * {@link BaseParameterizedEffector}, which provides support for parameter
+ * compilation and distribution.
  *
  * @author Kim Briggs
  * @param <T> The effector target type
@@ -90,22 +81,20 @@ public interface IParameterizedEffector<T extends ITarget, P> extends IEffector<
 	 * Allocate an array (<code>P[]</code>) to hold precompiled parameter objects
 	 * 
 	 * @param parameterCount the size of parameter array to allocate
+	 * @return the allocated array
 	 */
-	void allocateParameters(int parameterCount);
+	P[] allocateParameters(int parameterCount);
 
 	/**
-	 * Compile and set a parameter value from effector arguments specified in
+	 * Compile a parameter value from effector arguments specified in
 	 * model transducers. The parameter value, which may be a scalar or an
-	 * array, is to be compiled from an array of byte arrays. The effector 
-	 * implmentation class must set the result in its P[] array (instantiated
-	 * by {@link #allocateParameters(int)}).
+	 * array, is to be compiled from an array of byte arrays. 
 	 *
-	 * @param parameterIndex The array index in the parameters array P[] to set with the parameter value
 	 * @param parameterList An array of parameters, where each parameter is an array of bytes.
 	 * @return the compiled parameter value object
 	 * @throws TargetBindingException on error
 	 */
-	P compileParameter(int parameterIndex, byte[][] parameterList) throws TargetBindingException;
+	P compileParameter(byte[][] parameterList) throws TargetBindingException;
 
 	/**
 	 * Get the compiled parameter array.
