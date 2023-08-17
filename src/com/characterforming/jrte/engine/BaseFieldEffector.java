@@ -44,7 +44,7 @@ abstract class BaseFieldEffector extends BaseParameterizedEffector<Transductor, 
 
 	@Override // @see com.characterforming.ribose.IParameterizedEffector#iallocateParameters(int)
 	public void allocateParameters(int parameterCount) {
-		this.parameters = new Integer[parameterCount];
+		super.parameters = new Integer[parameterCount];
 	}
 
 	@Override // IParameterizedEffector#setParameter(int, byte[][])
@@ -59,8 +59,7 @@ abstract class BaseFieldEffector extends BaseParameterizedEffector<Transductor, 
 			throw new TargetBindingException(String.format("%1$s.%2$s: field name '%3$s' not enumerated for parameter compilation", 
 				super.target.getName(), super.getName().toString(), fieldName.toString()));
 		}
-		super.parameters[parameterIndex] = fieldOrdinal;
-		return fieldOrdinal;
+		return super.setParameter(parameterIndex, fieldOrdinal);
 	}
 
 	@Override

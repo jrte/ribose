@@ -59,4 +59,26 @@ public abstract class BaseParameterizedEffector<T extends ITarget, P> extends Ba
 		IParameterizedEffector<T, P> proxyEffector = (IParameterizedEffector<T, P>)proxy;
 		this.parameters = proxyEffector.getParameters();
 	}
+
+	/**
+	 * Set parameter in parameters array at index
+	 * 
+	 * @param parameterIndex the parameter index in the array
+	 * @param parameter the parameter instance
+	 * @return the parameter instance
+	 */
+	protected P setParameter(int parameterIndex, P parameter) {
+		this.parameters[parameterIndex] = parameter;
+		return parameter;
+	}
+
+	/**
+	 * Get parameter at index in parameters array
+	 * 
+	 * @param parameterIndex the parameter index in the array
+	 * @return the parameter instance
+	 */
+	protected P getParameter(int parameterIndex) {
+		return this.parameters[parameterIndex];
+	}
 }

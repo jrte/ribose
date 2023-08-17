@@ -46,7 +46,7 @@ abstract class BaseInputOutputEffector extends BaseParameterizedEffector<Transdu
 
 	@Override // @see com.characterforming.ribose.IParameterizedEffector#iallocateParameters(int)
 	public void allocateParameters(int parameterCount) {
-		this.parameters = new byte[parameterCount][][];
+		super.parameters = new byte[parameterCount][][];
 	}
 
 	@Override // @see com.characterforming.ribose.IParameterizedEffector#setParameter(int, byte[][])
@@ -77,8 +77,7 @@ abstract class BaseInputOutputEffector extends BaseParameterizedEffector<Transdu
 				parameter[i] = parameterList[i];
 			}
 		}
-		this.parameters[parameterIndex] = parameter;
-		return parameter;
+		return super.setParameter(parameterIndex, parameter);
 	}
 
 	@Override

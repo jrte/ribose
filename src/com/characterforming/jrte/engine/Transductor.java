@@ -853,7 +853,7 @@ E:	do {
 
 		@Override // @see com.characterforming.ribose.IParameterizedEffector#iallocateParameters(int)
 		public void allocateParameters(int parameterCount) {
-			this.parameters = new Integer[parameterCount];
+			super.parameters = new Integer[parameterCount];
 		}
 	
 			@Override
@@ -866,7 +866,7 @@ E:	do {
 				final Bytes name = new Bytes(Base.getReferenceName(parameterList[0]));
 				final int ordinal = model.getSignalOrdinal(name);
 				if (ordinal >= 0) {
-					super.parameters[parameterIndex] = ordinal;
+					return super.setParameter(parameterIndex, ordinal);
 				} else {
 					throw new TargetBindingException(String.format("Null signal reference for signal effector: %s", name.toString()));
 				}
@@ -874,7 +874,6 @@ E:	do {
 				throw new TargetBindingException(String.format("Invalid signal reference `%s` for signal effector, requires type indicator ('%c') before the transducer name",
 				new Bytes(parameterList[0]).toString(), Base.TYPE_REFERENCE_SIGNAL));
 			}
-			return super.parameters[parameterIndex];
 		}
 
 		@Override
@@ -957,7 +956,7 @@ E:	do {
 
 		@Override // @see com.characterforming.ribose.IParameterizedEffector#iallocateParameters(int)
 		public void allocateParameters(int parameterCount) {
-			this.parameters = new int[parameterCount][];
+			super.parameters = new int[parameterCount][];
 		}
 	
 			@Override
@@ -1000,13 +999,12 @@ E:	do {
 			assert !Base.isReferenceOrdinal(parameterList[1]) : "Reference ordinal presented for <signal> to CountEffector[<count> <signal>]";
 			if (Base.getReferentType(parameterList[1]) == Base.TYPE_REFERENCE_SIGNAL) {
 				int signalOrdinal = model.getSignalOrdinal(new Bytes(Base.getReferenceName(parameterList[1])));
-				super.parameters[parameterIndex] = new int[] { count, signalOrdinal};
+				assert signalOrdinal >= SIGNUL;
+				return super.setParameter(parameterIndex, new int[] { count, signalOrdinal});
 			} else {
 				throw new TargetBindingException(String.format("%1$s.%2$s: invalid signal '%3$%s' for count effector",
 					super.getTarget().getName(), super.getName(), Bytes.decode(super.getDecoder(), parameterList[1], parameterList[1].length)));
 			}
-			assert super.parameters[parameterIndex][1] >= SIGNUL;
-			return super.parameters[parameterIndex];
 		}
 
 		@Override
@@ -1041,7 +1039,7 @@ E:	do {
 
 		@Override // @see com.characterforming.ribose.IParameterizedEffector#iallocateParameters(int)
 		public void allocateParameters(int parameterCount) {
-			this.parameters = new Integer[parameterCount];
+			super.parameters = new Integer[parameterCount];
 		}
 	
 		@Override
@@ -1054,11 +1052,10 @@ E:	do {
 				final Bytes name = new Bytes(Base.getReferenceName(parameterList[0]));
 				final int ordinal = model.getTransducerOrdinal(name);
 				if (ordinal >= 0) {
-					super.parameters[parameterIndex] = ordinal;
+					return super.setParameter(parameterIndex, ordinal);
 				} else {
 					throw new TargetBindingException(String.format("Null transducer reference for start effector: %s", name.toString()));
 				}
-				return ordinal;
 			} else {
 				throw new TargetBindingException(String.format("Invalid transducer reference `%s` for start effector, requires type indicator ('%c') before the transducer name",
 					new Bytes(parameterList[0]).toString(), Base.TYPE_REFERENCE_TRANSDUCER));
@@ -1115,7 +1112,7 @@ E:	do {
 
 		@Override // @see com.characterforming.ribose.IParameterizedEffector#iallocateParameters(int)
 		public void allocateParameters(int parameterCount) {
-			this.parameters = new long[parameterCount][];
+			super.parameters = new long[parameterCount][];
 		}
 	
 		@Override
@@ -1140,8 +1137,7 @@ E:	do {
 				final int i = Byte.toUnsignedInt(b);
 				byteMap[i >> 6] |= 1L << (i & 0x3f);
 			}
-			super.parameters[parameterIndex] = byteMap;
-			return super.parameters[parameterIndex];
+			return super.setParameter(parameterIndex, byteMap);
  		}
 
 		@Override
@@ -1208,7 +1204,7 @@ E:	do {
 
 		@Override // @see com.characterforming.ribose.IParameterizedEffector#iallocateParameters(int)
 		public void allocateParameters(int parameterCount) {
-			this.parameters = new int[parameterCount][];
+			super.parameters = new int[parameterCount][];
 		}
 	
 		@Override
@@ -1221,8 +1217,7 @@ E:	do {
 			for (int i = 0; i < p.length; i++) {
 				p[i] = Byte.toUnsignedInt(b[i]);
 			}
-			super.parameters[parameterIndex] = p;
-			return super.parameters[parameterIndex];
+			return super.setParameter(parameterIndex, p);
  		}
 
 		@Override
@@ -1262,7 +1257,7 @@ E:	do {
 
 		@Override // @see com.characterforming.ribose.IParameterizedEffector#iallocateParameters(int)
 		public void allocateParameters(int parameterCount) {
-			this.parameters = new Integer[parameterCount];
+			super.parameters = new Integer[parameterCount];
 		}
 	
 		@Override
@@ -1270,9 +1265,8 @@ E:	do {
 			if (parameterList.length != 1) {
 				throw new TargetBindingException("The mscan effector accepts at most one parameter (a byte array of length 1)");
 			}
-			super.parameters[parameterIndex] = 0xff & parameterList[0][0];
-			return super.parameters[parameterIndex];
- 		}
+ 			return super.setParameter(parameterIndex, 0xff & parameterList[0][0]);
+		}
 
 		@Override
 		public String showParameter(int parameterIndex) {
