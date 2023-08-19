@@ -20,6 +20,7 @@
 
 package com.characterforming.jrte.engine;
 
+import com.characterforming.ribose.IToken;
 import com.characterforming.ribose.base.BaseParameterizedEffector;
 import com.characterforming.ribose.base.Bytes;
 import com.characterforming.ribose.base.EffectorException;
@@ -28,7 +29,7 @@ import com.characterforming.ribose.base.TargetBindingException;
 /**
  * @author Kim Briggs
  */
-abstract class BaseInputOutputEffector extends BaseParameterizedEffector<Transductor, byte[][]> {
+abstract class BaseInputOutputEffector extends BaseParameterizedEffector<Transductor, IToken[]> {
 	/**
 	 * Constructor
 	 *
@@ -45,68 +46,24 @@ abstract class BaseInputOutputEffector extends BaseParameterizedEffector<Transdu
 	}
 
 	@Override // @see com.characterforming.ribose.IParameterizedEffector#iallocateParameters(int)
-	public byte[][][] allocateParameters(int parameterCount) {
-		return new byte[parameterCount][][];
+	public IToken[][] allocateParameters(int parameterCount) {
+		return new IToken[parameterCount][];
 	}
 
 	@Override // @see com.characterforming.ribose.IParameterizedEffector#setParameter(int, byte[][])
-	public byte[][] compileParameter(final byte[][] parameterList) throws TargetBindingException {
+	public IToken[] compileParameter(final IToken[] parameterList) throws TargetBindingException {
 		if (parameterList.length < 1) {
 			throw new TargetBindingException(String.format("%1$s.%2$s: effector requires at least one parameter",
 				super.target.getName(), super.getName()));
 		}
-		final byte[][] parameter = new byte[parameterList.length][];
-		for (int i = 0; i < parameterList.length; i++) {
-			assert !Base.isReferenceOrdinal(parameterList[i]);
-			byte type = Base.getReferentType(parameterList[i]);
-			if (type == Base.TYPE_REFERENCE_FIELD) {
-				final Bytes fieldName = new Bytes(Base.getReferenceName(parameterList[i]));
-				final Integer fieldOrdinal = super.target.getFieldOrdinal(fieldName);
-				if (fieldOrdinal < 0) {
-					throw new TargetBindingException(String.format("%1$s.%2$s: field name '%3$s' not enumerated for parameter compilation",
-						super.target.getName(), super.getName().toString(), fieldName.toString()));
-				}
-				parameter[i] = Base.encodeReferenceOrdinal(Base.TYPE_REFERENCE_FIELD, fieldOrdinal);
-			} else if (type == Base.TYPE_REFERENCE_SIGNAL) {
-				throw new TargetBindingException(String.format("%1$s.%2$s: signal is not an acceptable parameter",
-					super.target.getName(), super.getName().toString()));
-			} else if (type == Base.TYPE_REFERENCE_TRANSDUCER) {
-				throw new TargetBindingException(String.format("%1$s.%2$s: transducer is not an acceptable parameter",
-					super.target.getName(), super.getName().toString()));
-			} else {
-				parameter[i] = parameterList[i];
+		for (IToken token : parameterList) {
+			if (token.getType() != IToken.Type.LITERAL && token.getType() != IToken.Type.FIELD) {
+				throw new TargetBindingException(
+					String.format("%1$s.%2$s: field name '%3$s' not enumerated for parameter compilation",
+						super.target.getName(), super.getName().toString(), 
+						Bytes.decode(Base.newCharsetDecoder(), token.getLiteralValue(), token.getLiteralValue().length)));
 			}
 		}
-		return parameter;
-	}
-
-	@Override
-	public String showParameter(int parameterIndex) {
-		StringBuilder sb = new StringBuilder(256);
-		for (byte[] bytes : super.getParameter(parameterIndex)) {
-			final int ordinal = Base.isReferenceOrdinal(bytes) ? Base.decodeReferenceOrdinal(Base.TYPE_REFERENCE_FIELD, bytes) : -1;
-			if (ordinal >= 0) {
-				if (sb.length() > 0) {
-					sb.append(' ');
-				}
-				bytes = super.target.getField(ordinal).getName().getData();
-				byte[] name = new byte[bytes.length + 1];
-				System.arraycopy(bytes, 0, name, 1, bytes.length);
-				name[0] = Base.TYPE_REFERENCE_FIELD;
-				sb.append(Bytes.decode(super.getDecoder(), name, name.length));
-			} else {
-				for (int i = 0; i < bytes.length; i++) {
-					if (sb.length() > 0) {
-						sb.append(' ');
-					}
-					if (bytes[i] > 32 && bytes[i] < 127) {
-						sb.append((char)bytes[i]);
-					} else {
-						sb.append(String.format("#%02X", bytes[i]));
-					}
-				}
-			}
-		}
-		return sb.toString();
+		return parameterList;
 	}
 }

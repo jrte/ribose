@@ -371,7 +371,6 @@ final class InputStack {
 	}
 	
 	private Input addMarked(Input input) {
-		assert !Base.isReferenceOrdinal(input.array);
 		if (!input.equals(this.markList[this.tom])) {
 			this.markcheck().copy(input);
 			assert this.bom != this.tom;

@@ -64,9 +64,11 @@ public enum Signal {
 	EOS;
 	
 	private final Bytes key;
-
+	
 	private Signal() {
-		this.key = Base.getSignalName(this.ordinal());
+		String[] names = { "nul", "nil", "eol", "eos" };
+		assert this.ordinal() < names.length;
+		this.key = Bytes.encode(Base.newCharsetEncoder(), names[this.ordinal()]);
 	}
 	
 	/**

@@ -59,18 +59,18 @@ public interface IOutput {
 	Logger getRteLogger();
 
 	/**
-	 * Get a field by name
+	 * Get a copy of the current value for a field from an effector parameter token
 	 *
-	 * @param fieldName The name of the field (UTF-8 bytes)
+	 * @param fieldName The name of the field (UTF-8 bytes, with `~` prefix in lead byte)
 	 * @return a field instance or null
 	 * @throws TargetBindingException on error
 	 */
 	IField getField(Bytes fieldName) throws TargetBindingException;
 
 	/**
-	 * Get the numeric index for a defined field
+	 * Get a field ordinal from an effector parameter token
 	 *
-	 * @param fieldName The name of the field (UTF-8 bytes)
+	 * @param fieldName The name of the field (UTF-8 bytes, with `~` prefix in lead byte)
 	 * @return The numeric index of the field
 	 * @throws TargetBindingException on error
 	 */

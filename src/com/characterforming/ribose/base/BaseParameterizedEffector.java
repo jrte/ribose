@@ -22,11 +22,12 @@ package com.characterforming.ribose.base;
 
 import com.characterforming.ribose.IParameterizedEffector;
 import com.characterforming.ribose.ITarget;
+import com.characterforming.ribose.IToken;
 
 /**
  * Base {@link IParameterizedEffector} implementation class extends {@link BaseEffector} to 
  * support specialized effectors. The {@link IParameterizedEffector#allocateParameters(int)},
- * {@link IParameterizedEffector#compileParameter(byte[][])}, {@link IParameterizedEffector#invoke()},
+ * {@link IParameterizedEffector#compileParameter(IToken[])}, {@link IParameterizedEffector#invoke()},
  * and {@link IParameterizedEffector#invoke(int)} methods must be implemented by subclasses. 
  * 
  * @param <T> The effector target type
@@ -36,7 +37,8 @@ import com.characterforming.ribose.ITarget;
  */
 public abstract class BaseParameterizedEffector<T extends ITarget, P> extends BaseEffector<T> implements IParameterizedEffector<T, P> {
 
-	/** Effector parameters are indexed and selected by parameter ordinal.  */
+	/** Effector parameters indexed and selected by parameter ordinal.*/
+	private IToken[][] tokens = null;
 	private P[] parameters = null;
 
 	/**
@@ -48,8 +50,13 @@ public abstract class BaseParameterizedEffector<T extends ITarget, P> extends Ba
 	protected BaseParameterizedEffector(final T target, final String name) {
 		super(target, name);
 	}
-	
-	@Override // com.characterforming.ribose.IParameterizedEffector#getParameter(int)
+
+	@Override // com.characterforming.ribose.IParameterizedEffector#getParameterTokens(int)
+	public IToken[]  getParameterTokens(int parameterIndex) {
+		return this.tokens[parameterIndex];
+	}
+
+	@Override // com.characterforming.ribose.IParameterizedEffector#getParameters(int)
 	public P[] getParameters() {
 		return this.parameters;
 	}
@@ -61,18 +68,31 @@ public abstract class BaseParameterizedEffector<T extends ITarget, P> extends Ba
 		this.parameters = proxyEffector.getParameters();
 	}
 
+	@Override
+	public String showParameter(int parameterIndex) {
+		StringBuilder sb = new StringBuilder(256);
+		for (IToken token : getParameterTokens(parameterIndex)) {
+			if (sb.length() > 0)
+				sb.append(' ');
+			final byte[] name = token.getLiteralValue();
+			sb.append(Bytes.decode(super.getDecoder(), name, name.length));
+		}
+		return sb.toString();
+	}
+
 	/**
 	 * Allocate and populate the {@code parameters} array with precompiled
 	 * parameter ({@code P}) instances, compiled from a list of parameter
 	 * token arrays. This method is for internal use only. 
 	 * 
-	 * @param parameterTokensArray an array of byte[][] (raw effector parameter tokens)
+	 * @param parameterTokens an array of byte[][] (raw effector parameter tokens)
 	 * @throws TargetBindingException if a parameter fails to compile
 	 */
-	public void compileParameters(byte[][][] parameterTokensArray) throws TargetBindingException {
-		this.parameters = this.allocateParameters(parameterTokensArray.length);
-		for (int i = 0; i < parameterTokensArray.length; i++) {
-			this.parameters[i] = this.compileParameter(parameterTokensArray[i]);
+	public void compileParameters(IToken[][] parameterTokens) throws TargetBindingException {
+		this.tokens = parameterTokens;
+		this.parameters = this.allocateParameters(parameterTokens.length);
+		for (int i = 0; i < parameterTokens.length; i++) {
+			this.parameters[i] = this.compileParameter(parameterTokens[i]);
 		}
 	}
 

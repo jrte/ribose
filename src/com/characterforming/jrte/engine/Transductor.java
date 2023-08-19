@@ -22,7 +22,6 @@ package com.characterforming.jrte.engine;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.util.Arrays;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.logging.Logger;
@@ -34,6 +33,7 @@ import com.characterforming.ribose.IOutput;
 import com.characterforming.ribose.IParameterizedEffector;
 import com.characterforming.ribose.IRuntime;
 import com.characterforming.ribose.ITarget;
+import com.characterforming.ribose.IToken;
 import com.characterforming.ribose.ITransductor;
 import com.characterforming.ribose.base.BaseEffector;
 import com.characterforming.ribose.base.BaseParameterizedEffector;
@@ -458,7 +458,8 @@ S:				do {
 
 	@Override // @see com.characterforming.ribose.IOutput#getField(int)
 	public IField getField(final int fieldOrdinal) {
-		if (this.fieldHandles != null && fieldOrdinal < this.fieldHandles.length) {
+		if (this.mode == TargetMode.RUN && this.fieldHandles != null
+		&& fieldOrdinal < this.fieldHandles.length) {
 			return this.fieldHandles[fieldOrdinal];
 		} else {
 			return null;
@@ -472,7 +473,7 @@ S:				do {
 
 	@Override // @see com.characterforming.ribose.IOutput#getSelectedValue()
 	public IField getSelectedField() {
-		assert this.selected != null;
+		assert this.mode == TargetMode.RUN || this.selected == null;
 		return this.selected;
 	}
 
@@ -678,10 +679,6 @@ E:	do {
 				message.append("\t\t(null)").append(Base.LINEEND);
 			} else if (!input.hasRemaining()) {
 				message.append("[ ]").append(Base.LINEEND);
-			} else if (Base.isReferenceOrdinal(input.array)) {
-				message.append("\t\t [ !")
-				.append(Integer.toString(Base.decodeReferenceOrdinal(Base.getReferenceType(input.array), input.array)))
-				.append(" ]").append(Base.LINEEND);
 			} else if (input.position < input.length) {
 				assert input.position < input.length && input.length <= input.array.length ;
 				int position = Math.max(0, input.position - 1);
@@ -738,11 +735,18 @@ E:	do {
 
 		@Override
 		public int invoke(final int parameterIndex) throws EffectorException {
-			for (byte[] bytes : super.getParameter(parameterIndex)) {
-				if (Base.getReferenceType(bytes) == Base.TYPE_REFERENCE_FIELD) {
-					selected.append(getField(Base.decodeReferenceOrdinal(Base.TYPE_REFERENCE_FIELD, bytes)));
+			for (IToken token : super.getParameter(parameterIndex)) {
+				if (token.getType() == IToken.Type.FIELD) {
+					IField field = getField(token.getSymbolOrdinal());
+					if (field != null) {
+						selected.append(field.copyValue());
+					}
+				} else if (token.getType() == IToken.Type.LITERAL) {
+					selected.append(token.getLiteralValue());
 				} else {
-					selected.append(bytes);
+					throw new EffectorException(String.format("Invalid token `%1$s` for effector '%2$s'", 
+						Bytes.decode(Base.newCharsetDecoder(), token.getLiteralValue(), token.getLiteralValue().length), 
+						super.getName()));
 				}
 			}
 			return IEffector.RTX_NONE;
@@ -857,30 +861,21 @@ E:	do {
 		}
 	
 			@Override
-		public Integer compileParameter(final byte[][] parameterList) throws TargetBindingException {
+		public Integer compileParameter(final IToken[] parameterList) throws TargetBindingException {
 			if (parameterList.length != 1) {
 				throw new TargetBindingException("The signal effector accepts at most one parameter");
 			}
-			assert !Base.isReferenceOrdinal(parameterList[0]);
-			if (Base.getReferentType(parameterList[0]) == Base.TYPE_REFERENCE_SIGNAL) {
-				final Bytes name = new Bytes(Base.getReferenceName(parameterList[0]));
-				final int ordinal = model.getSignalOrdinal(name);
-				if (ordinal >= 0) {
-					return ordinal;
-				} else {
-					throw new TargetBindingException(String.format("Null signal reference for signal effector: %s", name.toString()));
+			IToken token = parameterList[0];
+			if (token.getType() == IToken.Type.SIGNAL) {
+				int ordinal = token.getSymbolOrdinal();
+				if (ordinal < 0) {
+					throw new TargetBindingException(String.format("Null signal reference for signal effector: %s", token.toString()));
 				}
+				return ordinal;
 			} else {
 				throw new TargetBindingException(String.format("Invalid signal reference `%s` for signal effector, requires type indicator ('%c') before the transducer name",
-				new Bytes(parameterList[0]).toString(), Base.TYPE_REFERENCE_SIGNAL));
+					token.toString(), IToken.TYPE_REFERENCE_SIGNAL));
 			}
-		}
-
-		@Override
-		public String showParameter(int parameterIndex) {
-			Integer signal = super.getParameter(parameterIndex);
-			byte[] name = model.getSignalName(signal);
-			return Bytes.decode(super.getDecoder(), name, name.length).toString();
 		}
 	}
 
@@ -896,18 +891,17 @@ E:	do {
 
 		@Override
 		public int invoke(final int parameterIndex) throws EffectorException {
-			byte[][] parameters = super.getParameter(parameterIndex);
-			byte[][] frames = parameters;
+			IToken[] parameters = super.getParameter(parameterIndex);
+			byte[][] tokens = new byte[parameters.length][];
 			for (int i = 0; i < parameters.length; i++) {
-				if (Base.getReferenceType(parameters[i]) == Base.TYPE_REFERENCE_FIELD) {
-					if (frames == parameters) {
-						frames = Arrays.copyOf(parameters, parameters.length);
-					}
-					IField field = getField(Base.decodeReferenceOrdinal(Base.TYPE_REFERENCE_FIELD, frames[i]));
-					frames[i] = (field != null) ? field.copyValue() : Bytes.EMPTY_BYTES;
+				if (parameters[i].getType() == IToken.Type.FIELD) {
+					IField field = getField(parameters[i].getSymbolOrdinal());
+					tokens[i] = (field != null) ? field.copyValue() : Bytes.EMPTY_BYTES;
+				} else {
+					tokens[i] = parameters[i].getLiteralValue();
 				}
 			}
-			inputStack.put(frames);
+			inputStack.put(tokens);
 			return IEffector.RTX_INPUT;
 		}
 	}
@@ -925,15 +919,16 @@ E:	do {
 		@Override
 		public int invoke(final int parameterIndex) throws EffectorException {
 			if (super.target.output != null) {
-				for (final byte[] bytes : super.getParameter(parameterIndex)) {
+				for (final IToken token : super.getParameter(parameterIndex)) {
 					try {
-						if (Base.getReferenceType(bytes) == Base.TYPE_REFERENCE_FIELD) {
-							Field field = (Field)getField(Base.decodeReferenceOrdinal(Base.TYPE_REFERENCE_FIELD, bytes));
+						if (token.getType() == IToken.Type.FIELD) {
+							Field field = (Field)getField(token.getSymbolOrdinal());
 							if (field != null) {
 								super.target.output.write(field.getData(), 0, field.getLength());
 							}
 						} else {
-							super.target.output.write(bytes, 0, bytes.length);
+							byte[] data = token.getLiteralValue();
+							super.target.output.write(data, 0, data.length);
 						}
 					} catch (IOException e) {
 						throw new EffectorException("Unable to write() to output", e);
@@ -971,59 +966,40 @@ E:	do {
 		}
 
 		@Override
-		public int[] compileParameter(final byte[][] parameterList) throws TargetBindingException {
+		public int[] compileParameter(final IToken[] parameterList) throws TargetBindingException {
 			if (parameterList.length != 2) {
 				throw new TargetBindingException(String.format("%1$S.%2$S: effector requires two parameters",
 					super.getTarget().getName(), super.getName()));
 			}
 			int count = -1;
-			assert !Base.isReferenceOrdinal(parameterList[0]) : "Reference ordinal presented for <count> to CountEffector[<count> <signal>]";
-			switch (Base.getReferentType(parameterList[0])) {
-			case Base.TYPE_REFERENCE_FIELD:
-				Bytes fieldName = new Bytes(Base.getReferenceName(parameterList[0]));
+			switch (parameterList[0].getType()) {
+			case FIELD:
+				Bytes fieldName = new Bytes(parameterList[0].getSymbolName());
 				int fieldOrdinal = getFieldOrdinal(fieldName);
-				if (fieldOrdinal >= 0) {
-					count = -1 - fieldOrdinal;
-				} else {
+				if (fieldOrdinal < 0) {
 					throw new TargetBindingException(String.format("%1$s.%2$s: Field %3$s not found",
 						super.getTarget().getName(), super.getName(), fieldName.toString()));
 				}
+				count = -1 - fieldOrdinal;
 				break;
-			case Base.TYPE_REFERENCE_NONE:
-				count = Base.decodeInt(parameterList[0], parameterList[0].length);
+			case LITERAL:
+				byte[] value = parameterList[0].getLiteralValue();
+				count = Base.decodeInt(value, value.length);
 				break;
 			default:
+				value = parameterList[0].getLiteralValue();
 				throw new TargetBindingException(String.format("%1$s.%2$s: invalid field|counter '%3$%s' for count effector",
-				super.getTarget().getName(), super.getName(), Bytes.decode(super.getDecoder(), parameterList[0], parameterList[0].length)));
+					super.getTarget().getName(), super.getName(), Bytes.decode(super.getDecoder(), value, value.length)));
 			}
-			assert !Base.isReferenceOrdinal(parameterList[1]) : "Reference ordinal presented for <signal> to CountEffector[<count> <signal>]";
-			if (Base.getReferentType(parameterList[1]) == Base.TYPE_REFERENCE_SIGNAL) {
-				int signalOrdinal = model.getSignalOrdinal(new Bytes(Base.getReferenceName(parameterList[1])));
+			if (parameterList[1].getType() == IToken.Type.SIGNAL) {
+				int signalOrdinal = parameterList[1].getSymbolOrdinal();
 				assert signalOrdinal >= SIGNUL;
-				return new int[] { count, signalOrdinal};
+				return new int[] { count, signalOrdinal };
 			} else {
+				byte[] value = parameterList[1].getLiteralValue();
 				throw new TargetBindingException(String.format("%1$s.%2$s: invalid signal '%3$%s' for count effector",
-					super.getTarget().getName(), super.getName(), Bytes.decode(super.getDecoder(), parameterList[1], parameterList[1].length)));
+					super.getTarget().getName(), super.getName(), Bytes.decode(super.getDecoder(), value, value.length)));
 			}
-		}
-
-		@Override
-		public String showParameter(int parameterIndex) {
-			int[] param = super.getParameter(parameterIndex);
-			StringBuilder sb = new StringBuilder();
-			if (param[0] < 0) {
-				byte[] name = model.getFieldName(-1 - param[0]);
-				byte[] field = new byte[name.length + 1];
-				field[0] = Base.TYPE_REFERENCE_FIELD;
-				System.arraycopy(name, 0, field, 1, name.length);
-				sb.append(Bytes.decode(super.getDecoder(), field, field.length).toString());
-			} else {
-				sb.append(Integer.toString(param[0]));
-			}
-			sb.append(" ");
-			byte[] signal = model.getSignalName(param[1]);
-			sb.append(Bytes.decode(super.getDecoder(), signal, signal.length).toString());
-			return sb.toString();
 		}
 	}
 
@@ -1043,22 +1019,15 @@ E:	do {
 		}
 	
 		@Override
-		public Integer compileParameter(final byte[][] parameterList) throws TargetBindingException {
-			if (parameterList.length != 1) {
-				throw new TargetBindingException("The start effector accepts at most one parameter");
+		public Integer compileParameter(final IToken[] parameterTokens) throws TargetBindingException {
+			if (parameterTokens.length != 1) {
+				throw new TargetBindingException("The start effector accepts only one parameter");
 			}
-			assert !Base.isReferenceOrdinal(parameterList[0]);
-			if (Base.getReferentType(parameterList[0]) == Base.TYPE_REFERENCE_TRANSDUCER) {
-				final Bytes name = new Bytes(Base.getReferenceName(parameterList[0]));
-				final int ordinal = model.getTransducerOrdinal(name);
-				if (ordinal >= 0) {
-					return ordinal;
-				} else {
-					throw new TargetBindingException(String.format("Null transducer reference for start effector: %s", name.toString()));
-				}
+			if (parameterTokens[0].getType() == IToken.Type.TRANSDUCER) {
+				return parameterTokens[0].getSymbolOrdinal();
 			} else {
 				throw new TargetBindingException(String.format("Invalid transducer reference `%s` for start effector, requires type indicator ('%c') before the transducer name",
-					new Bytes(parameterList[0]).toString(), Base.TYPE_REFERENCE_TRANSDUCER));
+					parameterTokens[0].toString(), IToken.TYPE_REFERENCE_TRANSDUCER));
 			}
 		}
 
@@ -1072,20 +1041,6 @@ E:	do {
 					Bytes.decode(super.getDecoder(), bytes, bytes.length)), e);
 			}
 			return IEffector.RTX_START;
-		}
-
-		@Override
-		public String showParameter(int parameterIndex) {
-			int ordinal = super.getParameter(parameterIndex);
-			if (ordinal >= 0) {
-				byte[] bytes = model.getTransducerName(ordinal);
-				byte[] name = new byte[bytes.length + 1];
-				System.arraycopy(bytes, 0, name, 1, bytes.length);
-				name[0] = Base.TYPE_REFERENCE_TRANSDUCER;
-				return Bytes.decode(super.getDecoder(), name, name.length).toString();
-			} else {
-				return "VOID";
-			}
 		}
 	}
 
@@ -1128,12 +1083,12 @@ E:	do {
 		}
 
 		@Override
-		public long[] compileParameter(final byte[][] parameterList) throws TargetBindingException {
+		public long[] compileParameter(final IToken[] parameterList) throws TargetBindingException {
 			if (parameterList.length != 1) {
 				throw new TargetBindingException("The msum effector accepts at most one parameter (a byte array of length >1)");
 			}
 			long[] byteMap = new long[] {0, 0, 0, 0};
-			for (byte b : parameterList[0]) {
+			for (byte b : parameterList[0].getLiteralValue()) {
 				final int i = Byte.toUnsignedInt(b);
 				byteMap[i >> 6] |= 1L << (i & 0x3f);
 			}
@@ -1208,11 +1163,11 @@ E:	do {
 		}
 	
 		@Override
-		public int[] compileParameter(final byte[][] parameterList) throws TargetBindingException {
+		public int[] compileParameter(final IToken[] parameterList) throws TargetBindingException {
 			if (parameterList.length != 1) {
 				throw new TargetBindingException("The mproduct effector accepts at most one parameter (a byte array of length >1)");
 			}
-			byte[] b = parameterList[0];
+			byte[] b = parameterList[0].getLiteralValue();
 			int[] p = new int[b.length];
 			for (int i = 0; i < p.length; i++) {
 				p[i] = Byte.toUnsignedInt(b[i]);
@@ -1261,11 +1216,11 @@ E:	do {
 		}
 	
 		@Override
-		public Integer compileParameter(final byte[][] parameterList) throws TargetBindingException {
+		public Integer compileParameter(final IToken[] parameterList) throws TargetBindingException {
 			if (parameterList.length != 1) {
 				throw new TargetBindingException("The mscan effector accepts at most one parameter (a byte array of length 1)");
 			}
- 			return 0xff & parameterList[0][0];
+ 			return 0xff & parameterList[0].getLiteralValue()[0];
 		}
 
 		@Override

@@ -43,6 +43,7 @@ import java.util.logging.Logger;
 import com.characterforming.ribose.IEffector;
 import com.characterforming.ribose.IParameterizedEffector;
 import com.characterforming.ribose.ITarget;
+import com.characterforming.ribose.IToken;
 import com.characterforming.ribose.base.BaseParameterizedEffector;
 import com.characterforming.ribose.base.Bytes;
 import com.characterforming.ribose.base.CompilationException;
@@ -157,7 +158,9 @@ public final class Model implements AutoCloseable {
 			this.effectorOrdinalMap.put(this.proxyEffectors[effectorOrdinal].getName(), effectorOrdinal);
 			this.effectorParametersMaps.add(null);
 		}
+		// proxy transductor and effectors are persistent but passive zombies at this point
 		assert proxyTransductor == (Transductor)this.proxyEffectors[0].getTarget();
+		// serving only as containers for precompiled effector parameters
 	}
 
 	/**
@@ -303,11 +306,14 @@ public final class Model implements AutoCloseable {
 		}
 		for (int effectorOrdinal = 0; effectorOrdinal < model.effectorOrdinalMap.size(); effectorOrdinal++) {
 			byte[][][] effectorParameters = model.getBytesArrays();
-			assert effectorParameters != null;
+			IToken[][] parameterTokens = new IToken[effectorParameters.length][];
+			for (int i = 0; i < effectorParameters.length; i++) {
+				parameterTokens[i] = Token.getParameterTokens(model, effectorParameters[i]);
+			}
 			if (model.proxyEffectors[effectorOrdinal] instanceof IParameterizedEffector<?,?>) {
 				assert model.proxyEffectors[effectorOrdinal] instanceof BaseParameterizedEffector<?,?>;
 				BaseParameterizedEffector<?,?> effector = (BaseParameterizedEffector<?,?>)model.proxyEffectors[effectorOrdinal];
-				effector.compileParameters(effectorParameters);
+				effector.compileParameters(parameterTokens);
 			}
 		}
 		return model;
@@ -450,12 +456,16 @@ public final class Model implements AutoCloseable {
 				if (effector instanceof IParameterizedEffector<?,?>) {
 					assert effector instanceof BaseParameterizedEffector<?,?>;
 					final BaseParameterizedEffector<?,?> parameterizedEffector = (BaseParameterizedEffector<?,?>)effector;
-					byte[][][] effectorParameterTokens = new byte[parameters.size()][][];
+					byte[][][] effectorParameterBytes = new byte[parameters.size()][][];
+					IToken[][] effectorParameterTokens = new IToken[parameters.size()][];
 					for (Map.Entry<BytesArray, Integer> e : parameters.entrySet()) {
-						effectorParameterTokens[e.getValue()] = e.getKey().getBytes();
+						int ordinal = e.getValue();
+						byte[][] tokens = e.getKey().getBytes();
+						effectorParameterBytes[ordinal] = tokens;
+						effectorParameterTokens[ordinal] = Token.getParameterTokens(this, tokens);
 					}
 					parameterizedEffector.compileParameters(effectorParameterTokens);
-					this.putBytesArrays(effectorParameterTokens);
+					this.putBytesArrays(effectorParameterBytes);
 				} else if (parameters.size() > 0) {
 					this.rtcLogger.log(Level.SEVERE, () -> String.format("%1$s.%2$s: effector does not accept parameters",
 						this.proxyTarget.getName(), effector.getName()));
@@ -463,6 +473,8 @@ public final class Model implements AutoCloseable {
 				} else {
 					this.putInt(-1);
 				}
+			} else if (effector instanceof IParameterizedEffector<?,?>) {
+				this.putBytesArrays(new byte[0][][]);
 			} else {
 				this.putInt(-1);
 			}

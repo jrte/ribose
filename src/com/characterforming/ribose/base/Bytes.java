@@ -36,12 +36,11 @@ import com.characterforming.jrte.engine.Base;
  * @author Kim Briggs
  */
 public final class Bytes {
-	/** An empty byte array */
+	/** A singleton empty byte array */
 	public static final byte[] EMPTY_BYTES = new byte[] { };
-	/** An empty Integer array */
-	public static final Integer[] EMPTY_INTEGER = new Integer[] { };
+
 	private static final char[] HEX = "0123456789ABCDEF".toCharArray();
-	private static final char[] EMPTY_CHARS = new char[] { };
+	private static final CharBuffer DECODER_ERROR = CharBuffer.wrap(new char[] { '?', '?', '?' });
 	private final byte[] data;
 	private int hash;
 
@@ -85,10 +84,10 @@ public final class Bytes {
 		try {
 			return decoder.reset().decode(ByteBuffer.wrap(bytes, 0, size));
 		} catch (CharacterCodingException e) {
-			System.err.println("Bytes.decode(CharsetDecoder, byte[], int, int): " + e.getMessage());
 			assert false;
+			System.err.printf("Bytes.decode(CharsetDecoder, byte[], int, int): %1$s",  e.getMessage());
 		}
-		return CharBuffer.wrap(Bytes.EMPTY_CHARS);
+		return Bytes.DECODER_ERROR;
 	}
 
 	/**
@@ -117,8 +116,8 @@ public final class Bytes {
 			buffer.get(b, 0, b.length);
 			bytes = new Bytes(b);
 		} catch (CharacterCodingException e) {
-			System.err.println("Bytes.encode(CharsetEncoder,CharBuffer): " + e.getMessage());
 			assert false;
+			System.err.println("Bytes.encode(CharsetEncoder,CharBuffer): " + e.getMessage());
 		}
 		return bytes;
 	}
@@ -149,7 +148,11 @@ public final class Bytes {
 	@Override
 	/** Decode contents to a String. */
 	public String toString() {
-		return Bytes.decode(Base.newCharsetDecoder(), this.getData(), this.getLength()).toString();
+		try {
+			return Bytes.decode(Base.newCharsetDecoder(), this.getData(), this.getLength()).toString();
+		} catch (Exception e) {
+			return this.toHexString();
+		}
 	}
 	
 	/**
@@ -158,13 +161,12 @@ public final class Bytes {
 	 * @return the hex string
 	 */
 	public String toHexString() {
-		char[] hex = new char[2 * this.data.length];
-		for (int j = 0; j < this.data.length && this.data[j] != 0; j++) {
+		char[] hex = new char[2 * this.getLength()];
+		for (int j = 0; j < this.getLength(); j++) {
 			int k = this.data[j] & 0xFF;
 			hex[j * 2] = HEX[k >> 4];
 			hex[j * 2 + 1] = HEX[k & 0x0F];
 		}
-		assert hex[hex.length - 1] != 0;
 		return new String(hex);
 	}
 

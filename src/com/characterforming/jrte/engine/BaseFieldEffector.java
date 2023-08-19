@@ -20,8 +20,8 @@
 
 package com.characterforming.jrte.engine;
 
+import com.characterforming.ribose.IToken;
 import com.characterforming.ribose.base.BaseParameterizedEffector;
-import com.characterforming.ribose.base.Bytes;
 import com.characterforming.ribose.base.TargetBindingException;
 
 /**
@@ -48,26 +48,15 @@ abstract class BaseFieldEffector extends BaseParameterizedEffector<Transductor, 
 	}
 
 	@Override // IParameterizedEffector#setParameter(int, byte[][])
-	public Integer compileParameter(final byte[][] parameterList) throws TargetBindingException {
+	public Integer compileParameter(final IToken[] parameterList) throws TargetBindingException {
 		if (parameterList.length != 1) {
 			throw new TargetBindingException(String.format("%1$s.%2$s: effector accepts exactly one parameter", 
 				super.target.getName(), super.getName()));
 		}
-		final Bytes fieldName = new Bytes(parameterList[0], 1, parameterList[0].length - 1);
-		final Integer fieldOrdinal = super.target.getFieldOrdinal(fieldName);
-		if (fieldOrdinal < 0) {
-			throw new TargetBindingException(String.format("%1$s.%2$s: field name '%3$s' not enumerated for parameter compilation", 
-				super.target.getName(), super.getName().toString(), fieldName.toString()));
+		if (parameterList[0].getType() != IToken.Type.FIELD) {
+			throw new TargetBindingException(String.format("%1$s.%2$s: effector accepts only a FIELD parameter",
+				super.target.getName(), super.getName()));
 		}
-		return fieldOrdinal;
-	}
-
-	@Override
-	public String showParameter(int parameterIndex) {
-		byte[] name = super.target.getField(super.getParameter(parameterIndex)).getName().getData();
-		byte[] field = new byte[name.length + 1];
-		field[0] = Base.TYPE_REFERENCE_FIELD;
-		System.arraycopy(name, 0, field, 1, name.length);
-		return Bytes.decode(super.getDecoder(), field, field.length).toString();
+		return parameterList[0].getSymbolOrdinal();
 	}
 }

@@ -38,7 +38,7 @@ import com.characterforming.ribose.base.TargetBindingException;
  * Parameterized effectors are required to allocate an array <b>P[]</b> of parameter
  * instances and populate this array with compiled <b>P</b> instances. The runtime 
  * will call {@link #allocateParameters(int)} to obtain the parameter array and then
- * call {@link #compileParameter(byte[][])} for each  parameter to populate the array.
+ * call {@link #compileParameter(IToken[])} for each  parameter to populate the array.
  * In ribose transducer patterns parameters are presented to effectors on tape 2
  * (the parameter tape) as a list of one or more backquoted tokens, eg {@code out[`~field` `,`]}.
  * Parameter tokens are represented as arrays of raw bytes which may contain text, which
@@ -90,11 +90,19 @@ public interface IParameterizedEffector<T extends ITarget, P> extends IEffector<
 	 * model transducers. The parameter value, which may be a scalar or an
 	 * array, is to be compiled from an array of byte arrays. 
 	 *
-	 * @param parameterList An array of parameters, where each parameter is an array of bytes.
+	 * @param parameterTokens An array of parameters, where each parameter is an array of bytes.
 	 * @return the compiled parameter value object
 	 * @throws TargetBindingException on error
 	 */
-	P compileParameter(byte[][] parameterList) throws TargetBindingException;
+	P compileParameter(IToken[] parameterTokens) throws TargetBindingException;
+
+	/**
+	 * Get the raw parameter tokens array for an effector parameter.
+	 *
+	 * @param parameterIndex The index of the parameter 
+	 * @return The raw parameter tokens array
+	 */
+	IToken[] getParameterTokens(int parameterIndex);
 
 	/**
 	 * Get the compiled parameter array.
@@ -110,12 +118,11 @@ public interface IParameterizedEffector<T extends ITarget, P> extends IEffector<
 	 */
 	void setParameters(Object proxy);
 
-		/**
-	 * Render a parameter object in a printable format
+	/**
+	 * Render a parameter object in a printable format, to support decompilation
+	 * 
 	 * @param parameterIndex the parameter index
 	 * @return a printable string
 	 */
-	default String showParameter(int parameterIndex) {
-		return Integer.toString(parameterIndex);
-	}
+	String showParameter(int parameterIndex);
 }

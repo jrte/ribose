@@ -46,6 +46,7 @@ import com.characterforming.ribose.IField;
 import com.characterforming.ribose.IOutput;
 import com.characterforming.ribose.IRuntime;
 import com.characterforming.ribose.ITarget;
+import com.characterforming.ribose.IToken;
 import com.characterforming.ribose.ITransductor;
 import com.characterforming.ribose.Ribose;
 import com.characterforming.ribose.TCompile;
@@ -1044,16 +1045,13 @@ public class ModelCompiler implements ITarget {
 		if (bytes.length > 1) {
 			String type = null;
 			switch(bytes[0]) {
-			case Base.TYPE_ORDINAL_INDICATOR:
-				type = "reference ordinal";
-				break;
-			case Base.TYPE_REFERENCE_TRANSDUCER:
+			case IToken.TYPE_REFERENCE_TRANSDUCER:
 				type = "transducer";
 				break;
-			case Base.TYPE_REFERENCE_FIELD:
+			case IToken.TYPE_REFERENCE_FIELD:
 				type = "field";
 				break;
-			case Base.TYPE_REFERENCE_SIGNAL:
+			case IToken.TYPE_REFERENCE_SIGNAL:
 				type = "signal";
 				break;
 			default:
@@ -1077,13 +1075,13 @@ public class ModelCompiler implements ITarget {
 		if (bytes.length > 1) {
 			Bytes token = new Bytes(bytes, 1, bytes.length - 1);
 			switch (bytes[0]) {
-			case Base.TYPE_REFERENCE_TRANSDUCER:
+			case IToken.TYPE_REFERENCE_TRANSDUCER:
 				this.model.addTransducer(token);
 				break;
-			case Base.TYPE_REFERENCE_FIELD:
+			case IToken.TYPE_REFERENCE_FIELD:
 				this.model.addField(token);
 				break;
-			case Base.TYPE_REFERENCE_SIGNAL:
+			case IToken.TYPE_REFERENCE_SIGNAL:
 				this.model.addSignal(token);
 				break;
 			default:

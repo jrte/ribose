@@ -99,13 +99,14 @@ public class ModelDecompiler {
 							System.out.printf(" %s", effectorNames[effect]);
 						}
 					} else {
-						for (int e = (-1 * effect); effectorVectors[e] != 0; e++) {
-							if (effectorVectors[e] > 0) {
-								System.out.printf(" %s", effectorNames[effectorVectors[e]]);
+						int index = (-1 * effect);
+						while (effectorVectors[index] != 0) {
+							if (effectorVectors[index] > 0) {
+								System.out.printf(" %s", effectorNames[effectorVectors[index++]]);
 							} else {
-								int effector = -1 * effectorVectors[e++];
+								int effector = -1 * effectorVectors[index++];
 								System.out.printf(" %s[", effectorNames[effector]);
-								System.out.printf(" %s ]", model.showParameter(effector, effectorVectors[e]));
+								System.out.printf(" %s ]", model.showParameter(effector, effectorVectors[index++]));
 							}
 						}
 					}
