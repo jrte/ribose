@@ -27,7 +27,7 @@ import com.characterforming.ribose.base.TargetBindingException;
 /**
  * Interface for parameterized effectors extends {@link IEffector} with a monadic
  * {@link #invoke(int)} method. Parameters are compiled from arrays of byte arrays
- * into an array of some parameter type <b>P</b> that is constructible from 
+ * (tokens) into an array of some parameter type <b>P</b> that is constructible from 
  * <code>byte[][]</code>. Compiled parameter instances are referenced by their index in
  * the resulting array. At runtime, the {@link #invoke(int)} method is called
  * with the parameter index to indicate which instance of <b>P</b> to apply

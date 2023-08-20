@@ -34,7 +34,7 @@ import com.characterforming.ribose.base.Bytes;
  * 
  * @author Kim Briggs
  */
-class Field implements IField {
+final class Field implements IField {
 	private static final int INITIAL_FIELD_VALUE_BYTES = 256;
 	
 	private final Bytes name;

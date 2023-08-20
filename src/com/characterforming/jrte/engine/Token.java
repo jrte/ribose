@@ -31,72 +31,50 @@ import com.characterforming.ribose.base.Bytes;
  * 
  * @author Kim Briggs
  */
-public class Token implements IToken {
+final class Token implements IToken {
 	private final IToken.Type type;
 	private final byte[] literal;
 	private final byte[] symbol;
 	private int ordinal;
 
 	/**
-	 * Determine token type
+	 * Assemble tokens from effector parameter bytes. For internal use
+	 * by Model to support effector parameter precompilation during
+	 * model assembly and runtime use. Here a parameter a series of
+	 * raw byte arrays scraped from a paramterized effector reference
+	 * in a ribose pattern, eg for {@code count[`99` `!nil`])} the
+	 * raw tokens {@code `99`} (literal) and {@code `!nil`} (signal)
+	 * are compiled to an instance of the {@code count} effector's
+	 * effector parameter type (int[2]) as {@code new int[] {99, 257}}.
 	 * 
-	 * @param token the token to interpret
-	 * @return the token type
+	 * @param model the containing ribose model
+	 * @param rawTokens a series of raw effector parameter tokens
 	 */
-	public static Type getSymbolType(byte[] token) {
-		if (token[0] == IToken.TYPE_REFERENCE_TRANSDUCER) {
-			return IToken.Type.TRANSDUCER;
-		} else if (token[0] == IToken.TYPE_REFERENCE_FIELD) {
-			return IToken.Type.FIELD;
-		} else if (token[0] == IToken.TYPE_REFERENCE_SIGNAL) {
-			return IToken.Type.SIGNAL;
-		} else {
-			return IToken.Type.LITERAL;
-		}
-	}
-
-	/**
-	 * Extract symbol name from symbolic token
-	 * 
-	 * @param token the token to interpret
-	 * @return the symbol name if token is a symbol, otherwise the literal value
-	 */
-	public static byte[] getSymbolName(byte[] token) {
-		if (getSymbolType(token) != Type.LITERAL) {
-			return Arrays.copyOfRange(token, 1, token.length);
-		}
-		return token;
-	}
-
-	/**
-	 * Assemble tokens from effector partameter bytes.
-	 * 
-	 * @param token
-	 */
-	public static IToken[] getParameterTokens(Model model, byte[][] parameters) {
-		IToken[] tokens = new Token[parameters.length];
-		for (int i = 0; i < parameters.length; i++) {
-			byte[] parameter = parameters[i];
-			switch (Token.getSymbolType(parameter)) {
-				case LITERAL:
-					tokens[i] = new Token(parameter);
-					break;
-				case TRANSDUCER:
-					Bytes symbol = new Bytes(Token.getSymbolName(parameter));
-					int ordinal = model.getTransducerOrdinal(symbol);
-					tokens[i] = new Token(parameter, ordinal);
-					break;
-				case FIELD:
-					symbol = new Bytes(Token.getSymbolName(parameter));
-					ordinal = model.getFieldMap().getOrDefault(symbol, -1);
-					tokens[i] = new Token(parameter, ordinal);
-					break;
-				case SIGNAL:
-					symbol = new Bytes(Token.getSymbolName(parameter));
-					ordinal = model.getSignalOrdinal(symbol);
-					tokens[i] = new Token(parameter, ordinal);
-					break;
+	public static IToken[] getParameterTokens(Model model, byte[][] rawTokens) {
+		IToken[] tokens = new Token[rawTokens.length];
+		for (int i = 0; i < rawTokens.length; i++) {
+			byte[] token = rawTokens[i];
+			IToken.Type type;
+			if (token[0] == IToken.TRANSDUCER_TYPE) {
+				type = IToken.Type.TRANSDUCER;
+			} else if (token[0] == IToken.FIELD_TYPE) {
+				type = IToken.Type.FIELD;
+			} else if (token[0] == IToken.SIGNAL_TYPE) {
+				type = IToken.Type.SIGNAL;
+			} else {
+				tokens[i] = new Token(token);
+				continue;
 			}
+			int ordinal = -1;
+			Bytes symbol = new Bytes(Arrays.copyOfRange(token, 1, token.length));
+			if (type == Type.TRANSDUCER) {
+				ordinal = model.getTransducerOrdinal(symbol);
+			} else if (type == Type.FIELD) {
+				ordinal = model.getFieldMap().getOrDefault(symbol, -1);
+			} else if (type == Type.SIGNAL) {
+				ordinal = model.getSignalOrdinal(symbol);
+			}
+			tokens[i] = new Token(token, ordinal);
 		}
 		return tokens;
 	}
@@ -121,11 +99,11 @@ public class Token implements IToken {
 	 */
 	public Token(byte[] token, int ordinal) {
 		this.literal = token;
-		if (token[0] == IToken.TYPE_REFERENCE_TRANSDUCER) {
+		if (token[0] == IToken.TRANSDUCER_TYPE) {
 			this.type = IToken.Type.TRANSDUCER;
-		} else if (token[0] == IToken.TYPE_REFERENCE_FIELD) {
+		} else if (token[0] == IToken.FIELD_TYPE) {
 			this.type = IToken.Type.FIELD;
-		} else if (token[0] == IToken.TYPE_REFERENCE_SIGNAL) {
+		} else if (token[0] == IToken.SIGNAL_TYPE) {
 			this.type = IToken.Type.SIGNAL;
 		} else {
 			this.type = IToken.Type.LITERAL;

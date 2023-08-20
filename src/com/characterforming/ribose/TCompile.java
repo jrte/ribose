@@ -25,8 +25,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import com.characterforming.jrte.engine.Base;
-import com.characterforming.jrte.engine.Model;
-import com.characterforming.jrte.engine.ModelCompiler;
 
 /**
  * Provides a {@link TCompile#main(String[])} method to transduce ginr DFAs to ribose transducers
@@ -63,23 +61,7 @@ import com.characterforming.jrte.engine.ModelCompiler;
  * and you're done. Other existing ribose models built by the previous version will still run with
  * the new transductor effectors included but must be recompiled to update to the new model version.
  */
-public final class TCompile extends ModelCompiler {
-	/**
-	 * Constructor (as proxy target for compilation of TCompile.model)
-	 */
-	public TCompile() {
-		super();
-	}
-	
-	/**
-	 * Constructor (as runtime target for compilation of ribose models)
-	 * 
-	 * @param targetModel the TCompile model instance to be constructed and persisted
-	 */
-	public TCompile(Model targetModel) {
-		super(targetModel);
-	}
-
+public final class TCompile {
 	/**
 	 * Runs the ribose model compiler to refresh the model compiler model.
 	 * 

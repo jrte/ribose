@@ -1,5 +1,5 @@
 version	ribose-0.0.2
-target	com.characterforming.ribose.TCompile
+target	com.characterforming.jrte.engine.ModelCompiler
 signal nul                      256   
 signal nil                      257   
 signal eol                      258   

@@ -29,7 +29,7 @@ import java.util.Set;
 import com.characterforming.ribose.base.Bytes;
 import com.characterforming.ribose.base.ModelException;
 
-public class ModelDecompiler {
+public final class ModelDecompiler {
 	private final File modelFile;
 	private final CharsetDecoder decoder;
 	private final CharsetEncoder encoder;

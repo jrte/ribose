@@ -30,14 +30,14 @@ package com.characterforming.ribose;
  *
  */
 public interface IToken {
-	/** type decoration ('@')for ginr tokens representing transducers in ribose patterns */
-	byte TYPE_REFERENCE_TRANSDUCER = '@';
-	/** type decoration ('!')for ginr tokens representing signals in ribose patterns */
-	byte TYPE_REFERENCE_SIGNAL = '!';
-	/** type decoration ('~')for ginr tokens representing fields in ribose patterns */
-	byte TYPE_REFERENCE_FIELD = '~';
+	/** type decoration ('@') for ginr tokens representing transducers in ribose patterns */
+	byte TRANSDUCER_TYPE = '@';
+	/** type decoration ('!') for ginr tokens representing signals in ribose patterns */
+	byte SIGNAL_TYPE = '!';
+	/** type decoration ('~') for ginr tokens representing fields in ribose patterns */
+	byte FIELD_TYPE = '~';
 	/** null value for type decoration */
-	byte TYPE_REFERENCE_NONE = 0;
+	byte LITERAL_TYPE = 0;
 
 	/** Enumeration of token types. */
 	enum Type {

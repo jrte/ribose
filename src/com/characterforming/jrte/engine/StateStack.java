@@ -31,14 +31,13 @@ final class StateStack {
 
   int size() { return this.tos + 1; }
 
-  boolean push(int state) {
+  void push(int state) {
     for (int i = 0; i <= this.tos; i++) {
       if (this.stack[i] == state) {
-        return true;
+        return;
       }
     }
     this.stack[++this.tos] = state;
-    return true;
   }
 
   int pop() {

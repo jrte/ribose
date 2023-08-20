@@ -36,11 +36,11 @@ the transduction output.
 <br>
 <pre>
 Fibonacci = (
-(
-  ('0', select[`~q`] paste['1'])
-  ('0', select[`~r`] cut[`~p`] select[`~p`] copy[`~q`] select[`~q`] cut[`~r`])*
-)?
-('\n', paste out stop)
+  (
+    ('0', select[`~q`] paste['1'])
+    ('0', select[`~r`] cut[`~p`] select[`~p`] copy[`~q`] select[`~q`] cut[`~r`])*
+  )?
+  ('\n', paste out stop)
 );
 
 Fibonacci$(0,1 2):prsseq;

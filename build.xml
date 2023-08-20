@@ -195,7 +195,7 @@
 		</exec>
 		<echo/>
 		<exec failonerror="true" executable="bash">
-			<arg line="etc/sh/compile --target com.characterforming.ribose.TCompile ${build.compiler.model} ${build.compiler.model}/TCompile.model"/>
+			<arg line="etc/sh/compile --target com.characterforming.jrte.engine.ModelCompiler ${build.compiler.model} ${build.compiler.model}/TCompile.model"/>
 		</exec>
 		<fixcrlf file="${build.compiler.model}/TCompile.map" eol="lf"/>
 		<move todir="." verbose="true">

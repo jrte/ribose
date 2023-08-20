@@ -874,7 +874,7 @@ E:	do {
 				return ordinal;
 			} else {
 				throw new TargetBindingException(String.format("Invalid signal reference `%s` for signal effector, requires type indicator ('%c') before the transducer name",
-					token.toString(), IToken.TYPE_REFERENCE_SIGNAL));
+					token.toString(), IToken.SIGNAL_TYPE));
 			}
 		}
 
@@ -1034,7 +1034,7 @@ E:	do {
 				return parameterTokens[0].getSymbolOrdinal();
 			} else {
 				throw new TargetBindingException(String.format("Invalid transducer reference `%s` for start effector, requires type indicator ('%c') before the transducer name",
-					parameterTokens[0].toString(), IToken.TYPE_REFERENCE_TRANSDUCER));
+					parameterTokens[0].toString(), IToken.TRANSDUCER_TYPE));
 			}
 		}
 

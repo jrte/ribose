@@ -49,7 +49,6 @@ import com.characterforming.ribose.ITarget;
 import com.characterforming.ribose.IToken;
 import com.characterforming.ribose.ITransductor;
 import com.characterforming.ribose.Ribose;
-import com.characterforming.ribose.TCompile;
 import com.characterforming.ribose.base.BaseEffector;
 import com.characterforming.ribose.base.Bytes;
 import com.characterforming.ribose.base.CompilationException;
@@ -61,7 +60,7 @@ import com.characterforming.ribose.base.Signal;
 import com.characterforming.ribose.base.TargetBindingException;
 
 /** Model compiler implements ITarget for the ribose compiler model. */
-public class ModelCompiler implements ITarget {
+public final class ModelCompiler implements ITarget {
 
 	/**
 	 * The model to be compiled.
@@ -146,7 +145,7 @@ public class ModelCompiler implements ITarget {
 		}
 		try (IRuntime compilerRuntime = Ribose.loadRiboseModel(compilerModelFile)) {
 			final CharsetEncoder encoder = Base.newCharsetEncoder();
-			TCompile compiler = new TCompile(targetModel);
+			ModelCompiler compiler = new ModelCompiler(targetModel);
 			compiler.setTransductor(compilerRuntime.transductor(compiler));
 			for (final String filename : inrAutomataDirectory.list()) {
 				if (!filename.endsWith(Base.AUTOMATON_FILE_SUFFIX)) {
@@ -613,7 +612,8 @@ public class ModelCompiler implements ITarget {
 		StateStack walkStack = new StateStack(nStates);
 		byte[] walkedBytes = new byte[nStates];
 		int[] walkResult = new int[] { 0, 0, 0 };
-		walkedStates[0] = walkStack.push(0);
+		walkedStates[0] = true;
+		walkStack.push(0);
 		while (walkStack.size() > 0) {
 			int fromState = walkStack.pop();
 			for (int input = 0; input < nInputs; input++) {
@@ -657,7 +657,10 @@ public class ModelCompiler implements ITarget {
 						assert nextState == this.kernelMatrix[exitEquivalent[state]][state][0];
 					}
 				}
-				walkedStates[toState] = walkedStates[toState] || walkStack.push(toState);
+				if (!walkedStates[toState]) {
+					walkedStates[toState] = true;
+					walkStack.push(toState);
+				}
 			}
 		}
 		// effect vector construction
@@ -725,15 +728,15 @@ public class ModelCompiler implements ITarget {
 		Arrays.fill(walkedStates, false);
 		assert walkStack.size() == 0;
 		int mStates = 0;
+		walkedStates[0] = true;
 		walkStack.push(0);
 		while (walkStack.size() > 0) {
 			int state = walkStack.pop();
 			stateMap[state] = mStates++;
-			assert !walkedStates[state];
-			walkedStates[state] = true;
 			for (int input = 0; input < nInputs; input++) {
 				int nextState = this.kernelMatrix[input][state][0];
 				if (nextState != state && !walkedStates[nextState]) {
+					walkedStates[nextState] = true;
 					walkStack.push(nextState);
 				}
 			}
@@ -1045,13 +1048,13 @@ public class ModelCompiler implements ITarget {
 		if (bytes.length > 1) {
 			String type = null;
 			switch(bytes[0]) {
-			case IToken.TYPE_REFERENCE_TRANSDUCER:
+			case IToken.TRANSDUCER_TYPE:
 				type = "transducer";
 				break;
-			case IToken.TYPE_REFERENCE_FIELD:
+			case IToken.FIELD_TYPE:
 				type = "field";
 				break;
-			case IToken.TYPE_REFERENCE_SIGNAL:
+			case IToken.SIGNAL_TYPE:
 				type = "signal";
 				break;
 			default:
@@ -1075,13 +1078,13 @@ public class ModelCompiler implements ITarget {
 		if (bytes.length > 1) {
 			Bytes token = new Bytes(bytes, 1, bytes.length - 1);
 			switch (bytes[0]) {
-			case IToken.TYPE_REFERENCE_TRANSDUCER:
+			case IToken.TRANSDUCER_TYPE:
 				this.model.addTransducer(token);
 				break;
-			case IToken.TYPE_REFERENCE_FIELD:
+			case IToken.FIELD_TYPE:
 				this.model.addField(token);
 				break;
-			case IToken.TYPE_REFERENCE_SIGNAL:
+			case IToken.SIGNAL_TYPE:
 				this.model.addSignal(token);
 				break;
 			default:

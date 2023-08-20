@@ -442,8 +442,9 @@ public final class Model implements AutoCloseable {
 		}
 		if (!checked) {
 			StringBuilder msg = new StringBuilder(256);
-			msg.append("Target ").append(target.getName()).append(" effectors do not match proxy effectors.")
-					.append(Base.LINEEND).append("\tTarget:");
+			msg.append("Target ").append(target.getName())
+				.append(" effectors do not match proxy effectors.")
+				.append(Base.LINEEND).append("\tTarget:");
 			for (IEffector<?> fx : boundFx) {
 				msg.append(' ').append(fx.getName());
 			}
