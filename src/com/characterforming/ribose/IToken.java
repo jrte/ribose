@@ -52,7 +52,7 @@ public interface IToken {
 	}
 
 	/**
-	 * Get the type of the token
+	 * Get the type of the token.
 	 * 
 	 * @return the type of the token
 	 */

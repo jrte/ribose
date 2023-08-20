@@ -119,10 +119,19 @@ public interface IParameterizedEffector<T extends ITarget, P> extends IEffector<
 	void setParameters(Object proxy);
 
 	/**
-	 * Render a parameter object in a printable format, to support decompilation
+	 * Return the type of object compiled from, to support decompilation 
 	 * 
 	 * @param parameterIndex the parameter index
-	 * @return a printable string
+	 * @return a printable string representing the effector's parameter object type
 	 */
-	String showParameter(int parameterIndex);
+	String showParameterType(int parameterIndex);
+
+	/**
+	 * Render tokens for a parameter object in a printable format, to support
+	 * decompilation
+	 * 
+	 * @param parameterIndex the parameter index
+	 * @return a printable string of space-delimited raw parameter tokens
+	 */
+	String showParameterTokens(int parameterIndex);
 }

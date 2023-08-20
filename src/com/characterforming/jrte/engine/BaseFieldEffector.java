@@ -59,4 +59,9 @@ abstract class BaseFieldEffector extends BaseParameterizedEffector<Transductor, 
 		}
 		return parameterList[0].getSymbolOrdinal();
 	}
+
+	@Override 
+	public String showParameterType(int parameterIndex) {
+		return "Integer";
+	}
 }

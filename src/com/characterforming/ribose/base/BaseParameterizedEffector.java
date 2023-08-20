@@ -69,21 +69,32 @@ public abstract class BaseParameterizedEffector<T extends ITarget, P> extends Ba
 	}
 
 	@Override
-	public String showParameter(int parameterIndex) {
+	public String showParameterTokens(int parameterIndex) {
 		StringBuilder sb = new StringBuilder(256);
 		for (IToken token : getParameterTokens(parameterIndex)) {
-			if (sb.length() > 0)
-				sb.append(' ');
-			final byte[] name = token.getLiteralValue();
+			byte[] name = token.getLiteralValue();
+			sb.append(sb.length() > 0 ? " `" : "`");
 			sb.append(Bytes.decode(super.getDecoder(), name, name.length));
+			sb.append("`");
 		}
 		return sb.toString();
 	}
 
 	/**
+	 * Get the number of parameters for this effector (after parameter compilation
+	 * is complete)
+	 * 
+	 * @return the parameter count
+	 * @see #compileParameters(IToken[][])
+	 */
+	public int getParameterCount() {
+		return this.parameters != null ? this.parameters.length : 0;
+	}
+
+	/**
 	 * Allocate and populate the {@code parameters} array with precompiled
 	 * parameter ({@code P}) instances, compiled from a list of parameter
-	 * token arrays. This method is for internal use only. 
+	 * token arrays. This method is for internal use only.
 	 * 
 	 * @param parameterTokens an array of byte[][] (raw effector parameter tokens)
 	 * @throws TargetBindingException if a parameter fails to compile

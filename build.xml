@@ -169,8 +169,7 @@
 
   <target name="javadoc" unless="javadoc.uptodate" depends="check-javadoc">
   	<delete dir="javadoc" includes="**/*"/>
-    <javadoc executable="${jdk}/bin/javadoc" access="protected" overview="overview.html" sourcepath="src" destdir="javadoc" splitindex="false"
-			use="true" version="true" nodeprecated="false" nodeprecatedlist="false" noindex="false" nonavbar="false" notree="false" verbose="false"
+    <javadoc executable="${jdk}/bin/javadoc" access="protected" overview="overview.html" sourcepath="src" destdir="javadoc" verbose="false"
 			packagenames="com.characterforming.ribose.base,com.characterforming.ribose"
 			doctitle="The General Idea" failonerror="false" failonwarning="false">
 			<group title="Ribose" packages="com.characterforming.ribose*"/>

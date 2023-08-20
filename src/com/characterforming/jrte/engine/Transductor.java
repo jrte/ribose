@@ -877,6 +877,11 @@ E:	do {
 					token.toString(), IToken.TYPE_REFERENCE_SIGNAL));
 			}
 		}
+
+		@Override
+		public String showParameterType(int parameterIndex) {
+			return "Integer";
+		}
 	}
 
 	private final class InEffector extends BaseInputOutputEffector {
@@ -954,7 +959,7 @@ E:	do {
 			return new int[parameterCount][];
 		}
 	
-			@Override
+		@Override
 		public int invoke(final int parameterIndex) throws EffectorException {
 			assert (transducer == transducerStack.peek()) || (transducer == transducerStack.get(transducerStack.tos()-1));
 			System.arraycopy(super.getParameter(parameterIndex), 0, transducer.countdown, 0, 2);
@@ -972,8 +977,7 @@ E:	do {
 					super.getTarget().getName(), super.getName()));
 			}
 			int count = -1;
-			switch (parameterList[0].getType()) {
-			case FIELD:
+			if (parameterList[0].getType() == IToken.Type.FIELD) {
 				Bytes fieldName = new Bytes(parameterList[0].getSymbolName());
 				int fieldOrdinal = getFieldOrdinal(fieldName);
 				if (fieldOrdinal < 0) {
@@ -981,13 +985,11 @@ E:	do {
 						super.getTarget().getName(), super.getName(), fieldName.toString()));
 				}
 				count = -1 - fieldOrdinal;
-				break;
-			case LITERAL:
+			} else if (parameterList[0].getType() == IToken.Type.LITERAL) {
 				byte[] value = parameterList[0].getLiteralValue();
 				count = Base.decodeInt(value, value.length);
-				break;
-			default:
-				value = parameterList[0].getLiteralValue();
+			} else {
+				byte[] value = parameterList[0].getLiteralValue();
 				throw new TargetBindingException(String.format("%1$s.%2$s: invalid field|counter '%3$%s' for count effector",
 					super.getTarget().getName(), super.getName(), Bytes.decode(super.getDecoder(), value, value.length)));
 			}
@@ -1000,6 +1002,11 @@ E:	do {
 				throw new TargetBindingException(String.format("%1$s.%2$s: invalid signal '%3$%s' for count effector",
 					super.getTarget().getName(), super.getName(), Bytes.decode(super.getDecoder(), value, value.length)));
 			}
+		}
+
+		@Override 
+		public String showParameterType(int parameterIndex) {
+			return "int[]";
 		}
 	}
 
@@ -1041,6 +1048,11 @@ E:	do {
 					Bytes.decode(super.getDecoder(), bytes, bytes.length)), e);
 			}
 			return IEffector.RTX_START;
+		}
+
+		@Override
+		public String showParameterType(int parameterIndex) {
+			return "Integer";
 		}
 	}
 
@@ -1096,7 +1108,12 @@ E:	do {
  		}
 
 		@Override
-		public String showParameter(int parameterIndex) {
+		public String showParameterType(int parameterIndex) {
+			return "long[]";
+		}
+
+		@Override
+		public String showParameterTokens(int parameterIndex) {
 			long[] sum = super.getParameter(parameterIndex);
 			StringBuilder sb = new StringBuilder();
 			int endBit = 0, startBit = -1;
@@ -1176,7 +1193,12 @@ E:	do {
  		}
 
 		@Override
-		public String showParameter(int parameterIndex) {
+		public String showParameterType(int parameterIndex) {
+			return "int[]";
+		}
+
+		@Override
+		public String showParameterTokens(int parameterIndex) {
 			int[] product = super.getParameter(parameterIndex);
 			StringBuilder sb = new StringBuilder();
 			for (int j = 0; j < product.length; j++) {
@@ -1224,7 +1246,12 @@ E:	do {
 		}
 
 		@Override
-		public String showParameter(int parameterIndex) {
+		public String showParameterType(int parameterIndex) {
+			return "Integer";
+		}
+
+		@Override
+		public String showParameterTokens(int parameterIndex) {
 			int scanbyte = super.getParameter(parameterIndex);
 			return 32 < scanbyte && 127 > scanbyte
 			?	String.format(" %c", (char)scanbyte)

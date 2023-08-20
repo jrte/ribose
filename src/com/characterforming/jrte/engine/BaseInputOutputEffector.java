@@ -50,7 +50,7 @@ abstract class BaseInputOutputEffector extends BaseParameterizedEffector<Transdu
 		return new IToken[parameterCount][];
 	}
 
-	@Override // @see com.characterforming.ribose.IParameterizedEffector#setParameter(int, byte[][])
+	@Override // @see com.characterforming.ribose.IParameterizedEffector#compileParameter(IToken[])
 	public IToken[] compileParameter(final IToken[] parameterList) throws TargetBindingException {
 		if (parameterList.length < 1) {
 			throw new TargetBindingException(String.format("%1$s.%2$s: effector requires at least one parameter",
@@ -65,5 +65,10 @@ abstract class BaseInputOutputEffector extends BaseParameterizedEffector<Transdu
 			}
 		}
 		return parameterList;
+	}
+
+	@Override // @see com.characterforming.ribose.IParameterizedEffector#showParameterType(int)
+	public String showParameterType(int parameterIndex) {
+		return "IToken[]";
 	}
 }
