@@ -29,7 +29,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.net.URL;
 import java.nio.charset.CharsetDecoder;
 import java.nio.charset.CharsetEncoder;
 import java.util.ArrayList;
@@ -116,14 +115,14 @@ public final class ModelCompiler implements ITarget {
 
 	public static boolean compileAutomata(Model targetModel, File inrAutomataDirectory) throws ModelException {
 		Logger rtcLogger = Base.getCompileLogger();
-		File compilerModelFile = null;
+		File workingDirectory = new File(System.getProperty("user.dir", "."));
 		String compilerModelPath = ModelCompiler.class.getPackageName() + "/TCompile.model";
-		URL compilerModelUrl = targetModel.getClass().getResource(compilerModelPath);
-		if (compilerModelUrl != null) {
+		File compilerModelFile = null;
+		if (ModelCompiler.class.getResource(compilerModelPath) != null) {
 			try {
 				compilerModelFile = File.createTempFile("TCompile", ".model");
 				try (
-					InputStream mis = targetModel.getClass().getResourceAsStream(compilerModelPath);
+					InputStream mis = ModelCompiler.class.getResourceAsStream(compilerModelPath);
 					OutputStream mos =  new FileOutputStream(compilerModelFile);
 				) {
 					compilerModelFile.deleteOnExit();
@@ -137,12 +136,19 @@ public final class ModelCompiler implements ITarget {
 					} while (read >= 0);
 				}
 			} catch (IOException e) {
-				throw new ModelException("Unable to create temporary model file", e);
+				compilerModelFile = new File(workingDirectory, "TCompile.model");
 			}
 		} else {
-			File workingDirectory = new File(System.getProperty("user.dir", "."));
 			compilerModelFile = new File(workingDirectory, "TCompile.model");
 		}
+		if (!compilerModelFile.exists()) {
+			String msg = String.format(
+				"TCompile.model not found in ribose jar or in working directory (%s).",
+				workingDirectory);
+			rtcLogger.log(Level.SEVERE, msg);
+			return false;
+		}
+
 		try (IRuntime compilerRuntime = Ribose.loadRiboseModel(compilerModelFile)) {
 			final CharsetEncoder encoder = Base.newCharsetEncoder();
 			ModelCompiler compiler = new ModelCompiler(targetModel);
@@ -170,7 +176,8 @@ public final class ModelCompiler implements ITarget {
 			}
 			return compiler.getErrors().isEmpty() && targetModel.save();
 		} catch (ModelException e) {
-			String msg = String.format("Exception caught compiling automata directory '%1$s'", inrAutomataDirectory.getPath());
+			String msg = String.format("Exception caught compiling automata directory '%1$s'",
+				inrAutomataDirectory.getPath());
 			rtcLogger.log(Level.SEVERE, msg, e);
 			return false;
 		}
