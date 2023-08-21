@@ -72,10 +72,7 @@ public abstract class BaseParameterizedEffector<T extends ITarget, P> extends Ba
 	public String showParameterTokens(int parameterIndex) {
 		StringBuilder sb = new StringBuilder(256);
 		for (IToken token : getParameterTokens(parameterIndex)) {
-			byte[] name = token.getLiteralValue();
-			sb.append(sb.length() > 0 ? " `" : "`");
-			sb.append(Bytes.decode(super.getDecoder(), name, name.length));
-			sb.append("`");
+			sb.append(sb.length() == 0 ? "`" : " `").append(token.toString()).append("`");
 		}
 		return sb.toString();
 	}

@@ -747,8 +747,7 @@ E:	do {
 					selected.append(token.getLiteralValue());
 				} else {
 					throw new EffectorException(String.format("Invalid token `%1$s` for effector '%2$s'", 
-						Bytes.decode(Base.newCharsetDecoder(), token.getLiteralValue(), token.getLiteralValue().length), 
-						super.getName()));
+						token.toString(), super.getName()));
 				}
 			}
 			return IEffector.RTX_NONE;
@@ -905,6 +904,7 @@ E:	do {
 					IField field = getField(parameters[i].getSymbolOrdinal());
 					tokens[i] = (field != null) ? field.copyValue() : Bytes.EMPTY_BYTES;
 				} else {
+					assert parameters[i].getType() == IToken.Type.LITERAL;
 					tokens[i] = parameters[i].getLiteralValue();
 				}
 			}
@@ -934,6 +934,7 @@ E:	do {
 								super.target.output.write(field.getData(), 0, field.getLength());
 							}
 						} else {
+							assert token.getType() == IToken.Type.LITERAL;
 							byte[] data = token.getLiteralValue();
 							super.target.output.write(data, 0, data.length);
 						}
@@ -1000,9 +1001,8 @@ E:	do {
 				assert signalOrdinal >= SIGNUL;
 				return new int[] { count, signalOrdinal };
 			} else {
-				byte[] value = parameterList[1].getLiteralValue();
 				throw new TargetBindingException(String.format("%1$s.%2$s: invalid signal '%3$%s' for count effector",
-					super.getTarget().getName(), super.getName(), Bytes.decode(super.getDecoder(), value, value.length)));
+					super.getTarget().getName(), super.getName(), parameterList[1].toString()));
 			}
 		}
 

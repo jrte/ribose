@@ -35,7 +35,7 @@ final class Token implements IToken {
 	private final IToken.Type type;
 	private final byte[] literal;
 	private final byte[] symbol;
-	private int ordinal;
+	private final int ordinal;
 
 	/**
 	 * Assemble tokens from effector parameter bytes. For internal use
@@ -139,10 +139,11 @@ final class Token implements IToken {
 
 	@Override
 	public String toString() {
-		try {
+		if (this.literal.length == 1 && this.literal[0] == 0xa) {
+			return "#a";
+		} else try {
 			CharsetDecoder decoder = Base.newCharsetDecoder();
-			ByteBuffer buffer = ByteBuffer.wrap(getLiteralValue());
-			return decoder.decode(buffer).toString();
+			return decoder.decode(ByteBuffer.wrap(getLiteralValue())).toString();
 		} catch (Exception e) {
 			Bytes data = new Bytes(getLiteralValue());
 			return data.toHexString();

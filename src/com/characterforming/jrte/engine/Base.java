@@ -23,6 +23,7 @@ package com.characterforming.jrte.engine;
 import java.nio.charset.Charset;
 import java.nio.charset.CharsetDecoder;
 import java.nio.charset.CharsetEncoder;
+import java.nio.charset.CodingErrorAction;
 import java.util.logging.FileHandler;
 import java.util.logging.Handler;
 import java.util.logging.Level;
@@ -118,7 +119,9 @@ public final class Base {
 	 * @return a new CharsetDecoder insstance
 	 */
 	public static CharsetDecoder newCharsetDecoder() {
-		return Base.runtimeCharset.newDecoder();
+		return Base.runtimeCharset.newDecoder()
+			.onUnmappableCharacter(CodingErrorAction.REPLACE)
+			.onMalformedInput(CodingErrorAction.REPLACE);
 	}
 
 	/**
