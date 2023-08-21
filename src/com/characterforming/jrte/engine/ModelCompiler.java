@@ -65,7 +65,7 @@ public final class ModelCompiler implements ITarget {
 	/**
 	 * The model to be compiled.
 	 */
-	protected final Model model;
+	private final Model model;
 
 	private static final long VERSION = 210;
 	private static final String AMBIGUOUS_STATE_MESSAGE = "%1$s: Ambiguous state %2$d";
@@ -176,7 +176,7 @@ public final class ModelCompiler implements ITarget {
 		}
 	}
 
-	class Header {
+	private class Header {
 		final int version;
 		final int tapes;
 		final int transitions;
@@ -189,6 +189,7 @@ public final class ModelCompiler implements ITarget {
 			this.transitions = transitions;
 			this.states = states;
 			this.symbols = symbols;
+			assert this.symbols > 0;
 		}
 	}
 
@@ -203,7 +204,7 @@ public final class ModelCompiler implements ITarget {
 		public
 		void setOutput(IOutput output) throws TargetBindingException {
 			super.setOutput(output);
-			fields = new IField[] {
+			this.fields = new IField[] {
 				super.output.getField(Bytes.encode(super.getEncoder(), "version")),
 				super.output.getField(Bytes.encode(super.getEncoder(), "tapes")),
 				super.output.getField(Bytes.encode(super.getEncoder(), "transitions")),
@@ -216,29 +217,12 @@ public final class ModelCompiler implements ITarget {
 		public
 		int invoke() throws EffectorException {
 			assert target.model != null;
-			Header h = new Header(
-				(int)fields[0].asInteger(),
-				(int)fields[1].asInteger(),
-				(int)fields[2].asInteger(),
-				(int)fields[3].asInteger(),
-				(int)fields[4].asInteger()
-			);
-			target.header = h;
-			if (target.header.version != ModelCompiler.VERSION) {
-				target.error(String.format("%1$s: Invalid INR version %2$d",
-					target.getTransducerName(), h.version));
-			}
-			if (h.tapes > 3) {
-				target.error(String.format("%1$s: Invalid tape count %2$d",
-					target.getTransducerName(), h.tapes));
-			}
-			target.transitions = new Transition[h.transitions];
-			target.stateTransitionMap = new HashMap<>((h.states * 5) >> 2);
+			target.putHeader(this.fields);
 			return IEffector.RTX_NONE;
 		}
 	}
 
-	class Transition {
+	private class Transition {
 		final int from;
 		final int to;
 		final int tape;
@@ -277,50 +261,7 @@ public final class ModelCompiler implements ITarget {
 		public
 		int invoke() throws EffectorException {
 			assert target.model != null;
-			Transition t = new Transition(
-				(int)fields[0].asInteger(),
-				(int)fields[1].asInteger(),
-				(int)fields[2].asInteger(),
-				fields[3].copyValue()
-			);
-			if (!t.isFinal) {
-				if (t.tape < 0) {
-					target.error(String.format("%1$s: Epsilon transition from state %2$d to %3$d (use :dfamin to remove these)",
-						target.getTransducerName(), t.from, t.to));
-				} else if (t.symbol.length == 0) {
-					target.error(String.format("%1$s: Empty symbol on tape %2$d",
-						target.getTransducerName(), t.tape));
-				} else {
-					HashMap<Integer, Integer> rteStates = target.stateMaps[t.tape];
-					if (rteStates == null) {
-						rteStates = target.stateMaps[t.tape] = new HashMap<>(256);
-					}
-					if (!rteStates.containsKey(t.from)) {
-						rteStates.put(t.from, rteStates.size());
-					}
-					switch (t.tape) {
-					case 0:
-						target.compileInputToken(t.symbol);
-						break;
-					case 1:
-						target.compileEffectorToken(t.symbol);
-						break;
-					case 2:
-						target.compileParameterToken(t.symbol);
-						break;
-					default:
-						assert false;
-					}
-					ArrayList<Transition> outgoing = target.stateTransitionMap.get(t.from);
-					if (outgoing == null) {
-						outgoing = new ArrayList<>(16);
-						target.stateTransitionMap.put(t.from, outgoing);
-					}
-					outgoing.add(t);
-					target.transitions[target.transition] = t;
-					++target.transition;
-				}
-			}
+			target.putTransition(this.fields);
 			return IEffector.RTX_NONE;
 		}
 	}
@@ -334,75 +275,12 @@ public final class ModelCompiler implements ITarget {
 		public
 		int invoke() throws EffectorException {
 			assert target.model != null;
-			final Integer[] inrInputStates = target.getInrStates(0);
-			if (inrInputStates == null) {
-				String msg = "Empty automaton " + target.getTransducerName();
-				super.output.getRtcLogger().log(Level.SEVERE, msg);
-				throw new EffectorException(msg);
-			}
-
-			for (final ArrayList<Transition> transitionList : target.stateTransitionMap.values()) {
-				transitionList.trimToSize();
-			}
-
-			final int[][][] transitionMatrix = new int[target.model.getSignalLimit()][inrInputStates.length][2];
-			for (int i = 0; i < transitionMatrix.length; i++) {
-				for (int j = 0; j < inrInputStates.length; j++) {
-					transitionMatrix[i][j][0] = j;
-					transitionMatrix[i][j][1] = 0;
-				}
-			}
-
-			target.effectorVectorMap = new HashMap<>(1024);
-			target.effectorVectorMap.put(new Ints(new int[] {0}), 0);
-			for (final Integer inrInputState : inrInputStates) {
-				for (final Transition t : target.getTransitions(inrInputState)) {
-					if (!t.isFinal) {
-						if (t.tape != 0) {
-							target.error(String.format(ModelCompiler.AMBIGUOUS_STATE_MESSAGE,
-								target.getTransducerName(), t.from));
-							continue;
-						}
-						try {
-							final int rteState = target.getRteState(0, t.from);
-							final int inputOrdinal = target.model.getInputOrdinal(t.symbol);
-							final Chain chain = target.chain(t);
-							if (chain != null) {
-								final int[] effectVector = chain.getEffectVector();
-								transitionMatrix[inputOrdinal][rteState][0] = target.getRteState(0, chain.getOutS());
-								if (chain.isEmpty()) {
-									transitionMatrix[inputOrdinal][rteState][1] = 1;
-								} else if (chain.isScalar()) {
-									transitionMatrix[inputOrdinal][rteState][1] = effectVector[0];
-								} else if (chain.isParameterized()) {
-									transitionMatrix[inputOrdinal][rteState][1] = Transducer.action(-1 * effectVector[0], effectVector[1]);
-								} else {
-									Ints vector = new Ints(effectVector);
-									Integer vectorOrdinal = target.effectorVectorMap.get(vector);
-									if (vectorOrdinal == null) {
-										vectorOrdinal = target.effectorVectorMap.size();
-										target.effectorVectorMap.put(vector, vectorOrdinal);
-									}
-									transitionMatrix[inputOrdinal][rteState][1] = -vectorOrdinal;
-								}
-							}
-						} catch (CompilationException e) {
-							target.error(String.format("%1$s: %2$s",
-								target.getTransducerName(), e.getMessage()));
-						}
-					}
-				}
-			}
-
-			if (target.errors.isEmpty()) {
-				target.factor(transitionMatrix);
-			}
-
+			target.putTransitionMatrix();
 			return IEffector.RTX_NONE;
 		}
 	}
 
-	protected void setTransductor(ITransductor transductor) {
+	private void setTransductor(ITransductor transductor) {
 		this.transductor = transductor;
 	}
 
@@ -420,7 +298,7 @@ public final class ModelCompiler implements ITarget {
 	}
 
 	@SuppressWarnings("unchecked")
-	protected boolean compile(File inrFile) throws RiboseException {
+	private boolean compile(File inrFile) throws RiboseException {
 		this.reset();
 		String name = inrFile.getName();
 		name = name.substring(0, name.length() - Base.AUTOMATON_FILE_SUFFIX.length());
@@ -479,6 +357,138 @@ public final class ModelCompiler implements ITarget {
 		} finally {
 			this.transductor.stop();
 			assert this.transductor.status().isStopped();
+		}
+	}
+
+	private void putHeader(IField[] fields) {
+		assert model != null;
+		Header h = new Header(
+			(int) fields[0].asInteger(),
+			(int) fields[1].asInteger(),
+			(int) fields[2].asInteger(),
+			(int) fields[3].asInteger(),
+			(int) fields[4].asInteger());
+		if (h.version != ModelCompiler.VERSION) {
+			this.error(String.format("%1$s: Invalid INR version %2$d",
+				getTransducerName(), h.version));
+		}
+		if (h.tapes > 3) {
+			this.error(String.format("%1$s: Invalid tape count %2$d",
+				getTransducerName(), h.tapes));
+		}
+		this.header = h;
+		this.transitions = new Transition[h.transitions];
+		stateTransitionMap = new HashMap<>((h.states * 5) >> 2);
+	}
+
+	private void putTransition(IField[] fields) {
+		assert this.header.transitions == this.transitions.length;
+		Transition t = new Transition(
+			(int) fields[0].asInteger(),
+			(int) fields[1].asInteger(),
+			(int) fields[2].asInteger(),
+			fields[3].copyValue());
+		if (!t.isFinal) {
+			if (t.tape < 0) {
+				this.error(String.format("%1$s: Epsilon transition from state %2$d to %3$d (use :dfamin to remove these)",
+					this.getTransducerName(), t.from, t.to));
+			} else if (t.symbol.length == 0) {
+				this.error(String.format("%1$s: Empty symbol on tape %2$d",
+					this.getTransducerName(), t.tape));
+			} else {
+				this.transitions[this.transition++] = t;
+				switch (t.tape) {
+					case 0:
+						this.compileInputToken(t.symbol);
+						break;
+					case 1:
+						this.compileEffectorToken(t.symbol);
+						break;
+					case 2:
+						this.compileParameterToken(t.symbol);
+						break;
+					default:
+						assert false;
+				}
+				HashMap<Integer, Integer> rteStates = this.stateMaps[t.tape];
+				if (rteStates == null) {
+					rteStates = this.stateMaps[t.tape] = new HashMap<>(256);
+				}
+				if (!rteStates.containsKey(t.from)) {
+					rteStates.put(t.from, rteStates.size());
+				}
+				ArrayList<Transition> outgoing = this.stateTransitionMap.get(t.from);
+				if (outgoing == null) {
+					outgoing = new ArrayList<>(16);
+					this.stateTransitionMap.put(t.from, outgoing);
+				}
+				outgoing.add(t);
+			}
+		}
+	}
+
+	private void putTransitionMatrix() {
+		final Integer[] inrInputStates = this.getInrStates(0);
+		if (inrInputStates == null) {
+			this.error("Empty automaton " + this.getTransducerName());
+			return;
+		}
+
+		for (final ArrayList<Transition> transitionList : this.stateTransitionMap.values()) {
+			transitionList.trimToSize();
+		}
+
+		final int[][][] transitionMatrix = new int[this.model.getSignalLimit()][inrInputStates.length][2];
+		for (int i = 0; i < transitionMatrix.length; i++) {
+			for (int j = 0; j < inrInputStates.length; j++) {
+				transitionMatrix[i][j][0] = j;
+				transitionMatrix[i][j][1] = 0;
+			}
+		}
+
+		this.effectorVectorMap = new HashMap<>(1024);
+		this.effectorVectorMap.put(new Ints(new int[] { 0 }), 0);
+		for (final Integer inrInputState : inrInputStates) {
+			for (final Transition t : this.getTransitions(inrInputState)) {
+				if (!t.isFinal) {
+					if (t.tape != 0) {
+						this.error(String.format(ModelCompiler.AMBIGUOUS_STATE_MESSAGE,
+								this.getTransducerName(), t.from));
+						continue;
+					}
+					try {
+						final int rteState = this.getRteState(0, t.from);
+						final int inputOrdinal = this.model.getInputOrdinal(t.symbol);
+						final Chain chain = this.chain(t);
+						if (chain != null) {
+							final int[] effectVector = chain.getEffectVector();
+							transitionMatrix[inputOrdinal][rteState][0] = this.getRteState(0, chain.getOutS());
+							if (chain.isEmpty()) {
+								transitionMatrix[inputOrdinal][rteState][1] = 1;
+							} else if (chain.isScalar()) {
+								transitionMatrix[inputOrdinal][rteState][1] = effectVector[0];
+							} else if (chain.isParameterized()) {
+								transitionMatrix[inputOrdinal][rteState][1] = Transducer.action(-1 * effectVector[0], effectVector[1]);
+							} else {
+								Ints vector = new Ints(effectVector);
+								Integer vectorOrdinal = this.effectorVectorMap.get(vector);
+								if (vectorOrdinal == null) {
+									vectorOrdinal = this.effectorVectorMap.size();
+									this.effectorVectorMap.put(vector, vectorOrdinal);
+								}
+								transitionMatrix[inputOrdinal][rteState][1] = -vectorOrdinal;
+							}
+						}
+					} catch (CompilationException e) {
+						this.error(String.format("%1$s: %2$s",
+								this.getTransducerName(), e.getMessage()));
+					}
+				}
+			}
+		}
+
+		if (this.errors.isEmpty()) {
+			this.factor(transitionMatrix);
 		}
 	}
 
@@ -1014,7 +1024,7 @@ public final class ModelCompiler implements ITarget {
 		return null;
 	}
 
-	protected ArrayList<String> getErrors() {
+	private ArrayList<String> getErrors() {
 		return this.errors;
 	}
 
