@@ -390,38 +390,38 @@ public final class Model implements AutoCloseable {
 
 	private void saveMapFile(File mapFile) {
 		try (PrintWriter mapWriter = new PrintWriter(mapFile)) {
-			mapWriter.println(String.format("version\t%1$s", this.modelVersion));
-			mapWriter.println(String.format("target\t%1$s", this.proxyTarget.getClass().getName()));
+			mapWriter.println(String.format("version %1$s", this.modelVersion));
+			mapWriter.println(String.format("target %1$s", this.proxyTarget.getClass().getName()));
 			Bytes[] signalIndex = new Bytes[this.signalOrdinalMap.size()];
 			for (Map.Entry<Bytes, Integer> m : this.signalOrdinalMap.entrySet()) {
 				signalIndex[m.getValue()] = m.getKey();
 			}
 			for (int i = Base.RTE_SIGNAL_BASE; i < signalIndex.length; i++) {
-				mapWriter.printf("%1$-32s%2$-6d%n", String.format("signal %1$s", signalIndex[i]), i);
+				mapWriter.printf("%1$-32s%2$6d%n", String.format("signal %1$s", signalIndex[i]), i);
 			}
 			Bytes[] fieldIndex = new Bytes[this.fieldOrdinalMap.size()];
 			for (Map.Entry<Bytes, Integer> m : this.fieldOrdinalMap.entrySet()) {
 				fieldIndex[m.getValue()] = m.getKey();
 			}
 			for (int i = 0; i < fieldIndex.length; i++) {
-				mapWriter.printf("%1$-32s%2$-6d%n", String.format("field %1$s", fieldIndex[i]), i);
+				mapWriter.printf("%1$-32s%2$6d%n", String.format("field %1$s", fieldIndex[i]), i);
 			}
 			Bytes[] transducerIndex = new Bytes[this.transducerOrdinalMap.size()];
 			for (Map.Entry<Bytes, Integer> m : this.transducerOrdinalMap.entrySet()) {
 				transducerIndex[m.getValue()] = m.getKey();
 			}
 			for (int i = 0; i < (transducerIndex.length - 1); i++) {
-				mapWriter.printf("%1$-32s%2$-6d%n", String.format("transducer %1$s", transducerIndex[i]), i);
+				mapWriter.printf("%1$-32s%2$6d%n", String.format("transducer %1$s", transducerIndex[i]), i);
 			}
 			Bytes[] effectorIndex = new Bytes[this.effectorOrdinalMap.size()];
 			for (Map.Entry<Bytes, Integer> m : this.effectorOrdinalMap.entrySet()) {
 				effectorIndex[m.getValue()] = m.getKey();
 			}
 			for (int i = 0; i < effectorIndex.length; i++) {
-				mapWriter.printf("%1$-32s%2$-6d", String.format("effector %1$s", effectorIndex[i]), i);
+				mapWriter.printf("%1$-32s%2$6d", String.format("effector %1$s", effectorIndex[i]), i);
 				if (this.proxyEffectors[i] instanceof IParameterizedEffector) {
 					BaseParameterizedEffector<?, ?> effector = (BaseParameterizedEffector<?, ?>) this.proxyEffectors[i];
-					mapWriter.printf("[ %1$s ]%n", effector.showParameterType(i));
+					mapWriter.printf("\t[ %1$s ]%n", effector.showParameterType(i));
 					for (int j = 0; j < effector.getParameterCount(); j++) {
 						mapWriter.printf("\t%1$s%n", effector.showParameterTokens(j));
 					}

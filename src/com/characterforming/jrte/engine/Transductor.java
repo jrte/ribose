@@ -1192,7 +1192,7 @@ E:	do {
 
 		@Override
 		public String showParameterType(int parameterIndex) {
-			return "int[]";
+			return "byte[]";
 		}
 
 		@Override
