@@ -22,6 +22,7 @@ package com.characterforming.jrte.engine;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.Arrays;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.logging.Logger;
@@ -111,7 +112,7 @@ public final class Transductor implements ITransductor, IOutput {
 	private final InputStack inputStack;
 	private int matchMode;
 	private long[] matchSum;
-	private int[] matchProduct;
+	private byte[] matchProduct;
 	private int matchPosition;
 	private int matchByte;
 	private int errorInput;
@@ -605,29 +606,30 @@ E:	do {
 	}
 
 	private int productTrap(Input input, int token) {
-		final int[] match = this.matchProduct;
-		final int mlen = match.length;
+		final byte[] product = this.matchProduct;
+		byte match = (byte)(0xff & token);
 		int mpos = this.matchPosition;
-		assert mpos <= mlen;
-		while (mpos < mlen) {
-			if (token == match[mpos++]) {
-				if (mpos == mlen) {
+		assert mpos <= product.length;
+		while (mpos < product.length) {
+			if (match == product[mpos++]) {
+				if (mpos == product.length) {
 					break;
 				} else if (input.position < input.limit) {
-					token = 0xff & input.array[input.position++];
+					match = input.array[input.position++];
 				} else {
 					this.matchPosition = mpos;
 					return -1;
 				}
 			} else {
-				this.errorInput = token;
-				token = SIGNUL;
-				break;
+				this.errorInput = 0xff & match;
+				this.metrics.product += mpos;
+				this.matchMode = MATCH_NONE;
+				return SIGNUL;
 			}
 		}
 		this.metrics.product += mpos;
 		this.matchMode = MATCH_NONE;
-		return token;
+		return 0xff & match;
 	}
 
 	private int scanTrap(Input input, int token) {
@@ -1151,7 +1153,7 @@ E:	do {
 		}
 	}
 
-	private final class MproductEffector extends BaseParameterizedEffector<Transductor, int[]> {
+	private final class MproductEffector extends BaseParameterizedEffector<Transductor, byte[]> {
 		private MproductEffector(final Transductor transductor) {
 			super(transductor, "mproduct");
 		}
@@ -1175,21 +1177,17 @@ E:	do {
 		}
 
 		@Override // @see com.characterforming.ribose.IParameterizedEffector#iallocateParameters(int)
-		public int[][] allocateParameters(int parameterCount) {
-			return new int[parameterCount][];
+		public byte[][] allocateParameters(int parameterCount) {
+			return new byte[parameterCount][];
 		}
 	
 		@Override
-		public int[] compileParameter(final IToken[] parameterList) throws TargetBindingException {
+		public byte[] compileParameter(final IToken[] parameterList) throws TargetBindingException {
 			if (parameterList.length != 1) {
 				throw new TargetBindingException("The mproduct effector accepts at most one parameter (a byte array of length >1)");
 			}
-			byte[] b = parameterList[0].getLiteralValue();
-			int[] p = new int[b.length];
-			for (int i = 0; i < p.length; i++) {
-				p[i] = Byte.toUnsignedInt(b[i]);
-			}
-			return p;
+			byte[] tokens = parameterList[0].getLiteralValue();
+			return Arrays.copyOf(tokens, tokens.length);
  		}
 
 		@Override
@@ -1199,7 +1197,7 @@ E:	do {
 
 		@Override
 		public String showParameterTokens(int parameterIndex) {
-			int[] product = super.getParameter(parameterIndex);
+			byte[] product = super.getParameter(parameterIndex);
 			StringBuilder sb = new StringBuilder();
 			for (int j = 0; j < product.length; j++) {
 				sb.append(32 < product[j] && 127 > product[j]
