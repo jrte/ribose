@@ -58,12 +58,14 @@ public final class Ribose {
 						rtcLogger.log(Level.SEVERE, () -> String.format("Can't overwrite existing model file : %1$s",
 							riboseModelFile.getPath()));
 					}
+					return ModelCompiler.compileAutomata(targetClass.getName(), riboseModelFile, ginrAutomataDirectory);
 				} catch (Exception e) {
 					rtcLogger.log(Level.SEVERE, e, () -> String.format("Exception creating model file '%1$s' in directory %2$s",
 						riboseModelFile.getPath(), ginrAutomataDirectory.getPath()));
-					return false;
+					if (riboseModelFile.exists() && !riboseModelFile.delete()) {
+						assert false;
+					}
 				}
-				return compileRiboseModel(targetClass.getName(), riboseModelFile, ginrAutomataDirectory);
 			} else {
 				rtcLogger.log(Level.SEVERE, () -> String.format("Not a directory :'%1$s'",
 					ginrAutomataDirectory));
@@ -73,18 +75,6 @@ public final class Ribose {
 				riboseModelFile.getPath(), targetClass.getName()));
 		}
 		return false;
-	}
-
-	private static boolean compileRiboseModel(String targetClassname, File riboseModelFile, File ginrAutomataDirectory) {
-		boolean saved = false;
-		try (Model model = Model.create(riboseModelFile, targetClassname)) {
-			return ModelCompiler.compileAutomata(model, ginrAutomataDirectory);
-		} catch (Exception e) {
-			Base.getCompileLogger().log(Level.SEVERE, String.format("Exception compiling model '%1$s' from '%2$s'",
-				riboseModelFile.getPath(), ginrAutomataDirectory.getPath()), e);
-			riboseModelFile.deleteOnExit();
-		}
-		return saved;
 	}
 
 	/**

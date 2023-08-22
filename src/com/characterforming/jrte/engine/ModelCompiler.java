@@ -113,7 +113,7 @@ public final class ModelCompiler implements ITarget {
 		};
 	}
 
-	public static boolean compileAutomata(Model targetModel, File inrAutomataDirectory) throws ModelException {
+	public static boolean compileAutomata(String targetClassname, File riboseModelFile, File inrAutomataDirectory) throws ModelException {
 		Logger rtcLogger = Base.getCompileLogger();
 		File workingDirectory = new File(System.getProperty("user.dir", "."));
 		String compilerModelPath = ModelCompiler.class.getPackageName() + "/TCompile.model";
@@ -121,6 +121,7 @@ public final class ModelCompiler implements ITarget {
 		if (ModelCompiler.class.getResource(compilerModelPath) != null) {
 			try {
 				compilerModelFile = File.createTempFile("TCompile", ".model");
+				compilerModelFile.deleteOnExit();
 				try (
 					InputStream mis = ModelCompiler.class.getResourceAsStream(compilerModelPath);
 					OutputStream mos =  new FileOutputStream(compilerModelFile);
@@ -150,10 +151,13 @@ public final class ModelCompiler implements ITarget {
 		}
 
 		boolean commit = false;
-		ModelCompiler compiler = new ModelCompiler(targetModel);
-		try (IRuntime compilerRuntime = Ribose.loadRiboseModel(compilerModelFile)) {
-			final CharsetEncoder encoder = Base.newCharsetEncoder();
+		ModelCompiler compiler = null;
+		try (IRuntime compilerRuntime = Ribose.loadRiboseModel(compilerModelFile);
+			Model targetModel = Model.create(riboseModelFile, targetClassname)
+		) {
+			compiler = new ModelCompiler(targetModel);
 			compiler.setTransductor(compilerRuntime.transductor(compiler));
+			final CharsetEncoder encoder = Base.newCharsetEncoder();
 			for (final String filename : inrAutomataDirectory.list()) {
 				if (!filename.endsWith(Base.AUTOMATON_FILE_SUFFIX)) {
 					continue;
@@ -175,19 +179,21 @@ public final class ModelCompiler implements ITarget {
 			for (String msg : compiler.model.finalizeErrors()) {
 				compiler.error(msg);
 			}
-			commit = compiler.errors.isEmpty();
+			return targetModel.save();
 		} catch (Exception e) {
 			String msg = String.format("%1$s caught compiling automata directory '%2$s'.",
-				e.getClass().getSimpleName(), inrAutomataDirectory.getPath());
+			e.getClass().getSimpleName(), inrAutomataDirectory.getPath());
 			compiler.error(String.format("%1$s See log for exception details.", msg));
 			rtcLogger.log(Level.SEVERE, msg, e);
-		}
-		if (!commit) {
-			for (String error : compiler.getErrors()) {
-				rtcLogger.severe(error);
+		} finally {
+			commit = compiler.errors.isEmpty();
+			if (!commit) {
+				for (String error : compiler.getErrors()) {
+					rtcLogger.severe(error);
+				}
 			}
 		}
-		return targetModel.save(commit);
+		return commit;
 	}
 
 	private class Header {

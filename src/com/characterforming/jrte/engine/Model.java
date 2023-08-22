@@ -67,7 +67,7 @@ public final class Model implements AutoCloseable {
 		NONE, COMPILE, RUN;
 	}
 
-	private final String ioMode;
+	private final TargetMode targetMode;
 	private final File modelPath;
 	private final ITarget proxyTarget;
 	private final Logger rtcLogger;
@@ -105,7 +105,7 @@ public final class Model implements AutoCloseable {
 	}
 
 	private Model(final File modelPath, String targetClassname) throws ModelException {
-		this.ioMode = "rw";
+		this.targetMode = TargetMode.COMPILE;
 		this.deleteOnClose = true;
 		this.modelPath = modelPath;
 		this.rtcLogger = Base.getCompileLogger();
@@ -113,7 +113,7 @@ public final class Model implements AutoCloseable {
 		try {
 			Class<?> targetClass = Class.forName(targetClassname);
 			this.proxyTarget = (ITarget) targetClass.getDeclaredConstructor().newInstance();
-			this.io = new RandomAccessFile(this.modelPath, this.ioMode);
+			this.io = new RandomAccessFile(this.modelPath, "rw");
 			assert this.modelPath.length() == 0;
 			this.putLong(0);
 			this.putString(this.modelVersion);
@@ -131,14 +131,14 @@ public final class Model implements AutoCloseable {
 	}
 
 	private Model(final File modelPath) throws ModelException {
-		this.ioMode = "r";
+		this.targetMode = TargetMode.RUN;
 		this.deleteOnClose = false;
 		this.modelPath = modelPath;
 		this.rtcLogger = Base.getCompileLogger();
 		Base.getRuntimeLogger();
 		String targetClassname = "?";
 		try {
-			this.io = new RandomAccessFile(this.modelPath, this.ioMode);
+			this.io = new RandomAccessFile(this.modelPath, "r");
 			this.io.seek(0);
 			this.getLong();
 			this.modelVersion = this.getString();
@@ -194,7 +194,8 @@ public final class Model implements AutoCloseable {
 	public static Model create(final File modelPath, String targetClassname) throws ModelException {
 		Model model = new Model(modelPath, targetClassname);
 		assert model.modelPath.exists();
-		assert model.ioMode.equals("rw");
+		assert model.targetMode == TargetMode.COMPILE;
+		model.setDeleteOnClose(true);
 		model.signalOrdinalMap = new HashMap<>(256);
 		model.transducerOrdinalMap = new HashMap<>(256);
 		model.fieldOrdinalMap = new HashMap<>(256);
@@ -237,40 +238,40 @@ public final class Model implements AutoCloseable {
 	 * @return false if compilation fails
 	 * @throws ModelException on error
 	 */
-	boolean save(boolean commit) throws ModelException {
-		if (!commit) {
-			this.close();
-			return false;
-		}
-
+	boolean save() throws ModelException {
 		File mapFile = new File(this.modelPath.getPath().replaceAll(".model", ".map"));
 		try {
-			long filePosition = this.seek(-1);
-			int targetOrdinal = this.addTransducer(new Bytes(this.proxyTarget.getName().getBytes()));
-			this.setTransducerOffset(targetOrdinal, filePosition);
-			long indexPosition = this.io.getFilePointer();
-			assert indexPosition == this.io.length();
-			this.putOrdinalMap(signalOrdinalMap);
-			this.putOrdinalMap(fieldOrdinalMap);
-			this.putOrdinalMap(effectorOrdinalMap);
-			this.putOrdinalMap(transducerOrdinalMap);
 			int transducerCount = this.transducerOrdinalMap.size();
-			for (int index = 0; index < transducerCount; index++) {
-				assert this.transducerOffsetIndex[index] > 0;
-				this.putBytes(this.transducerNameIndex[index]);
-				this.putLong(this.transducerOffsetIndex[index]);
-			}
-			this.compileModelParameters();
-			this.seek(0);
-			this.putLong(indexPosition);
-			this.saveMapFile(mapFile);
-			if (this.rtcLogger.isLoggable(Level.INFO)) {
-				this.rtcLogger.log(Level.INFO, String.format(
-					"%1$s: target class %2$s%n%3$d transducers; %4$d effectors; %5$d fields; %6$d signal ordinals%n",
-					this.modelPath.getPath(), this.proxyTarget.getClass().getName(), this.transducerOrdinalMap.size() - 1,
-					this.effectorOrdinalMap.size(), this.fieldOrdinalMap.size(), this.getSignalCount()));
+			if (transducerCount > 0) {
+				long filePosition = this.seek(-1);
+				int targetOrdinal = this.addTransducer(new Bytes(this.proxyTarget.getName().getBytes()));
+				this.setTransducerOffset(targetOrdinal, filePosition);
+				transducerCount = this.transducerOrdinalMap.size();
+				long indexPosition = this.io.getFilePointer();
+				assert indexPosition == this.io.length();
+				this.putOrdinalMap(signalOrdinalMap);
+				this.putOrdinalMap(fieldOrdinalMap);
+				this.putOrdinalMap(effectorOrdinalMap);
+				this.putOrdinalMap(transducerOrdinalMap);
+				for (int index = 0; index < transducerCount; index++) {
+					assert this.transducerOffsetIndex[index] > 0;
+					this.putBytes(this.transducerNameIndex[index]);
+					this.putLong(this.transducerOffsetIndex[index]);
 				}
-			this.setDeleteOnClose(false);
+				this.compileModelParameters();
+				this.seek(0);
+				this.putLong(indexPosition);
+				this.saveMapFile(mapFile);
+				if (this.rtcLogger.isLoggable(Level.INFO)) {
+					this.rtcLogger.log(Level.INFO, String.format(
+						"%1$s: target class %2$s%n%3$d transducers; %4$d effectors; %5$d fields; %6$d signal ordinals%n",
+						this.modelPath.getPath(), this.proxyTarget.getClass().getName(), this.transducerOrdinalMap.size() - 1,
+						this.effectorOrdinalMap.size(), this.fieldOrdinalMap.size(), this.getSignalCount()));
+				}
+				this.setDeleteOnClose(false);
+			} else {
+				this.rtcLogger.log(Level.SEVERE, "No transducers compiled to {0}", this.modelPath.getPath());
+			}
 		} catch (IOException e) {
 			throw new ModelException(
 				String.format("IOException caught compiling model file '%1$s'", this.modelPath.getPath()), e);
@@ -278,13 +279,9 @@ public final class Model implements AutoCloseable {
 			throw new ModelException(
 				String.format("RteException caught compiling model file '%1$s'", this.modelPath.getPath()), e);
 		} finally {
-			if (this.transducerOrdinalMap.size() <= 1) {
-				this.rtcLogger.log(Level.SEVERE, "No transducers compiled to {0}", this.modelPath.getPath());
-				this.setDeleteOnClose(true);
-			}
 			if (this.deleteOnClose) {
 				this.rtcLogger.log(Level.SEVERE,"Compilation failed for model {0}",	this.modelPath.getPath());
-				if (!mapFile.delete()) {
+				if (mapFile.exists() && !mapFile.delete()) {
 					this.rtcLogger.log(Level.WARNING, "Unable to delete {0}", mapFile.getPath());
 				}
 			}
@@ -382,7 +379,7 @@ public final class Model implements AutoCloseable {
 	 * @return the bound transductor instance
 	 */
 	public Transductor bindTransductor(ITarget target) throws ModelException {
-		assert !this.ioMode.equals("rw");
+		assert this.targetMode == TargetMode.RUN;
 		Class<? extends ITarget> targetClass = target.getClass();
 		Class<? extends ITarget> modelClass = this.proxyTarget.getClass();
 		if (!modelClass.isAssignableFrom(targetClass)) {
@@ -415,6 +412,7 @@ public final class Model implements AutoCloseable {
 		} catch (IOException e) {
 			this.rtcLogger.log(Level.SEVERE, String.format("Unable to close model file %1$s", 
 				this.modelPath.getPath()), e);
+			this.deleteOnClose = this.targetMode == TargetMode.COMPILE;
 		} finally {
 			this.io = null;
 			if (this.deleteOnClose && this.modelPath.exists() && !this.modelPath.delete()) {
