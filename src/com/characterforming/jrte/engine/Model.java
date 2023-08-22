@@ -33,6 +33,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicIntegerArray;
@@ -77,6 +78,8 @@ public final class Model implements AutoCloseable {
 	private HashMap<Bytes, Integer> transducerOrdinalMap;
 	private HashMap<Bytes, Integer> effectorOrdinalMap;
 	private ArrayList<HashMap<BytesArray, Integer>> effectorParametersMaps;
+	private ArrayList<InputSymbol> transducerInputSymbols;
+	private HashSet<Bytes> parameterSignals;
 	private IEffector<?>[] proxyEffectors;
 	private String modelVersion;
 
@@ -90,6 +93,16 @@ public final class Model implements AutoCloseable {
 	private byte[][] fieldsNames;
 	private byte[][] signalNames;
 	private byte[][] transducerNames;
+
+	private final class InputSymbol {
+		public final String transducerName;
+		public final Bytes symbol;
+
+		InputSymbol(String transducerName, Bytes symbol) {
+			this.transducerName = transducerName;
+			this.symbol = symbol;
+		}
+	}
 
 	private Model(final File modelPath, String targetClassname) throws ModelException {
 		this.ioMode = "rw";
@@ -185,6 +198,8 @@ public final class Model implements AutoCloseable {
 		model.signalOrdinalMap = new HashMap<>(256);
 		model.transducerOrdinalMap = new HashMap<>(256);
 		model.fieldOrdinalMap = new HashMap<>(256);
+		model.transducerInputSymbols = new ArrayList<>(64);
+		model.parameterSignals = new HashSet<>(64);
 		for (int ordinal = 0; ordinal < Base.RTE_SIGNAL_BASE; ordinal++) {
 			Bytes name = new Bytes(new byte[] { 0, (byte) ordinal });
 			model.signalOrdinalMap.put(name, ordinal);
@@ -192,6 +207,7 @@ public final class Model implements AutoCloseable {
 		for (Signal signal : Signal.values()) {
 			assert model.getSignalLimit() == signal.signal();
 			model.signalOrdinalMap.put(signal.key(), signal.signal());
+			model.parameterSignals.add(signal.key());
 		}
 		assert model.signalOrdinalMap.size() == (Base.RTE_SIGNAL_BASE + Signal.values().length);
 		model.fieldOrdinalMap.put(new Bytes(Model.ANONYMOUS_FIELD_NAME), Model.ANONYMOUS_FIELD_ORDINAL);
@@ -203,11 +219,30 @@ public final class Model implements AutoCloseable {
 		return model;
 	}
 
+	ArrayList<String> finalizeErrors() {
+		ArrayList<String> unrecognized = new ArrayList<>(32);
+		for (InputSymbol inputSymbol : this.transducerInputSymbols) {
+			if (!this.parameterSignals.contains(inputSymbol.symbol)) {
+				unrecognized.add(String.format("%1$s: input symbol '%2$s' is not a recognized signal",
+					inputSymbol.transducerName, inputSymbol.symbol.toString()));
+			}
+		}
+		unrecognized.trimToSize();
+		return unrecognized;
+	}
+
 	/**
+	 * Save model file 
+	 * 
 	 * @return false if compilation fails
 	 * @throws ModelException on error
 	 */
-	boolean save() throws ModelException {
+	boolean save(boolean commit) throws ModelException {
+		if (!commit) {
+			this.close();
+			return false;
+		}
+
 		File mapFile = new File(this.modelPath.getPath().replaceAll(".model", ".map"));
 		try {
 			long filePosition = this.seek(-1);
@@ -228,13 +263,14 @@ public final class Model implements AutoCloseable {
 			this.compileModelParameters();
 			this.seek(0);
 			this.putLong(indexPosition);
-			saveMapFile(mapFile);
-			setDeleteOnClose(false);
-			String msg = String.format(
-				"%1$s: target class %2$s%n%3$d transducers; %4$d effectors; %5$d fields; %6$d signal ordinals%n",
-				this.modelPath.getPath(), this.proxyTarget.getClass().getName(), this.transducerOrdinalMap.size() - 1,
-				this.effectorOrdinalMap.size(),	this.fieldOrdinalMap.size(), this.getSignalCount());
-			this.rtcLogger.log(Level.INFO, msg);
+			this.saveMapFile(mapFile);
+			if (this.rtcLogger.isLoggable(Level.INFO)) {
+				this.rtcLogger.log(Level.INFO, String.format(
+					"%1$s: target class %2$s%n%3$d transducers; %4$d effectors; %5$d fields; %6$d signal ordinals%n",
+					this.modelPath.getPath(), this.proxyTarget.getClass().getName(), this.transducerOrdinalMap.size() - 1,
+					this.effectorOrdinalMap.size(), this.fieldOrdinalMap.size(), this.getSignalCount()));
+				}
+			this.setDeleteOnClose(false);
 		} catch (IOException e) {
 			throw new ModelException(
 				String.format("IOException caught compiling model file '%1$s'", this.modelPath.getPath()), e);
@@ -244,7 +280,7 @@ public final class Model implements AutoCloseable {
 		} finally {
 			if (this.transducerOrdinalMap.size() <= 1) {
 				this.rtcLogger.log(Level.SEVERE, "No transducers compiled to {0}", this.modelPath.getPath());
-				this.deleteOnClose = true;
+				this.setDeleteOnClose(true);
 			}
 			if (this.deleteOnClose) {
 				this.rtcLogger.log(Level.SEVERE,"Compilation failed for model {0}",	this.modelPath.getPath());
@@ -558,6 +594,14 @@ public final class Model implements AutoCloseable {
 
 	Integer getSignalOrdinal(final Bytes name) {
 		return this.signalOrdinalMap.get(name);
+	}
+
+	public void addTransducerInputSignal(String transducerName, Bytes symbol) {
+		this.transducerInputSymbols.add(new InputSymbol(transducerName, symbol));
+	}
+
+	public void addEffectorParameterSignal(Bytes token) {
+		this.parameterSignals.add(token);
 	}
 
 	Map<Bytes,Integer> getFieldMap() {

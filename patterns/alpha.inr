@@ -103,6 +103,7 @@ digit = '0123456789':alph;
 punct = '!\"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~':alph;
 space = ' ';
 comma = ',';
+query = '?';
 dot = '.';
 dash = '-';
 pipe = '|';

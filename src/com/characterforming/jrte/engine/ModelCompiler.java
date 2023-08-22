@@ -149,9 +149,10 @@ public final class ModelCompiler implements ITarget {
 			return false;
 		}
 
+		boolean commit = false;
+		ModelCompiler compiler = new ModelCompiler(targetModel);
 		try (IRuntime compilerRuntime = Ribose.loadRiboseModel(compilerModelFile)) {
 			final CharsetEncoder encoder = Base.newCharsetEncoder();
-			ModelCompiler compiler = new ModelCompiler(targetModel);
 			compiler.setTransductor(compilerRuntime.transductor(compiler));
 			for (final String filename : inrAutomataDirectory.list()) {
 				if (!filename.endsWith(Base.AUTOMATON_FILE_SUFFIX)) {
@@ -163,24 +164,30 @@ public final class ModelCompiler implements ITarget {
 						String transducerName = filename.substring(0, filename.length() - Base.AUTOMATON_FILE_SUFFIX.length());
 						int transducerOrdinal = targetModel.addTransducer(Bytes.encode(encoder, transducerName));
 						targetModel.setTransducerOffset(transducerOrdinal, filePosition);
-					} else {
-						for (String error : compiler.getErrors()) {
-							rtcLogger.severe(error);
-						}
 					}
 				} catch (Exception e) {
-					String msg = String.format("Exception caught compiling transducer '%1$s'", filename);
+					String msg = String.format("%1$s caught compiling transducer '%2$s'.", 
+						e.getClass().getSimpleName(), filename);
+					compiler.error(String.format("%1$s See log for exception details.", msg));
 					rtcLogger.log(Level.SEVERE, msg, e);
-					return false;
 				}
 			}
-			return compiler.getErrors().isEmpty() && targetModel.save();
-		} catch (ModelException e) {
-			String msg = String.format("Exception caught compiling automata directory '%1$s'",
-				inrAutomataDirectory.getPath());
+			for (String msg : compiler.model.finalizeErrors()) {
+				compiler.error(msg);
+			}
+			commit = compiler.errors.isEmpty();
+		} catch (Exception e) {
+			String msg = String.format("%1$s caught compiling automata directory '%2$s'.",
+				e.getClass().getSimpleName(), inrAutomataDirectory.getPath());
+			compiler.error(String.format("%1$s See log for exception details.", msg));
 			rtcLogger.log(Level.SEVERE, msg, e);
-			return false;
 		}
+		if (!commit) {
+			for (String error : compiler.getErrors()) {
+				rtcLogger.severe(error);
+			}
+		}
+		return targetModel.save(commit);
 	}
 
 	private class Header {
@@ -1075,7 +1082,9 @@ public final class ModelCompiler implements ITarget {
 				type = "signal";
 				break;
 			default:
-				this.model.addSignal(new Bytes(bytes));
+				Bytes signalSymbol = new Bytes(bytes);
+				this.model.addTransducerInputSignal(this.getTransducerName(), signalSymbol);
+				this.model.addSignal(signalSymbol);
 				return;
 			}
 			this.error(String.format("%1$s: Invalid input token '%2$s' of %3$s type on tape 0",
@@ -1103,6 +1112,7 @@ public final class ModelCompiler implements ITarget {
 				break;
 			case IToken.SIGNAL_TYPE:
 				this.model.addSignal(token);
+				this.model.addEffectorParameterSignal(token);
 				break;
 			default:
 				break;
