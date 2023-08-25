@@ -20,6 +20,8 @@
 
 package com.characterforming.ribose.base;
 
+import java.util.List;
+
 import com.characterforming.ribose.IParameterizedEffector;
 import com.characterforming.ribose.ITarget;
 import com.characterforming.ribose.IToken;
@@ -82,7 +84,7 @@ public abstract class BaseParameterizedEffector<T extends ITarget, P> extends Ba
 	 * is complete)
 	 * 
 	 * @return the parameter count
-	 * @see #compileParameters(IToken[][])
+	 * @see compileParameters(IToken[][], List<String>)
 	 */
 	public int getParameterCount() {
 		return this.parameters != null ? this.parameters.length : 0;
@@ -94,14 +96,26 @@ public abstract class BaseParameterizedEffector<T extends ITarget, P> extends Ba
 	 * token arrays. This method is for internal use only.
 	 * 
 	 * @param parameterTokens an array of byte[][] (raw effector parameter tokens)
-	 * @throws TargetBindingException if a parameter fails to compile
+	 * @param parameterErrors a list of error messages if one ore more parameters fail to compile
+	 * @return false if any errors were reported
 	 */
-	public void compileParameters(IToken[][] parameterTokens) throws TargetBindingException {
+	public boolean compileParameters(IToken[][] parameterTokens, List<String> parameterErrors) {
+		boolean fail = false;
 		this.tokens = parameterTokens;
 		this.parameters = this.allocateParameters(parameterTokens.length);
 		for (int i = 0; i < parameterTokens.length; i++) {
-			this.parameters[i] = this.compileParameter(parameterTokens[i]);
+			try {
+				this.parameters[i] = this.compileParameter(parameterTokens[i]);
+			} catch (TargetBindingException e) {
+				parameterErrors.add(e.getMessage());
+				fail = true;
+			} catch (Exception e) {
+				parameterErrors.add(String.format("%1$s.%2$s: %3$%s",
+					super.getTarget().getName(), super.getName(), e.getMessage()));
+				fail = true;
+			}
 		}
+		return fail;
 	}
 
 	/**

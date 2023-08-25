@@ -259,7 +259,7 @@ public final class Transductor implements ITransductor, IOutput {
 		return this;
 	}
 
-	@Override // @see com.characterforming.ribose.ITransductor#push(Signal)
+	@Override // @see com.characterforming.ribose.ITransductor#signal(Signal)
 	public ITransductor signal(Signal signal) {
 		if (this.status() != Status.NULL) {
 			this.prologue = signal;

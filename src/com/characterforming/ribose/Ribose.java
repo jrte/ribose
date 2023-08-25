@@ -54,17 +54,11 @@ public final class Ribose {
 		if (ITarget.class.isAssignableFrom(targetClass)) {
 			if (ginrAutomataDirectory.isDirectory()) {
 				try {
-					if (!riboseModelFile.createNewFile()) {
-						rtcLogger.log(Level.SEVERE, () -> String.format("Can't overwrite existing model file : %1$s",
-							riboseModelFile.getPath()));
-					}
 					return ModelCompiler.compileAutomata(targetClass.getName(), riboseModelFile, ginrAutomataDirectory);
 				} catch (Exception e) {
-					rtcLogger.log(Level.SEVERE, e, () -> String.format("Exception creating model file '%1$s' in directory %2$s",
+					rtcLogger.log(Level.SEVERE, e, () -> String.format("Exception creating model file '%1$s' from automata in directory %2$s",
 						riboseModelFile.getPath(), ginrAutomataDirectory.getPath()));
-					if (riboseModelFile.exists() && !riboseModelFile.delete()) {
-						assert false;
-					}
+					assert !riboseModelFile.exists();
 				}
 			} else {
 				rtcLogger.log(Level.SEVERE, () -> String.format("Not a directory :'%1$s'",

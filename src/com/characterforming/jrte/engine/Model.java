@@ -34,6 +34,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicIntegerArray;
@@ -81,7 +82,9 @@ public final class Model implements AutoCloseable {
 	private ArrayList<InputSymbol> transducerInputSymbols;
 	private HashSet<Bytes> parameterSignals;
 	private IEffector<?>[] proxyEffectors;
+	private List<String> errors;
 	private String modelVersion;
+	private int errorCount;
 
 	private AtomicIntegerArray transducerAccessIndex;
 	private AtomicReferenceArray<Transducer> transducerObjectIndex;
@@ -104,12 +107,14 @@ public final class Model implements AutoCloseable {
 		}
 	}
 
-	private Model(final File modelPath, String targetClassname) throws ModelException {
+	private Model(final File modelPath, String targetClassname, List<String> errors) throws ModelException {
 		this.targetMode = TargetMode.COMPILE;
 		this.deleteOnClose = true;
 		this.modelPath = modelPath;
 		this.rtcLogger = Base.getCompileLogger();
 		this.modelVersion = Base.RTE_VERSION;
+		this.errors = errors;
+		this.errorCount = 0;
 		try {
 			Class<?> targetClass = Class.forName(targetClassname);
 			this.proxyTarget = (ITarget) targetClass.getDeclaredConstructor().newInstance();
@@ -135,6 +140,8 @@ public final class Model implements AutoCloseable {
 		this.deleteOnClose = false;
 		this.modelPath = modelPath;
 		this.rtcLogger = Base.getCompileLogger();
+		this.errors = null;
+		this.errorCount = 0;
 		Base.getRuntimeLogger();
 		String targetClassname = "?";
 		try {
@@ -191,8 +198,8 @@ public final class Model implements AutoCloseable {
 	 * @return the new model instance
 	 * @throws ModelException on error
 	 */
-	public static Model create(final File modelPath, String targetClassname) throws ModelException {
-		Model model = new Model(modelPath, targetClassname);
+	public static Model create(final File modelPath, String targetClassname, List<String> errors) throws ModelException {
+		Model model = new Model(modelPath, targetClassname, errors);
 		assert model.modelPath.exists();
 		assert model.targetMode == TargetMode.COMPILE;
 		model.setDeleteOnClose(true);
@@ -220,20 +227,8 @@ public final class Model implements AutoCloseable {
 		return model;
 	}
 
-	ArrayList<String> finalizeErrors() {
-		ArrayList<String> unrecognized = new ArrayList<>(32);
-		for (InputSymbol inputSymbol : this.transducerInputSymbols) {
-			if (!this.parameterSignals.contains(inputSymbol.symbol)) {
-				unrecognized.add(String.format("%1$s: input symbol '%2$s' is not a recognized signal",
-					inputSymbol.transducerName, inputSymbol.symbol.toString()));
-			}
-		}
-		unrecognized.trimToSize();
-		return unrecognized;
-	}
-
 	/**
-	 * Save model file 
+	 * Save model file if no errors reported during compilation
 	 * 
 	 * @return false if compilation fails
 	 * @throws ModelException on error
@@ -242,11 +237,11 @@ public final class Model implements AutoCloseable {
 		File mapFile = new File(this.modelPath.getPath().replaceAll(".model", ".map"));
 		try {
 			int transducerCount = this.transducerOrdinalMap.size();
-			if (transducerCount > 0) {
+			if (transducerCount > 0 && this.errorCount == 0) {
 				long filePosition = this.seek(-1);
 				int targetOrdinal = this.addTransducer(new Bytes(this.proxyTarget.getName().getBytes()));
-				this.setTransducerOffset(targetOrdinal, filePosition);
 				transducerCount = this.transducerOrdinalMap.size();
+				this.setTransducerOffset(targetOrdinal, filePosition);
 				long indexPosition = this.io.getFilePointer();
 				assert indexPosition == this.io.length();
 				this.putOrdinalMap(signalOrdinalMap);
@@ -259,17 +254,17 @@ public final class Model implements AutoCloseable {
 					this.putLong(this.transducerOffsetIndex[index]);
 				}
 				this.compileModelParameters();
-				this.seek(0);
-				this.putLong(indexPosition);
-				this.saveMapFile(mapFile);
-				if (this.rtcLogger.isLoggable(Level.INFO)) {
-					this.rtcLogger.log(Level.INFO, String.format(
+				if (this.errorCount == 0) {
+					this.seek(0);
+					this.putLong(indexPosition);
+					this.saveMapFile(mapFile);
+					this.rtcLogger.log(Level.INFO, () -> String.format(
 						"%1$s: target class %2$s%n%3$d transducers; %4$d effectors; %5$d fields; %6$d signal ordinals%n",
 						this.modelPath.getPath(), this.proxyTarget.getClass().getName(), this.transducerOrdinalMap.size() - 1,
 						this.effectorOrdinalMap.size(), this.fieldOrdinalMap.size(), this.getSignalCount()));
+					this.setDeleteOnClose(false);
 				}
-				this.setDeleteOnClose(false);
-			} else {
+			} else if (transducerCount == 0) {
 				this.rtcLogger.log(Level.SEVERE, "No transducers compiled to {0}", this.modelPath.getPath());
 			}
 		} catch (IOException e) {
@@ -287,6 +282,7 @@ public final class Model implements AutoCloseable {
 			}
 			this.close();
 		}
+		assert (this.errors.isEmpty() && this.errorCount == 0) || this.deleteOnClose;
 		return !this.deleteOnClose;
 	}
 
@@ -337,6 +333,7 @@ public final class Model implements AutoCloseable {
 			model.transducerOffsetIndex[transducerOrdinal] = model.getLong();
 			assert model.transducerOrdinalMap.get(model.transducerNameIndex[transducerOrdinal]) == transducerOrdinal;
 		}
+		List<String> errors = new ArrayList<>(32);
 		for (int effectorOrdinal = 0; effectorOrdinal < model.effectorOrdinalMap.size(); effectorOrdinal++) {
 			byte[][][] effectorParameters = model.getBytesArrays();
 			IToken[][] parameterTokens = new IToken[effectorParameters.length][];
@@ -346,10 +343,33 @@ public final class Model implements AutoCloseable {
 			if (model.proxyEffectors[effectorOrdinal] instanceof IParameterizedEffector<?,?>) {
 				assert model.proxyEffectors[effectorOrdinal] instanceof BaseParameterizedEffector<?,?>;
 				BaseParameterizedEffector<?,?> effector = (BaseParameterizedEffector<?,?>)model.proxyEffectors[effectorOrdinal];
-				effector.compileParameters(parameterTokens);
+				effector.compileParameters(parameterTokens, errors);
 			}
 		}
+		if (!errors.isEmpty()) {
+			for (String error : errors) {
+				model.rtcLogger.log(Level.SEVERE, error);
+			}
+			throw new ModelException(String.format(
+				"Failed to load '%1$s', effector rarameter precompilation failed.",
+				modelPath.getAbsolutePath()));
+		}
 		return model;
+	}
+
+	boolean hasErrors() {
+		return !this.errors.isEmpty();
+	}
+
+	void putError(final String message) {
+		if (!this.errors.contains(message)) {
+			this.errors.add(message);
+			++this.errorCount;
+		}
+	}
+
+	List<String> getErrors() {
+		return this.errors;
 	}
 
 	private byte[][] getValueNames(HashMap<Bytes, Integer> nameOrdinalMap) {
@@ -410,8 +430,8 @@ public final class Model implements AutoCloseable {
 				this.io.close();
 			}
 		} catch (IOException e) {
-			this.rtcLogger.log(Level.SEVERE, String.format("Unable to close model file %1$s", 
-				this.modelPath.getPath()), e);
+			this.rtcLogger.log(Level.SEVERE, e, () -> String.format("Unable to close model file %1$s", 
+				this.modelPath.getPath()));
 			this.deleteOnClose = this.targetMode == TargetMode.COMPILE;
 		} finally {
 			this.io = null;
@@ -490,8 +510,13 @@ public final class Model implements AutoCloseable {
 		}
 	}
 
-	private boolean compileModelParameters() throws ModelException {
-		boolean fail = false;
+	void compileModelParameters() throws ModelException {
+		for (InputSymbol inputSymbol : this.transducerInputSymbols) {
+			if (!this.parameterSignals.contains(inputSymbol.symbol)) {
+				this.putError(String.format("%1$s: input symbol '%2$s' is not a recognized signal",
+					inputSymbol.transducerName, inputSymbol.symbol.toString()));
+			}
+		}
 		final Map<Bytes, Integer> effectorMap = this.getEffectorOrdinalMap();
 		for (int effectorOrdinal = 0; effectorOrdinal < this.proxyEffectors.length; effectorOrdinal++) {
 			IEffector<?> effector = this.proxyEffectors[effectorOrdinal];
@@ -508,12 +533,11 @@ public final class Model implements AutoCloseable {
 						effectorParameterBytes[ordinal] = tokens;
 						effectorParameterTokens[ordinal] = Token.getParameterTokens(this, tokens);
 					}
-					parameterizedEffector.compileParameters(effectorParameterTokens);
+					parameterizedEffector.compileParameters(effectorParameterTokens, errors);
 					this.putBytesArrays(effectorParameterBytes);
 				} else if (parameters.size() > 0) {
-					this.rtcLogger.log(Level.SEVERE, () -> String.format("%1$s.%2$s: effector does not accept parameters",
+					this.errors.add(String.format("%1$s.%2$s: effector does not accept parameters",
 						this.proxyTarget.getName(), effector.getName()));
-					fail = true;
 				} else {
 					this.putInt(-1);
 				}
@@ -527,10 +551,8 @@ public final class Model implements AutoCloseable {
 			if (this.proxyEffectors[entry.getValue()] == null) {
 				this.rtcLogger.log(Level.SEVERE, () -> String.format("%1$s.%2$s: effector ordinal not found",
 					this.proxyTarget.getName(), entry.getKey().toString()));
-				fail = true;
 			}
 		}
-		return !fail;
 	}
 
 	int compileParameters(final int effectorOrdinal, final byte[][] parameterBytes) {

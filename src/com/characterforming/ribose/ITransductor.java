@@ -322,9 +322,13 @@ public interface ITransductor extends ITarget {
 	ITransductor push(byte[] input, int limit);
 
 	/**
-	 * Push a signal onto the transductor's input stack to trigger initial transition.
+	 * Set up a signal as prologue for the next {@link #run()}. This will be the first
+	 * input to the top transducer when the transduction is started or resumed. All
+	 * transducers should accept an initial {@code nil} signal and some may use the 
+	 * {@code pause} effector to synchronize with a driver or controller that guides
+	 * the transduction process. 
 	 *
-	 * @param signal the signal to push
+	 * @param signal the signal to set as the next {@link #run()} prologue
 	 * @return this ITransductor
 	 */
 	ITransductor signal(Signal signal);
