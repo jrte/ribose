@@ -141,8 +141,10 @@ public class FileRunner {
 						double mpr = (metrics.bytes > 0) ? ((double)(100 * metrics.product) / (double)metrics.bytes) : -1;
 						double msc = (metrics.bytes > 0) ? ((double)(100 * metrics.scan) / (double)metrics.bytes) : -1;
 						double ekb = (metrics.bytes > 0) ? ((double)(1024 * metrics.errors) / (double)metrics.bytes) : -1;
+						final long buflen = blen;
 						System.err.println(String.format(" : %8.3f mb/s %7.3f nul/kb %6.3f%% m+ %6.3f%% m* %6.3f%% m-", mbps, ekb, mps, mpr, msc));
-						rtmLogger.log(Level.INFO, String.format("%s\t%8.3f\t%7.3f\t%6.3f\t%6.3f\t%6.3f\t%d\t%s", inputPath, mbps, ekb, mps, mpr, msc, blen, transducerName));
+							rtmLogger.log(Level.INFO, () -> String.format("%s\t%8.3f\t%7.3f\t%6.3f\t%6.3f\t%6.3f\t%d\t%s",
+							inputPath, mbps, ekb, mps, mpr, msc, buflen, transducerName));
 					} else {
 						try (
 							final FileInputStream isr = new FileInputStream(f);
@@ -159,8 +161,10 @@ public class FileRunner {
 							System.err.println("Runtime exception thrown.");
 							rteLogger.log(Level.SEVERE, "Runtime failed, exception thrown.", e);
 						}
+						long buflen = blen;
 						double mbps = (tjrte > 0) ? (double)(blen*1000) / (double)tjrte : -1;
-						rtmLogger.log(Level.FINE, String.format("%s\t%8.3f\t%d\t%s", inputPath, mbps, blen, transducerName));
+						rtmLogger.log(Level.FINE, () -> String.format("%s\t%8.3f\t%d\t%s",
+							inputPath, mbps, buflen, transducerName));
 					}
 				} catch (Exception e) {
 					rteLogger.log(Level.SEVERE, "Runtime failed, exception thrown.", e);
@@ -199,7 +203,9 @@ public class FileRunner {
 					}
 					double mbps = (tregex > 0) ? (double)((loops - 10)*blen*1000) / (double)tregex : -1;
 					System.err.println(String.format(" : %8.3f mb/s", mbps));
-					rtmLogger.log(Level.INFO, String.format("%s\t%8.3f\t%d\t%s", inputPath, mbps, blen, regex));
+					final long buflen = blen;
+					rtmLogger.log(Level.INFO, () -> String.format("%s\t%8.3f\t%d\t%s", 
+						inputPath, mbps, buflen, regex));
 				} else {
 					int count = 0;
 					charInput.rewind();
@@ -235,8 +241,10 @@ public class FileRunner {
 					System.out.flush();
 					assert count > 0;
 					tregex = System.nanoTime() - t0;
+					final long buflen = blen;
 					double mbps = (tregex > 0) ? (double)(blen*1000d) / (double)tregex : -1;
-					rtmLogger.log(Level.INFO, String.format("%s\t%8.3f\t%d\t%s", inputPath, mbps, blen, regex));
+					rtmLogger.log(Level.INFO, () -> String.format("%s\t%8.3f\t%d\t%s", 
+						inputPath, mbps, buflen, regex));
 				}
 			}
 			exitCode = 0;

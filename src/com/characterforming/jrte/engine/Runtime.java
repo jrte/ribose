@@ -131,8 +131,8 @@ public final class Runtime implements IRuntime {
 	}
 
 	private void log(ITarget target, Bytes transducer, Throwable e) {
-		this.rteLogger.log(Level.SEVERE, String.format("Exception in Runtime.transduce(%1$s, %2$s, ...)",
-			target.getClass().getSimpleName(), transducer.toString()), e);
+		this.rteLogger.log(Level.SEVERE, e, () -> String.format("Exception in Runtime.transduce(%1$s, %2$s, ...)",
+			target.getClass().getSimpleName(), transducer.toString()));
 	}
 
 	@Override

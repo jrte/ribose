@@ -277,7 +277,7 @@ public final class Model implements AutoCloseable {
 			if (this.deleteOnClose) {
 				this.rtcLogger.log(Level.SEVERE,"Compilation failed for model {0}",	this.modelPath.getPath());
 				if (mapFile.exists() && !mapFile.delete()) {
-					this.rtcLogger.log(Level.WARNING, "Unable to delete {0}", mapFile.getPath());
+					this.rtcLogger.log(Level.WARNING, () -> String.format("Unable to delete %1$s", mapFile.getPath()));
 				}
 			}
 			this.close();
@@ -432,12 +432,15 @@ public final class Model implements AutoCloseable {
 		} catch (IOException e) {
 			this.rtcLogger.log(Level.SEVERE, e, () -> String.format("Unable to close model file %1$s", 
 				this.modelPath.getPath()));
-			this.deleteOnClose = this.targetMode == TargetMode.COMPILE;
+			this.deleteOnClose |= this.targetMode == TargetMode.COMPILE;
 		} finally {
 			this.io = null;
-			if (this.deleteOnClose && this.modelPath.exists() && !this.modelPath.delete()) {
-				this.rtcLogger.log(Level.WARNING, "Unable to delete invalid model file%1$s{0}",
-					this.modelPath.getPath());
+			assert !this.deleteOnClose || this.targetMode == TargetMode.COMPILE;
+			if (this.deleteOnClose && this.targetMode == TargetMode.COMPILE) {
+				if (this.modelPath.exists() && !this.modelPath.delete()) {
+					this.rtcLogger.log(Level.WARNING, () -> String.format("Unable to delete model file %1$s", 
+						this.modelPath.getPath()));
+				}
 			}
 		}
 	}
