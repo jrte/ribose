@@ -29,12 +29,12 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.nio.charset.CharsetDecoder;
-import java.nio.charset.CharsetEncoder;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.logging.Level;
@@ -43,12 +43,13 @@ import java.util.logging.Logger;
 import com.characterforming.ribose.IEffector;
 import com.characterforming.ribose.IField;
 import com.characterforming.ribose.IOutput;
-import com.characterforming.ribose.IRuntime;
+import com.characterforming.ribose.IParameterizedEffector;
+import com.characterforming.ribose.IModel;
 import com.characterforming.ribose.ITarget;
-import com.characterforming.ribose.IToken;
 import com.characterforming.ribose.ITransductor;
-import com.characterforming.ribose.Ribose;
+import com.characterforming.ribose.IToken.Type;
 import com.characterforming.ribose.base.BaseEffector;
+import com.characterforming.ribose.base.BaseParameterizedEffector;
 import com.characterforming.ribose.base.Bytes;
 import com.characterforming.ribose.base.CompilationException;
 import com.characterforming.ribose.base.DomainErrorException;
@@ -59,61 +60,98 @@ import com.characterforming.ribose.base.Signal;
 import com.characterforming.ribose.base.TargetBindingException;
 
 /** Model compiler implements ITarget for the ribose compiler model. */
-public final class ModelCompiler implements ITarget {
-
-	/**
-	 * The model to be compiled.
-	 */
-	private final Model targetModel;
+public final class ModelCompiler extends Model implements ITarget, AutoCloseable {
 
 	private static final long VERSION = 210;
 	private static final String AMBIGUOUS_STATE_MESSAGE = "%1$s: Ambiguous state %2$d";
 
-	private final CharsetEncoder encoder;
-	private final CharsetDecoder decoder;
-	private final Logger rtcLogger;
 	private Bytes transducerName;
 	private ITransductor transductor;
-	private HashMap<Integer, Integer>[] stateMaps;
+	private HashMap<Integer, Integer> inputStateMap;
 	private HashMap<Integer, ArrayList<Transition>> stateTransitionMap;
 	private HashMap<Ints, Integer> effectorVectorMap;
+	private ArrayList<HashSet<Token>> tapeTokens;
 	private int[] effectorVectors;
+	private List<String> errors;
 	private Header header = null;
 	private Transition[] transitions = null;
 	private int[] inputEquivalenceIndex;
 	private int[][][] kernelMatrix;
-	private int transition = 0;
+	private int transition;
+	private int errorCount;
 
-	protected ModelCompiler() {
-		this(null);
+	ModelCompiler() {
+		super();
 	}
 
-	protected ModelCompiler(final Model model) {
-		this.targetModel = model;
+	private ModelCompiler(final File modelPath, Class<?> targetClass)
+	throws ModelException {
+		super(modelPath, targetClass);
+		assert super.modelPath.exists();
+		assert super.targetMode == TargetMode.RUN;
+		this.errors = new ArrayList<>();
+		super.writeLong(0);
+		super.writeString(super.modelVersion);
+		super.writeString(super.targetClass.getName());
+		super.signalOrdinalMap = new HashMap<>(256);
+		super.transducerOrdinalMap = new HashMap<>(256);
+		super.fieldOrdinalMap = new HashMap<>(256);
+		for (Signal signal : Signal.values()) {
+			if (!signal.isNone()) {
+				assert super.getSignalLimit() == signal.signal();
+				super.signalOrdinalMap.put(signal.symbol(), signal.signal());
+			}
+		}
+		this.tapeTokens = new ArrayList<>(3);
+		for (int tape = 0; tape < 3; tape++) {
+			this.tapeTokens.add(tape, new HashSet<>(128));
+		}
+		HashSet<Token> parameterTokens = this.tapeTokens.get(2);
+		for (Signal signal : Signal.values()) {
+			if (!signal.isNone()) {
+				parameterTokens.add(new Token(signal.reference().bytes(), signal.signal()));
+			}
+		}
+		parameterTokens.add(new Token(Model.ALL_FIELDS_NAME, Model.CLEAR_ALL_FIELDS_ORDINAL));
+		super.fieldOrdinalMap.put(new Bytes(Model.ANONYMOUS_FIELD_NAME), Model.ANONYMOUS_FIELD_ORDINAL);
+		super.fieldOrdinalMap.put(new Bytes(Model.ALL_FIELDS_NAME), Model.CLEAR_ALL_FIELDS_ORDINAL);
+		super.transducerOffsetIndex = new long[256];
+		super.transducerNameIndex = new Bytes[256];
+		super.initialize();
 		this.transductor = null;
-		this.encoder = Base.newCharsetEncoder();
-		this.decoder = Base.newCharsetDecoder();
-		this.rtcLogger = Base.getCompileLogger();
 		this.reset();
 	}
 
-	public static boolean compileAutomata(String targetClassname, File riboseModelFile, File inrAutomataDirectory) throws ModelException {
+	@Override // AutoCloseable.close()
+	public void close() {
+		super.close();
+	}
+
+	@Override // com.characterforming.ribose.IEffector
+	public String getName() {
+		return this.getClass().getSimpleName();
+	}
+
+	@Override // com.characterforming.ribose.IEffector
+	public IEffector<?>[] getEffectors() throws TargetBindingException {
+		return new IEffector<?>[] {
+				new HeaderEffector(this),
+				new TransitionEffector(this),
+				new AutomatonEffector(this)
+		};
+	}
+
+	public static boolean compileAutomata(Class<?> targetClass, File riboseModelFile, File inrAutomataDirectory) throws ModelException {
 		Logger rtcLogger = Base.getCompileLogger();
 
-		if (!riboseModelFile.exists()) {
-			try {
-				if (!riboseModelFile.createNewFile()) {
-					rtcLogger.log(Level.SEVERE, () -> String.format("Can't overwrite existing model file : %1$s",
-						riboseModelFile.getPath()));
-					return false;
-				}
-			} catch (IOException e) {
-				rtcLogger.log(Level.SEVERE, () -> String.format("Exception caught creating model file : %1$s",
+		if (!riboseModelFile.exists()) try {
+			if (!riboseModelFile.createNewFile()) {
+				rtcLogger.log(Level.SEVERE, () -> String.format("Can't overwrite existing model file : %1$s",
 					riboseModelFile.getPath()));
 				return false;
 			}
-		} else {
-			rtcLogger.log(Level.SEVERE, () -> String.format("Can't overwrite existing model file : %1$s",
+		} catch (IOException e) {
+			rtcLogger.log(Level.SEVERE, e, () -> String.format("Exception caught creating model file : %1$s",
 				riboseModelFile.getPath()));
 			return false;
 		}
@@ -127,38 +165,29 @@ public final class ModelCompiler implements ITarget {
 			return false;
 		}
 
-		boolean commit = false;
-		ModelCompiler compiler = null;
-		ArrayList<String> errors = new ArrayList<>();
-		try (IRuntime compilerRuntime = Ribose.loadRiboseModel(compilerModelFile);
-			Model model = Model.create(riboseModelFile, targetClassname, errors)
+		boolean saved = false;
+		try (
+			IModel compilerRuntime = IModel.loadRiboseModel(compilerModelFile);
+			ModelCompiler compiler = new ModelCompiler(riboseModelFile, targetClass);
 		) {
-			compiler = new ModelCompiler(model);
-			assert model == compiler.targetModel;
 			compiler.setTransductor(compilerRuntime.transductor(compiler));
-			final CharsetEncoder encoder = Base.newCharsetEncoder();
 			for (final String filename : inrAutomataDirectory.list()) {
-				if (!filename.endsWith(Base.AUTOMATON_FILE_SUFFIX)) {
-					continue;
-				}
-				try {
-					long filePosition = compiler.targetModel.seek(-1);
-					if (compiler.compile(new File(inrAutomataDirectory, filename))) {
-						String transducerName = filename.substring(0, filename.length() - Base.AUTOMATON_FILE_SUFFIX.length());
-						int transducerOrdinal = compiler.targetModel.addTransducer(Bytes.encode(encoder, transducerName));
-						compiler.targetModel.setTransducerOffset(transducerOrdinal, filePosition);
+				if (filename.endsWith(Base.AUTOMATON_FILE_SUFFIX)) {
+					try {
+						compiler.compileTransducer(new File(inrAutomataDirectory, filename));
+					} catch (ModelException e) {
+						String msg = String.format("%1$s: ModelException caught saving to model file; %2$s",
+							filename, e.getMessage());
+						compiler.addError(msg);
+						rtcLogger.log(Level.SEVERE, msg, e);
 					}
-				} catch (Exception e) {
-					String msg = String.format("%1$s caught compiling transducer '%2$s'.", 
-						e.getClass().getSimpleName(), filename);
-					compiler.targetModel.addError(String.format("%1$s See log for exception details.", msg));
-					rtcLogger.log(Level.SEVERE, msg, e);
 				}
 			}
-			commit = compiler.targetModel.save();
-			assert commit == !compiler.targetModel.hasErrors();
-			if (compiler.targetModel.hasErrors()) {
-				for (String error : compiler.targetModel.getErrors()) {
+			byte[][][][] compiledParameters = compiler.compileModelParameters(compiler.errors);
+			saved = compiler.validate() && compiler.save(compiledParameters);
+			assert saved == !compiler.hasErrors();
+			if (!saved) {
+				for (String error : compiler.getErrors()) {
 					rtcLogger.severe(error);
 				}
 			}
@@ -166,12 +195,12 @@ public final class ModelCompiler implements ITarget {
 			rtcLogger.log(Level.SEVERE, e, () -> String.format("%1$s caught compiling automata directory '%2$s'.",
 				e.getClass().getSimpleName(), inrAutomataDirectory.getPath()));
 		} finally {
-			if (!commit && riboseModelFile.exists() && !riboseModelFile.delete()) {
+			if (!saved && riboseModelFile.exists() && !riboseModelFile.delete()) {
 				rtcLogger.log(Level.WARNING, () -> String.format("Unable to delete failed model file '%1$s'.",
 					riboseModelFile.getAbsolutePath()));
 			}
 		}
-		return commit;
+		return saved;
 	}
 
 	private static File lookupCompilerModel(File workingDirectory) {
@@ -203,131 +232,9 @@ public final class ModelCompiler implements ITarget {
 		return compilerModelFile;
 	}
 
-	@Override
-	public String getName() {
-		return this.getClass().getSimpleName();
-	}
-
-	@Override
-	public IEffector<?>[] getEffectors() throws TargetBindingException {
-		return new IEffector<?>[] {
-				new HeaderEffector(this),
-				new TransitionEffector(this),
-				new AutomatonEffector(this)
-		};
-	}
-
-	private class Header {
-		final int version;
-		final int tapes;
-		final int transitions;
-		final int states;
-		final int symbols;
-
-		Header(int version, int tapes, int transitions, int states, int symbols) {
-			this.version = version;
-			this.tapes = tapes;
-			this.transitions = transitions;
-			this.states = states;
-			this.symbols = symbols;
-			assert this.symbols > 0;
-		}
-	}
-
-	class HeaderEffector extends BaseEffector<ModelCompiler> {
-		IField[] fields;
-
-		HeaderEffector(ModelCompiler automaton) {
-			super(automaton, "header");
-	 }
-
-		@Override
-		public
-		void setOutput(IOutput output) throws TargetBindingException {
-			super.setOutput(output);
-			this.fields = new IField[] {
-				super.output.getField(Bytes.encode(super.getEncoder(), "version")),
-				super.output.getField(Bytes.encode(super.getEncoder(), "tapes")),
-				super.output.getField(Bytes.encode(super.getEncoder(), "transitions")),
-				super.output.getField(Bytes.encode(super.getEncoder(), "states")),
-				super.output.getField(Bytes.encode(super.getEncoder(), "symbols"))
-			};
-		}
-
-		@Override
-		public
-		int invoke() throws EffectorException {
-			assert target.targetModel != null;
-			target.putHeader(this.fields);
-			return IEffector.RTX_NONE;
-		}
-	}
-
-	private class Transition {
-		final int from;
-		final int to;
-		final int tape;
-		final byte[] symbol;
-		final boolean isFinal;
-
-		Transition(int from, int to, int tape, byte[] symbol) {
-			this.isFinal = (to == 1 && tape == 0 && symbol.length == 0);
-			this.from = from;
-			this.to = to;
-			this.tape = tape;
-			this.symbol = symbol;
-		}
-	}
-
-	class TransitionEffector extends BaseEffector<ModelCompiler> {
-		IField[] fields;
-
-		TransitionEffector(ModelCompiler automaton) {
-			super(automaton, "transition");
-		}
-
-		@Override
-		public
-		void setOutput(IOutput output) throws TargetBindingException {
-			super.setOutput(output);
-			fields = new IField[] {
-				super.output.getField(Bytes.encode(super.getEncoder(), "from")),
-				super.output.getField(Bytes.encode(super.getEncoder(), "to")),
-				super.output.getField(Bytes.encode(super.getEncoder(), "tape")),
-				super.output.getField(Bytes.encode(super.getEncoder(), "symbol"))
-			};
-		}
-
-		@Override
-		public
-		int invoke() throws EffectorException {
-			assert target.targetModel != null;
-			target.putTransition(this.fields);
-			return IEffector.RTX_NONE;
-		}
-	}
-
-	class AutomatonEffector extends BaseEffector<ModelCompiler> {
-		AutomatonEffector(ModelCompiler target) {
-			super(target, "automaton");
-		}
-
-		@Override
-		public
-		int invoke() throws EffectorException {
-			assert target.targetModel != null;
-			target.putTransitionMatrix();
-			return IEffector.RTX_NONE;
-		}
-	}
-
-	private void setTransductor(ITransductor transductor) {
-		this.transductor = transductor;
-	}
-
-	private void reset() {
+	private ModelCompiler reset() {
 		this.transducerName = null;
-		this.stateMaps = null;
+		this.inputStateMap = null;
 		this.stateTransitionMap = null;
 		this.effectorVectorMap = null;
 		this.inputEquivalenceIndex = null;
@@ -335,10 +242,10 @@ public final class ModelCompiler implements ITarget {
 		this.header = null;
 		this.transitions = null;
 		this.transition = 0;
+		return this;
 	}
 
-	@SuppressWarnings("unchecked")
-	private boolean compile(File inrFile) throws RiboseException {
+	private boolean compileTransducer(File inrFile) throws RiboseException {
 		this.reset();
 		String name = inrFile.getName();
 		name = name.substring(0, name.length() - Base.AUTOMATON_FILE_SUFFIX.length());
@@ -355,16 +262,16 @@ public final class ModelCompiler implements ITarget {
 			}
 			assert position == size;
 		} catch (FileNotFoundException e) {
-			this.targetModel.addError(String.format("%1$s: File not found '%2$s'",
+			this.addError(String.format("%1$s: File not found '%2$s'",
 				name, inrFile.getPath()));
 			return false;
 		} catch (IOException e) {
-			this.targetModel.addError(String.format("%1$s: IOException compiling '%2$s'; %3$s",
+			this.addError(String.format("%1$s: IOException compiling '%2$s'; %3$s",
 				name, inrFile.getPath(), e.getMessage()));
 			return false;
 		}
 		try {
-			this.stateMaps = (HashMap<Integer, Integer>[])new HashMap<?,?>[3];
+			this.inputStateMap = new HashMap<>(256);
 			this.stateTransitionMap = new HashMap<>(size >> 3);
 			Bytes automaton = Bytes.encode(this.encoder, "Automaton");
 			if (this.transductor.stop().push(bytes, size).signal(Signal.NIL).start(automaton).status().isRunnable()
@@ -374,96 +281,262 @@ public final class ModelCompiler implements ITarget {
 			assert !this.transductor.status().isRunnable();
 			this.transductor.stop();
 			assert this.transductor.status().isStopped();
-			if (!this.targetModel.hasErrors()) {
-				this.saveTransducer();
-			}
 		} catch (ModelException e) {
-			this.targetModel.addError(String.format("%1$s: ModelException compiling '%2$s'; %3$s",
+			this.addError(String.format("%1$s: ModelException compiling '%2$s'; %3$s",
 				name, inrFile.getPath(), e.getMessage()));
+			return false;
 		} catch (DomainErrorException e) {
-			this.targetModel.addError(String.format("%1$s: DomainErrorException compiling '%2$s'; %3$s",
-				name, inrFile.getPath(), e.getMessage()));
-		} catch (RiboseException e) {
-			this.targetModel.addError(String.format("%1$s: RteException compiling '%2$s'; %3$s",
+			this.addError(String.format("%1$s: DomainErrorException compiling '%2$s'; %3$s",
 				name, inrFile.getPath(), e.getMessage()));
 		} finally {
 			this.transductor.stop();
 			assert this.transductor.status().isStopped();
 		}
-		return !this.targetModel.hasErrors();
+		this.saveTransducer();
+		return true;
 	}
 
-	private void putHeader(IField[] fields) {
-		assert targetModel != null;
-		Header h = new Header(
-			(int) fields[0].asInteger(),
-			(int) fields[1].asInteger(),
-			(int) fields[2].asInteger(),
-			(int) fields[3].asInteger(),
-			(int) fields[4].asInteger());
-		if (h.version != ModelCompiler.VERSION) {
-			this.targetModel.addError(String.format("%1$s: Invalid INR version %2$d",
-				getTransducerName(), h.version));
+	private boolean validate() {
+		for (Token token : this.tapeTokens.get(0)) {
+			if (token.getType() != Type.LITERAL && token.getType() != Type.SIGNAL) {
+				this.addError(String.format("Error: Invalid %2$s token '%1$s' on tape 0",
+					token.toString(), token.getTypeName()));
+			} else if (token.getSymbol().bytes().length > 1
+					&& !this.tapeTokens.get(2).contains(token)) {
+				this.addError(String.format("Error: Unrecognized signal reference '%1$s' on tape 0",
+					token.toString()));
+			}
 		}
-		if (h.tapes > 3) {
-			this.targetModel.addError(String.format("%1$s: Invalid tape count %2$d",
-				getTransducerName(), h.tapes));
+		for (Token token : this.tapeTokens.get(1)) {
+			if (token.getType() != Type.LITERAL) {
+				this.addError(String.format("Error: Invalid %2$s token '%1$s' on tape 1",
+					token.toString(), token.getTypeName()));
+			} else if (this.getEffectorOrdinal(token.getSymbol()) < 0) {
+				this.addError(String.format("Error: Unrecognized effector token '%1$s' on tape 1",
+					token.toString()));
+			}
 		}
-		this.header = h;
-		this.transitions = new Transition[h.transitions];
-		stateTransitionMap = new HashMap<>((h.states * 5) >> 2);
+		for (Token token : this.tapeTokens.get(2)) {
+			if (token.getType() == Type.TRANSDUCER
+				&& this.getTransducerOrdinal(token.getSymbol()) < 0) {
+				this.addError(String.format("Error: Unrecognized transducer token '%1$s' on tape 1",
+					token.toString()));
+			} else if (token.getType() == Type.SIGNAL
+				&& this.getSignalOrdinal(token.getSymbol()) > Signal.EOS.signal()
+				&& !this.tapeTokens.get(0).contains(token)) {
+				this.addError(String.format("Error: Signal token '%1$s' on tape 2 is never referenced on tape 0",
+					token.toString()));
+			}
+		}
+		if (this.transducerOrdinalMap.isEmpty()) {
+			this.addError("Error: The model is empty");
+		}
+		return !this.hasErrors();
 	}
 
-	private void putTransition(IField[] fields) {
+	private void saveTransducer() throws ModelException {
+		long filePosition = this.seek(-1);
+		int transducerOrdinal = this.addTransducer(this.transducerName);
+		this.setTransducerOffset(transducerOrdinal, filePosition);
+		this.writeString(this.getTransducerName());
+		this.writeString(this.targetClass.getSimpleName());
+		this.writeIntArray(this.inputEquivalenceIndex);
+		this.writeTransitionMatrix(this.kernelMatrix);
+		this.writeIntArray(this.effectorVectors);
+		int count = 0;
+		for (final int[][] row : this.kernelMatrix) {
+			for (final int[] col : row) {
+				if (col[1] != 0) {
+					count++;
+				}
+			}
+		}
+		final int transitionCount = count;
+		double sparsity = 100 - (double) (100 * count) / (double) (this.kernelMatrix.length * this.kernelMatrix[0].length);
+		this.rtcLogger.log(Level.INFO, () -> String.format(
+			"%1$-21s %2$5d input classes %3$5d states %4$5d transitions (%5$.0f%% nul)",
+			this.getTransducerName()+":", this.kernelMatrix.length, this.kernelMatrix[0].length,
+			transitionCount, sparsity));
+		System.err.flush();
+	}
+
+	private boolean save(byte[][][][] compiledParameters) throws ModelException {
+		File mapFile = new File(this.modelPath.getPath().replaceAll(".model", ".map"));
+		long indexPosition = this.getSafeFilePosition();
+		try {
+			assert indexPosition == super.io.length();
+			if (this.errorCount == 0 && this.transducerOrdinalMap.size() > 0) {
+				long filePosition = this.seek(-1);
+				int targetOrdinal = this.addTransducer(new Bytes(this.targetName.getBytes()));
+				int transducerCount = this.transducerOrdinalMap.size();
+				this.setTransducerOffset(targetOrdinal, filePosition);
+				this.writeOrdinalMap(signalOrdinalMap, Base.RTE_SIGNAL_BASE);
+				this.writeOrdinalMap(fieldOrdinalMap, 0);
+				this.writeOrdinalMap(effectorOrdinalMap, 0);
+				this.writeOrdinalMap(transducerOrdinalMap, 0);
+				for (int index = 0; index < transducerCount; index++) {
+					if (this.transducerOffsetIndex[index] > 0) {
+						this.writeBytes(this.transducerNameIndex[index]);
+						this.writeLong(this.transducerOffsetIndex[index]);
+					}
+				}
+				for (int effectorOrdinal = 0; effectorOrdinal < this.effectorOrdinalMap.size(); effectorOrdinal++) {
+					byte[][][] parameters = compiledParameters[effectorOrdinal];
+					if (parameters != null && parameters.length > 0) {
+						assert this.proxyEffectors[effectorOrdinal] instanceof IParameterizedEffector<?, ?>;
+						this.writeBytesArrays(parameters);
+					} else {
+						this.writeInt(-1);
+					}
+				}
+				this.seek(0);
+				this.writeLong(indexPosition);
+				this.saveMapFile(mapFile);
+				this.rtcLogger.log(Level.INFO, () -> String.format(
+					"%1$s: target class %2$s%n%3$d transducers; %4$d effectors; %5$d fields; %6$d signal ordinals%n",
+					this.modelPath.getPath(), this.targetClass.getName(), this.transducerOrdinalMap.size() - 1,
+					this.effectorOrdinalMap.size(), this.fieldOrdinalMap.size(), this.getSignalCount()));
+				super.deleteOnClose = false;
+			}
+			if (this.transducerOrdinalMap.size() == 0) {
+				this.rtcLogger.log(Level.SEVERE, "No transducers compiled to {0}", this.modelPath.getPath());
+			}
+		} catch (IOException e) {
+			throw new ModelException(String.format("IOException caught compiling model file '%1$s'",
+				this.modelPath.getPath()), e);
+		} catch (RiboseException e) {
+			throw new ModelException(String.format("RiboseException caught compiling model file '%1$s'",
+				this.modelPath.getPath()), e);
+		} finally {
+			if (super.deleteOnClose) {
+				this.rtcLogger.log(Level.SEVERE, () -> String.format("Compilation failed for model '%1$s'", 
+					this.modelPath.getPath()));
+				if (mapFile.exists() && !mapFile.delete()) {
+					this.rtcLogger.log(Level.WARNING, () -> String.format("Unable to delete model '%1$s'",
+						mapFile.getPath()));
+				}
+			}
+		}
+		return !super.deleteOnClose;
+	}
+
+	private void saveMapFile(File mapFile) {
+		try (PrintWriter mapWriter = new PrintWriter(mapFile)) {
+			mapWriter.println(String.format("version %1$s", this.modelVersion));
+			mapWriter.println(String.format("target %1$s", this.targetClass.getName()));
+			Bytes[] signalIndex = new Bytes[this.signalOrdinalMap.size()];
+			for (Map.Entry<Bytes, Integer> m : this.signalOrdinalMap.entrySet()) {
+				signalIndex[m.getValue() - Base.RTE_SIGNAL_BASE] = m.getKey();
+			}
+			for (int i = 0; i < signalIndex.length; i++) {
+				mapWriter.printf("%1$-32s%2$6d%n", String.format("signal %1$s", 
+					signalIndex[i]), i + Base.RTE_SIGNAL_BASE);
+			}
+			Bytes[] fieldIndex = new Bytes[this.fieldOrdinalMap.size()];
+			for (Map.Entry<Bytes, Integer> m : this.fieldOrdinalMap.entrySet()) {
+				fieldIndex[m.getValue()] = m.getKey();
+			}
+			for (int i = 0; i < fieldIndex.length; i++) {
+				mapWriter.printf("%1$-32s%2$6d%n", String.format("field %1$s", 
+					fieldIndex[i]), i);
+			}
+			Bytes[] transducerIndex = new Bytes[this.transducerOrdinalMap.size()];
+			for (Map.Entry<Bytes, Integer> m : this.transducerOrdinalMap.entrySet()) {
+				transducerIndex[m.getValue()] = m.getKey();
+			}
+			for (int i = 0; i < (transducerIndex.length - 1); i++) {
+				mapWriter.printf("%1$-32s%2$6d%n", String.format("transducer %1$s", 
+					transducerIndex[i]), i);
+			}
+			Bytes[] effectorIndex = new Bytes[this.effectorOrdinalMap.size()];
+			for (Map.Entry<Bytes, Integer> m : this.effectorOrdinalMap.entrySet()) {
+				effectorIndex[m.getValue()] = m.getKey();
+			}
+			for (int i = 0; i < effectorIndex.length; i++) {
+				mapWriter.printf("%1$-32s%2$6d", String.format("effector %1$s", 
+					effectorIndex[i]), i);
+				if (this.proxyEffectors[i] instanceof IParameterizedEffector) {
+					BaseParameterizedEffector<?, ?> effector = (BaseParameterizedEffector<?, ?>) this.proxyEffectors[i];
+					mapWriter.printf("\t[ %1$s ]%n", effector.showParameterType());
+					for (int j = 0; j < effector.getParameterCount(); j++) {
+						mapWriter.printf("\t%1$s%n", effector.showParameterTokens(j));
+					}
+				} else {
+					mapWriter.println();
+				}
+			}
+			mapWriter.flush();
+		} catch (final IOException e) {
+			this.rtcLogger.log(Level.SEVERE, e, () -> "Model unable to create map file " + mapFile.getPath());
+		}
+	}
+
+	private String getTransducerName() {
+		return this.transducerName.toString();
+	}
+
+	private void putHeader(Header header) {
+		if (header.version != ModelCompiler.VERSION) {
+			this.addError(String.format("%1$s: Invalid INR version %2$d",
+				getTransducerName(), header.version));
+		}
+		if (header.tapes > 3) {
+			this.addError(String.format("%1$s: Invalid tape count %2$d",
+				getTransducerName(), header.tapes));
+		}
+		this.header = header;
+		this.transitions = new Transition[header.transitions];
+		stateTransitionMap = new HashMap<>((header.states * 5) >> 2);
+	}
+
+	private void putTransition(Transition transition) {
 		assert this.header.transitions == this.transitions.length;
-		Transition t = new Transition(
-			(int) fields[0].asInteger(),
-			(int) fields[1].asInteger(),
-			(int) fields[2].asInteger(),
-			fields[3].copyValue());
-		if (!t.isFinal) {
-			if (t.tape < 0) {
-				this.targetModel.addError(String.format("%1$s: Epsilon transition from state %2$d to %3$d (use :dfamin to remove these)",
-					this.getTransducerName(), t.from, t.to));
-			} else if (t.symbol.length == 0) {
-				this.targetModel.addError(String.format("%1$s: Empty symbol on tape %2$d",
-					this.getTransducerName(), t.tape));
+		if (!transition.isFinal) {
+			if (transition.tape < 0) {
+				this.addError(String.format("%1$s: Epsilon transition from state %2$d to %3$d (use :dfamin to remove these)",
+					this.getTransducerName(), transition.from, transition.to));
+			} else if (transition.symbol.getLength() == 0) {
+				this.addError(String.format("%1$s: Empty symbol on tape %2$d",
+					this.getTransducerName(), transition.tape));
 			} else {
-				this.transitions[this.transition++] = t;
-				switch (t.tape) {
-					case 0:
-						this.compileInputToken(t.symbol);
-						break;
-					case 1:
-						this.compileEffectorToken(t.symbol);
-						break;
-					case 2:
-						this.compileParameterToken(t.symbol);
-						break;
-					default:
-						assert false;
+				this.transitions[this.transition++] = transition;
+				if (transition.tape == 0) {
+					this.inputStateMap.putIfAbsent(transition.from, this.inputStateMap.size());
 				}
-				HashMap<Integer, Integer> rteStates = this.stateMaps[t.tape];
-				if (rteStates == null) {
-					rteStates = this.stateMaps[t.tape] = new HashMap<>(256);
+				if (transition.tape == 1 || transition.symbol.getLength() > 1) {
+					Token token = new Token(transition.symbol.bytes());
+					Bytes symbol = token.getSymbol();
+					Type type = token.getType();
+					if (transition.tape == 0 && type == Type.LITERAL && transition.symbol.getLength() > 1) {
+						this.addSignal(symbol);
+						this.tapeTokens.get(0).add(new Token(token.getReference(Type.SIGNAL, symbol.bytes())));
+					} else if (transition.tape == 1) {
+						this.tapeTokens.get(1).add(token);
+					} else if (transition.tape == 2 && type != Type.LITERAL) {
+						this.tapeTokens.get(2).add(token);
+						if (type == Type.FIELD) {
+							token.setOrdinal(this.addField(symbol));
+						} else if (type == Type.TRANSDUCER) {
+							token.setOrdinal(this.addTransducer(symbol));
+						} else if (type == Type.SIGNAL) {
+							token.setOrdinal(this.addSignal(symbol));
+						}
+					}
 				}
-				if (!rteStates.containsKey(t.from)) {
-					rteStates.put(t.from, rteStates.size());
-				}
-				ArrayList<Transition> outgoing = this.stateTransitionMap.get(t.from);
+				ArrayList<Transition> outgoing = this.stateTransitionMap.get(transition.from);
 				if (outgoing == null) {
 					outgoing = new ArrayList<>(16);
-					this.stateTransitionMap.put(t.from, outgoing);
+					this.stateTransitionMap.put(transition.from, outgoing);
 				}
-				outgoing.add(t);
+				outgoing.add(transition);
 			}
 		}
 	}
 
-	private void putTransitionMatrix() {
-		final Integer[] inrInputStates = this.getInrStates(0);
+	private void putAutomaton() {
+		final Integer[] inrInputStates = this.getInrStates();
 		if (inrInputStates == null) {
-			this.targetModel.addError("Empty automaton " + this.getTransducerName());
+			this.addError("Empty automaton " + this.getTransducerName());
 			return;
 		}
 
@@ -471,7 +544,7 @@ public final class ModelCompiler implements ITarget {
 			transitionList.trimToSize();
 		}
 
-		final int[][][] transitionMatrix = new int[this.targetModel.getSignalLimit()][inrInputStates.length][2];
+		final int[][][] transitionMatrix = new int[this.getSignalLimit()][inrInputStates.length][2];
 		for (int i = 0; i < transitionMatrix.length; i++) {
 			for (int j = 0; j < inrInputStates.length; j++) {
 				transitionMatrix[i][j][0] = j;
@@ -485,17 +558,17 @@ public final class ModelCompiler implements ITarget {
 			for (final Transition t : this.getTransitions(inrInputState)) {
 				if (!t.isFinal) {
 					if (t.tape != 0) {
-						this.targetModel.addError(String.format(ModelCompiler.AMBIGUOUS_STATE_MESSAGE,
+						this.addError(String.format(ModelCompiler.AMBIGUOUS_STATE_MESSAGE,
 							this.getTransducerName(), t.from));
 						continue;
 					}
 					try {
-						final int rteState = this.getRteState(0, t.from);
-						final int inputOrdinal = this.targetModel.getInputOrdinal(t.symbol);
+						final int rteState = this.inputStateMap.get(t.from);
+						final int inputOrdinal = this.getInputOrdinal(t.symbol.bytes());
 						final Chain chain = this.chain(t);
 						if (chain != null) {
 							final int[] effectVector = chain.getEffectVector();
-							transitionMatrix[inputOrdinal][rteState][0] = this.getRteState(0, chain.getOutS());
+							transitionMatrix[inputOrdinal][rteState][0] = this.inputStateMap.get(chain.getOutS());
 							if (chain.isEmpty()) {
 								transitionMatrix[inputOrdinal][rteState][1] = 1;
 							} else if (chain.isScalar()) {
@@ -513,16 +586,28 @@ public final class ModelCompiler implements ITarget {
 							}
 						}
 					} catch (CompilationException e) {
-						this.targetModel.addError(String.format("%1$s: %2$s",
+						this.addError(String.format("%1$s: %2$s",
 							this.getTransducerName(), e.getMessage()));
 					}
 				}
 			}
 		}
 
-		if (!this.targetModel.hasErrors()) {
-			this.factor(transitionMatrix);
+		this.factor(transitionMatrix);
+	}
+
+	private boolean hasErrors() {
+		return !this.errors.isEmpty();
+	}
+
+	private void addError(final String message) {
+		if (!this.errors.contains(message)) {
+			this.errors.add(message);
 		}
+	}
+
+	private List<String> getErrors() {
+		return this.errors;
 	}
 
 	private void factor(final int[][][] transitionMatrix) {
@@ -555,9 +640,9 @@ public final class ModelCompiler implements ITarget {
 		final int nStates = transitionMatrix[0].length;
 		final int nulSignal = Signal.NUL.signal();
 		final int nulEquivalent = this.inputEquivalenceIndex[nulSignal];
-		final int msumOrdinal = this.targetModel.getEffectorOrdinal(Bytes.encode(this.encoder, "msum"));
-		final int mproductOrdinal = this.targetModel.getEffectorOrdinal(Bytes.encode(this.encoder, "mproduct"));
-		final int mscanOrdinal = this.targetModel.getEffectorOrdinal(Bytes.encode(this.encoder, "mscan"));
+		final int msumOrdinal = this.getEffectorOrdinal(Bytes.encode(this.encoder, "msum"));
+		final int mproductOrdinal = this.getEffectorOrdinal(Bytes.encode(this.encoder, "mproduct"));
+		final int mscanOrdinal = this.getEffectorOrdinal(Bytes.encode(this.encoder, "mscan"));
 		final int[][] msumStateEffects = new int[nStates][];
 		final int[][] mproductStateEffects = new int[nStates][];
 		final int[][] mproductEndpoints = new int[nStates][2];
@@ -595,7 +680,7 @@ public final class ModelCompiler implements ITarget {
 				for (int token = 0; token < nulSignal; token++) {
 					if (!allBytes[token]) {
 						byte[][] mscanParameterBytes = { new byte[] { (byte)token } };
-						int mscanParameterIndex = this.targetModel.compileParameters(mscanOrdinal, mscanParameterBytes);
+						int mscanParameterIndex = this.compileParameters(mscanOrdinal, mscanParameterBytes);
 						mscanStateEffects[state] = new int[] { -1 * mscanOrdinal, mscanParameterIndex, 0 };
 						break;
 					}
@@ -603,7 +688,7 @@ public final class ModelCompiler implements ITarget {
 			} else if (selfCount > 64) {
 				assert msumStateEffects[state] == null;
 				byte[][] msumParameterBytes = { Arrays.copyOf(selfBytes, selfCount) };
-				int msumParameterIndex = this.targetModel.compileParameters(msumOrdinal, msumParameterBytes);
+				int msumParameterIndex = this.compileParameters(msumOrdinal, msumParameterBytes);
 				msumStateEffects[state] = new int[] { -1 * msumOrdinal, msumParameterIndex, 0 };
 			}
 		}
@@ -647,7 +732,7 @@ public final class ModelCompiler implements ITarget {
 			}
 			assert (exitEquivalent[state] < 0)
 			|| (this.kernelMatrix[exitEquivalent[state]][state][0] != state
-					&& this.kernelMatrix[exitEquivalent[state]][state][1] == 1);
+				&& this.kernelMatrix[exitEquivalent[state]][state][1] == 1);
 		}
 		assertKernelSanity();
 		boolean[] walkedStates = new boolean[nStates];
@@ -668,13 +753,9 @@ public final class ModelCompiler implements ITarget {
 					if (walkResult[0] > 3) {
 						assert this.inputEquivalenceIndex[walkedBytes[0]] == exitEquivalent[toState];
 						if (mproductStateEffects[toState] == null) {
-							mproductStateEffects[toState] = new int[] { 
-								-1 * mproductOrdinal, 
-								this.targetModel.compileParameters(
-									mproductOrdinal, new byte[][] { Arrays.copyOfRange(walkedBytes, 0, walkResult[0]) }
-								), 
-								0
-							};
+							byte[][] product = new byte[][] { Arrays.copyOfRange(walkedBytes, 0, walkResult[0]) };
+							int effects = this.compileParameters(mproductOrdinal, product);
+							mproductStateEffects[toState] = new int[] { -1 * mproductOrdinal, effects, 0 };
 							mproductEndpoints[toState][0] = nextState;
 							mproductEndpoints[toState][1] = walkResult[2];
 						} else {
@@ -966,6 +1047,7 @@ public final class ModelCompiler implements ITarget {
 		if (transition.isFinal) {
 			return null;
 		}
+		boolean fail = false;
 		int effectorOrdinal = -1;
 		int effectorPos = 0;
 		int[] effectorVector = new int[8];
@@ -980,37 +1062,44 @@ public final class ModelCompiler implements ITarget {
 						int newLength = effectorVector.length > 4 ? (effectorVector.length * 3) >> 1 : 5;
 						effectorVector = Arrays.copyOf(effectorVector, newLength);
 					}
-					if (parameterPos > 0) {
+					if (effectorOrdinal >= 0 && parameterPos > 0) {
 						assert((effectorPos > 0) && (effectorOrdinal == effectorVector[effectorPos - 1]));
 						effectorVector[effectorPos - 1] *= -1;
 						final byte[][] parameters = Arrays.copyOf(parameterList, parameterPos);
-						int parameterOrdinal = this.targetModel.compileParameters(effectorOrdinal, parameters);
+						int parameterOrdinal = this.compileParameters(effectorOrdinal, parameters);
 						effectorVector[effectorPos] = parameterOrdinal;
 						parameterList = new byte[8][];
-						parameterPos = 0;
 						++effectorPos;
 					}
-					effectorOrdinal = this.targetModel.getEffectorOrdinal(new Bytes(t.symbol));
-					assert effectorOrdinal >= 0;
-					effectorVector[effectorPos] = effectorOrdinal;
-					++effectorPos;
+					Bytes effectorSymbol = t.symbol;
+					effectorOrdinal = this.getEffectorOrdinal(effectorSymbol);
+					if (effectorOrdinal >= 0) {
+						effectorVector[effectorPos] = effectorOrdinal;
+						++effectorPos;
+					} else {
+						fail = true;
+					}
+					parameterPos = 0;
 					break;
 				case 2:
-					if (parameterPos >= parameterList.length) {
-						int newLength = parameterList.length > 4 ? (parameterList.length * 3) >> 1 : 5;
-						parameterList = Arrays.copyOf(parameterList, newLength);
+					if (effectorOrdinal >= 0) {
+						if (parameterPos >= parameterList.length) {
+							int newLength = parameterList.length > 4 ? (parameterList.length * 3) >> 1 : 5;
+							parameterList = Arrays.copyOf(parameterList, newLength);
+						}
+						parameterList[parameterPos] = t.symbol.bytes();
+						++parameterPos;
 					}
-					parameterList[parameterPos] = t.symbol;
-					++parameterPos;
 					break;
 				default:
-					this.targetModel.addError(String.format("%1$s: Invalid tape number %2$d",
-						this.getName(), t.tape));
+					this.addError(String.format("%1$s: Invalid tape number %2$d",
+						this.getTransducerName(), t.tape));
+					fail = true;
 					break;
 			}
 			outT = this.getTransitions(t.to);
 		}
-		if (!this.targetModel.hasErrors()) {
+		if (!fail) {
 			assert effectorPos > 0 || parameterPos == 0;
 			assert parameterPos == 0 || effectorPos > 0;
 			int vectorLength = effectorPos + 1;
@@ -1023,7 +1112,7 @@ public final class ModelCompiler implements ITarget {
 			if (parameterPos > 0) {
 				assert((effectorPos > 0) && (effectorOrdinal == effectorVector[effectorPos - 1]));
 				final byte[][] parameters = Arrays.copyOf(parameterList, parameterPos);
-				int parameterOrdinal = this.targetModel.compileParameters(effectorOrdinal, parameters);
+				int parameterOrdinal = this.compileParameters(effectorOrdinal, parameters);
 				effectorVector[effectorPos] = parameterOrdinal;
 				effectorVector[effectorPos - 1] *= -1;
 				++effectorPos;
@@ -1040,132 +1129,113 @@ public final class ModelCompiler implements ITarget {
 				int outS = -1;
 				for (final Transition t : outT) {
 					if (t.tape > 0) {
-						this.targetModel.addError(String.format(AMBIGUOUS_STATE_MESSAGE, this.getName(), t.from));
+						this.addError(String.format(AMBIGUOUS_STATE_MESSAGE, this.getTransducerName(), t.from));
+						fail = true;
 					} else {
 						outS = t.from;
 					}
 				}
-				if (!this.targetModel.hasErrors()) {
+				if (!fail) {
 					return new Chain(Arrays.copyOf(effectorVector, effectorPos), outS);
 				}
 			} else {
 				for (final Transition t : outT) {
-					this.targetModel.addError(String.format(AMBIGUOUS_STATE_MESSAGE, this.getName(), t.from));
+					this.addError(String.format(AMBIGUOUS_STATE_MESSAGE, this.getTransducerName(), t.from));
 				}
 			}
 		}
 		return null;
 	}
 
-	private void saveTransducer() throws ModelException {
-		assert !this.targetModel.hasErrors();
-		this.targetModel.putString(this.getTransducerName());
-		this.targetModel.putString(this.getName());
-		this.targetModel.putIntArray(this.inputEquivalenceIndex);
-		this.targetModel.putTransitionMatrix(this.kernelMatrix);
-		this.targetModel.putIntArray(this.effectorVectors);
-		int t = 0;
-		for (final int[][] row : this.kernelMatrix) {
-			for (final int[] col : row) {
-				if (col[1] != 0) {
-					t++;
-				}
-			}
-		}
-		final int transitionCount = t;
-		double sparsity = 100 - (double)(100 * transitionCount)/(double)(this.kernelMatrix.length * this.kernelMatrix[0].length);
-		this.rtcLogger.log(Level.INFO, () -> String.format("%1$20s: %2$5d input classes %3$5d states %4$5d transitions (%5$.0f%% nul)",
-			this.getTransducerName(), this.kernelMatrix.length, this.kernelMatrix[0].length, transitionCount, sparsity));
-		System.err.flush();
-	}
-
-	private String getTransducerName() {
-		return this.transducerName.toString();
-	}
-
-	private void compileInputToken(byte[] bytes) {
-		if (bytes.length > 1) {
-			String type = null;
-			switch(bytes[0]) {
-			case IToken.TRANSDUCER_TYPE:
-				type = "transducer";
-				break;
-			case IToken.FIELD_TYPE:
-				type = "field";
-				break;
-			case IToken.SIGNAL_TYPE:
-				type = "signal";
-				break;
-			default:
-				Bytes signalSymbol = new Bytes(bytes);
-				this.targetModel.addTransducerInputSignal(signalSymbol);
-				this.targetModel.addSignal(signalSymbol);
-				return;
-			}
-			this.targetModel.addError(String.format("%1$s: Invalid input token '%2$s' of %3$s type on tape 0",
-				this.getTransducerName(), Bytes.decode(this.decoder, bytes, bytes.length), type));
-		}
-	}
-
-	private void compileEffectorToken(byte[] bytes) {
-		assert (bytes.length > 0);
-		if (0 > this.targetModel.getEffectorOrdinal(new Bytes(bytes))) {
-			this.targetModel.addError(String.format("%1$s: Unknown effector token '%2$s' on tape 1",
-				this.getTransducerName(), Bytes.decode(this.decoder, bytes, bytes.length)));
-		}
-	}
-
-	private void compileParameterToken(byte[] bytes) {
-		if (bytes.length > 1) {
-			Bytes token = new Bytes(bytes, 1, bytes.length - 1);
-			switch (bytes[0]) {
-			case IToken.TRANSDUCER_TYPE:
-				this.targetModel.addTransducer(token);
-				break;
-			case IToken.FIELD_TYPE:
-				this.targetModel.addField(token);
-				break;
-			case IToken.SIGNAL_TYPE:
-				this.targetModel.addSignal(token);
-				this.targetModel.addEffectorSignalParameter(token);
-				break;
-			default:
-				break;
-			}
-		}
-	}
-
-	private int getRteState(final int tape, final int inrState) throws CompilationException {
-		final Integer rteInS = tape < this.stateMaps.length && this.stateMaps[tape] != null ? this.stateMaps[tape].get(inrState) : null;
-		if (rteInS == null) {
-			throw new CompilationException(String.format("No RTE state for INR tape %1$d state %2$d", tape, inrState));
-		}
-		return rteInS;
-	}
-
-	private Integer[] getInrStates(final int tape) {
-		final HashMap<Integer, Integer> inrRteStateMap = tape < this.stateMaps.length && this.stateMaps[tape] != null ? this.stateMaps[tape] : null;
-		if (inrRteStateMap != null) {
-			Integer[] inrStates = new Integer[inrRteStateMap.size()];
-			inrStates = inrRteStateMap.keySet().toArray(inrStates);
-			Arrays.sort(inrStates);
-			return inrStates;
-		}
-		return null;
+	private Integer[] getInrStates() {
+		Integer[] inrStates = new Integer[this.inputStateMap.size()];
+		inrStates = this.inputStateMap.keySet().toArray(inrStates);
+		Arrays.sort(inrStates);
+		return inrStates;
 	}
 
 	private ArrayList<Transition> getTransitions(final int inrState) {
 		return this.stateTransitionMap.get(inrState);
 	}
 
-	@SuppressWarnings("unused")
-	private int[][][] transpose(int[][][] m) {
-		int[][][] t = new int[m[0].length][m.length][m[0][0].length];
-		for(int i=0 ; i<m.length; i++) {
-			for(int j=0 ; j<(m[i].length) ; j++) {
-				t[j][i] = m[i][j];
-			}
+	private void setTransductor(ITransductor transductor) {
+		this.transductor = transductor;
+	}
+
+	private record Header (int version, int tapes, int transitions, int states, int symbols) {}
+
+	private record Transition (int from, int to, int tape, Bytes symbol, boolean isFinal) {}
+
+	final class HeaderEffector extends BaseEffector<ModelCompiler> {
+		IField[] fields;
+
+		HeaderEffector(ModelCompiler modelCompiler) {
+			super(modelCompiler, "header");
 		}
-		return t;
+
+		@Override
+		public void setOutput(IOutput output) throws TargetBindingException {
+			super.setOutput(output);
+			this.fields = new IField[] {
+				super.getField("version"),
+				super.getField("tapes"),
+				super.getField("transitions"),
+				super.getField("states"),
+				super.getField("symbols")
+			};
+		}
+
+		@Override
+		public int invoke() throws EffectorException {
+			ModelCompiler.this.putHeader(new Header(
+				(int)fields[0].asInteger(),
+				(int)fields[1].asInteger(),
+				(int)fields[2].asInteger(),
+				(int)fields[3].asInteger(),
+				(int)fields[4].asInteger()));
+			return IEffector.RTX_NONE;
+		}
+	}
+
+	final class TransitionEffector extends BaseEffector<ModelCompiler> {
+		IField[] fields;
+
+		TransitionEffector(ModelCompiler automaton) {
+			super(automaton, "transition");
+		}
+
+		@Override
+		public void setOutput(IOutput output) throws TargetBindingException {
+			super.setOutput(output);
+			fields = new IField[] {
+				super.getField("from"),
+				super.getField("to"),
+				super.getField("tape"),
+				super.getField("symbol")
+			};
+		}
+
+		@Override
+		public int invoke() throws EffectorException {
+			int from = (int)fields[0].asInteger();
+			int to = (int)fields[1].asInteger();
+			int tape = (int)fields[2].asInteger();
+			Bytes symbol = new Bytes(fields[3].copyValue());
+			boolean isFinal = to == 1 && tape == 0 && symbol.getLength() == 0;
+			ModelCompiler.this.putTransition(new Transition(from, to, tape, symbol, isFinal));
+			return IEffector.RTX_NONE;
+		}
+	}
+
+	final class AutomatonEffector extends BaseEffector<ModelCompiler> {
+		AutomatonEffector(ModelCompiler modelCompiler) {
+			super(modelCompiler, "automaton");
+		}
+
+		@Override
+		public int invoke() throws EffectorException {
+			ModelCompiler.this.putAutomaton();
+			return IEffector.RTX_NONE;
+		}
 	}
 }

@@ -1,0 +1,58 @@
+#! /bin/bash
+ginr=$(which ginr 2>/dev/null)
+if [[ ! -x "$ginr" ]]; then
+	ginr="etc/ginr/ginr"
+	if [[ "$OS" =~ ^Windows ]]; then
+		ginr="$ginr.exe"
+	fi
+	if [[ ! -x "$ginr" ]]; then
+		echo "Could not find ginr executable in search path or in etc/ginr"
+		exit 1
+	fi
+fi
+
+if (($#==1)) && [[ "$1" == "version" ]]; then
+	echo ":bye;" | "$ginr" | grep ' '
+	echo ginr@$(realpath "$ginr")
+	exit 0
+elif (($# <2)) || (($#>3)); then
+	echo "Usage: rinr <prologue-file> <ginr-source-directory> [<epilogue-file>]"
+	exit 1
+fi
+if [[ ! -f "$1" ]]; then 
+	echo "Prologue not found: $1"
+	exit 1
+fi
+if [[ ! -d "$2" ]]; then 
+	echo "Not a directory: $2"
+	exit 1
+fi
+if (($#==3)) && [[ ! -f "$3" ]]; then 
+	echo "Epilogue not found: $3"
+	exit 1
+fi
+
+prologue="$1"
+patterns="$2"
+if (($#==2)); then
+	echo ':bye;' > /tmp/epilogue.inr
+	epilogue=/tmp/epilogue.inr
+else
+	epilogue="$3"
+fi
+
+cat "$prologue" "$patterns"/*.inr "$epilogue" | "$ginr" > /tmp/ginrout
+grep -n --basic-regexp --before-context=2 --after-context=2 \
+	'^[ ]*\* \* \*\|^[ ]*\*\*\*\|^Error detected at state [0-9]*:\|^Reserved character:\|^Warning:\|^Assertion failed' \
+	"/tmp/ginrout" > "/tmp/ginrerr"
+if [[ ! -s "/tmp/ginrerr" ]]; then
+	for dfa in $(grep -oh '[A-Z0-9a-z_]*[ ]*:save' "$patterns"/*.inr | grep -oh '^[A-Za-z0-9_]*'); do
+		grep "$dfa .*DFA MIN" "/tmp/ginrout"
+	done
+else
+	echo "Errors reported in /tmp/ginrout:"
+	cat /tmp/ginrerr
+	exit 1
+fi
+
+exit 0

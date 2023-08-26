@@ -27,36 +27,34 @@ import com.characterforming.ribose.base.TargetBindingException;
 
 /**
  * Interface for simple effectors that present only a niladic {@link #invoke()}
- * method to the transductor. Effectors are invoked at runtime in response to
- * state transitions in a running transduction. They are typically implemented
- * as anonymous inner classes within a specialized {@link ITarget} implementation
- * class. Simple effectors present an {@link invoke()} method that is called from running
- * transductions. Parameterized effectors implementing {@link IParameterizedEffector} may
- * also be included in ribose targets. The ribose {@link ITransductor} implementation
- * also presents a core suite of base effectors that are accessible to all targets.
+ * method which is called on live effector instances in response to state transitions
+ * in a running transduction. They are typically implemented as anonymous inner classes
+ * within a specialized {@link ITarget} implementation classes. In compile contexts
+ * simple effectors are instantiated as proxies but receive only {@link #passivate()}, 
+ * which clears its internal fields. In runtime contexts they instantiated as live
+ * effectors. Live simple effectors receive a {@link #setOutput(IOutput)} call followed
+ * by 0 or more calls to {@link #invoke()}.
  * <br><br>
- * All effectors return an integer <a href="#field.summary"> RTX</a> code, which is a bit
+ * All effectors return an integer <a href="#field.summary">RTX</a> code, which is a bit
  * map of special conditions. RTX bits are additive and accumulate as the effect vector is
- * executed for a transition. Most RTX bits reflect the action of base effectors. Effectors
- * that do not affect the {@link ITransductor} transducer stack or input stack should
- * return only {@code RTX_NONE} (to continue transduction normally) or a signal encoded
- * with {@code RTX_SIGNAL} using {@link IEffector#rtxSignal(int)}. Care should be taken to ensure
- * that at most one effector in any effect vector may return an encoded signal. The built-in
- * {@code count} and {@code signal} effectors and any domain-specific target effectors
- * that return encoded signals should never appear in combination within a single effector
- * vector, and this condition can be checked in the pattern domain. An {@code AssertionError}
- * will be thrown from {@link ITransductor#run()} if the decoded signal is out of range
- * and assertions are enabled in the JVM, but mixed signals that remain in range will go
- * undetected (or force a domain error and transition on {@code nul}).
+ * executed for a transition. Specialized effectors should return only {@code RTX_NONE}
+ * (to continue transduction normally) or a signal encoded using {@link IEffector#rtxSignal(int)}.
+ * Care should be taken to ensure that at most one effector in any effect vector may
+ * return an encoded signal. The built-in {@code count} and {@code signal} effectors and
+ * any specialized target effectors that return encoded signals should never appear in
+ * combination within a single effector vector, and this condition can be checked in
+ * the pattern domain. An {@code AssertionError} will be thrown from {@link ITransductor#run()}
+ * if the decoded signal is out of range and assertions are enabled in the JVM, but
+ * mixed signals that remain in range will go undetected (or force a domain error and
+ * transition on {@code nul}).
  * <br><br>
  * To verify that transducer <b>T</b> from a model using signalling effectors in 
  * <b>S</b>={{@code count}, {@code signal}, {@code ...}} satisfies this signalling
  * constraint:
- * <br><br><pre> (T$(0 1)) &amp; (T$(0 1):alph)*S(T$1:alph)*S(T$(0 1):alph)*</pre>
+ * <br><pre> (T$(0 1)) &amp; (T$(0 1):alph)*S(T$1:alph)*S(T$(0 1):alph)*</pre>
  * must be empty. In general, range constraints on the effector set can be 
  * expressed as patterns to be tested against transducer patterns in the design
- * stage, before they are submitted for compilation to ginr FSTs and inclusion
- * in ribose models.
+ * stage, before they are saved to ginr FSTs for inclusion in ribose models.
  * @param <T> The effector target type
  * @see IParameterizedEffector
  * @author Kim Briggs
@@ -81,7 +79,7 @@ public interface IEffector<T extends ITarget> {
 	/**
 	 * This method is invoked at runtime when triggered by an input transition.
 	 *
-	 * @return User-defined effectors should return {@code IEffector.RTX_NONE}
+	 * @return user-defined effectors should return {@code IEffector.RTX_NONE}
 	 * @throws EffectorException on error
 	 */
 	int invoke() throws EffectorException;
@@ -93,7 +91,7 @@ public interface IEffector<T extends ITarget> {
 	 * of {@link IField} fields of interest here and extract field data in
 	 * {@link #invoke()} for assimilation into the target.
 	 *
-	 * @param output A object that provides a view of transduction runtime fields
+	 * @param output an object that provides a view of transduction runtime fields
 	 * @throws TargetBindingException if field names can't be resolved
 	 */
 	void setOutput(IOutput output) throws TargetBindingException;
@@ -101,7 +99,7 @@ public interface IEffector<T extends ITarget> {
 	/**
 	 * Returns the target that expresses the effector.
 	 *
-	 * @return The target that expresses the effector
+	 * @return the target that expresses the effector
 	 */
 	T getTarget();
 
@@ -109,9 +107,18 @@ public interface IEffector<T extends ITarget> {
 	 * Returns the effector name. The name of the effector is the token
 	 * used to reference it in transducer patterns.
 	 *
-	 * @return The effector name.
+	 * @return the effector name.
 	 */
 	Bytes getName();
+
+	/**
+	 * Helper method simplifies {@link IField} access
+	 * 
+	 * @param fieldName the name of the field (Unicode)
+	 * @return the corresponding field
+	 * 
+	 */
+	IField getField(String fieldName);
 
 	/**
 	 * Encode a signal with an {@link IEffector#RTX_SIGNAL} value to return from 
@@ -144,4 +151,22 @@ public interface IEffector<T extends ITarget> {
 		return this.getClass().equals(other.getClass())
 		&& this.getName().equals(other.getName());
 	}
+
+	/**
+	 * Called for proxy effectors after parameter compilation is
+	 * complete. This will null out the target, output, decoder and
+	 * encoder fields in the {@code BaseEffector} superclass. This
+	 * allows the proxy model and transducer to be garbage collected
+	 * after all effector parameters have been compiled. Subclasses
+	 * may override this method to dispose of additional resources
+	 * as well, but must also call {@code super.passivate()} in 
+	 * the overriding method.
+	 * <br><br>
+	 * This method is never called for effector instances that are 
+	 * bound to a live transduction. It is only called for proxy
+	 * effectors, which are retained only to transfer compiled
+	 * parameters to live effectors. Otherwise, proxy efectors are
+	 * effectively zombies after parameter compilation is complete.
+	 */
+	public void passivate();
 }

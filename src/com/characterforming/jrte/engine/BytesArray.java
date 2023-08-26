@@ -44,13 +44,13 @@ final class BytesArray {
 	byte[][] getBytes() {
 		final byte[][] bytes = new byte[this.data.length][];
 		for (int i = 0; i < bytes.length; i++) {
-			bytes[i] = this.data[i].getData();
+			bytes[i] = this.data[i].bytes();
 		}
 		return bytes;
 	}
 
 	byte[] getBytes(final int index) {
-		return this.data[index].getData();
+		return this.data[index].bytes();
 	}
 
 	private int hash() {

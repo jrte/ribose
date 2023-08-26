@@ -36,9 +36,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import com.characterforming.jrte.engine.Base;
-import com.characterforming.ribose.IRuntime;
+import com.characterforming.ribose.IModel;
 import com.characterforming.ribose.ITransductor;
-import com.characterforming.ribose.Ribose;
 import com.characterforming.ribose.ITransductor.Metrics;
 import com.characterforming.ribose.base.Bytes;
 import com.characterforming.ribose.base.RiboseException;
@@ -104,7 +103,7 @@ public class FileRunner {
 			long tjrte = 0, t0 = 0, t1 = 0;
 			int loops = 1;
 			if (regex.isEmpty() && (jrteOutEnabled || !regexOutEnabled)) {
-				try (IRuntime ribose = Ribose.loadRiboseModel(new File(modelPath))) {
+				try (IModel ribose = IModel.loadRiboseModel(new File(modelPath))) {
 					TestTarget runTarget = new TestTarget();
 					ITransductor trex = ribose.transductor(runTarget);
 					if (!jrteOutEnabled) {
@@ -151,11 +150,7 @@ public class FileRunner {
 							final BufferedOutputStream osw = new BufferedOutputStream(System.out, Base.getOutBufferSize())
 						) {
 							t0 = System.nanoTime();
-							if (nil) {
-								ribose.transduce(runTarget, Bytes.encode(encoder, transducerName), Signal.NIL, isr, osw);
-							} else {
-								ribose.transduce(runTarget, Bytes.encode(encoder, transducerName), isr, System.out);
-							}
+							ribose.stream(Bytes.encode(encoder, transducerName), nil ? Signal.NIL : Signal.NONE, isr, osw);
 							tjrte = System.nanoTime() - t0;
 						} catch (Exception e) {
 							System.err.println("Runtime exception thrown.");

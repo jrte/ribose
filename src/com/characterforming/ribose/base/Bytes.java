@@ -47,7 +47,7 @@ public final class Bytes {
 	/**
 	 * Constructor wraps an array of bytes
 	 * 
-	 * @param bytes The data to wrap
+	 * @param bytes the data to wrap
 	 */
 	public Bytes(final byte[] bytes) {
 		this.data = bytes;
@@ -57,9 +57,9 @@ public final class Bytes {
 	/**
 	 * Constructor copies and wraps a segment of an array of bytes
 	 * 
-	 * @param from The source array
-	 * @param offset The position in the source array to copy from
-	 * @param length The number of bytes to copy
+	 * @param from the source array
+	 * @param offset the position in the source array to copy from
+	 * @param length the number of bytes to copy
 	 */
 	public Bytes(final byte[] from, int offset, int length) {
 		assert from.length >= offset && from.length >= (offset + length);
@@ -73,9 +73,9 @@ public final class Bytes {
 	/**
 	 * Decode UTF-8 bytes to a String.
 	 * 
-	 * @param decoder The decoder to use
-	 * @param bytes The bytes to decode
-	 * @param length The number of bytes to decode
+	 * @param decoder the decoder to use
+	 * @param bytes the bytes to decode
+	 * @param length the number of bytes to decode
 	 * @return a CharBuffer containing the decoded text
 	 */
 	public static CharBuffer decode(CharsetDecoder decoder, final byte[] bytes, final int length) {
@@ -94,7 +94,7 @@ public final class Bytes {
 	 * Encode a String.
 	 * 
 	 * @param encoder the encoder to use
-	 * @param chars The string to encode
+	 * @param chars the string to encode
 	 * @return the encoded Bytes
 	 */
 	public static Bytes encode(CharsetEncoder encoder, final String chars) {
@@ -105,7 +105,7 @@ public final class Bytes {
 	 * Encode a CharBuffer.
 	 * 
 	 * @param encoder the encoder to use
-	 * @param chars The CharBuffer to encode
+	 * @param chars the CharBuffer to encode
 	 * @return the encoded Bytes
 	 */
 	public static Bytes encode(CharsetEncoder encoder, final CharBuffer chars) {
@@ -128,11 +128,7 @@ public final class Bytes {
 	 * @return the number of contained bytes
 	 */
 	public int getLength() {
-		int length = 0;
-		while (length < data.length && this.data[length] != 0) {
-			++length;
-		}
-		return length;
+		return data.length;
 	}
 	
 	/**
@@ -141,7 +137,7 @@ public final class Bytes {
 	 * 
 	 * @return the contained bytes
 	 */
-	public byte[] getData() {
+	public byte[] bytes() {
 		return this.data;
 	}
 
@@ -149,7 +145,7 @@ public final class Bytes {
 	/** Decode contents to a String. */
 	public String toString() {
 		try {
-			return Bytes.decode(Base.newCharsetDecoder(), this.getData(), this.getLength()).toString();
+			return Bytes.decode(Base.newCharsetDecoder(), this.bytes(), this.getLength()).toString();
 		} catch (Exception e) {
 			return this.toHexString();
 		}

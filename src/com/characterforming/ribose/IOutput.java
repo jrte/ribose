@@ -27,19 +27,19 @@ import com.characterforming.ribose.base.TargetBindingException;
 
 /**
  * Provides loggers, UTF-8 codecs and a view of fields (data extracted by the transduction)
- * to {@link IEffector}. Effectors receive their {@code IOutput} instance via
+ * to {@link IEffector} implementations. Effectors receive their {@code IOutput} instance via
  * {@link IEffector#setOutput(IOutput)} when they are first bound to a transductor. Fields can be
- * accessed by name or ordinal number. There is an anonymous field that can be accessed
- * by empty name (`~`) or ordinal number (0). Fields are referenced with a field type prefix
- * <b>~</b> in ribose transducer patterns and without the type prefix internally. For example,
- * a `~date` parameter in a ribose pattern would be accessed with {@link getField(Bytes)}.
+ * accessed by name or ordinal number as {@link IField} instances. There is an anonymous field
+ * with ordinal 0 that can be referenced by the anonymous name token (`~`) in patterns or by the
+ * empty string in Java. Fields are referenced with a field type prefix <b>~</b> in ribose 
+ * transducer patterns (eg, {@code out[`~data`]}) and without the type prefix in Java (eg,
+ * {@code getFieldOrdinal("data")}.
  * <br><br>
- * All effectors receive identical instances of loggers and codecs, which are shared by
- * the transductor and its effectors. The compiler logger is exposed here for use by
- * effectors bound to the ribose compiler model and should not be used otherwise. The
- * runtime logger should be used in all other runtime models.
- * <br><br>
- *
+ * All effectors receive with {@code IOutput} identical instances of loggers and codecs,
+ * which are shared by the transductor and its effectors. The compiler logger is exposed
+ * here for use by proxy effectors in compilation contexts and should not be
+ * used otherwise. The runtime logger should be used to log events in live transduction
+ * contexts.
  *
  * @author Kim Briggs
  */
@@ -61,7 +61,7 @@ public interface IOutput {
 	/**
 	 * Get a copy of the current value for a field from an effector parameter token
 	 *
-	 * @param fieldName The name of the field (UTF-8 bytes, with `~` prefix in lead byte)
+	 * @param fieldName the name of the field (UTF-8 bytes, with `~` prefix in lead byte)
 	 * @return a field instance or null
 	 * @throws TargetBindingException on error
 	 */
@@ -70,8 +70,8 @@ public interface IOutput {
 	/**
 	 * Get a field ordinal from an effector parameter token
 	 *
-	 * @param fieldName The name of the field (UTF-8 bytes, with `~` prefix in lead byte)
-	 * @return The numeric index of the field
+	 * @param fieldName the name of the field (UTF-8 bytes, with `~` prefix in lead byte)
+	 * @return the numeric index of the field
 	 * @throws TargetBindingException on error
 	 */
 	int getFieldOrdinal(Bytes fieldName) throws TargetBindingException;
@@ -79,22 +79,22 @@ public interface IOutput {
 	/**
 	 * Get a copy of the current value for a field
 	 *
-	 * @param fieldOrdinal The numeric index of the field to get
-	 * @return The specified field
+	 * @param fieldOrdinal the numeric index of the field to get
+	 * @return the specified field
 	 */
 	IField getField(int fieldOrdinal);
 
 	/**
 	 * Get the numeric index for the current selected field
 	 *
-	 * @return The numeric index of the selected field
+	 * @return the numeric index of the selected field
 	 */
 	int getSelectedOrdinal();
 
 	/**
 	 * Get a copy of the current selected field
 	 *
-	 * @return The selected field
+	 * @return the selected field
 	 */
 	IField getSelectedField();
 }

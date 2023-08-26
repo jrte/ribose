@@ -26,17 +26,18 @@ import com.characterforming.ribose.IEffector;
 import com.characterforming.ribose.ITarget;
 
 /**
- * Base {@link ITarget} implementation provides subclasses with charset (UTF-8)
- * codecs and access to the base ribose effectors. It can be extended
- * to realize specialized targets with additional effectors and behaviors.
+ * This simple {@link ITarget} implementation presents the core ribose
+ * effectors implemented in the the ribose runtime transductor. It provides
+ * no intrinsic effectors and is intended to support construction of ribose
+ * models that contain only streaming transducers, which dispose of all
+ * output through the core {@code out[..]} effector and require no
+ * specialized effectors.
  *
  * @author Kim Briggs
  */
-public class BaseTarget implements ITarget {
-	/**
-	 * Constructor
-	 */
-	public BaseTarget() {
+public final class SimpleTarget implements ITarget {
+	/** Constructor */
+	public SimpleTarget() {
 		super();
 		Base.newCharsetDecoder();
 		Base.newCharsetEncoder();

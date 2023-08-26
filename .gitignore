@@ -21,3 +21,4 @@ java_pid*
 .sign-off
 TRun.*
 regression.*
+jrte.code-workspace

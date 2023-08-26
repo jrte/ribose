@@ -22,7 +22,6 @@ package com.characterforming.jrte.engine;
 
 import com.characterforming.ribose.IToken;
 import com.characterforming.ribose.base.BaseParameterizedEffector;
-import com.characterforming.ribose.base.Bytes;
 import com.characterforming.ribose.base.EffectorException;
 import com.characterforming.ribose.base.TargetBindingException;
 
@@ -60,15 +59,14 @@ abstract class BaseInputOutputEffector extends BaseParameterizedEffector<Transdu
 			if (token.getType() != IToken.Type.LITERAL && token.getType() != IToken.Type.FIELD) {
 				throw new TargetBindingException(
 					String.format("%1$s.%2$s: field name '%3$s' not enumerated for parameter compilation",
-						super.target.getName(), super.getName().toString(), 
-						Bytes.decode(Base.newCharsetDecoder(), token.getLiteralValue(), token.getLiteralValue().length)));
+						super.target.getName(), super.getName().toString(), token.getLiteral().toString()));
 			}
 		}
 		return parameterList;
 	}
 
 	@Override // @see com.characterforming.ribose.IParameterizedEffector#showParameterType(int)
-	public String showParameterType(int parameterIndex) {
+	public String showParameterType() {
 		return "IToken[]";
 	}
 }

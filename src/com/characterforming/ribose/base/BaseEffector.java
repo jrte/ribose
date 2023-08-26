@@ -25,6 +25,7 @@ import java.nio.charset.CharsetEncoder;
 
 import com.characterforming.jrte.engine.Base;
 import com.characterforming.ribose.IEffector;
+import com.characterforming.ribose.IField;
 import com.characterforming.ribose.IOutput;
 import com.characterforming.ribose.ITarget;
 
@@ -33,13 +34,13 @@ import com.characterforming.ribose.ITarget;
  * to the transduction target and an output view to enable field extraction. 
  * The {@link invoke()} method must be implemented by subclasses.
  * 
- * @param <T> The effector target type
+ * @param <T> the effector target type
  * @author Kim Briggs
  */
 public abstract class BaseEffector<T extends ITarget> implements IEffector<T> {
 
 	/** Effector access to the target that it is bound to */
-	protected final T target;
+	protected T target;
 	/** Effector view of Transductor loggers, UTF-8 codecs and fields. */
 	protected IOutput output;
 
@@ -50,8 +51,8 @@ public abstract class BaseEffector<T extends ITarget> implements IEffector<T> {
 	/**
 	 * Constructor receives target and a name.
 	 * 
-	 * @param target The target that binds the effector
-	 * @param name The effector name
+	 * @param target the target that binds the effector
+	 * @param name the effector name
 	 */
 	protected BaseEffector(final T target, final String name) {
 		this.name = Bytes.encode(Base.newCharsetEncoder(), name);
@@ -60,6 +61,9 @@ public abstract class BaseEffector<T extends ITarget> implements IEffector<T> {
 		this.decoder = null;
 		this.encoder = null;
 	}
+
+	@Override // @see com.characterforming.ribose.base.IEffector#nvoke()
+	public abstract int invoke() throws EffectorException;
 	
 	@Override // @see com.characterforming.ribose.base.IEffector#setOutput(IOutput)
 	public void setOutput(IOutput output) throws TargetBindingException {
@@ -71,14 +75,32 @@ public abstract class BaseEffector<T extends ITarget> implements IEffector<T> {
 		return this.name;
 	}
 
-	@Override // @see com.characterforming.ribose.base.IEffector#getTarget()
+	@Override // @see com.characterforming.ribose.IEffector#getTarget()
 	public final T getTarget() {
 		return this.target;
+	}
+
+	@Override // com.characterforming.ribose.IEffector#getField(String)
+	public IField getField(String fieldName) {
+		try {
+			return this.output.getField(Bytes.encode(this.getEncoder(), fieldName));
+		} catch (TargetBindingException e) {
+			assert false;
+			return null;
+		}
 	}
 
 	@Override // @see java.lang.Object#toString()
 	public String toString() {
 		return this.name.toString();
+	}
+
+	@Override // com.characterforming.ribose.IEffector#passivate()
+	public void passivate() {
+		this.target = null;
+		this.output = null;
+		this.encoder = null;
+		this.decoder = null;
 	}
 
 	/**

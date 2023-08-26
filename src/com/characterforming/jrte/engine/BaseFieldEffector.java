@@ -47,7 +47,7 @@ abstract class BaseFieldEffector extends BaseParameterizedEffector<Transductor, 
 		return new Integer[parameterCount];
 	}
 
-	@Override // IParameterizedEffector#setParameter(int, byte[][])
+	@Override // IParameterizedEffector#compileParameter(IToken[])
 	public Integer compileParameter(final IToken[] parameterList) throws TargetBindingException {
 		if (parameterList.length != 1) {
 			throw new TargetBindingException(String.format("%1$s.%2$s: effector accepts exactly one parameter", 
@@ -57,11 +57,11 @@ abstract class BaseFieldEffector extends BaseParameterizedEffector<Transductor, 
 			throw new TargetBindingException(String.format("%1$s.%2$s: effector accepts only a FIELD parameter",
 				super.target.getName(), super.getName()));
 		}
-		return parameterList[0].getSymbolOrdinal();
+		return parameterList[0].getOrdinal();
 	}
 
 	@Override 
-	public String showParameterType(int parameterIndex) {
+	public String showParameterType() {
 		return "Integer";
 	}
 }

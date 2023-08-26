@@ -41,7 +41,9 @@ public final class ModelDecompiler {
 	}
 
 	public void decompile(final String transducerName) throws ModelException {
-		try (Model model = Model.load(this.modelFile)) {
+		ModelLoader model = null;
+		try {
+			model = ModelLoader.loadModel(this.modelFile);
 			Transducer trex = model.loadTransducer(model.getTransducerOrdinal(Bytes.encode(encoder, transducerName)));
 			int[] effectorVectors = trex.getEffectorVector();
 			int[] inputEquivalenceIndex = trex.getInputFilter();
@@ -50,7 +52,7 @@ public final class ModelDecompiler {
 			Set<Map.Entry<Bytes, Integer>> effectorOrdinalMap = model.getEffectorOrdinalMap().entrySet();
 			String[] effectorNames = new String[effectorOrdinalMap.size()];
 			for (Map.Entry<Bytes, Integer> entry : effectorOrdinalMap) {
-				effectorNames[entry.getValue()] = Bytes.decode(this.decoder, entry.getKey().getData(), entry.getKey().getLength()).toString();
+				effectorNames[entry.getValue()] = Bytes.decode(this.decoder, entry.getKey().bytes(), entry.getKey().getLength()).toString();
 			}
 			System.out.printf("%s%n%nInput equivalents (equivalent: input...)%n%n", transducerName);
 			for (int i = 0; i < inputEquivalentCount; i++) {
@@ -112,6 +114,10 @@ public final class ModelDecompiler {
 					}
 					System.out.printf("%n");
 				}
+			}
+		} finally {
+			if (model != null) {
+				model.close();
 			}
 		}
 	}

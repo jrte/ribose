@@ -1,57 +1,78 @@
-<html>
-
+<!DOCTYPE html>
+<html lang="en">
 <body>
-<a href="https://github.com/jrte/ribose" target="_blank"><img alt="a-b-gears" src="{@docRoot}/a-b-gears-white.gif"></a>
 <a href="https://github.com/jrte/ribose" target="_blank"><b>Ribose</b></a> is about inversion of
 control for high-volume text analysis and information extraction and transformation. For a more
-detailed presentation see <a href="https://github.com/jrte/ribose#readme" target="_blank">https://github.com/jrte/ribose</a>.
+detailed presentation see <a href="https://github.com/jrte/ribose#readme" target="_blank">
+https://github.com/jrte/ribose</a>.
+<br><br><b>How Do I Work This?</b><br><br>
+The ribose model compiler builds transducers from <b><a href="https://github.com/ntozubod/ginr"
+target="_blank">ginr</a></b> automata and packages them in persistent models for use in
+the Java runtime. A copy of the ginr <a href="https://github.com/jrte/ribose/wiki/Ginr"
+target="_blank">user guide</a> is published, with a sidebar index, on the ribose wiki.
 <br><br>
-The ribose model compiler builds transducers from <b><a href="https://github.com/ntozubod/ginr" target="_blank">ginr</a></b>
-automata and packages them in persistent models for use in the ribose runtime. Ginr
-transcodes Unicode characters in ribose transducer patterns to UTF-8 byte sequences
-that may involve multiple transitions in compiled automata, and binary {@code byte*}
-sequences can be represented in ginr tokens. The ribose runtime is a container for any
-number of transduction processes, each driving an input source through an
-{@link com.characterforming.ribose.ITransductor} to an {@link com.characterforming.ribose.ITarget}
-expressing tightly-focused {@link com.characterforming.ribose.IEffector} and
-{@link com.characterforming.ribose.IParameterizedEffector} effectors. Every
-{@link com.characterforming.ribose.ITransductor} instance includes itself as an
-{@link com.characterforming.ribose.ITarget} presenting a set of built-in effectors
-that are implicitly available in all transduction patterns. These are listed in the
-{@link com.characterforming.ribose.ITransductor} interface documentation.
+Ginr automata for ribose are 3-tape finite state transducers (FSTs) compiled
+from 3-dimensional regular patterns that express the source syntax on the input tape and
+unambiguously map it onto parameterized effectors, expressed by a target, that extract and
+assimilate input data into the target domain.  Ginr encodes Unicode literal characters and
+tokens, eg 'Σ', 'Π', `ΣΠ`, as multibyte UTF-8 sequences and the encoded form is used
+throughout ribose. This is largely transparent to end users, but care must be taken when
+pasting non-ASCII text in ribose patterns. For example ('ΣΠ', paste) and ('Π', paste)
+will paste only the last byte of the encoded 'Π', whereas  ('ΣΠ' @@ PasteAny) gets them
+all. If not certain that all input is 7-bit ASCII it is better to use {@code PasteAny}
+if the intention is to paste entire sequences of UTF-8 bytes.
 <br><br>
-The ribose runtime component {@link com.characterforming.ribose.IRuntime} loads transducers
-from model files and binds them to targets to start ribose transductions. Each transduction is
-encapsulated in a {@link com.characterforming.ribose.ITransductor} instance, which maintains
-a transducer stack and an input stack. Ribose transductors operate in the {@code byte}
-<b>*</b>-semiring augmented with out-of-band (&gt;255) control signals, which may be pushed
-onto the input stack as required to effect governance for transduction processes. The built-in
-signals <i>nul nil eol eos</i> can be augmented with additional signals for use in ribose
-transducer patterns. Primary input is presented to the transductor as a {@code byte*} stream
-and may contain UTF-8 encoded text and/or binary data. The transductor presents an
-{@link com.characterforming.ribose.IOutput} view to each effector bound to the target,
-enabling effectors to pull extracted data into the target domain. Data are extracted as
-{@code byte*} sequences, and decoded by target effectors when they are pulled from
-the transduction output.
-<br>
-<pre>
-Fibonacci = (
-  (
-    ('0', select[`~q`] paste['1'])
-    ('0', select[`~r`] cut[`~p`] select[`~p`] copy[`~q`] select[`~q`] cut[`~r`])*
-  )?
-  ('\n', paste out stop)
-);
-
-Fibonacci$(0,1 2):prsseq;
-(START)  0  [ select ~q paste 1 ]                                   1
-(START)  \n [ paste out stop ]                                      (FINAL)
-1        0  [ select ~r cut ~p select ~p copy ~q select ~q cut ~r ] 1
-1        \n [ paste out stop ]                                      (FINAL)
-
-$ for i in '' 0 00 000 0000 00000 000000 0000000 00000000 000000000; do \
-&gt; echo $i | etc/sh/ribose --nil build/Test.model Fibonacci -; \
-&gt; done
+In the Java runtime, compiled ribose models are presented through the {@code IModel} and
+{@code ITransductor} interfaces. A transductor provides a Java thread with a transducer stack,
+an input stack and a {@code run()} method that drives input through the transducer stack to
+{@code IEffector<T extends ITarget>} effectors expressed by an {@code ITarget} instance. 
+The transductor invokes the target effectors in response to syntactic cues in the input,
+and the effectors act on the target to get stuff done. Transduction ends when the input or
+transducer stack dries up, but the transductor persists and can be reused for subsequent
+transductions.
+<br><br><b><i>Ribose Transducer Patterns</i></b><br><br>
+So, to begin, you will need to prepare some ribose transducer patterns, compile them to
+FSTs, and save the FSTs to a directory to be compiled into a ribose model file. You will
+likely want to prepare a ginr source file, or prologue, that defines <a 
+href="https://github.com/jrte/ribose/blob/master/patterns/alpha.inr" target="_blank">
+common character classes</a> and other patterns that are generally used throughout your
+other transducer patterns. For example, the ribose prologue {@code alpha.inr} defines
+{@code PasteAny=(byte,paste)*}, which is essential for transcribing multibyte UTF-8
+character encodings. Prepend your prologue to your other ginr source files for ginr
+compilation.
+<br><br>
+For example, the ribose compiler model {@code TCompile.model} includes an {@code Automaton}
+transducer pattern, shown <a href="https://github.com/jrte/ribose/blob/master/patterns/ribose/Automaton.inr"
+target="_blank">here</a>, that is compiled with the {@code rinr} shell script as follows:
+<br><pre>./rinr patterns/alpha.inr patterns/ribose patterns/after.inr</pre>
+which produces {@code build/compiler/Automaton.dfa}. The ribose model compiler then
+transduces each FST (*.dfa) file in the {@code build/automata} directory to assemble
+a ribose transducer and saves each transducer in {@code TCompile.model}.
+<br><pre>./ribose compile build/automata build/TCompile.model</pre>
+The target in this case is the {@code ModelCompiler}, which expresses three
+effectors to extract {@code Header} and {@code Transition} records and finally
+assemble a ribose transducer ({@code Automaton}) and persist it in {@code
+TCompile.model}. A {@code build/TCompile.map} file is also produced, listing
+the model target class name along with names and ordinals for the transducers,
+effectors, parameters, fields and signals defined or contained in the model.
+The {@code TCompile} model contains only one transducer, which can be decompiled
+by the model decompiler:
+<br><pre>./ribose decompile build/TCompile.model Automaton</pre>
+More examples of ginr patterns for ribose transducers can be found in the {@code
+patterns/test} directory, with some discussion in the <a 
+href="https://github.com/jrte/ribose#more-examples" target="_blank">ribose wiki</a>.
+These test patterns are compiled into {@code build/Test.model} for CI testing, with
+test inputs extracted from {@code patterns/test/inputs.zip}. The test model target 
+class is contained in {@code jars/ribose-0.0.2-test.jar}, which needs to be specified
+(not necessary for the ModelCompiler and SimpleTarget target classes as they are
+contained in the ribose jar file). To build the test model from the test patterns
+you would proceed as follows:
+<br><pre>-: targetpath="--target-path jars/ribose-0.0.2-test.jar"
+-: ./rinr patterns/alpha.inr patterns/test patterns/after.inr
+-: ./ribose compile $targetpath --target com.characterforming.jrte.test.TestTarget build/automata build/Test.model</pre>
+To test the <a href="https://github.com/jrte/ribose/blob/master/patterns/test/Fibonacci.inr"
+target="_blank">Fibonacci</a> transducer:
+<br><pre>-: unzip -p patterns/test/inputs.zip fib.txt | ./ribose run $targetpath --nil build/Test.model Fibonacci -
 
 1
 1
@@ -62,20 +83,62 @@ $ for i in '' 0 00 000 0000 00000 000000 0000000 00000000 000000000; do \
 1111111111111
 111111111111111111111
 1111111111111111111111111111111111
-1111111111111111111111111111111111111111111111111111111</pre>
-See the {@link com.characterforming.ribose} package for ribose interfaces and runnable
-compiler and transduction classes {@link com.characterforming.ribose.TCompile} and
-{@link com.characterforming.ribose.TRun}. The {@link com.characterforming.ribose.base}
-package includes ribose base classes for extension and use in other domains. Specialized
-targets that compose domain objects from transduction outputs can be realized by
-implementing the ITarget interface in a class with additional domain-specific effectors. See
-<i><a href="https://github.com/jrte/ribose/wiki#ginr-as-a-service-provider" target="_blank">
-Ginr as a Service Provider</a></i> for an example of a specialized target class with domain
-specific effectors.
+1111111111111111111111111111111111111111111111111111111
+11111111111111111111111111111111111111111111111111111111111111111111111111111111111111111
+
+-: ./ribose decompile $targetpath build/Test.model Fibonacci
+
+Input equivalents (equivalent: input...)
+
+0: #101
+1: #a
+2: #0-#9 #b-/ 1-#100 #102 #104-#108
+3: #103
+4: 0
+
+State transitions (from equivalent -> to effect...)
+
+0 0 -> 1 clear[ `~*` ]
+0 3 -> 0 stop
+1 1 -> 0 paste out signal[ `!nil` ]
+1 4 -> 2 select[ `~q` ] paste[ `1` ]
+2 1 -> 0 paste out signal[ `!nil` ]
+2 4 -> 2 select[ `~r` ] cut[ `~p` ] select[ `~p` ] copy[ `~q` ] select[ `~q` ] cut[ `~r` ]</pre>
+<br><b><i>Transduction Targets and Effectors</i></b><br><br>
+Every ribose model is associated with a specific transduction target class that
+expresses a collection of effectors. A transduction target is any class that has
+a public default constructor and implements the {@code ITarget} interface, which
+exposes two methods: {@code String getName()} and {@code IEffector<?>[]
+getEffectors()}. The name can be whatever you like, and the target can express
+as many effectors as required. Effectors must extend {@code IEffector<T extends
+ITarget>} or {@code IParameterizedEffector<T extends ITarget, P> extends IEffector<T>>}
+and are usually implemented as private inner classes of the target class, which
+allows them to access the private members of the target.
 <br><br>
-See also the shell scripts at <a href="https://github.com/jrte/ribose/tree/master/etc/sh" target="_blank">etc/sh</a>
-for help with compiling ginr patterns to automata, packaging ginr automata into ribose models
-and running basic text transductions in the ribose runtime.
+The transductor is itself a target expressing a suite of core effectors that are
+sufficient for transducers that transform input and write raw bytes to an output
+stream. For UTF-8 input these transforms are effected without decoding or encoding
+of input or output. These core effectors, which are listed in the {@code 
+ITransductor} documentation, are injected into every target and are available for use
+in any ribose transducer. A {@code SimpleTarget} target implementation that expresses
+only the {@code ITransductor} effectors is provided. Ribose models that are bound
+to {@code SimpleTarget} are called <i>simple</i> models.
+<br><br>
+Specialized targets can define additional, domain-specific, effectors. Composite
+targets, comprised of >1 {@code ITarget} instances, can be presented for transductor
+binding. In that case, one target is selected to gather effectors from all participating
+targets into a single array that it presents to the transductor in its {@code
+getEffectors()} method. In any case, each effector receives a reference to its
+respective target. Models that are associated with a specialized target as referred
+to as <i>fancy</i> models.
+<br><br><b><i>Building and Using Ribose Models</i></b><br><br>
+The {@code Ribose} class provides a {@code main()} method that enables models to be
+compiled, run and decompiled, as described in the {@code Ribose} class documentation.
+It can be executed via the java command line or the provided {@code ribose} shell 
+script. The runtime features are encapsulated in the {@code IModel} interface. For further
+information please refer to the package and interface documentation contained herein. 
+See the {@link com.characterforming.ribose} package for ribose interfaces and the runnable
+{@link com.characterforming.ribose.Ribose} class. The {@link com.characterforming.ribose.base}
+package includes ribose base classes for extension and use in other domains.
 </body>
-<td style="text-align:right"></td>
 </html>

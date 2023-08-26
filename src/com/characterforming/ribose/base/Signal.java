@@ -19,7 +19,6 @@
  */
 package com.characterforming.ribose.base;
 
-import com.characterforming.jrte.engine.Base;
 import com.characterforming.ribose.ITransductor;
 
 /**
@@ -43,49 +42,75 @@ import com.characterforming.ribose.ITransductor;
  * after sending {@code eos}.
  * <br><br>
  * Specialized ribose models may introduce additional signals simply by using them
- * with the {@code in[`!signal`]} effector or any other effector, The signal 
+ * with the {@code signal[`!x`]} effector or any other effector. The signal 
  * symbol (stripped of the ! prefix) can then be recognized as an input. For example,
- * <br><br>
- * <pre>
- * (nl, switch[`!door1` `!door2`]) ((door1, enter) | (door2, exit))
- * </pre>
+ * <br><pre>(nl, signal[`!x`]) (x, switch[`!door1` `!door2`]) ((door1, enter) | (door2, exit))</pre>
+ * In this case, the {@code x} signal is explicitly raised via the {@code signal[]}
+ * effector and the {@code switch} effector injects either the {@code door1} or
+ * {@code door2} signal, as determined by the target's switch effector, by encoding the
+ * signal in the integer code returned from {@code SwitchEffector.invoke(int})}. 
  * 
  * @author kb
  *
  */
 public enum Signal {
+	/** Signals nothing, for optionality (use as null) */
+	NONE(new byte[] {}, -1),
 	/** Signals first chance to handle missing transition on current input symbol */
-	NUL, 
+	NUL(new byte[] { 'n', 'u', 'l' }, 256), 
 	/** Signals anything, used as a generic out-of-band prompt to trigger actions */
-	NIL, 
+	NIL(new byte[] { 'n', 'i', 'l' }, 257), 
 	/** Signals end of feature, used as a generic feature delimiter */
-	EOL,
+	EOL(new byte[] { 'e', 'o', 'l' }, 258),
 	/** Signals end of transduction input */
-	EOS;
+	EOS(new byte[] { 'e', 'o', 's' }, 259);
 	
-	private final Bytes key;
+	private final Bytes sym;
+	private final Bytes ref;
+	private final int sig;
 	
-	private Signal() {
-		String[] names = { "nul", "nil", "eol", "eos" };
-		assert this.ordinal() < names.length;
-		this.key = Bytes.encode(Base.newCharsetEncoder(), names[this.ordinal()]);
+	private Signal(byte[] symbol, int signal) {
+		byte[] signalReference = new byte[symbol.length + 1];
+		System.arraycopy(symbol, 0, signalReference, 1, symbol.length);
+		signalReference[0] = '!';
+		this.sym = new Bytes(symbol);
+		this.ref = new Bytes(signalReference);
+		this.sig = signal;
 	}
 	
 	/**
-	 * Signal name.
+	 * Signal name, as input symbol (tape 0).
 	 * 
-	 * @return The signal name as lookup key
+	 * @return the signal name as lookup symbol
 	 */
-	public Bytes key() {
-		return this.key;
+	public Bytes symbol() {
+		return this.sym;
 	}
-		
+
+	/**
+	 * Signal name, as effector parameter token (tape 2).
+	 * 
+	 * @return the signal name as reference symbol
+	 */
+	public Bytes reference() {
+		return this.ref;
+	}
+
 	/**
 	 * Get the input ordinal value represented by this {@code Signal}
 	 * 
 	 * @return the ordinal value represented by {@code signal}
 	 */
 	public int signal() {
-		return Base.RTE_SIGNAL_BASE + ordinal();
+		return this.sig;
+	}
+
+	/**
+	 * Check for {@code Signal.NONE}
+	 * 
+	 * @return true if this == {@code Signal.NONE}
+	 */
+	public boolean isNone() {
+		return this == NONE;
 	}
 }

@@ -2,12 +2,12 @@ package com.characterforming.jrte.test;
 
 import com.characterforming.ribose.IEffector;
 import com.characterforming.ribose.IField;
+import com.characterforming.ribose.ITarget;
 import com.characterforming.ribose.base.BaseEffector;
-import com.characterforming.ribose.base.BaseTarget;
 import com.characterforming.ribose.base.EffectorException;
 import com.characterforming.ribose.base.TargetBindingException;
 
-public class TestTarget extends BaseTarget {
+public class TestTarget implements ITarget {
 	private static final int fail = 266;
 	/**
 	 * Constructor

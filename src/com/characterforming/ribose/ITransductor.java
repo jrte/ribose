@@ -21,6 +21,7 @@
 package com.characterforming.ribose;
 
 import java.io.OutputStream;
+import java.io.InputStream;
 
 import com.characterforming.ribose.base.Bytes;
 import com.characterforming.ribose.base.DomainErrorException;
@@ -29,26 +30,18 @@ import com.characterforming.ribose.base.RiboseException;
 import com.characterforming.ribose.base.Signal;
 
 /**
- * Interface for runtime transductors. A transductor binds an {link ITarget} instance
+ * Interface for runtime transductors. A transductor binds an {@link ITarget} instance
  * to an input stack and a transducer stack. When the {@link run()} method is called
  * the transductor will read input and invoke the effectors triggered by each input
  * transition until {@link status()} {@code !=} {@link Status#RUNNABLE}. Then one of
  * the following conditions is satisfied:
- * <br><br>
+ * <br>
  * <ul>
  * <li>the input stack is empty or the {@code pause} effector is invoked ({@link Status#PAUSED})
  * <li>the transducer stack is empty ({@link Status#WAITING})
  * <li>input and transducer stack are both empty ({@link Status#STOPPED})
  * <li>an exception is thrown
  * </ul>
- * <br>
- * The {@code stop()} method should be called before starting a new transduction,
- * to ensure that the transducer and input stacks and all fields are cleared. The
- * {@code stop()} method will throw a {@code RiboseException} when it is called on
- * a proxy (instantiated for parameter compilation only) or otherwise
- * nonfunctional transductor. This condition can be checked at any time by testing
- * {@code status() == Status.NULL}.
- * <br><br>
  * The {@code run()} method has no effect when the transducer or input stack is empty.
  * A paused transduction can be resumed when input is available ({@code push()}).
  * A waiting transduction can be resumed by starting a transducer ({@code start()}).
@@ -59,24 +52,23 @@ import com.characterforming.ribose.base.Signal;
  * it will be ignored. Finally, {@code stop()} must be called again to clear the
  * transducer and input stacks before the transductor instance can be reused.
  * <br><br>
- * {@link ITarget} implementations must present a niladic (default) constructor, which is used
- * to instantiate proxy targets for effector enumeration and parameter compilation. A
- * proxy target is instantiated by the compiler, which invokes each parameterized
- * effector to validate and compile its parameters. In the ribose runtime, a proxy
- * target is instantiated when a ribose model is loaded to precompile parameters from
- * raw bytes stored in the model. In either case, only the constructor and
- * {@link ITarget#getEffectors()} methods are called on a proxy target unless
- * one or more of its own effectors involves its target in parameter compilation. Proxy
- * target effectors called only to compile parameters; their `invoke()` methods are never
- * called. Live {@link ITarget} instances can be constructed in any manner and bound to a
- * ribose {@link ITransductor} for runtime use. Live target effectors receive precompiled
- * parameters from the proxy target and their `invoke()` methods are called during
- * transduction in response to syntactic cues in transduction input.
+ * The {@code stop()} method should be called before starting a new transduction,
+ * to ensure that the transducer and input stacks and all fields are cleared. The
+ * {@code stop()} method will throw a {@code RiboseException} when it is called on
+ * a proxy (instantiated for parameter compilation only) or otherwise nonfunctional
+ * transductor. This condition can be checked at any time by testing {@link 
+ * Status#isProxy()}.
  * <br><br>
+ * The example below shows how {@code ITransductor} can be instantiated
+ * and used directly to exert fine-grained control over transduction processes. For
+ * more generic transductions, the more granular methods {@link
+ * IModel#stream(Bytes, Signal, InputStream, OutputStream)} and {@link 
+ * IModel#stream(Bytes, ITarget, Signal, InputStream, OutputStream)} are available. 
+ * <br>
  * <pre>
  * ITarget proxyTarget = new Target();
  * ITarget liveTarget = new Target(args);
- * IRuntime runtime = Ribose.loadRuntimeModel(modelFile,proxyTarget);
+ * IModel runtime = Ribose.loadRuntimeModel(modelFile,proxyTarget);
  * ITransductor trex = runtime.transductor(liveTarget);
  * byte[] data = new byte[64 * 1024];
  * int limit = input.read(data,data.length);
@@ -85,39 +77,32 @@ import com.characterforming.ribose.base.Signal;
  *     if (trex.run().status().isPaused()) {
  *       data = trex.recycle(data);
  *       limit = input.read(data,data.length);
- *       if (0 &lt; limit) {
+ *       if (0 &lt; limit)
  *         trex.push(data,limit);
- *       else {
- *         break;
- *       }
  *     }
  *   } while (trex.status().isRunnable());
- *   if (trex.status().isPaused()) {
+ *   if (trex.status().isPaused())
  *     trex.signal(Signal.eos).run();
- *   }
  *   trex.stop();
- * }
- * </pre>
+ * }</pre>
  * Domain errors (inputs with no transition defined) are handled by emitting a
  * {@code nul} signal, giving the transduction an opportunity to handle it with an
  * explicit transition on {@code nul}. Typically this involves searching without effect
  * for a synchronization pattern and resuming with effect after synchronizing. If
- * {@code nul} is not handled a {@code DomainErrorException} is thrown, with one exception,
- * the {@code eos} signal. Transducers can safely ignore {@code eos} or use it
- * explicitly if required. If {@code eos} is ignored the {@code run()} method
- * will return with {@code Status.PAUSED} and {@code DomainErrorException}
- * will not be thrown.
+ * {@code nul} is not handled a {@code DomainErrorException} is thrown, with one exception
+ * -- the {@code eos} signal sent after all other input is exhausted. Transducers can
+ * safely ignore {@code eos} or use it explicitly if required. If {@code eos} is ignored
+ * the {@code run()} method will return with {@code Status.WAITING} and {@code
+ * DomainErrorException} will not be thrown.
  * <br><br>
  * The {@code signal[`!signal`]} effector injects a signal for immediate transduction on
  * the next transition. Effectors may inject a signal by returning from {@link IEffector#invoke()}
  * or {@link IParameterizedEffector#invoke(int)} a signal ordinal encoded with 
- * {@link IEffector#rtxSignal(int)}. At most one encoded signal can be injected per
- * transition (this is not checked in the ribose runtime). Signals like {@code nul} that
- * are raised asynchronously are difficult to address in the expression of transduction
- * patterns. However, any pattern can be modified by flattening and transducing it to
- * inject behaviors relating to asynchronous signals. See
- * <a href="https://github.com/jrte/ribose#navigating-noisy-inputs-nullification">
- * Navigating Noisy Inputs (Nullification)</a> for an example showing how this can be done.
+ * {@link IEffector#rtxSignal(int)}. This can be used to effect backflow of information 
+ * from the target to the transductor; for example,
+ * <br><pre>(nl, isThatSo[`!true` `false`]) ((true, yep) | (false, nope))</pre>
+ * At most one encoded signal can be injected per transition (this is not checked in the
+ * ribose runtime).
  * <br><br>
  * The runtime ITransductor implementation provides a core set of base effectors,
  * listed below, that are available to all ribose transducers.
@@ -157,33 +142,18 @@ import com.characterforming.ribose.base.Signal;
  * @see Status
  */
 public interface ITransductor extends ITarget {
-
-	/**
-	 * Transduction status.
-	 *
-	 * @author Kim Briggs
-	 */
+	/** Transduction status. */
 	enum Status {
-		/**
-		 * Transduction stack not empty, input stack not empty.
-		 */
+		/** Transduction stack not empty, input stack not empty. */
 		RUNNABLE,
-		/**
-		 * Transduction stack empty, input stack not empty
-		 */
+		/** Transduction stack empty, input stack not empty. */
 		WAITING,
-		/**
-		 * Transduction stack not empty, input stack empty.
-		 */
+		/** Transduction stack not empty, input stack empty. */
 		PAUSED,
-		/**
-		 * Transduction stack empty, input stack empty
-		 */
+		/** Transduction stack empty, input stack empty */
 		STOPPED,
-		/**
-		 * Transduction is invalid and inoperable in runtime
-		 */
-		NULL;
+		/** Transductor is proxy for model effector parameter precompilation, not for runtime use */
+		PROXY;
 
 		/**
 		 * Status == RUNNABLE
@@ -218,17 +188,15 @@ public interface ITransductor extends ITarget {
 		}
 
 		/**
-		 * Status != NULL
-		 * @return true if Status != NULL
+		 * Status == PROXY
+		 * @return true if Status == PROXY
 		 */
-		public boolean isOperable() {
-			return !this.equals(NULL);
+		public boolean isProxy() {
+			return this.equals(PROXY);
 		}
 	}
 
-	/**
-	 * Run metrics, per {@link #run()} call.
-	 */
+	/** Run metrics, per {@link #run()} call. */
 	public class Metrics {
 		/** Number of bytes of input consumed */
 		public long bytes;
@@ -290,7 +258,7 @@ public interface ITransductor extends ITarget {
 	 * with a different transducer stack and new input after calling stop() to reset
 	 * the transduction stack to its original bound state.
 	 *
-	 * @return Transduction status
+	 * @return transduction status
 	 */
 	Status status();
 
@@ -322,11 +290,16 @@ public interface ITransductor extends ITarget {
 	ITransductor push(byte[] input, int limit);
 
 	/**
-	 * Set up a signal as prologue for the next {@link #run()}. This will be the first
-	 * input to the top transducer when the transduction is started or resumed. All
-	 * transducers should accept an initial {@code nil} signal and some may use the 
-	 * {@code pause} effector to synchronize with a driver or controller that guides
-	 * the transduction process. 
+	 * Set up a signal as prologue for the next {@link #run()}. The signal will be
+	 * consumed by the transducer at the top of the transduction stack on its first
+	 * transition when the transductor is next {@code run()}. This can also be used to
+	 * convey a hint to a paused transductor before resuming, In either case, the 
+	 * {@code run()} then constinues with previously stacked input.
+	 * <br>br>
+	 * All ribose transducers <i>should</i> accept an initial {@code nil} signal, 
+	 * ignoring it if not needed for initialization effects. Otherwise, any of the
+	 * core ribose {@link Signal} enumerators can be used as a prologue to send to
+	 * a resuming transducer.
 	 *
 	 * @param signal the signal to set as the next {@link #run()} prologue
 	 * @return this ITransductor
@@ -338,7 +311,7 @@ public interface ITransductor extends ITarget {
 	 * to the initial state. The topmost (last) pushed transducer will be activated
 	 * when the {@code run()} method is called.
 	 *
-	 * @param transducer The name of the transducer to push
+	 * @param transducer the name of the transducer to push
 	 * @return this ITransductor
 	 * @throws ModelException on error
 	 */
@@ -348,14 +321,15 @@ public interface ITransductor extends ITarget {
 	 * Run the transduction with current input until the input or transduction
 	 * stack is empty, transduction pauses or stops, or an exception is thrown.
 	 * This method should be called repeatedly until {@code status().isRunnable()}
-	 * returns {@code false}. Normally, the transduction status is {@link Status#PAUSED}
-	 * (input stack empty, {@code push()} more input to resume) or {@link Status#WAITING}
-	 * (transducer stack empty, {@code start()} another transducer to resume) when
-	 * {@code run()} returns, unless the {@code pause} effector forces return with
-	 * {@link Status#RUNNABLE}. The latter case may arise if the transduction needs
-	 * to synchronize with the process driving the transduction for some unimaginable
-	 * reason. In any case, when the necessary action has been taken the transduction
-	 * can be resumed by calling {@code run()} again.
+	 * returns {@code false}. Normally, the transduction status when {@code run()}
+	 * returns is {@link Status#PAUSED} (input stack empty, {@code push()} more
+	 * input to resume) or {@link Status#WAITING} (transducer stack empty, 
+	 * {@code start()} another transducer to resume), unless the {@code pause}
+	 * effector forces return with {@link Status#RUNNABLE}. The latter case may
+	 * arise if the transduction needs to synchronize with the process driving
+	 * the transduction for some unimaginable reason. In any case, when the
+	 * necessary action has been taken the transduction can be resumed by
+	 * calling {@code run()} again.
 	 * <br><br>
 	 * If a mark is set, it applies to the primary input stream and marked input
 	 * buffers held in the transduction mark set cannot be reused by the caller
@@ -374,7 +348,7 @@ public interface ITransductor extends ITarget {
 	/**
 	 * Return a new or unmarked byte[] buffer if the previous buffer ({@code bytes})
 	 * is marked in the input stack, else return the unmarked {@code bytes} buffer.
-	 * 
+	 * <br><br>
 	 * Byte arrays passed as input to the transductor when a mark is set are retained
 	 * by the transductor and MUST NOT be subsequently reused as input containers until
 	 * they have been recovered by a call to this method.
@@ -398,7 +372,7 @@ public interface ITransductor extends ITarget {
 	/**
 	 * Clear input and transductor stacks and reset all fields to
 	 * an empty state. This resets the transductor to original state
-	 * ready for reuse, but preserves metrics.
+	 * ready for reuse, but preserves accumulated metrics.
 	 *
 	 * @return this ITransductor
 	 * @throws RiboseException if transductor is proxy for parameter compilation

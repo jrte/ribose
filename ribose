@@ -1,0 +1,74 @@
+#! /bin/bash
+execRun() {
+	local nil=""
+	if [[ "$1" == "--nil" ]]; then
+		nil="$1"
+		shift
+	fi
+	${JAVA_HOME}/bin/java -ea -cp $path $vmargs com.characterforming.ribose.Ribose run $nil "$@"
+}
+
+execCompile() {
+	if (($#==4)) && [[ "$1" == "--target" ]]; then
+		if [[ ! -d "$3" ]]; then
+			echo "Not a directory: $3"
+			return 1
+		fi
+	fi
+	if (($#==4)); then
+		${JAVA_HOME}/bin/java -ea -cp $path $vmargs com.characterforming.ribose.Ribose compile "$@" \
+			2>&1 >/dev/null | grep -e "ERROR\|WARNING\|INFO" | grep -oe "[ \t]*[A-Za-z0-9_]*:[ \t]*[0-9].*$"
+	else
+		${JAVA_HOME}/bin/java -ea -cp $path $vmargs com.characterforming.ribose.Ribose compile --target com.characterforming.jrte.engine.SimpleTarget "$@" \
+			2>&1 >/dev/null | grep -e "ERROR\|WARNING\|INFO" | grep -oe "[ \t]*[A-Za-z0-9_]*:[ \t]*[0-9].*$"
+	fi
+}
+
+execDecompile() {
+	${JAVA_HOME}/bin/java -ea -cp $path $vmargs com.characterforming.ribose.Ribose decompile "$@"
+}
+
+execHelp() {
+	local selector="help"
+	if (($#>0)); then
+		selector=$1
+	fi
+	shift $#
+	case $selector in
+	compile) execCompile;;
+	run) execRun;;
+	decompile) execDecompile;;
+	*) echo "Usage: ribose help [compile | run | decompile]";
+	esac
+	return 0
+}
+
+jrte=$(realpath $(dirname $0))
+vmargs=""
+while [[ ! "$1" =~ ^(help|compile|run|decompile) ]]; do
+	vmargs="$vmargs $1";
+	shift
+	if (($#==0)); then
+		execHelp
+		exit 1
+	fi
+done
+selector=$1
+shift
+jars=$jrte/jars
+path="$jars/$(cat $jrte/version).jar"
+if (($#>1)) && [[ "$1" == "--target-path" ]]; then
+	if [[ ! -z "$2" ]]; then
+		path="$path:$(realpath $2)"
+		shift
+	fi
+	shift
+fi
+
+case $selector in
+help) execHelp $@;;
+compile) execCompile $@;;
+run) execRun $@;;
+decompile) execDecompile $@;;
+*) execHelp $@;;
+esac

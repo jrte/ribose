@@ -26,8 +26,9 @@
 	<property name="jargs.gc.ribose" value=""/>
 -->
 
-<project name="ribose-build" default="ci-test" basedir="." xmlns:if="ant:if" xmlns:unless="ant:unless">
+<project name="ribose-build" default="test" basedir="." xmlns:if="ant:if" xmlns:unless="ant:unless">
   <property environment="env"/>
+	<property name="ribose" location="./ribose"/>
 	<property name="ribose.version" value="ribose-0.0.2"/>
   <property name="jdk" value="${env.JAVA_HOME}"/>
 	<property name="java.source.dir" value="src"/>
@@ -46,7 +47,7 @@
 	<property name="regex.nil" value=""/>
 	<property name="regex.linuxkernel" value="([JFMASOND][a-z]+ [0-9]+ (?:[0-9]+:)+[0-9]+) ([-.:A-Za-z_0-9]*) kernel: \[[ ]*[0-9]+\.[0-9]+\] (DROPPED|ABORTED|LIMITED) IN=([-.:A-Za-z_0-9]*) OUT=([-.:A-Za-z_0-9]*)(?: MAC=([-.:A-Za-z_0-9]*))? SRC=([-.:A-Za-z_0-9]*) DST=([-.:A-Za-z_0-9]*).* PROTO=([-.:A-Za-z_0-9]*)(?:.* SPT=([-.:A-Za-z_0-9]*) DPT=([-.:A-Za-z_0-9]*))?"/>
 	<property name="ribose.inbuffer.size" value="65536"/>
-	<property name="ribose.outbuffer.size" value="8196"/>
+	<property name="ribose.outbuffer.size" value="65536"/>
 	<property name="jargs.jit.diagnostic" value="-XX:+UnlockDiagnosticVMOptions -XX:+PrintCompilation -XX:+PrintInlining"/>
 	<property name="jargs.jit.inline" value="-XX:CompileCommandFile=etc/jit/ribose.jit"/>
 	<property name="jargs.gc.buffers" value="-Dribose.inbuffer.size=${ribose.inbuffer.size} -Dribose.outbuffer.size=${ribose.outbuffer.size}"/>
@@ -79,12 +80,15 @@
   	<delete dir="build"/>
 	</target>
 	
-	<target name="clean-ribose">
+	<target name="clean-ribose" depends="clean-javadoc">
 		<delete failonerror="false" dir="${build.java.classes}/com"/>
-  	<delete failonerror="false" dir="javadoc" includes="**/*"/>
-		<delete failonerror="false" dir="${jars.dir}" includes="**/*"/>
 		<delete failonerror="false" dir="${build.compiler.model}"/>
 		<delete failonerror="false" dir="/tmp" includes="*.ginrout,*.ginrerr"/>
+	</target>
+
+	<target name="clean-javadoc">
+  	<delete failonerror="false" file="${jars.dir}/${ribose.version}-api.jar"/>
+  	<delete failonerror="false" dir="javadoc" includes="**/*"/>
 	</target>
 
 	<target name="clean-test">
@@ -99,13 +103,17 @@
 		<exec outputproperty="git.branch" executable="git">
 			<arg line="branch --show-current"/>
 		</exec>
-		<exec outputproperty="git.commit" executable="git">
-			<arg line="log --oneline -n 1"/>
-		</exec>
 		<echo message="Git branch: ${git.branch}"/>
 		<echo message="Git commit: ${git.commit}"/>
-		<echo message="Version: ${ribose.version}"/>
-		<echo message="${ribose.version}" file="version"/>
+		<echo message="${ant.version}"/>
+		<echo message="Ant @ ${env.ANT_HOME}"/>
+		<java fork="true" jvm="${jdk}/bin/java" dir="." classname="com.characterforming.ribose.Ribose" classpathref="jrte.classpath">
+			<jvmarg line="-showversion"/><arg line="version"/>
+		</java>
+		<echo message="Java @ ${env.JAVA_HOME}"/>
+		<exec executable="bash">
+			<arg line="./rinr version"/>
+		</exec>
 	</target>
 
 	<target name="init-ribose">
@@ -126,7 +134,7 @@
 	<target name="ribose" depends="init-ribose,package-java,javadoc,build-compiler-model"
 		description="Clean build for java and patterns"/>
 
-	<target name="ci-test" depends="clean,test,env"
+	<target name="ci-test" depends="clean,test,test-output-equivalence,test-heap-metrics,env"
 		description="Full build with CI tests for java and patterns"/>
 
 	<target name="check-compile-java" depends="init">
@@ -169,10 +177,11 @@
 
   <target name="javadoc" unless="javadoc.uptodate" depends="check-javadoc">
   	<delete dir="javadoc" includes="**/*"/>
-    <javadoc executable="${jdk}/bin/javadoc" access="protected" overview="overview.html" sourcepath="src" destdir="javadoc" verbose="false"
-			packagenames="com.characterforming.ribose.base,com.characterforming.ribose"
-			doctitle="The General Idea" failonerror="false" failonwarning="false">
-			<group title="Ribose" packages="com.characterforming.ribose*"/>
+    <javadoc executable="${jdk}/bin/javadoc" access="protected" overview="overview.html" 
+			sourcepath="src" destdir="javadoc" verbose="false" use="true" failonerror="false" failonwarning="false"
+			doctitle="Ribose" packagenames="com.characterforming.ribose.base,com.characterforming.ribose"
+			encoding="UTF-8" charset="UTF-8" docencoding="UTF-8">
+			<group title="Interfaces and Supporting Classes" packages="com.characterforming.ribose*"/>
 		</javadoc>
 		<copy todir="javadoc" file="etc/markdown/a-b-gears-white.gif"/>
 		<jar basedir="javadoc" destfile="jars/${ribose.version}-api.jar"/>
@@ -190,12 +199,13 @@
 		<delete verbose="true">
 			<fileset dir="${build.compiler.model}" includes="TCompile.*"/>
 		</delete>
+		<echo message="Compiling ${ribose.patterns}"/>
 		<exec failonerror="true" executable="bash">
-			<arg line="etc/sh/patterns ${ribose.patterns} patterns/alpha.inr patterns/after.inr"/>
+			<arg line="./rinr patterns/alpha.inr ${ribose.patterns} patterns/after.inr"/>
 		</exec>
-		<echo/>
+		<echo message="Building ${build.compiler.model}/TCompile.model"/>
 		<exec failonerror="true" executable="bash">
-			<arg line="etc/sh/compile --target com.characterforming.jrte.engine.ModelCompiler ${build.compiler.model} ${build.compiler.model}/TCompile.model"/>
+			<arg line="./ribose ${jargs} compile --target com.characterforming.jrte.engine.ModelCompiler ${build.compiler.model} ${build.compiler.model}/TCompile.model"/>
 		</exec>
 		<fixcrlf file="${build.compiler.model}/TCompile.map" eol="lf"/>
 		<move todir="." verbose="true">
@@ -215,8 +225,9 @@
 	</target>
 
 	<target name="compile-test-patterns" depends="check-test-patterns" unless="test.patterns.uptodate">
+		<echo message="Compiling ${test.patterns}"/>
 		<exec failonerror="true" executable="bash">
-			<arg line="etc/sh/patterns ${test.patterns} patterns/alpha.inr patterns/after.inr"/>
+			<arg line="./rinr patterns/alpha.inr ${test.patterns} patterns/after.inr"/>
 		</exec>
 	</target>
 
@@ -227,26 +238,10 @@
 		</uptodate>
 	</target>
 
-	<target name="compile-test-model" depends="package-test,check-compile-test-model" unless="patterns.packaged">
-		<delete file="build/Test.model"/>
-		<delete file="build/Test.map"/>
-		<exec failonerror="true" executable="bash">
-			<arg line="etc/sh/compile --target com.characterforming.jrte.test.TestTarget --target-path ${jars.dir}/${ribose.version}-test.jar ${build.automata} build/Test.model"/>
-		</exec>
-		<fixcrlf file="build/Test.map" eol="lf"/>
-	</target>
-
-	<target name="check-compile-test" depends="package-java">
-		<depend srcdir="${java.source.dir}" destdir="${build.java.classes}" closure="yes">
-			<include name="**/Test/*.java"/>
-			<classpath refid="java.classpath"/>
-		</depend>
-	</target>
-
 	<target name="compile-test" depends="check-compile-test">
 		<javac fork="true" executable="${jdk}/bin/javac" compiler="modern" includeantruntime="false"
-		srcdir="${java.source.dir}" destdir="${build.java.classes}" includes="**/${java.test.dir}/**"
-		debug="true" debuglevel="lines,vars,source">
+			srcdir="${java.source.dir}" destdir="${build.java.classes}" includes="**/${java.test.dir}/**"
+			debug="true" debuglevel="lines,vars,source">
 			<classpath refid="test.classpath"/>
 		</javac>
 	</target>
@@ -261,6 +256,23 @@
 		<jar basedir="${build.java.classes}" includes="**/test/**" destfile="${jars.dir}/${ribose.version}-test.jar"/>
 	</target>
 
+	<target name="check-compile-test" depends="package-java">
+		<depend srcdir="${java.source.dir}" destdir="${build.java.classes}" closure="yes">
+			<include name="**/Test/*.java"/>
+			<classpath refid="java.classpath"/>
+		</depend>
+	</target>
+
+	<target name="compile-test-model" depends="package-test,check-compile-test-model" unless="patterns.packaged">
+		<delete file="build/Test.model"/>
+		<delete file="build/Test.map"/>
+		<echo message="Building build/Test.model"/>
+		<exec failonerror="true" executable="bash">
+			<arg line="./ribose ${jargs} compile --target-path ${jars.dir}/${ribose.version}-test.jar --target com.characterforming.jrte.test.TestTarget ${build.automata} build/Test.model"/>
+		</exec>
+		<fixcrlf file="build/Test.map" eol="lf"/>
+	</target>
+
 	<target name="check-package-source">
 		 <uptodate targetfile="${jars.dir}/${ribose.version}-source.jar" property="source.packaged">
 			 <srcfiles dir="${build.java.classes}" includes="**/*.class"/>
@@ -272,19 +284,12 @@
 	</target>
 
 	<target name="test-env" depends="ribose,init-test,compile-test-model,package-test">
-		<property environment="env"/>
-		<java fork="true" jvm="${jdk}/bin/java" dir="." classname="com.characterforming.ribose.TRun" classpathref="jrte.classpath">
-			<jvmarg line="-version"/>
-		</java>
-		<echo message="Java @ ${env.JAVA_HOME}"/>
-		<echo message="${ant.version}"/>
-		<echo message="Ant @ ${env.ANT_HOME}"/>
-		<mkdir dir="${build.testenv}"/>
 		<mkdir dir="${test.input.dir}"/>
 		<unzip src="${test.patterns}/inputs.zip" dest="${test.input.dir}">
 			<patternset>
 				<include name="dates.txt"/>
 				<include name="fib.txt"/>
+				<include name="kern.log"/>
 				<include name="kern-10.log"/>
 				<include name="values.txt"/>
 				<include name="verbosegc.vgc"/>
@@ -294,27 +299,27 @@
 
 	<target name="test-basic" depends="test-env">
 		<echo>Decompile:</echo>
-		<java fork="true" jvm="${jdk}/bin/java" dir="." classname="com.characterforming.ribose.TDecompile" classpathref="java.classpath" failonerror="true">
-			<jvmarg line="${jargs}"/>
-			<arg line="build/Test.model Fibonacci"/>
-		</java>
+		<exec failonerror="true" executable="bash">
+			<arg value="-c"/>
+			<arg value="./ribose ${jargs} decompile --target-path ${jars.dir}/${ribose.version}-test.jar build/Test.model Fibonacci"/>
+		</exec>
 		<echo/>
 		<echo>Fibonacci:</echo>
 		<exec failonerror="true" executable="bash">
 			<arg value="-c"/>
-			<arg value="etc/sh/ribose ${jargs} --target-path ${jars.dir}/${ribose.version}-test.jar --nil build/Test.model Fibonacci ${test.input.dir}/fib.txt"/>
+			<arg value="./ribose ${jargs} run --target-path ${jars.dir}/${ribose.version}-test.jar --nil build/Test.model Fibonacci ${test.input.dir}/fib.txt"/>
 		</exec>
 		<echo/>
 		<echo>DateExtractor:</echo>
 		<exec failonerror="true" executable="bash">
 			<arg value="-c"/>
-			<arg value="etc/sh/ribose ${jargs} --target-path ${jars.dir}/${ribose.version}-test.jar --nil build/Test.model DateExtractor ${test.input.dir}/dates.txt"/>
+			<arg value="./ribose ${jargs} run --target-path ${jars.dir}/${ribose.version}-test.jar --nil build/Test.model DateExtractor ${test.input.dir}/dates.txt"/>
 		</exec>
 		<echo/>
 		<echo>ValuesTest:</echo>
 		<exec failonerror="true" executable="bash">
 			<arg value="-c"/>
-			<arg value="etc/sh/ribose ${jargs} -Djrte.out.enabled=true --target-path ${jars.dir}/${ribose.version}-test.jar --nil build/Test.model ValuesTest ${test.input.dir}/values.txt"/>
+			<arg value="./ribose ${jargs} -Djrte.out.enabled=true run --target-path ${jars.dir}/${ribose.version}-test.jar --nil build/Test.model ValuesTest ${test.input.dir}/values.txt"/>
 		</exec>
 		<echo/>
 	</target>
@@ -379,22 +384,26 @@
 		<echo message="RegEx: ${test.input.dir}/verbosegc.vgc -> ${build.testenv}/vgc.regex.(out,gc)"/>
 		<exec failonerror="true" executable="bash" output="${build.testenv}/vgc.regex.out">
 			<arg value="-c"/>
-			<arg value="etc/sh/FileRunner ${jargs} ${jargs.gc.test}/vgc.regex.gc -Djrte.out.enabled=false -Dregex.out.enabled=true --nil build/Test.model verbosegcregex ${test.input.dir}/verbosegc.vgc &apos;${regex.verbosegc}&apos;"/>
+			<arg value="etc/sh/FileRunner ${jargs} ${jargs.gc.test}/vgc.regex.gc -Djrte.out.enabled=false -Dregex.out.enabled=true
+				--nil build/Test.model verbosegcregex ${test.input.dir}/verbosegc.vgc &apos;${regex.verbosegc}&apos;"/>
 		</exec>
 		<echo message="Ribose: Tintervals ${test.input.dir}/verbosegc.vgc -> ${build.testenv}/vgc.tintervals.(out,gc)"/>
 		<exec failonerror="true" executable="bash" output="${build.testenv}/vgc.tintervals.out">
 			<arg value="-c"/>
-			<arg value="etc/sh/FileRunner ${jargs} ${jargs.gc.test}/vgc.tintervals.gc -Djrte.out.enabled=true -Dregex.out.enabled=false --nil build/Test.model Tintervals ${test.input.dir}/verbosegc.vgc"/>
+			<arg value="etc/sh/FileRunner ${jargs} ${jargs.gc.test}/vgc.tintervals.gc -Djrte.out.enabled=true -Dregex.out.enabled=false
+				--nil build/Test.model Tintervals ${test.input.dir}/verbosegc.vgc"/>
 		</exec>
 		<echo message="Ribose: Sintervals ${test.input.dir}/verbosegc.vgc -> ${build.testenv}/vgc.sintervals.(out,gc)"/>
 		<exec failonerror="true" executable="bash" output="${build.testenv}/vgc.sintervals.out">
 			<arg value="-c"/>
-			<arg value="etc/sh/FileRunner ${jargs} ${jargs.gc.test}/vgc.sintervals.gc -Djrte.out.enabled=true -Dregex.out.enabled=false --nil build/Test.model Sintervals ${test.input.dir}/verbosegc.vgc"/>
+			<arg value="etc/sh/FileRunner ${jargs} ${jargs.gc.test}/vgc.sintervals.gc -Djrte.out.enabled=true -Dregex.out.enabled=false
+				--nil build/Test.model Sintervals ${test.input.dir}/verbosegc.vgc"/>
 		</exec>
 		<echo message="Ribose: Rintervals ${test.input.dir}/verbosegc.vgc -> ${build.testenv}/vgc.rintervals.(out,gc)"/>
 		<exec failonerror="true" executable="bash" output="${build.testenv}/vgc.rintervals.out">
 			<arg value="-c"/>
-			<arg value="etc/sh/FileRunner ${jargs} ${jargs.gc.test}/vgc.rintervals.gc -Djrte.out.enabled=true -Dregex.out.enabled=false --nil build/Test.model Rintervals ${test.input.dir}/verbosegc.vgc"/>
+			<arg value="etc/sh/FileRunner ${jargs} ${jargs.gc.test}/vgc.rintervals.gc -Djrte.out.enabled=true -Dregex.out.enabled=false
+				--nil build/Test.model Rintervals ${test.input.dir}/verbosegc.vgc"/>
 		</exec>
 <!-- verbose gc verify -->
 		<fixcrlf srcDir="${build.testenv}" includes="vgc.*.out"/>
@@ -421,34 +430,39 @@
 		<echo message="Identical: ${build.testenv}/vgc.*.out"/>
 		<echo/>
 <!-- linux kernel run -->
-		<echo message="Reducing ${test.input.dir}/kern-10.log -> ${build.testenv}/linuxkernel*.out"/>
+		<echo message="Reducing ${test.input.dir}/kern.log -> ${build.testenv}/linuxkernel*.out"/>
 		<exec failonerror="true" executable="wc">
-			<arg line="--lines --bytes ${test.input.dir}/kern-10.log"/>
+			<arg line="--lines --bytes ${test.input.dir}/kern.log"/>
 		</exec>
-		<echo message="Regex: ${test.input.dir}/kern-10.log -> ${build.testenv}/linuxkernelregex.(out,gc)"/>
+		<echo message="Regex: ${test.input.dir}/kern.log -> ${build.testenv}/linuxkernelregex.(out,gc)"/>
 		<exec failonerror="true" executable="bash" output="${build.testenv}/linuxkernelregex.out">
 			<arg value="-c"/>
-			<arg value="etc/sh/FileRunner ${jargs} ${jargs.gc.test}/linuxkernelregex.gc -Djrte.out.enabled=false -Dregex.out.enabled=true --nil build/Test.model linuxkernelregex ${test.input.dir}/kern-10.log &apos;${regex.linuxkernel}&apos;"/>
+			<arg value="etc/sh/FileRunner ${jargs} ${jargs.gc.test}/linuxkernelregex.gc -Djrte.out.enabled=false -Dregex.out.enabled=true
+				--nil build/Test.model linuxkernelregex ${test.input.dir}/kern.log &apos;${regex.linuxkernel}&apos;"/>
 		</exec>
-		<echo message="Ribose: LinuxKernel ${test.input.dir}/kern-10.log -> ${build.testenv}/linuxkernel.(out,gc)"/>
+		<echo message="Ribose: LinuxKernel ${test.input.dir}/kern.log -> ${build.testenv}/linuxkernel.(out,gc)"/>
 		<exec failonerror="true" executable="bash" output="${build.testenv}/linuxkernel.out">
 			<arg value="-c"/>
-			<arg value="etc/sh/FileRunner ${jargs} ${jargs.gc.test}/linuxkernel.gc -Djrte.out.enabled=true -Dregex.out.enabled=false --nil build/Test.model LinuxKernel ${test.input.dir}/kern-10.log"/>
+			<arg value="etc/sh/FileRunner ${jargs} ${jargs.gc.test}/linuxkernel.gc -Djrte.out.enabled=true -Dregex.out.enabled=false
+				--nil build/Test.model LinuxKernel ${test.input.dir}/kern.log"/>
 		</exec>
-		<echo message="Ribose: LinuxKernelLoose ${test.input.dir}/kern-10.log -> ${build.testenv}/linuxkernelloose.(out,gc)"/>
+		<echo message="Ribose: LinuxKernelLoose ${test.input.dir}/kern.log -> ${build.testenv}/linuxkernelloose.(out,gc)"/>
 		<exec failonerror="true" executable="bash" output="${build.testenv}/linuxkernelloose.out">
 			<arg value="-c"/>
-			<arg value="etc/sh/FileRunner ${jargs} ${jargs.gc.test}/linuxkernelloose.gc -Djrte.out.enabled=true -Dregex.out.enabled=false --nil build/Test.model LinuxKernelLoose ${test.input.dir}/kern-10.log"/>
+			<arg value="etc/sh/FileRunner ${jargs} ${jargs.gc.test}/linuxkernelloose.gc -Djrte.out.enabled=true -Dregex.out.enabled=false
+				--nil build/Test.model LinuxKernelLoose ${test.input.dir}/kern.log"/>
 		</exec>
-		<echo message="Ribose: LinuxKernelStrict ${test.input.dir}/kern-10.log -> ${build.testenv}/linuxkernelstrict.(out,gc)"/>
+		<echo message="Ribose: LinuxKernelStrict ${test.input.dir}/kern.log -> ${build.testenv}/linuxkernelstrict.(out,gc)"/>
 		<exec failonerror="true" executable="bash" output="${build.testenv}/linuxkernelstrict.out">
 			<arg value="-c"/>
-			<arg value="etc/sh/FileRunner ${jargs} ${jargs.gc.test}/linuxkernelstrict.gc -Djrte.out.enabled=true -Dregex.out.enabled=false --nil build/Test.model LinuxKernelStrict ${test.input.dir}/kern-10.log"/>
+			<arg value="etc/sh/FileRunner ${jargs} ${jargs.gc.test}/linuxkernelstrict.gc -Djrte.out.enabled=true -Dregex.out.enabled=false
+				--nil build/Test.model LinuxKernelStrict ${test.input.dir}/kern.log"/>
 		</exec>
-		<echo message="Ribose[67 byte input buffer]: LinuxKernelStrict ${test.input.dir}/kern-10.log -> ${build.testenv}/linuxkernelstrict-67.(out,gc)"/>
+		<echo message="Ribose[67 byte input buffer]: LinuxKernelStrict ${test.input.dir}/kern.log -> ${build.testenv}/linuxkernelstrict-67.(out,gc)"/>
 		<exec failonerror="true" executable="bash" output="${build.testenv}/linuxkernelstrict-67.out">
 			<arg value="-c"/>
-			<arg value="etc/sh/FileRunner ${jargs} ${jargs.gc.test}/linuxkernelstrict-67.gc -Dribose.inbuffer.size=67 -Djrte.out.enabled=true -Dregex.out.enabled=false --nil build/Test.model LinuxKernelStrict ${test.input.dir}/kern-10.log"/>
+			<arg value="etc/sh/FileRunner ${jargs} ${jargs.gc.test}/linuxkernelstrict-67.gc -Dribose.inbuffer.size=67 -Djrte.out.enabled=true -Dregex.out.enabled=false
+				--nil build/Test.model LinuxKernelStrict ${test.input.dir}/kern.log"/>
 		</exec>
 <!-- linux kernel verify -->
 		<fixcrlf srcDir="${build.testenv}" includes="linuxkernel*.out"/>
@@ -507,7 +521,7 @@
 		</exec>
 	</target>
 
-	<target name="test" depends="clean-test,test-env,test-basic,test-testrunner,test-filerunner,test-output-equivalence,test-heap-metrics"/>
+	<target name="test" depends="ribose,test-env,test-basic,test-testrunner,test-filerunner"/>
 
 	<target name="env" if="linux">
 		<echo message="os (/proc/version)"/>
@@ -546,19 +560,19 @@
 		<echo message="TRun: LinuxKernel ${test.input.dir}/kern-10.log -> ${build.testenv}/linuxkernel.jit"/>
 		<exec failonerror="true" executable="bash" output="${build.testenv}/linuxkernel.jit">
 			<arg value="-c"/>
-			<arg value="etc/sh/ribose ${jargs} ${jargs.jit.diagnostic} -Djrte.out.enabled=false -Dregex.out.enabled=false
-				--target-path ${jars.dir}/${ribose.version}-test.jar --nil build/Test.model LinuxKernel ${test.input.dir}/kern-10.log"/>
+			<arg value="./ribose ${jargs} ${jargs.jit.diagnostic} -Djrte.out.enabled=false -Dregex.out.enabled=false
+				run --target-path ${jars.dir}/${ribose.version}-test.jar --nil build/Test.model LinuxKernel ${test.input.dir}/kern-10.log"/>
 		</exec>
 		<echo message="TRun: Sintervals ${test.input.dir}/verbosegc.vgc -> ${build.testenv}/sintervals.jit"/>
 		<exec failonerror="true" executable="bash" output="${build.testenv}/sintervals.jit">
 			<arg value="-c"/>
-			<arg value="etc/sh/ribose ${jargs} ${jargs.jit.diagnostic} -Djrte.out.enabled=false -Dregex.out.enabled=false
-				--target-path ${jars.dir}/${ribose.version}-test.jar --nil build/Test.model Sintervals ${test.input.dir}/verbosegc.vgc"/>
+			<arg value="./ribose ${jargs} ${jargs.jit.diagnostic} -Djrte.out.enabled=false -Dregex.out.enabled=false
+				run --target-path ${jars.dir}/${ribose.version}-test.jar --nil build/Test.model Sintervals ${test.input.dir}/verbosegc.vgc"/>
 		</exec>
 	</target>
 
 	<target name="debug" depends="test-env">
-		<echo message="Nothing to debug"/>
+		<echo message="[./ribose]"/>
 	</target>
 
 </project>

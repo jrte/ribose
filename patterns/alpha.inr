@@ -137,9 +137,6 @@ utfhi = utf8 - utflo;
 # compose PasteAny with input pattern (P @@ PasteAny) to inject paste after any byte in P
 PasteAny = (byte, paste)*;
 
-# restrict PasteAny to UTF-8 bytes
-PasteUTF8 = utf8* @@ PasteAny;
-
 # restrict PasteAny to exclude nl
 PasteToEol = noteol* @@ PasteAny;
 

@@ -32,10 +32,14 @@ import com.characterforming.ribose.base.Bytes;
  * @author Kim Briggs
  */
 final class Token implements IToken {
+	private static final String[] types = {
+		"literal", "transducer", "field", "signal"
+	};
+
 	private final IToken.Type type;
-	private final byte[] literal;
-	private final byte[] symbol;
-	private final int ordinal;
+	private final Bytes literal;
+	private final Bytes symbol;
+	private int ordinal;
 
 	/**
 	 * Assemble tokens from effector parameter bytes. For internal use
@@ -85,9 +89,7 @@ final class Token implements IToken {
 	 * @param token a literal token
 	 */
 	public Token(byte[] token) {
-		this.literal = this.symbol = token;
-		this.type = IToken.Type.LITERAL;
-		this.ordinal = -1;
+		this(token, -1);
 	}
 
 	/**
@@ -98,8 +100,10 @@ final class Token implements IToken {
 	 * @param ordinal the symbolic token ordinal
 	 */
 	public Token(byte[] token, int ordinal) {
-		this.literal = token;
-		if (token[0] == IToken.TRANSDUCER_TYPE) {
+		this.literal = new Bytes(token);
+		if (token.length == 0) {
+			this.type = IToken.Type.LITERAL;
+		} else if (token[0] == IToken.TRANSDUCER_TYPE) {
 			this.type = IToken.Type.TRANSDUCER;
 		} else if (token[0] == IToken.FIELD_TYPE) {
 			this.type = IToken.Type.FIELD;
@@ -109,7 +113,7 @@ final class Token implements IToken {
 			this.type = IToken.Type.LITERAL;
 		}
 		if (this.type != IToken.Type.LITERAL) {
-			this.symbol = Arrays.copyOfRange(this.literal, 1, this.literal.length);
+			this.symbol = new Bytes(Arrays.copyOfRange(token, 1, token.length));
 			this.ordinal = ordinal;
 		} else {
 			this.symbol = this.literal;
@@ -123,30 +127,51 @@ final class Token implements IToken {
 	}
 	
 	@Override // @see com.characterforming.ribose.IToken#getLiteralValue()
-	public byte[] getLiteralValue() {
+	public Bytes getLiteral() {
 		return this.literal;
 	}
 
 	@Override // @see com.characterforming.ribose.IToken#getSymbolName()
-	public byte[] getSymbolName() {
+	public Bytes getSymbol() {
 		return this.symbol;
 	}
 
-	@Override // @see com.characterforming.ribose.IToken#getSymbolOrdinal()
-	public int getSymbolOrdinal() {
+	@Override // @see com.characterforming.ribose.IToken#getOrdinal()
+	public int getOrdinal() {
 		return this.ordinal;
+	}
+
+	@Override // @see com.characterforming.ribose.IToken#setOrdinal(int)
+	public void setOrdinal(int ordinal) {
+		this.ordinal = ordinal;
+	}
+
+	@Override
+	public String getTypeName() {
+		return Token.types[this.type.ordinal()];
+	}
+
+	@Override
+	public boolean equals(Object other) {
+		return other instanceof Token
+		&& this.type == ((Token)other).type
+		&& this.symbol.equals(((Token) other).symbol);
+	}
+
+	@Override
+	public int hashCode() {
+		return this.symbol.hashCode() * (this.type.ordinal() + 1);
 	}
 
 	@Override
 	public String toString() {
-		if (this.literal.length == 1 && this.literal[0] == 0xa) {
+		if (this.literal.getLength() == 1 && this.literal.bytes()[0] == 0xa) {
 			return "#a";
 		} else try {
 			CharsetDecoder decoder = Base.newCharsetDecoder();
-			return decoder.decode(ByteBuffer.wrap(getLiteralValue())).toString();
+			return decoder.decode(ByteBuffer.wrap(getLiteral().bytes())).toString();
 		} catch (Exception e) {
-			Bytes data = new Bytes(getLiteralValue());
-			return data.toHexString();
+			return getLiteral().toHexString();
 		}
 	}
 }

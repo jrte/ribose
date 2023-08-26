@@ -32,7 +32,7 @@ import com.characterforming.ribose.IEffector;
 import com.characterforming.ribose.IField;
 import com.characterforming.ribose.IOutput;
 import com.characterforming.ribose.IParameterizedEffector;
-import com.characterforming.ribose.IRuntime;
+import com.characterforming.ribose.IModel;
 import com.characterforming.ribose.ITarget;
 import com.characterforming.ribose.IToken;
 import com.characterforming.ribose.ITransductor;
@@ -47,7 +47,7 @@ import com.characterforming.ribose.base.Signal;
 import com.characterforming.ribose.base.TargetBindingException;
 
 /**
- * Runtime transductor instances are instantiated using {@link IRuntime#transductor(ITarget)}
+ * Runtime transductor instances are instantiated using {@link IModel#transductor(ITarget)}
  * presenting a collection of {@link IEffector} and {@link IParameterizedEffector}
  * instances. Client applications drive transduction using the Transductor.run() method,
  * which processes the input stack until one of the following conditions is satisfied:
@@ -102,6 +102,7 @@ public final class Transductor implements ITransductor, IOutput {
 	
 	private Signal prologue;
 	private final Model model;
+	private final ModelLoader loader;
 	private final TargetMode mode;
 	private TransducerState transducer;
 	private IEffector<?>[] effectors;
@@ -117,10 +118,25 @@ public final class Transductor implements ITransductor, IOutput {
 	private int matchByte;
 	private int errorInput;
 	private final int signalLimit;
-	private OutputStream output;
+	private OutputStream outputStream;
 	private final Logger rtcLogger;
 	private final Logger rteLogger;
 	private final ITransductor.Metrics metrics;
+
+	/**
+	 * Proxy constructor 
+	 */
+	Transductor() {
+		this.model = null;
+		this.loader = null;
+		this.mode = TargetMode.COMPILE;
+		this.transducerStack = null;
+		this.inputStack = null;
+		this.signalLimit = -1;
+		this.rtcLogger = null;
+		this.rteLogger = null;
+		this.metrics = null;
+	}
 
 	/**
 	 *  Constructor
@@ -128,16 +144,19 @@ public final class Transductor implements ITransductor, IOutput {
 	 * @param model The runtime model
 	 * @throws ModelException on error
 	 */
-	Transductor(final Model model, TargetMode mode) {
+	Transductor(final Model model) {
 		super();
+		this.mode = TargetMode.RUN;
 		this.model = model;
-		this.mode = mode;
+		this.loader = (ModelLoader)this.model;
 		this.prologue = null;
 		this.effectors = null;
 		this.transducer = null;
 		this.fieldHandles = null;
 		this.fieldOrdinalMap = null;
-		this.output = System.getProperty("jrte.out.enabled", "true").equals("true") ? System.out : null;
+		this.inputStack = new InputStack(INITIAL_STACK_SIZE);
+		this.transducerStack = new TransducerStack(INITIAL_STACK_SIZE);
+		this.outputStream = System.getProperty("jrte.out.enabled", "true").equals("true") ? System.out : null;
 		this.selected = null;
 		this.matchMode = MATCH_NONE;
 		this.matchSum = null;
@@ -149,19 +168,11 @@ public final class Transductor implements ITransductor, IOutput {
 		this.rtcLogger = Base.getCompileLogger();
 		this.rteLogger = Base.getRuntimeLogger();
 		this.metrics = new Metrics();
-
-		if (this.mode == TargetMode.RUN) {
-			this.inputStack = new InputStack(INITIAL_STACK_SIZE);
-			this.transducerStack = new TransducerStack(INITIAL_STACK_SIZE);
-		} else {
-			this.inputStack = null;
-			this.transducerStack = null;
-		}
 	}
 
 	@Override // @see com.characterforming.ribose.ITarget#getEffectors()
 	public IEffector<?>[] getEffectors() throws TargetBindingException {
-		if (this.model.getModelVersion().equals(Base.RTE_VERSION)) {
+		if (this.getModelVersion().equals(Base.RTE_VERSION)) {
 			return new IEffector<?>[] {
 			/* 0*/ new InlineEffector(this, "0"),
 			/* 1*/ new InlineEffector(this, "1"),
@@ -183,7 +194,7 @@ public final class Transductor implements ITransductor, IOutput {
 			/*17*/ new MproductEffector(this),
 			/*18*/ new MscanEffector(this)
 		};
-	} else if (this.model.getModelVersion().equals(Base.RTE_PREVIOUS)) {
+	} else if (this.getModelVersion().equals(Base.RTE_PREVIOUS)) {
 			return new IEffector<?>[] {
 			/* 0*/ new InlineEffector(this, "0"),
 			/* 1*/ new InlineEffector(this, "1"),
@@ -209,6 +220,10 @@ public final class Transductor implements ITransductor, IOutput {
 			throw new TargetBindingException(String.format("Unsupported ribose model version '%s'.",
 				this.model.getModelVersion()));
 		}
+	}
+
+	private String getModelVersion() {
+		return Base.RTE_VERSION;
 	}
 
 	@Override // @see com.characterforming.ribose.IOutput#rtcLogger()
@@ -237,43 +252,41 @@ public final class Transductor implements ITransductor, IOutput {
 				return this.inputStack.isEmpty() ? Status.PAUSED : Status.RUNNABLE;
 			}
 		} else {
-			return Status.NULL;
+			return Status.PROXY;
 		}
 	}
 
 	@Override // @see com.characterforming.ribose.ITransductor#output(OutputStream)
 	public OutputStream output(OutputStream output) {
-		OutputStream out = this.output;
-		this.output = output;
+		assert !isProxy();
+		OutputStream out = this.outputStream;
+		this.outputStream = output;
 		return out;
 	}
 
 	@Override // @see com.characterforming.ribose.ITransductor#push(byte[], int)
 	public ITransductor push(final byte[] input, int limit) {
+		assert !isProxy();
 		if (input.length < limit) {
 			limit = input.length;
 		}
-		if (this.status() != Status.NULL) {
-			this.inputStack.push(input, limit);
-		}
+		this.inputStack.push(input, limit);
 		return this;
 	}
 
 	@Override // @see com.characterforming.ribose.ITransductor#signal(Signal)
 	public ITransductor signal(Signal signal) {
-		if (this.status() != Status.NULL) {
-			this.prologue = signal;
-		}
+		assert !isProxy();
+		this.prologue = signal;
 		return this;
 	}
 
 	@Override // @see com.characterforming.ribose.ITransductor#start(Bytes)
 	public ITransductor start(final Bytes transducerName) throws ModelException {
-		if (this.status() != Status.NULL) {
-			this.transducerStack.push(this.model.loadTransducer(this.model.getTransducerOrdinal(transducerName)));
-			this.selected = this.fieldHandles[Model.ANONYMOUS_FIELD_ORDINAL];
-			this.clear();
-		}
+		assert !isProxy();
+		this.transducerStack.push(this.loader.loadTransducer(this.model.getTransducerOrdinal(transducerName)));
+		this.selected = this.fieldHandles[Model.ANONYMOUS_FIELD_ORDINAL];
+		this.clear();
 		return this;
 	}
 
@@ -302,14 +315,12 @@ public final class Transductor implements ITransductor, IOutput {
 			}
 		}
 		this.matchMode = MATCH_NONE;
-		if (this.status() == Status.NULL) {
-			throw new RiboseException("run: Transductor instantiated as model for compiler is inoperable in the runtime");
-		}
 		return this;
 	}
 
 	@Override	// @see com.characterforming.ribose.ITransductor#run()
 	public ITransductor run() throws RiboseException {
+		assert !this.isProxy();
 		if (this.transducerStack.isEmpty()) {
 			return this;
 		}
@@ -393,6 +404,7 @@ S:				do {
 						if (0 != (aftereffects & IEffector.RTX_SIGNAL)) {
 							signal = aftereffects >>> 16;
 							if ((signal < SIGNUL) || (signal >= this.signalLimit)) {
+								assert false : String.format("Signal %1$d out of range [256..%2$d)", signal, this.signalLimit);
 								signal = SIGNUL;
 							}
 						}
@@ -410,8 +422,8 @@ S:				do {
 				} while (this.status().isRunnable());
 			} while (this.status().isRunnable());
 
-			if (this.output != null) {
-				this.output.flush();
+			if (this.outputStream != null) {
+				this.outputStream.flush();
 			}
 			if (token == SIGNUL) {
 				throw new DomainErrorException(this.getErrorInput(last, state));
@@ -495,6 +507,10 @@ S:				do {
 		}
 	}
 
+	boolean isProxy() {
+		return this.mode == TargetMode.COMPILE;
+	}
+
 	// invoke a scalar effector or vector of effectors and record side effects on transducer and input stacks
 	private int effect(int action, int token, int[] effectorVector)
 	throws IOException, EffectorException {
@@ -563,8 +579,8 @@ E:	do {
 					aftereffects |= IEffector.RTX_INPUT;
 					break;
 				case OUT:
-					if (this.output != null) {
-						this.output.write(this.selected.getData(), 0, this.selected.getLength());
+					if (this.outputStream != null) {
+						this.outputStream.write(this.selected.getData(), 0, this.selected.getLength());
 					}
 					break;
 				case MARK:
@@ -739,12 +755,12 @@ E:	do {
 		public int invoke(final int parameterIndex) throws EffectorException {
 			for (IToken token : super.getParameter(parameterIndex)) {
 				if (token.getType() == IToken.Type.FIELD) {
-					IField field = getField(token.getSymbolOrdinal());
+					IField field = Transductor.this.getField(token.getOrdinal());
 					if (field != null) {
 						selected.append(field.copyValue());
 					}
 				} else if (token.getType() == IToken.Type.LITERAL) {
-					selected.append(token.getLiteralValue());
+					selected.append(token.getLiteral().bytes());
 				} else {
 					throw new EffectorException(String.format("Invalid token `%1$s` for effector '%2$s'", 
 						token.toString(), super.getName()));
@@ -832,7 +848,7 @@ E:	do {
 			final int nameIndex = super.getParameter(parameterIndex);
 			assert (nameIndex >= 0) || (nameIndex == -1);
 			int index = (nameIndex >= 0) ? nameIndex : selected.getOrdinal();
-			if (index != Model.CLEAR_ANONYMOUS_FIELD) {
+			if (index != Model.CLEAR_ALL_FIELDS_ORDINAL) {
 				fieldHandles[index].clear();
 			} else {
 				clear();
@@ -868,7 +884,7 @@ E:	do {
 			}
 			IToken token = parameterList[0];
 			if (token.getType() == IToken.Type.SIGNAL) {
-				int ordinal = token.getSymbolOrdinal();
+				int ordinal = token.getOrdinal();
 				if (ordinal < 0) {
 					throw new TargetBindingException(String.format("Null signal reference for signal effector: %s", token.toString()));
 				}
@@ -880,7 +896,7 @@ E:	do {
 		}
 
 		@Override
-		public String showParameterType(int parameterIndex) {
+		public String showParameterType() {
 			return "Integer";
 		}
 	}
@@ -888,6 +904,7 @@ E:	do {
 	private final class InEffector extends BaseInputOutputEffector {
 		private InEffector(final Transductor transductor) {
 			super(transductor, "in");
+			
 		}
 
 		@Override
@@ -901,11 +918,11 @@ E:	do {
 			byte[][] tokens = new byte[parameters.length][];
 			for (int i = 0; i < parameters.length; i++) {
 				if (parameters[i].getType() == IToken.Type.FIELD) {
-					IField field = getField(parameters[i].getSymbolOrdinal());
+					IField field = Transductor.this.getField(parameters[i].getOrdinal());
 					tokens[i] = (field != null) ? field.copyValue() : Bytes.EMPTY_BYTES;
 				} else {
 					assert parameters[i].getType() == IToken.Type.LITERAL;
-					tokens[i] = parameters[i].getLiteralValue();
+					tokens[i] = parameters[i].getLiteral().bytes();
 				}
 			}
 			inputStack.put(tokens);
@@ -925,18 +942,18 @@ E:	do {
 
 		@Override
 		public int invoke(final int parameterIndex) throws EffectorException {
-			if (super.target.output != null) {
+			if (outputStream != null) {
 				for (final IToken token : super.getParameter(parameterIndex)) {
 					try {
 						if (token.getType() == IToken.Type.FIELD) {
-							Field field = (Field)getField(token.getSymbolOrdinal());
+							Field field = (Field)Transductor.this.getField(token.getOrdinal());
 							if (field != null) {
-								super.target.output.write(field.getData(), 0, field.getLength());
+								outputStream.write(field.getData(), 0, field.getLength());
 							}
 						} else {
 							assert token.getType() == IToken.Type.LITERAL;
-							byte[] data = token.getLiteralValue();
-							super.target.output.write(data, 0, data.length);
+							byte[] data = token.getLiteral().bytes();
+							outputStream.write(data, 0, data.length);
 						}
 					} catch (IOException e) {
 						throw new EffectorException("Unable to write() to output", e);
@@ -967,7 +984,7 @@ E:	do {
 			assert (transducer == transducerStack.peek()) || (transducer == transducerStack.get(transducerStack.tos()-1));
 			System.arraycopy(super.getParameter(parameterIndex), 0, transducer.countdown, 0, 2);
 			if (transducer.countdown[0] < 0) {
-				IField field = getField(-1 - transducer.countdown[0]);
+				IField field = Transductor.this.getField(-1 - transducer.countdown[0]);
 				transducer.countdown[0] = (field != null) ? (int)field.asInteger() : -1;
 			}
 			return transducer.countdown[0] <= 0 ? IEffector.rtxSignal(transducer.countdown[1]) : IEffector.RTX_NONE;
@@ -981,23 +998,23 @@ E:	do {
 			}
 			int count = -1;
 			if (parameterList[0].getType() == IToken.Type.FIELD) {
-				Bytes fieldName = new Bytes(parameterList[0].getSymbolName());
+				Bytes fieldName = new Bytes(parameterList[0].getSymbol().bytes());
 				int fieldOrdinal = getFieldOrdinal(fieldName);
 				if (fieldOrdinal < 0) {
-					throw new TargetBindingException(String.format("%1$s.%2$s: Field %3$s not found",
+					throw new TargetBindingException(String.format("%1$s.%2$s: Field '%3$s' not found",
 						super.getTarget().getName(), super.getName(), fieldName.toString()));
 				}
 				count = -1 - fieldOrdinal;
 			} else if (parameterList[0].getType() == IToken.Type.LITERAL) {
-				byte[] value = parameterList[0].getLiteralValue();
+				byte[] value = parameterList[0].getLiteral().bytes();
 				count = Base.decodeInt(value, value.length);
 			} else {
-				byte[] value = parameterList[0].getLiteralValue();
+				byte[] value = parameterList[0].getLiteral().bytes();
 				throw new TargetBindingException(String.format("%1$s.%2$s: invalid field|counter '%3$%s' for count effector",
 					super.getTarget().getName(), super.getName(), Bytes.decode(super.getDecoder(), value, value.length)));
 			}
 			if (parameterList[1].getType() == IToken.Type.SIGNAL) {
-				int signalOrdinal = parameterList[1].getSymbolOrdinal();
+				int signalOrdinal = parameterList[1].getOrdinal();
 				assert signalOrdinal >= SIGNUL;
 				return new int[] { count, signalOrdinal };
 			} else {
@@ -1007,7 +1024,7 @@ E:	do {
 		}
 
 		@Override 
-		public String showParameterType(int parameterIndex) {
+		public String showParameterType() {
 			return "int[]";
 		}
 	}
@@ -1033,7 +1050,7 @@ E:	do {
 				throw new TargetBindingException("The start effector accepts only one parameter");
 			}
 			if (parameterTokens[0].getType() == IToken.Type.TRANSDUCER) {
-				return parameterTokens[0].getSymbolOrdinal();
+				return parameterTokens[0].getOrdinal();
 			} else {
 				throw new TargetBindingException(String.format("Invalid transducer reference `%s` for start effector, requires type indicator ('%c') before the transducer name",
 					parameterTokens[0].toString(), IToken.TRANSDUCER_TYPE));
@@ -1043,7 +1060,7 @@ E:	do {
 		@Override
 		public int invoke(final int parameterIndex) throws EffectorException {
 			try {
-				transducerStack.push(model.loadTransducer(super.getParameter(parameterIndex)));
+				transducerStack.push(loader.loadTransducer(super.getParameter(parameterIndex)));
 			} catch (final ModelException e) {
 				byte[] bytes = model.getTransducerName(super.getParameter(parameterIndex));
 				throw new EffectorException(String.format("The start effector failed to load %1$s", 
@@ -1053,7 +1070,7 @@ E:	do {
 		}
 
 		@Override
-		public String showParameterType(int parameterIndex) {
+		public String showParameterType() {
 			return "Integer";
 		}
 	}
@@ -1102,7 +1119,7 @@ E:	do {
 				throw new TargetBindingException("The msum effector accepts at most one parameter (a byte array of length >1)");
 			}
 			long[] byteMap = new long[] {0, 0, 0, 0};
-			for (byte b : parameterList[0].getLiteralValue()) {
+			for (byte b : parameterList[0].getLiteral().bytes()) {
 				final int i = Byte.toUnsignedInt(b);
 				byteMap[i >> 6] |= 1L << (i & 0x3f);
 			}
@@ -1110,7 +1127,7 @@ E:	do {
  		}
 
 		@Override
-		public String showParameterType(int parameterIndex) {
+		public String showParameterType() {
 			return "long[]";
 		}
 
@@ -1186,12 +1203,12 @@ E:	do {
 			if (parameterList.length != 1) {
 				throw new TargetBindingException("The mproduct effector accepts at most one parameter (a byte array of length >1)");
 			}
-			byte[] tokens = parameterList[0].getLiteralValue();
+			byte[] tokens = parameterList[0].getLiteral().bytes();
 			return Arrays.copyOf(tokens, tokens.length);
  		}
 
 		@Override
-		public String showParameterType(int parameterIndex) {
+		public String showParameterType() {
 			return "byte[]";
 		}
 
@@ -1240,11 +1257,11 @@ E:	do {
 			if (parameterList.length != 1) {
 				throw new TargetBindingException("The mscan effector accepts at most one parameter (a byte array of length 1)");
 			}
- 			return 0xff & parameterList[0].getLiteralValue()[0];
+ 			return 0xff & parameterList[0].getLiteral().bytes()[0];
 		}
 
 		@Override
-		public String showParameterType(int parameterIndex) {
+		public String showParameterType() {
 			return "Integer";
 		}
 

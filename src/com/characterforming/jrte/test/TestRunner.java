@@ -29,10 +29,9 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import com.characterforming.jrte.engine.Base;
-import com.characterforming.ribose.IRuntime;
+import com.characterforming.ribose.IModel;
 import com.characterforming.ribose.ITransductor;
 import com.characterforming.ribose.ITransductor.Status;
-import com.characterforming.ribose.Ribose;
 import com.characterforming.ribose.base.Bytes;
 import com.characterforming.ribose.base.RiboseException;
 import com.characterforming.ribose.base.Signal;
@@ -69,7 +68,7 @@ public class TestRunner {
 			"SelectPasteTest", "PasteSpeedTest", "NilPauseTest", "PastePauseTest", "PasteCutTest", "StackTest", "PasteCountTest", "CounterTest", "NilSpeedTest"
 		};
 		final CharsetEncoder encoder = Base.newCharsetEncoder();
-		try (final IRuntime ribose = Ribose.loadRiboseModel(new File(modelPath))) {
+		try (final IModel ribose = IModel.loadRiboseModel(new File(modelPath))) {
 			final ITransductor trex = ribose.transductor(new TestTarget());
 			for (final String test : tests) {
 				long t0 = 0, t1 = 0, t2 = 0;
@@ -77,9 +76,8 @@ public class TestRunner {
 				Bytes transducer = Bytes.encode(encoder, test);
 				for (int i = 0; i < 20; i++) {
 					assert trex.status() == Status.STOPPED;
-					if (trex.push(abytes, abytes.length).status().isWaiting()
-					&& trex.signal(Signal.NIL).status().isWaiting()
-					&& (trex.start(transducer).status().isRunnable())) {
+					trex.push(abytes, abytes.length).signal(Signal.NIL);
+					if (trex.start(transducer).status().isRunnable()) {
 						t0 = System.nanoTime();
 						do {
 							trex.run();

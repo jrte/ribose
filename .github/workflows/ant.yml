@@ -18,4 +18,4 @@ jobs:
         java-version: '17'
         distribution: 'adopt'
     - name: Build with Ant
-      run: ant -noinput -buildfile build.xml
+      run: ant -noinput -buildfile build.xml ci-test
