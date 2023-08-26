@@ -1098,7 +1098,7 @@ public final class ModelCompiler implements ITarget {
 				break;
 			default:
 				Bytes signalSymbol = new Bytes(bytes);
-				this.targetModel.addTransducerInputSignal(this.getTransducerName(), signalSymbol);
+				this.targetModel.addTransducerInputSignal(signalSymbol);
 				this.targetModel.addSignal(signalSymbol);
 				return;
 			}
@@ -1127,7 +1127,7 @@ public final class ModelCompiler implements ITarget {
 				break;
 			case IToken.SIGNAL_TYPE:
 				this.targetModel.addSignal(token);
-				this.targetModel.addEffectorParameterSignal(token);
+				this.targetModel.addEffectorSignalParameter(token);
 				break;
 			default:
 				break;
