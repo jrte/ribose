@@ -26,6 +26,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.RandomAccessFile;
+import java.lang.reflect.InvocationTargetException;
 import java.nio.ByteBuffer;
 import java.nio.charset.CharsetDecoder;
 import java.nio.charset.CharsetEncoder;
@@ -70,7 +71,6 @@ public final class Model implements AutoCloseable {
 
 	private final TargetMode targetMode;
 	private final File modelPath;
-	private final ITarget proxyTarget;
 	private final Logger rtcLogger;
 	private final CharsetEncoder encoder = Base.newCharsetEncoder();
 	private final CharsetDecoder decoder = Base.newCharsetDecoder();
@@ -95,7 +95,8 @@ public final class Model implements AutoCloseable {
 	private boolean deleteOnClose;
 	private byte[][] fieldsNames;
 	private byte[][] signalNames;
-	private byte[][] transducerNames;
+	private String targetName;
+	private Class<?> targetClass;
 
 	private Model(final File modelPath, String targetClassname, List<String> errors) throws ModelException {
 		this.targetMode = TargetMode.COMPILE;
@@ -106,8 +107,8 @@ public final class Model implements AutoCloseable {
 		this.errors = errors;
 		this.errorCount = 0;
 		try {
-			Class<?> targetClass = Class.forName(targetClassname);
-			this.proxyTarget = (ITarget) targetClass.getDeclaredConstructor().newInstance();
+			Class<?> clazz = Class.forName(targetClassname);
+			this.targetClass = clazz;
 			this.io = new RandomAccessFile(this.modelPath, "rw");
 			assert this.modelPath.length() == 0;
 			this.putLong(0);
@@ -118,9 +119,6 @@ public final class Model implements AutoCloseable {
 				this.modelPath.toPath().toString()), e);
 		} catch (ClassNotFoundException e) {
 			throw new ModelException(String.format("Unable to instantiate target class '%s'.",
-				targetClassname), e);
-		} catch (Exception e) {
-			throw new ModelException(String.format("Class '%s' does not implement the ITarget interface.",
 				targetClassname), e);
 		}
 	}
@@ -140,8 +138,7 @@ public final class Model implements AutoCloseable {
 			this.getLong();
 			this.modelVersion = this.getString();
 			targetClassname = this.getString();
-			Class<?> targetClass = Class.forName(targetClassname);
-			this.proxyTarget = (ITarget) targetClass.getDeclaredConstructor().newInstance();
+			this.targetClass = Class.forName(targetClassname);
 		} catch (ClassNotFoundException e) {
 			throw new ModelException(String.format("Unable to instantiate target class '%s' from model file %s.",
 				targetClassname, this.modelPath.toPath().toString()), e);
@@ -155,10 +152,19 @@ public final class Model implements AutoCloseable {
 	}
 
 	private void initialize(TargetMode targetMode) throws ModelException {
+		ITarget proxyTarget = null;
+		try {
+			proxyTarget = (ITarget) targetClass.getDeclaredConstructor().newInstance();
+			this.targetName = proxyTarget.getName();
+		} catch (InstantiationException | IllegalAccessException | IllegalArgumentException
+			| InvocationTargetException | NoSuchMethodException | SecurityException e) {
+			throw new ModelException(String.format("Class '%s' from model file %s does not implement the ITarget interface.",
+				this.targetClass.getName(), this.modelPath.toPath().toString()), e);
+		}
 		Transductor proxyTransductor = new Transductor(this, targetMode);
 		proxyTransductor.setFieldOrdinalMap(this.fieldOrdinalMap);
 		IEffector<?>[] trexFx = proxyTransductor.getEffectors();
-		IEffector<?>[] targetFx = this.proxyTarget.getEffectors();
+		IEffector<?>[] targetFx = proxyTarget.getEffectors();
 		this.proxyEffectors = new IEffector<?>[trexFx.length + targetFx.length];
 		System.arraycopy(trexFx, 0, this.proxyEffectors, 0, trexFx.length);
 		System.arraycopy(targetFx, 0, this.proxyEffectors, trexFx.length, targetFx.length);
@@ -228,7 +234,7 @@ public final class Model implements AutoCloseable {
 		try {
 			if (this.errorCount == 0 && this.transducerOrdinalMap.size() > 0) {
 				long filePosition = this.seek(-1);
-				int targetOrdinal = this.addTransducer(new Bytes(this.proxyTarget.getName().getBytes()));
+				int targetOrdinal = this.addTransducer(new Bytes(this.targetName.getBytes()));
 				int transducerCount = this.transducerOrdinalMap.size();
 				this.setTransducerOffset(targetOrdinal, filePosition);
 				long indexPosition = this.io.getFilePointer();
@@ -238,9 +244,10 @@ public final class Model implements AutoCloseable {
 				this.putOrdinalMap(effectorOrdinalMap);
 				this.putOrdinalMap(transducerOrdinalMap);
 				for (int index = 0; index < transducerCount; index++) {
-					assert this.transducerOffsetIndex[index] > 0;
-					this.putBytes(this.transducerNameIndex[index]);
-					this.putLong(this.transducerOffsetIndex[index]);
+					if (this.transducerOffsetIndex[index] > 0) {
+						this.putBytes(this.transducerNameIndex[index]);
+						this.putLong(this.transducerOffsetIndex[index]);
+					}
 				}
 				this.compileModelParameters();
 				if (this.errorCount == 0) {
@@ -249,7 +256,7 @@ public final class Model implements AutoCloseable {
 					this.saveMapFile(mapFile);
 					this.rtcLogger.log(Level.INFO, () -> String.format(
 						"%1$s: target class %2$s%n%3$d transducers; %4$d effectors; %5$d fields; %6$d signal ordinals%n",
-						this.modelPath.getPath(), this.proxyTarget.getClass().getName(), this.transducerOrdinalMap.size() - 1,
+						this.modelPath.getPath(), this.targetClass.getName(), this.transducerOrdinalMap.size() - 1,
 						this.effectorOrdinalMap.size(), this.fieldOrdinalMap.size(), this.getSignalCount()));
 					this.setDeleteOnClose(false);
 				}
@@ -292,10 +299,10 @@ public final class Model implements AutoCloseable {
 				Base.RTE_VERSION, loadedVersion, model.modelPath.getPath()));
 		}
 		final String targetClassname = model.getString();
-		if (!targetClassname.equals(model.proxyTarget.getClass().getName())) {
+		if (!targetClassname.equals(model.targetClass.getName())) {
 			throw new ModelException(
 				String.format("Can't load model for target class '%1$s'; '%2$s' is target class for model file '%3$s'",
-					model.proxyTarget.getName(), targetClassname, model.modelPath.getPath()));
+					model.targetName, targetClassname, model.modelPath.getPath()));
 		}
 		model.modelVersion = loadedVersion;
 		model.seek(indexPosition);
@@ -305,12 +312,11 @@ public final class Model implements AutoCloseable {
 		model.fieldsNames = model.getValueNames(model.fieldOrdinalMap);
 		model.effectorOrdinalMap = model.getOrdinalMap();
 		model.transducerOrdinalMap = model.getOrdinalMap();
-		model.transducerNames = model.getValueNames(model.fieldOrdinalMap);
 		model.initialize(TargetMode.RUN);
 		assert model.effectorOrdinalMap.size() == model.proxyEffectors.length;
-		if (!model.transducerOrdinalMap.containsKey(Bytes.encode(model.encoder, model.proxyTarget.getName()))) {
+		if (!model.transducerOrdinalMap.containsKey(Bytes.encode(model.encoder, model.targetName))) {
 			throw new ModelException(String.format("Target name '%1$s' not found in name offset map for model file '%2$s'",
-				model.proxyTarget.getName(), model.modelPath.getPath()));
+				model.targetName, model.modelPath.getPath()));
 		}
 		int transducerCount = model.transducerOrdinalMap.size();
 		model.transducerNameIndex = new Bytes[transducerCount];
@@ -378,7 +384,7 @@ public final class Model implements AutoCloseable {
 	}
 
 	byte[] getTransducerName(int transducerOrdinal) {
-		return this.transducerNames[transducerOrdinal];
+		return this.transducerNameIndex[transducerOrdinal].getData();
 	}
 
 	/**
@@ -389,16 +395,15 @@ public final class Model implements AutoCloseable {
 	 */
 	public Transductor bindTransductor(ITarget target) throws ModelException {
 		assert this.targetMode == TargetMode.RUN;
-		Class<? extends ITarget> targetClass = target.getClass();
-		Class<? extends ITarget> modelClass = this.proxyTarget.getClass();
-		if (!modelClass.isAssignableFrom(targetClass)) {
+		if (!this.targetClass.isAssignableFrom(target.getClass())) {
 			throw new ModelException(
 				String.format("Cannot bind instance of target class '%1$s', can only bind to model target class '%2$s'",
-					target.getClass().getName(), this.proxyTarget.getClass().getName()));
+					target.getClass().getName(), this.targetClass.getName()));
 		}
-		if (target == this.proxyTarget) {
+		if (target == this.proxyEffectors[0].getTarget()
+		|| target == this.proxyEffectors[this.proxyEffectors.length-1].getTarget()) {
 			throw new ModelException(String.format("Cannot use model target instance as runtime target: $%s",
-				this.proxyTarget.getClass().getName()));
+				this.targetClass.getName()));
 		}
 		Transductor trex = new Transductor(this, TargetMode.RUN);
 		IEffector<?>[] trexFx = trex.getEffectors();
@@ -436,7 +441,7 @@ public final class Model implements AutoCloseable {
 	private void saveMapFile(File mapFile) {
 		try (PrintWriter mapWriter = new PrintWriter(mapFile)) {
 			mapWriter.println(String.format("version %1$s", this.modelVersion));
-			mapWriter.println(String.format("target %1$s", this.proxyTarget.getClass().getName()));
+			mapWriter.println(String.format("target %1$s", this.targetClass.getName()));
 			Bytes[] signalIndex = new Bytes[this.signalOrdinalMap.size()];
 			for (Map.Entry<Bytes, Integer> m : this.signalOrdinalMap.entrySet()) {
 				signalIndex[m.getValue()] = m.getKey();
@@ -541,7 +546,7 @@ public final class Model implements AutoCloseable {
 					this.putBytesArrays(effectorParameterBytes);
 				} else if (parameters.size() > 0) {
 					this.errors.add(String.format("%1$s.%2$s: effector does not accept parameters",
-						this.proxyTarget.getName(), effector.getName()));
+						this.targetName, effector.getName()));
 				} else {
 					this.putInt(-1);
 				}
@@ -554,7 +559,7 @@ public final class Model implements AutoCloseable {
 		for (final Map.Entry<Bytes, Integer> entry : effectorMap.entrySet()) {
 			if (this.proxyEffectors[entry.getValue()] == null) {
 				this.rtcLogger.log(Level.SEVERE, () -> String.format("%1$s.%2$s: effector ordinal not found",
-					this.proxyTarget.getName(), entry.getKey().toString()));
+					this.targetName, entry.getKey().toString()));
 			}
 		}
 	}
@@ -1052,6 +1057,6 @@ public final class Model implements AutoCloseable {
 	}
 
 	public String getTargetClassname() {
-		return this.proxyTarget.getClass().getName();
+		return this.targetClass.getName();
 	}
 }
