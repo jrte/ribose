@@ -151,7 +151,7 @@ public final class ModelCompiler implements ITarget {
 				} catch (Exception e) {
 					String msg = String.format("%1$s caught compiling transducer '%2$s'.", 
 						e.getClass().getSimpleName(), filename);
-					compiler.targetModel.putError(String.format("%1$s See log for exception details.", msg));
+					compiler.targetModel.addError(String.format("%1$s See log for exception details.", msg));
 					rtcLogger.log(Level.SEVERE, msg, e);
 				}
 			}
@@ -355,11 +355,11 @@ public final class ModelCompiler implements ITarget {
 			}
 			assert position == size;
 		} catch (FileNotFoundException e) {
-			this.targetModel.putError(String.format("%1$s: File not found '%2$s'",
+			this.targetModel.addError(String.format("%1$s: File not found '%2$s'",
 				name, inrFile.getPath()));
 			return false;
 		} catch (IOException e) {
-			this.targetModel.putError(String.format("%1$s: IOException compiling '%2$s'; %3$s",
+			this.targetModel.addError(String.format("%1$s: IOException compiling '%2$s'; %3$s",
 				name, inrFile.getPath(), e.getMessage()));
 			return false;
 		}
@@ -378,13 +378,13 @@ public final class ModelCompiler implements ITarget {
 				this.saveTransducer();
 			}
 		} catch (ModelException e) {
-			this.targetModel.putError(String.format("%1$s: ModelException compiling '%2$s'; %3$s",
+			this.targetModel.addError(String.format("%1$s: ModelException compiling '%2$s'; %3$s",
 				name, inrFile.getPath(), e.getMessage()));
 		} catch (DomainErrorException e) {
-			this.targetModel.putError(String.format("%1$s: DomainErrorException compiling '%2$s'; %3$s",
+			this.targetModel.addError(String.format("%1$s: DomainErrorException compiling '%2$s'; %3$s",
 				name, inrFile.getPath(), e.getMessage()));
 		} catch (RiboseException e) {
-			this.targetModel.putError(String.format("%1$s: RteException compiling '%2$s'; %3$s",
+			this.targetModel.addError(String.format("%1$s: RteException compiling '%2$s'; %3$s",
 				name, inrFile.getPath(), e.getMessage()));
 		} finally {
 			this.transductor.stop();
@@ -402,11 +402,11 @@ public final class ModelCompiler implements ITarget {
 			(int) fields[3].asInteger(),
 			(int) fields[4].asInteger());
 		if (h.version != ModelCompiler.VERSION) {
-			this.targetModel.putError(String.format("%1$s: Invalid INR version %2$d",
+			this.targetModel.addError(String.format("%1$s: Invalid INR version %2$d",
 				getTransducerName(), h.version));
 		}
 		if (h.tapes > 3) {
-			this.targetModel.putError(String.format("%1$s: Invalid tape count %2$d",
+			this.targetModel.addError(String.format("%1$s: Invalid tape count %2$d",
 				getTransducerName(), h.tapes));
 		}
 		this.header = h;
@@ -423,10 +423,10 @@ public final class ModelCompiler implements ITarget {
 			fields[3].copyValue());
 		if (!t.isFinal) {
 			if (t.tape < 0) {
-				this.targetModel.putError(String.format("%1$s: Epsilon transition from state %2$d to %3$d (use :dfamin to remove these)",
+				this.targetModel.addError(String.format("%1$s: Epsilon transition from state %2$d to %3$d (use :dfamin to remove these)",
 					this.getTransducerName(), t.from, t.to));
 			} else if (t.symbol.length == 0) {
-				this.targetModel.putError(String.format("%1$s: Empty symbol on tape %2$d",
+				this.targetModel.addError(String.format("%1$s: Empty symbol on tape %2$d",
 					this.getTransducerName(), t.tape));
 			} else {
 				this.transitions[this.transition++] = t;
@@ -463,7 +463,7 @@ public final class ModelCompiler implements ITarget {
 	private void putTransitionMatrix() {
 		final Integer[] inrInputStates = this.getInrStates(0);
 		if (inrInputStates == null) {
-			this.targetModel.putError("Empty automaton " + this.getTransducerName());
+			this.targetModel.addError("Empty automaton " + this.getTransducerName());
 			return;
 		}
 
@@ -485,7 +485,7 @@ public final class ModelCompiler implements ITarget {
 			for (final Transition t : this.getTransitions(inrInputState)) {
 				if (!t.isFinal) {
 					if (t.tape != 0) {
-						this.targetModel.putError(String.format(ModelCompiler.AMBIGUOUS_STATE_MESSAGE,
+						this.targetModel.addError(String.format(ModelCompiler.AMBIGUOUS_STATE_MESSAGE,
 							this.getTransducerName(), t.from));
 						continue;
 					}
@@ -513,7 +513,7 @@ public final class ModelCompiler implements ITarget {
 							}
 						}
 					} catch (CompilationException e) {
-						this.targetModel.putError(String.format("%1$s: %2$s",
+						this.targetModel.addError(String.format("%1$s: %2$s",
 							this.getTransducerName(), e.getMessage()));
 					}
 				}
@@ -1004,7 +1004,7 @@ public final class ModelCompiler implements ITarget {
 					++parameterPos;
 					break;
 				default:
-					this.targetModel.putError(String.format("%1$s: Invalid tape number %2$d",
+					this.targetModel.addError(String.format("%1$s: Invalid tape number %2$d",
 						this.getName(), t.tape));
 					break;
 			}
@@ -1040,7 +1040,7 @@ public final class ModelCompiler implements ITarget {
 				int outS = -1;
 				for (final Transition t : outT) {
 					if (t.tape > 0) {
-						this.targetModel.putError(String.format(AMBIGUOUS_STATE_MESSAGE, this.getName(), t.from));
+						this.targetModel.addError(String.format(AMBIGUOUS_STATE_MESSAGE, this.getName(), t.from));
 					} else {
 						outS = t.from;
 					}
@@ -1050,7 +1050,7 @@ public final class ModelCompiler implements ITarget {
 				}
 			} else {
 				for (final Transition t : outT) {
-					this.targetModel.putError(String.format(AMBIGUOUS_STATE_MESSAGE, this.getName(), t.from));
+					this.targetModel.addError(String.format(AMBIGUOUS_STATE_MESSAGE, this.getName(), t.from));
 				}
 			}
 		}
@@ -1102,7 +1102,7 @@ public final class ModelCompiler implements ITarget {
 				this.targetModel.addSignal(signalSymbol);
 				return;
 			}
-			this.targetModel.putError(String.format("%1$s: Invalid input token '%2$s' of %3$s type on tape 0",
+			this.targetModel.addError(String.format("%1$s: Invalid input token '%2$s' of %3$s type on tape 0",
 				this.getTransducerName(), Bytes.decode(this.decoder, bytes, bytes.length), type));
 		}
 	}
@@ -1110,7 +1110,7 @@ public final class ModelCompiler implements ITarget {
 	private void compileEffectorToken(byte[] bytes) {
 		assert (bytes.length > 0);
 		if (0 > this.targetModel.getEffectorOrdinal(new Bytes(bytes))) {
-			this.targetModel.putError(String.format("%1$s: Unknown effector token '%2$s' on tape 1",
+			this.targetModel.addError(String.format("%1$s: Unknown effector token '%2$s' on tape 1",
 				this.getTransducerName(), Bytes.decode(this.decoder, bytes, bytes.length)));
 		}
 	}
