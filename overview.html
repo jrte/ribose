@@ -105,15 +105,28 @@ State transitions (from equivalent -> to effect...)
 2 1 -> 0 paste out signal[ `!nil` ]
 2 4 -> 2 select[ `~r` ] cut[ `~p` ] select[ `~p` ] copy[ `~q` ] select[ `~q` ] cut[ `~r` ]</pre>
 <br><b><i>Transduction Targets and Effectors</i></b><br><br>
+To continue with the biologic metaphor, a transduction target presents itself to
+the transductor like a cell with receptors that effect specific changes inside the
+cell when they recognize specific shapes on the outside. Receptors typically don't
+interact with each other they just do their very specific thing, but there are plenty
+of shapes floating around and it all works out well for the cell most of the time.
+Same with transduction targets. The transductor knows nothing about target semantics,
+it just presents input to transducers that engage very specific target effectors as
+they recognize specific input patterns. Stuff happens in the target, maybe. That's
+all the transductor knows about the target.
+<br><br>
 Every ribose model is associated with a specific transduction target class that
-expresses a collection of effectors. A transduction target is any class that has
-a public default constructor and implements the {@code ITarget} interface, which
+expresses a collection of effectors. A transduction target class is any class that
+has a public default constructor and implements the {@code ITarget} interface, which
 exposes two methods: {@code String getName()} and {@code IEffector<?>[]
 getEffectors()}. The name can be whatever you like, and the target can express
 as many effectors as required. Effectors must extend {@code IEffector<T extends
 ITarget>} or {@code IParameterizedEffector<T extends ITarget, P> extends IEffector<T>>}
 and are usually implemented as private inner classes of the target class, which
-allows them to access the private members of the target.
+allows them to access the private members of the target. They can be fat like 
+{@code ModelCompiler} or they may be mere facades like {@code SimpleTarget} that
+hold a secret something that only their effectors know. Whatever works best for 
+your situation.
 <br><br>
 The transductor is itself a target expressing a suite of core effectors that are
 sufficient for transducers that transform input and write raw bytes to an output

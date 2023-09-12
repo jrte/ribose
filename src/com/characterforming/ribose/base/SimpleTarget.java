@@ -28,10 +28,11 @@ import com.characterforming.ribose.ITarget;
 /**
  * This simple {@link ITarget} implementation presents the core ribose
  * effectors implemented in the the ribose runtime transductor. It provides
- * no intrinsic effectors and is intended to support construction of ribose
+ * no intrinsic effectors and is intended to support construction of simple
  * models that contain only streaming transducers, which dispose of all
  * output through the core {@code out[..]} effector and require no
- * specialized effectors.
+ * specialized effectors. Transductions involving simple models have no
+ * dependencies on external jars.
  *
  * @author Kim Briggs
  */

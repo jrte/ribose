@@ -61,7 +61,7 @@ public interface IOutput {
 	/**
 	 * Get a copy of the current value for a field from an effector parameter token
 	 *
-	 * @param fieldName the name of the field (UTF-8 bytes, with `~` prefix in lead byte)
+	 * @param fieldName the name of the field (UTF-8 bytes, withouy `~` prefix in lead byte)
 	 * @return a field instance or null
 	 * @throws TargetBindingException on error
 	 */
@@ -70,7 +70,7 @@ public interface IOutput {
 	/**
 	 * Get a field ordinal from an effector parameter token
 	 *
-	 * @param fieldName the name of the field (UTF-8 bytes, with `~` prefix in lead byte)
+	 * @param fieldName the name of the field (UTF-8 bytes, without `~` prefix in lead byte)
 	 * @return the numeric index of the field
 	 * @throws TargetBindingException on error
 	 */

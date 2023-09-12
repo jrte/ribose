@@ -100,7 +100,7 @@ import com.characterforming.ribose.base.Signal;
  * or {@link IParameterizedEffector#invoke(int)} a signal ordinal encoded with 
  * {@link IEffector#rtxSignal(int)}. This can be used to effect backflow of information 
  * from the target to the transductor; for example,
- * <br><pre>(nl, isThatSo[`!true` `false`]) ((true, yep) | (false, nope))</pre>
+ * <br><pre>(nl, isThatSo[`!true` `!false`]) ((true, yep) | (false, nope))</pre>
  * At most one encoded signal can be injected per transition (this is not checked in the
  * ribose runtime).
  * <br><br>

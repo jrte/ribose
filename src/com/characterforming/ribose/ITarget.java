@@ -29,8 +29,11 @@ import com.characterforming.ribose.base.TargetBindingException;
  * transductions. The runtime {@code Transductor} class, which encapsulates
  * ribose transductions, implements {@code ITarget} and provides the base ribose
  * effectors that are accessible to all transducers. These are listed in the
- * {@link ITransductor} documentation. Specialized {@code ITarget} implementations
- * may supplement these with additional effectors.
+ * {@link ITransductor} documentation. The {@link SimpleTarget} class exposes
+ * <i>only</i> the {@code Transductor} effectors and is included to support
+ * simple models that do not require specialized effectors. Specialized 
+ * {@code ITarget} implementations may supplement these with additional
+ * effectors.
  * <br><br>
  * {@code ITarget} implementations must present a public default constructor
  * with no arguments. This is used to instantiate proxy instances to enumerate
@@ -40,7 +43,8 @@ import com.characterforming.ribose.base.TargetBindingException;
  * regarding the effector parameter binding protocol. At runtime, a live target
  * instance is bound to a transductor and the binding persists for the lifetime
  * of the transductor. Live runtime targets are instantiated externally and
- * passed to the {@link IModel} methods to create {@code ITransductor} instances.
+ * passed to the {@link IModel} methods to create {@code ITransductor}
+ * instances.
  * Live effectors receive proecompiled parameters from the proxy effectors
  * retained in the model.
  * <br><br>
