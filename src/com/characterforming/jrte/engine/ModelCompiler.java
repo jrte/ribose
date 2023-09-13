@@ -80,7 +80,7 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 	private int transition;
 	private int errorCount;
 
-	ModelCompiler() {
+	public ModelCompiler() {
 		super();
 	}
 
@@ -119,7 +119,15 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 		super.transducerNameIndex = new Bytes[256];
 		super.initialize();
 		this.transductor = null;
-		this.reset();
+		this.inputStateMap = null;
+		this.stateTransitionMap = null;
+		this.transducerName = null;
+		this.effectorVectorMap = null;
+		this.inputEquivalenceIndex = null;
+		this.kernelMatrix = null;
+		this.header = null;
+		this.transitions = null;
+		this.transition = 0;
 	}
 
 	@Override // AutoCloseable.close()
@@ -144,75 +152,90 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 	public static boolean compileAutomata(Class<?> targetClass, File riboseModelFile, File inrAutomataDirectory) throws ModelException {
 		Logger rtcLogger = Base.getCompileLogger();
 
-		if (!riboseModelFile.exists()) try {
-			if (!riboseModelFile.createNewFile()) {
-				rtcLogger.log(Level.SEVERE, () -> String.format("Can't overwrite existing model file : %1$s",
-					riboseModelFile.getPath()));
+		try (ModelCompiler proxyCompiler = new ModelCompiler()) {
+			if (!proxyCompiler.createModelFile(riboseModelFile, rtcLogger)) {
 				return false;
 			}
-		} catch (IOException e) {
-			rtcLogger.log(Level.SEVERE, e, () -> String.format("Exception caught creating model file : %1$s",
-				riboseModelFile.getPath()));
-			return false;
-		}
 
-		File workingDirectory = new File(System.getProperty("user.dir", "."));
-		File compilerModelFile =  ModelCompiler.lookupCompilerModel(workingDirectory);
-		if (!compilerModelFile.exists()) {
-			rtcLogger.log(Level.SEVERE, () ->
-				String.format("TCompile.model not found in ribose jar or in working directory (%s).",
-					workingDirectory));
-			return false;
-		}
-
-		boolean saved = false;
-		try (
-			IModel compilerRuntime = IModel.loadRiboseModel(compilerModelFile);
-			ModelCompiler compiler = new ModelCompiler(riboseModelFile, targetClass);
-		) {
-			compiler.setTransductor(compilerRuntime.transductor(compiler));
-			for (final String filename : inrAutomataDirectory.list()) {
-				if (filename.endsWith(Base.AUTOMATON_FILE_SUFFIX)) {
-					try {
-						compiler.compileTransducer(new File(inrAutomataDirectory, filename));
-					} catch (ModelException e) {
-						String msg = String.format("%1$s: ModelException caught saving to model file; %2$s",
-							filename, e.getMessage());
-						compiler.addError(msg);
-						rtcLogger.log(Level.SEVERE, msg, e);
+			if (targetClass == ModelCompiler.class) {
+				boolean saved = false;
+				try (ModelCompiler compiler = new ModelCompiler(riboseModelFile, targetClass)) {
+					if (compiler.compileCompiler(inrAutomataDirectory)) {
+						byte[][][][] compiledParameters = compiler.compileModelParameters(compiler.errors);
+						saved = compiler.validate() && compiler.save(compiledParameters);
+						assert saved == !compiler.hasErrors();
+						if (!saved) {
+							for (String error : compiler.getErrors()) {
+								rtcLogger.severe(error);
+							}
+						}
 					}
 				}
+				return saved;
 			}
-			byte[][][][] compiledParameters = compiler.compileModelParameters(compiler.errors);
-			saved = compiler.validate() && compiler.save(compiledParameters);
-			assert saved == !compiler.hasErrors();
-			if (!saved) {
-				for (String error : compiler.getErrors()) {
-					rtcLogger.severe(error);
+
+			File compilerModelFile =  proxyCompiler.lookupCompilerModel();
+			if (compilerModelFile == null || !compilerModelFile.exists()) {
+				rtcLogger.log(Level.SEVERE, "TCompile.model not found in ribose jar.");
+				return false;
+			}
+
+			boolean saved = false;
+			try (
+				IModel compilerRuntime = IModel.loadRiboseModel(compilerModelFile);
+				ModelCompiler compiler = new ModelCompiler(riboseModelFile, targetClass);
+			) {
+				compiler.setTransductor(compilerRuntime.transductor(compiler));
+				for (final String filename : inrAutomataDirectory.list()) {
+					if (filename.endsWith(Base.AUTOMATON_FILE_SUFFIX)) {
+						try {
+							compiler.compileTransducer(new File(inrAutomataDirectory, filename));
+						} catch (ModelException e) {
+							String msg = String.format("%1$s: ModelException caught saving to model file; %2$s",
+								filename, e.getMessage());
+							compiler.addError(msg);
+							rtcLogger.log(Level.SEVERE, msg, e);
+						}
+					}
+				}
+				byte[][][][] compiledParameters = compiler.compileModelParameters(compiler.errors);
+				saved = compiler.validate() && compiler.save(compiledParameters);
+				assert saved == !compiler.hasErrors();
+				if (!saved) {
+					for (String error : compiler.getErrors()) {
+						rtcLogger.severe(error);
+					}
+				}
+			} catch (Exception e) {
+				rtcLogger.log(Level.SEVERE, e, () -> String.format("%1$s caught compiling automata directory '%2$s'.",
+					e.getClass().getSimpleName(), inrAutomataDirectory.getPath()));
+			} finally {
+				if (!saved && riboseModelFile.exists() && !riboseModelFile.delete()) {
+					rtcLogger.log(Level.WARNING, () -> String.format("Unable to delete failed model file '%1$s'.",
+						riboseModelFile.getAbsolutePath()));
 				}
 			}
-		} catch (Exception e) {
-			rtcLogger.log(Level.SEVERE, e, () -> String.format("%1$s caught compiling automata directory '%2$s'.",
-				e.getClass().getSimpleName(), inrAutomataDirectory.getPath()));
-		} finally {
-			if (!saved && riboseModelFile.exists() && !riboseModelFile.delete()) {
-				rtcLogger.log(Level.WARNING, () -> String.format("Unable to delete failed model file '%1$s'.",
-					riboseModelFile.getAbsolutePath()));
-			}
+			return saved;
 		}
-		return saved;
 	}
 
-	private static File lookupCompilerModel(File workingDirectory) {
+	private boolean compileCompiler(File inrAutomataDirectory) {
+		Automaton automaton = new Automaton(this, this.rtcLogger);
+
+		return automaton.assemble(inrAutomataDirectory);
+	}
+
+	private File lookupCompilerModel() {
 		File compilerModelFile = null;
-		String compilerModelPath = ModelCompiler.class.getPackageName() + "/TCompile.model";
-		if (ModelCompiler.class.getResource(compilerModelPath) != null) {
+		String compilerModelPath = ModelCompiler.class.getPackageName().replace('.', '/') + "/TCompile.model";
+		if (ModelCompiler.class.getClassLoader().getResource(compilerModelPath) != null) {
 			try {
 				compilerModelFile = File.createTempFile("TCompile", ".model");
 				compilerModelFile.deleteOnExit();
 				try (
-						InputStream mis = ModelCompiler.class.getResourceAsStream(compilerModelPath);
-						OutputStream mos = new FileOutputStream(compilerModelFile);) {
+					InputStream mis = ModelCompiler.class.getClassLoader().getResourceAsStream(compilerModelPath);
+					OutputStream mos = new FileOutputStream(compilerModelFile)
+				) {
 					compilerModelFile.deleteOnExit();
 					byte[] data = new byte[65536];
 					int read = -1;
@@ -224,18 +247,18 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 					} while (read >= 0);
 				}
 			} catch (IOException e) {
-				compilerModelFile = new File(workingDirectory, "TCompile.model");
+				compilerModelFile = null;
 			}
-		} else {
-			compilerModelFile = new File(workingDirectory, "TCompile.model");
 		}
 		return compilerModelFile;
 	}
 
-	private ModelCompiler reset() {
-		this.transducerName = null;
-		this.inputStateMap = null;
-		this.stateTransitionMap = null;
+	ModelCompiler reset(File inrFile) {
+		String name = inrFile.getName();
+		name = name.substring(0, name.length() - Base.AUTOMATON_FILE_SUFFIX.length());
+		this.transducerName = Bytes.encode(this.encoder, name);
+		this.inputStateMap = new HashMap<>(256);
+		this.stateTransitionMap = new HashMap<>(1024);
 		this.effectorVectorMap = null;
 		this.inputEquivalenceIndex = null;
 		this.kernelMatrix = null;
@@ -245,11 +268,23 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 		return this;
 	}
 
+	private boolean createModelFile(File riboseModelFile, Logger rtcLogger) {
+		try {
+			if (riboseModelFile.createNewFile()) {
+				return true;
+			} else {
+				rtcLogger.log(Level.SEVERE, () -> String.format("Can't overwrite existing model file : %1$s",
+					riboseModelFile.getPath()));
+			}
+		} catch (IOException e) {
+			rtcLogger.log(Level.SEVERE, e, () -> String.format("Exception caught creating model file : %1$s",
+				riboseModelFile.getPath()));
+		}		
+		return false;
+	}
+
 	private boolean compileTransducer(File inrFile) throws RiboseException {
-		this.reset();
-		String name = inrFile.getName();
-		name = name.substring(0, name.length() - Base.AUTOMATON_FILE_SUFFIX.length());
-		this.transducerName = Bytes.encode(this.encoder, name);
+		this.reset(inrFile);
 		int size = (int)inrFile.length();
 		byte[] bytes = null;
 		try (DataInputStream f = new DataInputStream(new FileInputStream(inrFile))) {
@@ -263,16 +298,14 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 			assert position == size;
 		} catch (FileNotFoundException e) {
 			this.addError(String.format("%1$s: File not found '%2$s'",
-				name, inrFile.getPath()));
+				this.transducerName, inrFile.getPath()));
 			return false;
 		} catch (IOException e) {
 			this.addError(String.format("%1$s: IOException compiling '%2$s'; %3$s",
-				name, inrFile.getPath(), e.getMessage()));
+				this.transducerName, inrFile.getPath(), e.getMessage()));
 			return false;
 		}
 		try {
-			this.inputStateMap = new HashMap<>(256);
-			this.stateTransitionMap = new HashMap<>(size >> 3);
 			Bytes automaton = Bytes.encode(this.encoder, "Automaton");
 			if (this.transductor.stop().push(bytes, size).signal(Signal.NIL).start(automaton).status().isRunnable()
 			&& this.transductor.run().status().isPaused()) {
@@ -281,18 +314,15 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 			assert !this.transductor.status().isRunnable();
 			this.transductor.stop();
 			assert this.transductor.status().isStopped();
+			this.saveTransducer();
 		} catch (ModelException e) {
 			this.addError(String.format("%1$s: ModelException compiling '%2$s'; %3$s",
-				name, inrFile.getPath(), e.getMessage()));
+				this.transducerName, inrFile.getPath(), e.getMessage()));
 			return false;
 		} catch (DomainErrorException e) {
 			this.addError(String.format("%1$s: DomainErrorException compiling '%2$s'; %3$s",
-				name, inrFile.getPath(), e.getMessage()));
-		} finally {
-			this.transductor.stop();
-			assert this.transductor.status().isStopped();
+				this.transducerName, inrFile.getPath(), e.getMessage()));
 		}
-		this.saveTransducer();
 		return true;
 	}
 
@@ -334,7 +364,7 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 		return !this.hasErrors();
 	}
 
-	private void saveTransducer() throws ModelException {
+	void saveTransducer() throws ModelException {
 		long filePosition = this.seek(-1);
 		int transducerOrdinal = this.addTransducer(this.transducerName);
 		this.setTransducerOffset(transducerOrdinal, filePosition);
@@ -357,7 +387,6 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 			"%1$-21s %2$5d input classes %3$5d states %4$5d transitions (%5$.0f%% nul)",
 			this.getTransducerName()+":", this.kernelMatrix.length, this.kernelMatrix[0].length,
 			transitionCount, sparsity));
-		System.err.flush();
 	}
 
 	private boolean save(byte[][][][] compiledParameters) throws ModelException {
@@ -475,7 +504,7 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 		return this.transducerName.toString();
 	}
 
-	private void putHeader(Header header) {
+	void putHeader(Header header) {
 		if (header.version != ModelCompiler.VERSION) {
 			this.addError(String.format("%1$s: Invalid INR version %2$d",
 				getTransducerName(), header.version));
@@ -489,7 +518,7 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 		stateTransitionMap = new HashMap<>((header.states * 5) >> 2);
 	}
 
-	private void putTransition(Transition transition) {
+	void putTransition(Transition transition) {
 		assert this.header.transitions == this.transitions.length;
 		if (!transition.isFinal) {
 			if (transition.tape < 0) {
@@ -533,7 +562,7 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 		}
 	}
 
-	private void putAutomaton() {
+	void putAutomaton() {
 		final Integer[] inrInputStates = this.getInrStates();
 		if (inrInputStates == null) {
 			this.addError("Empty automaton " + this.getTransducerName());
@@ -600,7 +629,7 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 		return !this.errors.isEmpty();
 	}
 
-	private void addError(final String message) {
+	void addError(final String message) {
 		if (!this.errors.contains(message)) {
 			this.errors.add(message);
 		}
@@ -1162,9 +1191,9 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 		this.transductor = transductor;
 	}
 
-	private record Header (int version, int tapes, int transitions, int states, int symbols) {}
+	record Header (int version, int tapes, int transitions, int states, int symbols) {}
 
-	private record Transition (int from, int to, int tape, Bytes symbol, boolean isFinal) {}
+	record Transition (int from, int to, int tape, Bytes symbol, boolean isFinal) {}
 
 	final class HeaderEffector extends BaseEffector<ModelCompiler> {
 		IField[] fields;

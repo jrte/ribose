@@ -5,7 +5,7 @@ execRun() {
 		nil="$1"
 		shift
 	fi
-	${JAVA_HOME}/bin/java -ea -cp $path $vmargs com.characterforming.ribose.Ribose run $nil "$@"
+	$JAVA -ea -cp $path $vmargs com.characterforming.ribose.Ribose run $nil "$@"
 }
 
 execCompile() {
@@ -16,16 +16,14 @@ execCompile() {
 		fi
 	fi
 	if (($#==4)); then
-		${JAVA_HOME}/bin/java -ea -cp $path $vmargs com.characterforming.ribose.Ribose compile "$@" \
-			2>&1 >/dev/null | grep -e "ERROR\|WARNING\|INFO" | grep -oe "[ \t]*[A-Za-z0-9_]*:[ \t]*[0-9].*$"
+		$JAVA -ea -cp $path $vmargs com.characterforming.ribose.Ribose compile "$@" 
 	else
-		${JAVA_HOME}/bin/java -ea -cp $path $vmargs com.characterforming.ribose.Ribose compile --target com.characterforming.jrte.engine.SimpleTarget "$@" \
-			2>&1 >/dev/null | grep -e "ERROR\|WARNING\|INFO" | grep -oe "[ \t]*[A-Za-z0-9_]*:[ \t]*[0-9].*$"
+		$JAVA -ea -cp $path $vmargs com.characterforming.ribose.Ribose compile --target com.characterforming.jrte.engine.SimpleTarget "$@"
 	fi
 }
 
 execDecompile() {
-	${JAVA_HOME}/bin/java -ea -cp $path $vmargs com.characterforming.ribose.Ribose decompile "$@"
+	$JAVA -ea -cp $path $vmargs com.characterforming.ribose.Ribose decompile "$@"
 }
 
 execHelp() {
@@ -43,6 +41,11 @@ execHelp() {
 	return 0
 }
 
+JAVA=$(which java)
+if [[ ! -f "$JAVA" ]]; then
+	echo No java at "$JAVA"
+	exit 1
+fi
 jrte=$(realpath $(dirname $0))
 vmargs=""
 while [[ ! "$1" =~ ^(help|compile|run|decompile) ]]; do

@@ -157,7 +157,7 @@ public final class Ribose {
 			if (command == Command.NULL || command == Command.HELP) {
 				Ribose.help(args.length == 1 ? Command.HELP : Ribose.which(args[1]));
 			} else if (command == Command.VERSION) {
-				System.err.println(String.format(VERSION, Base.RTE_VERSION));
+				System.out.println(String.format(VERSION, Base.RTE_VERSION));
 				fail = false;
 			} else {
 				String[] cargs = Arrays.copyOfRange(args, 1, args.length);
@@ -185,7 +185,7 @@ public final class Ribose {
 			targetClassname = args[1];
 			ginrAutomataDirectory = new File(args[2]);
 			riboseModelFile = new File(args[3]);
-			System.err.println(String.format("Compiling %1$s to runtime model %2$s",
+			System.out.println(String.format("Compiling %1$s to runtime model %2$s",
 				ginrAutomataDirectory.getPath(), riboseModelFile.getPath()));
 			if (!ginrAutomataDirectory.isDirectory()) {
 				final String directoryPath = ginrAutomataDirectory.getPath();
@@ -202,18 +202,18 @@ public final class Ribose {
 		}
 
 		if (!argsOk) {
-			System.err.println();
-			System.err.println(
+			System.out.println();
+			System.out.println(
 				"Use: java [<jvm-args>] com.characterforming.ribose.Ribose compile [--target-path <classpath> --target <classname>] <automata-path> <model-path>");
-			System.err.println(
+			System.out.println(
 					" or: ribose [<jvm-args>] compile [--target-path <classpath> --target <classname>] <automata-path> <model-path>");
-			System.err.println("  --target-path <classpath> -- model target classpath");
-			System.err.println("       --target <classname> -- fully qualified <classname> of the target class (implements ITarget)");
-			System.err.println("              automata-path -- path to directory containing transducer automata compiled by ginr");
-			System.err.println("                 model-path -- path for output model file");
-			System.err.println("The target class path and name must be specified (excepting SimpleTarget).");
-			System.err.println("The target class must have a default constructor.");
-			System.err.println();
+			System.out.println("  --target-path <classpath> -- model target classpath");
+			System.out.println("       --target <classname> -- fully qualified <classname> of the target class (implements ITarget)");
+			System.out.println("              automata-path -- path to directory containing transducer automata compiled by ginr");
+			System.out.println("                 model-path -- path for output model file");
+			System.out.println("The target class path and name must be specified (excepting SimpleTarget).");
+			System.out.println("The target class must have a default constructor.");
+			System.out.println();
 			return false;
 		}
 
@@ -224,10 +224,10 @@ public final class Ribose {
 			final String modelPath = riboseModelFile.getPath();
 			rtcLogger.log(Level.SEVERE, e, () -> String.format("Model compilation failed for '%1$s'",
 				modelPath));
-			System.err.println("Compiler failed, see log for details.");
+			System.out.println("Compiler failed, see log for details.");
 		} finally {
 			if (!compiled) {
-				System.err.println("Runtime compilation failed, see log for details.");
+				System.out.println("Runtime compilation failed, see log for details.");
 			}
 			Base.endLogging();
 		}
@@ -240,23 +240,23 @@ public final class Ribose {
 		int arg = nil ? 1 : 0;
 		arg += (arg > (nil ? 1 : 0)) ? 1 : 0;
 		if ((argc - arg) != 3 && (argc - arg) != 4) {
-			System.err.println();
-			System.err.println(
+			System.out.println();
+			System.out.println(
 				"Use: java [<jvm-args>] com.characterforming.ribose.Ribose run [--nil] model transducer input [output]");
-			System.err.println(
+			System.out.println(
 				" or: ribose [<jvm-args>] run [--target-path <classpath>] [--nil] model transducer input [output]");
-			System.err.println("  --target-path <classpath> -- model target classpath");
-			System.err.println("                      --nil -- push a <i>nil</i> signal to start the transduction (recommended)");
-			System.err.println("                      model -- path to model file");
-			System.err.println("                 transducer -- name of transducer to run");
-			System.err.println("                      input -- path to input file (or - to read System.in)");
-			System.err.println("                     output -- path to UTF-8 output file (optional, default is System.out)");
-			System.err.println("The target class path must be specified (excepting SimpleTarget).");
-			System.err.printf("%nDefault buffer sizes are %1$d bytes for output and %2$d for input. These%n",
+			System.out.println("  --target-path <classpath> -- model target classpath");
+			System.out.println("                      --nil -- push a <i>nil</i> signal to start the transduction (recommended)");
+			System.out.println("                      model -- path to model file");
+			System.out.println("                 transducer -- name of transducer to run");
+			System.out.println("                      input -- path to input file (or - to read System.in)");
+			System.out.println("                     output -- path to UTF-8 output file (optional, default is System.out)");
+			System.out.println("The target class path must be specified (excepting SimpleTarget).");
+			System.out.printf("%nDefault buffer sizes are %1$d bytes for output and %2$d for input. These%n",
 				Base.getOutBufferSize(), Base.getInBufferSize());
-			System.err.println("can be overridden in the jvm options. Specify '-Dribose.outbuffer.size=N'");
-			System.err.println("and/or '-Dribose.inbuffer.size=N' for a buffer size of N bytes.");
-			System.err.println();
+			System.out.println("can be overridden in the jvm options. Specify '-Dribose.outbuffer.size=N'");
+			System.out.println("and/or '-Dribose.inbuffer.size=N' for a buffer size of N bytes.");
+			System.out.println();
 			return false;
 		}
 		final String modelPath = args[arg++];
@@ -266,7 +266,6 @@ public final class Ribose {
 
 		Base.startLogging();
 		final Logger rteLogger = Base.getRuntimeLogger();
-		final Logger rtmLogger = Base.getMetricsLogger();
 		final CharsetEncoder encoder = Base.newCharsetEncoder();
 		final File input = inputPath.charAt(0) == '-' ? null : new File(inputPath);
 		if (input != null && !input.exists()) {
@@ -280,26 +279,19 @@ public final class Ribose {
 		}
 
 		boolean run = false;
-		try (IModel ribose = IModel.loadRiboseModel(model);
-				InputStream streamIn = input == null ? System.in : new FileInputStream(input);
-				OutputStream streamOut = new BufferedOutputStream(
-					output == null ? System.out : new FileOutputStream(new File(output)), Base.getOutBufferSize());) {
+		try (
+			IModel ribose = IModel.loadRiboseModel(model);
+			InputStream streamIn = input == null ? System.in : new FileInputStream(input);
+			OutputStream streamOut = new BufferedOutputStream(
+				output == null ? System.out : new FileOutputStream(new File(output)), Base.getOutBufferSize()
+			);
+		) {
 			Bytes transducer = Bytes.encode(encoder, transducerName);
-			long t0 = System.nanoTime();
-			if (ribose.stream(transducer, nil ? Signal.NIL : null, streamIn, streamOut)) {
-				if (input != null) {
-					long clen = input.length();
-					double t1 = (System.nanoTime() - t0);
-					double mbps = (t1 > 0) ? (clen * 1000) / t1 : -1;
-					rtmLogger.log(Level.FINE, () -> String.format("%s\t%7.3f\t%d\t%s",
-						inputPath, mbps, clen, transducerName));
-				}
-				run = true;
-			}
+			run = ribose.stream(transducer, nil ? Signal.NIL : Signal.NONE, streamIn, streamOut);
 			streamOut.flush();
 		} catch (final Exception e) {
 			rteLogger.log(Level.SEVERE, "Runtime failed", e);
-			System.err.println("Runtime failed, see log for details.");
+			System.out.println("Runtime failed, see log for details.");
 		} finally {
 			Base.endLogging();
 		}
@@ -308,16 +300,16 @@ public final class Ribose {
 
 	private static boolean execDecompile(final String[] args) {
 		if (args.length != 2) {
-			System.err.println();
-			System.err.println(
+			System.out.println();
+			System.out.println(
 				"Use: java [<jvm-args>] com.characterforming.ribose.Ribose decompile <model> <transducer>");
-			System.err.println(
+			System.out.println(
 				" or: ribose [<jvm-args>] decompile [--target-path <classpath>] <model> <transducer>");
-			System.err.println("  --target-path <classpath> -- model target classpath");
-			System.err.println("                      model -- path to model file");
-			System.err.println("                 transducer -- name of transducer to decompile");
-			System.err.println("The target class path must be specified (excepting SimpleTarget).");
-			System.err.println();
+			System.out.println("  --target-path <classpath> -- model target classpath");
+			System.out.println("                      model -- path to model file");
+			System.out.println("                 transducer -- name of transducer to decompile");
+			System.out.println("The target class path must be specified (excepting SimpleTarget).");
+			System.out.println();
 			return false;
 		}
 		final String transducerName = args[1];

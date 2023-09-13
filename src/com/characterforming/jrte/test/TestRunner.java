@@ -47,7 +47,7 @@ public class TestRunner {
 	 */
 	public static void main(final String[] args) throws InterruptedException, RiboseException, SecurityException, IOException {
 		if (args.length == 0) {
-			System.err.println(String.format("Usage: java -cp <classpath> %1$s <model-path> [wait-ms]", TestRunner.class.getName()));
+			System.out.println(String.format("Usage: java -cp <classpath> %1$s <model-path> [wait-ms]", TestRunner.class.getName()));
 			System.exit(1);
 		}
 
@@ -72,7 +72,7 @@ public class TestRunner {
 			final ITransductor trex = ribose.transductor(new TestTarget());
 			for (final String test : tests) {
 				long t0 = 0, t1 = 0, t2 = 0;
-				System.err.format("%20s: ", test);
+				System.out.format("%20s: ", test);
 				Bytes transducer = Bytes.encode(encoder, test);
 				for (int i = 0; i < 20; i++) {
 					assert trex.status() == Status.STOPPED;
@@ -87,7 +87,7 @@ public class TestRunner {
 						}
 						t1 = System.nanoTime() - t0;
 						if (i >= 10) {
-							System.err.print(String.format("%4d", t1/1000000));
+							System.out.print(String.format("%4d", t1/1000000));
 							t2 += t1;
 						}
 						assert !trex.status().isRunnable();
@@ -96,11 +96,11 @@ public class TestRunner {
 					}
 				}
 				double mbps = (t2 > 0) ? (double)(100000000l*1000000000l) / (double)(t2*1024*1024) : -1;
-				System.err.println(String.format(" : %8.3f mb/s (bytes)", mbps));
+				System.out.println(String.format(" : %8.3f mb/s (bytes)", mbps));
 			}
 			exitCode = 0;
 		} catch (Exception e) {
-			System.err.println("Runtime exception thrown.");
+			System.out.println("Runtime exception thrown.");
 			rteLogger.log(Level.SEVERE, "Runtime failed, exception thrown.", e);
 		} finally {
 			Base.endLogging();
@@ -121,13 +121,13 @@ public class TestRunner {
 				}
 			}
 			t1 = System.nanoTime() - t0;
-			System.err.print(String.format("%4d", t1/1000000));
+			System.out.print(String.format("%4d", t1/1000000));
 			if (i >= 10) {
 				t2 += t1;
 			}
 		}
 		double density = (double)100 * ((double)captured / (double)(20*input.length));
 		double mbps = (t2 > 0) ? (double)(10*(long)input.length*1000) / (double)t2 : -1;
-		System.err.println(String.format(" : %8.3f mb/s (chars, captured %.1f%%)", mbps, density));
+		System.out.println(String.format(" : %8.3f mb/s (chars, captured %.1f%%)", mbps, density));
 	}
 }

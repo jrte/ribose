@@ -172,58 +172,27 @@ public final class Transductor implements ITransductor, IOutput {
 
 	@Override // @see com.characterforming.ribose.ITarget#getEffectors()
 	public IEffector<?>[] getEffectors() throws TargetBindingException {
-		if (this.getModelVersion().equals(Base.RTE_VERSION)) {
-			return new IEffector<?>[] {
-			/* 0*/ new InlineEffector(this, "0"),
-			/* 1*/ new InlineEffector(this, "1"),
-			/* 2*/ new PasteEffector(this),
-			/* 3*/ new SelectEffector(this),
-			/* 4*/ new CopyEffector(this),
-			/* 5*/ new CutEffector(this),
-			/* 6*/ new ClearEffector(this),
-			/* 7*/ new CountEffector(this),
-			/* 8*/ new SignalEffector(this),
-			/* 9*/ new InEffector(this),
-			/*10*/ new OutEffector(this),
-			/*11*/ new InlineEffector(this, "mark"),
-			/*12*/ new InlineEffector(this, "reset"),
-			/*13*/ new StartEffector(this),
-			/*14*/ new PauseEffector(this),
-			/*15*/ new InlineEffector(this, "stop"),
-			/*16*/ new MsumEffector(this),
-			/*17*/ new MproductEffector(this),
-			/*18*/ new MscanEffector(this)
+		return new IEffector<?>[] {
+		/* 0*/ new InlineEffector(this, "0"),
+		/* 1*/ new InlineEffector(this, "1"),
+		/* 2*/ new PasteEffector(this),
+		/* 3*/ new SelectEffector(this),
+		/* 4*/ new CopyEffector(this),
+		/* 5*/ new CutEffector(this),
+		/* 6*/ new ClearEffector(this),
+		/* 7*/ new CountEffector(this),
+		/* 8*/ new SignalEffector(this),
+		/* 9*/ new InEffector(this),
+		/*10*/ new OutEffector(this),
+		/*11*/ new InlineEffector(this, "mark"),
+		/*12*/ new InlineEffector(this, "reset"),
+		/*13*/ new StartEffector(this),
+		/*14*/ new PauseEffector(this),
+		/*15*/ new InlineEffector(this, "stop"),
+		/*16*/ new MsumEffector(this),
+		/*17*/ new MproductEffector(this),
+		/*18*/ new MscanEffector(this)
 		};
-	} else if (this.getModelVersion().equals(Base.RTE_PREVIOUS)) {
-			return new IEffector<?>[] {
-			/* 0*/ new InlineEffector(this, "0"),
-			/* 1*/ new InlineEffector(this, "1"),
-			/* 2*/ new PasteEffector(this),
-			/* 3*/ new SelectEffector(this),
-			/* 4*/ new CopyEffector(this),
-			/* 5*/ new CutEffector(this),
-			/* 6*/ new ClearEffector(this),
-			/* 7*/ new CountEffector(this),
-			/* 8*/ new SignalEffector(this),
-			/* 9*/ new InEffector(this),
-			/*10*/ new OutEffector(this),
-			/*11*/ new InlineEffector(this, "mark"),
-			/*12*/ new InlineEffector(this, "reset"),
-			/*13*/ new StartEffector(this),
-			/*14*/ new PauseEffector(this),
-			/*15*/ new InlineEffector(this, "stop"),
-			/*16*/ new MsumEffector(this),
-			/*17*/ new MproductEffector(this),
-			/*18*/ new MscanEffector(this)
-		};
-		} else {
-			throw new TargetBindingException(String.format("Unsupported ribose model version '%s'.",
-				this.model.getModelVersion()));
-		}
-	}
-
-	private String getModelVersion() {
-		return Base.RTE_VERSION;
 	}
 
 	@Override // @see com.characterforming.ribose.IOutput#rtcLogger()

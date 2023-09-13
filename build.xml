@@ -77,7 +77,10 @@
 	</path>
 
 	<target name="clean" depends="clean-ribose,clean-test">
-  	<delete dir="build"/>
+  	<delete failonerror="false" dir="build"/>
+		<delete failonerror="false" verbose="true">
+			<fileset dir="." includes="ribose-*.log*"/>
+		</delete>
 	</target>
 	
 	<target name="clean-ribose" depends="clean-javadoc">
@@ -134,7 +137,7 @@
 	<target name="ribose" depends="init-ribose,package-java,javadoc,build-compiler-model"
 		description="Clean build for java and patterns"/>
 
-	<target name="ci-test" depends="clean,test,test-output-equivalence,test-heap-metrics,env"
+	<target name="ci-test" depends="clean,test,test-output-equivalence,env"
 		description="Full build with CI tests for java and patterns"/>
 
 	<target name="check-compile-java" depends="init">
@@ -188,7 +191,7 @@
 	</target>
 
 	<target name="check-compiler-model" depends="package-java">
-		<uptodate targetfile="./TCompile.model" property="tcompile.uptodate">
+		<uptodate targetfile="${build.compiler.model}/TCompile.model" property="tcompile.uptodate">
 			<srcfiles dir="jars" includes="${ribose.version}.jar"/>
 			<srcfiles dir="${ribose.patterns}" includes="*.inr"/>
 			<srcfiles dir="etc/ginr" includes="ginr*"/>
@@ -208,12 +211,11 @@
 			<arg line="./ribose ${jargs} compile --target com.characterforming.jrte.engine.ModelCompiler ${build.compiler.model} ${build.compiler.model}/TCompile.model"/>
 		</exec>
 		<fixcrlf file="${build.compiler.model}/TCompile.map" eol="lf"/>
-		<move todir="." verbose="true">
-			<fileset dir="${build.compiler.model}" includes="TCompile.*"/>
-		</move>
-		<copy file="./TCompile.model" todir="${build.java.classes}/com/characterforming/jrte/engine" overwrite="true" force="true"/>
-		<jar update="true" basedir="${build.java.classes}" destfile="jars/${ribose.version}.jar" includes="**/TCompile.model"/>
-		<touch file="./TCompile.model"/>
+		<copy todir="${build.java.classes}/com/characterforming/jrte/engine" verbose="true" overwrite="true" force="true">
+			<fileset dir="${build.compiler.model}" includes="TCompile.model,TCompile.map"/>
+		</copy>
+		<jar update="true" basedir="${build.java.classes}" destfile="jars/${ribose.version}.jar" includes="**/TCompile.model,**/TCompile.map"/>
+		<touch><fileset dir="${build.compiler.model}" includes="TCompile.model,TCompile.map"/></touch>
 	</target>
 
 	<target name="check-test-patterns" depends="ribose">

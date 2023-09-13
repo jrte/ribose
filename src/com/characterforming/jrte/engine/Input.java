@@ -47,7 +47,13 @@ final class Input {
 		this.mark = -1;
 		this.length = 0;
 	}
-	
+
+	void clear(byte[] input) {
+		this.clear();
+		this.array = input;
+		this.limit = this.length = input.length;
+	}
+
 	boolean hasRemaining() {
 		return this.position < this.limit;
 	}
@@ -56,18 +62,18 @@ final class Input {
 		return this.mark >= 0;
 	}
 	
-	Input limit(int limit) {
+	Input getLimit(int limit) {
 		assert limit >= 0;
 		this.limit = Math.min(limit, this.length);
 		return this;
 	}
 	
-	void mark() {
+	void setMark() {
 		assert hasRemaining();
 		this.mark = this.position;
 	}
 	
-	void reset() {
+	void resetToMark() {
 		if (this.hasMark()) {
 			this.position = this.mark;
 			this.mark = -1;

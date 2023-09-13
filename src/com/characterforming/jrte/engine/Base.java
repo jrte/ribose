@@ -61,7 +61,6 @@ public final class Base {
 	private static final Charset runtimeCharset = Charset.forName(System.getProperty("ribose.runtime.charset", "UTF-8"));
 	private static final Logger rtcLogger = Logger.getLogger("ribose-compile");
 	private static final Logger rteLogger = Logger.getLogger("ribose-runtime");
-	private static final Logger rtmLogger = Logger.getLogger("ribose-metrics");
 
 	/**
 	 * Get a reference to the compiler logger. This should be used only
@@ -70,9 +69,8 @@ public final class Base {
 	 * @return the compiler logger
 	 */
 	public static void startLogging() {
-		Base.startLogger(Base.rtcLogger, true);
-		Base.startLogger(Base.rteLogger, true);
-		Base.startLogger(Base.rtmLogger, false);
+		Base.startLogger(Base.rtcLogger, false);
+		Base.startLogger(Base.rteLogger, false);
 	}
 
 	/**
@@ -94,22 +92,11 @@ public final class Base {
 	}
 
 	/**
-	 * Get a reference to the compiler logger. This should be used only
-	 * in compilation contexts.
-	 *
-	 * @return the compiler logger
-	 */
-	public static Logger getMetricsLogger() {
-		return Base.rtmLogger;
-	}
-
-	/**
 	 * Finalize all loggers
 	 */
 	public static void endLogging() {
 		Base.endLogger(Base.rtcLogger);
 		Base.endLogger(Base.rteLogger);
-		Base.endLogger(Base.rtmLogger);
 	}
 
 	/**
