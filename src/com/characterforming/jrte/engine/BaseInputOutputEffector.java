@@ -52,13 +52,13 @@ abstract class BaseInputOutputEffector extends BaseParameterizedEffector<Transdu
 	@Override // @see com.characterforming.ribose.IParameterizedEffector#compileParameter(IToken[])
 	public IToken[] compileParameter(final IToken[] parameterList) throws TargetBindingException {
 		if (parameterList.length < 1) {
-			throw new TargetBindingException(String.format("%1$s.%2$s: effector requires at least one parameter",
+			throw new TargetBindingException(String.format("%1$s.%2$s[]: effector requires at least one parameter",
 				super.target.getName(), super.getName()));
 		}
 		for (IToken token : parameterList) {
 			if (token.getType() != IToken.Type.LITERAL && token.getType() != IToken.Type.FIELD) {
 				throw new TargetBindingException(
-					String.format("%1$s.%2$s: field name '%3$s' not enumerated for parameter compilation",
+					String.format("%1$s.%2$s[]: literal or field name expected, found '%3$s'",
 						super.target.getName(), super.getName().toString(), token.getLiteral().toString()));
 			}
 		}

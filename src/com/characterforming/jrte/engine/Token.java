@@ -57,28 +57,16 @@ final class Token implements IToken {
 	public static IToken[] getParameterTokens(Model model, byte[][] rawTokens) {
 		IToken[] tokens = new Token[rawTokens.length];
 		for (int i = 0; i < rawTokens.length; i++) {
-			byte[] token = rawTokens[i];
-			IToken.Type type;
-			if (token[0] == IToken.TRANSDUCER_TYPE) {
-				type = IToken.Type.TRANSDUCER;
-			} else if (token[0] == IToken.FIELD_TYPE) {
-				type = IToken.Type.FIELD;
-			} else if (token[0] == IToken.SIGNAL_TYPE) {
-				type = IToken.Type.SIGNAL;
+			Token token = new Token(rawTokens[i]);
+			if (token.type == Type.TRANSDUCER) {
+				tokens[i] = new Token(rawTokens[i], model.getTransducerOrdinal(token.symbol));
+			} else if (token.type == Type.FIELD) {
+				tokens[i] = new Token(rawTokens[i], model.getFieldMap().getOrDefault(token.symbol, -1));
+			} else if (token.type == Type.SIGNAL) {
+				tokens[i] = new Token(rawTokens[i], model.getSignalOrdinal(token.symbol));
 			} else {
-				tokens[i] = new Token(token);
-				continue;
+				tokens[i] = token;
 			}
-			int ordinal = -1;
-			Bytes symbol = new Bytes(Arrays.copyOfRange(token, 1, token.length));
-			if (type == Type.TRANSDUCER) {
-				ordinal = model.getTransducerOrdinal(symbol);
-			} else if (type == Type.FIELD) {
-				ordinal = model.getFieldMap().getOrDefault(symbol, -1);
-			} else if (type == Type.SIGNAL) {
-				ordinal = model.getSignalOrdinal(symbol);
-			}
-			tokens[i] = new Token(token, ordinal);
 		}
 		return tokens;
 	}
@@ -100,25 +88,30 @@ final class Token implements IToken {
 	 * @param ordinal the symbolic token ordinal
 	 */
 	public Token(byte[] token, int ordinal) {
-		this.literal = new Bytes(token);
-		if (token.length == 0) {
-			this.type = IToken.Type.LITERAL;
-		} else if (token[0] == IToken.TRANSDUCER_TYPE) {
-			this.type = IToken.Type.TRANSDUCER;
-		} else if (token[0] == IToken.FIELD_TYPE) {
-			this.type = IToken.Type.FIELD;
-		} else if (token[0] == IToken.SIGNAL_TYPE) {
-			this.type = IToken.Type.SIGNAL;
-		} else {
-			this.type = IToken.Type.LITERAL;
-		}
+		this.type = Token.type(token);
 		if (this.type != IToken.Type.LITERAL) {
+			this.literal = new Bytes(token);
 			this.symbol = new Bytes(Arrays.copyOfRange(token, 1, token.length));
 			this.ordinal = ordinal;
 		} else {
+			this.literal = new Bytes(this.literal(token));
 			this.symbol = this.literal;
 			this.ordinal = -1;
 		}
+	}
+
+	private static Type type(byte[] token) {
+		Type t = IToken.Type.LITERAL;
+		if (token.length > 1 && token[0] != token[1]) {
+			if (token[0] == IToken.TRANSDUCER_TYPE) {
+				t = IToken.Type.TRANSDUCER;
+			} else if (token[0] == IToken.FIELD_TYPE) {
+				t = IToken.Type.FIELD;
+			} else if (token[0] == IToken.SIGNAL_TYPE) {
+				t = IToken.Type.SIGNAL;
+			}
+		}
+		return t;
 	}
 
 	@Override // @see com.characterforming.ribose.IToken#getType()
@@ -173,5 +166,18 @@ final class Token implements IToken {
 		} catch (Exception e) {
 			return getLiteral().toHexString();
 		}
+	}
+
+	private byte[] literal(byte[] token) {
+		if ((token.length > 1) && (token[0] == token[1])
+		&& (token[0] == '!' || token[0] == '~' || token[0] == '@')) {
+			int trim = 2;
+			while (token[0] == token[trim]) {
+				trim++;
+			}
+			trim -= 1;
+			return Arrays.copyOfRange(token, trim, token.length);
+		}
+		return token;
 	}
 }

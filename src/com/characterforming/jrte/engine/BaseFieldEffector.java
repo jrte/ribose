@@ -50,11 +50,11 @@ abstract class BaseFieldEffector extends BaseParameterizedEffector<Transductor, 
 	@Override // IParameterizedEffector#compileParameter(IToken[])
 	public Integer compileParameter(final IToken[] parameterList) throws TargetBindingException {
 		if (parameterList.length != 1) {
-			throw new TargetBindingException(String.format("%1$s.%2$s: effector accepts exactly one parameter", 
+			throw new TargetBindingException(String.format("%1$s.%2$s[]: effector accepts exactly one parameter", 
 				super.target.getName(), super.getName()));
 		}
 		if (parameterList[0].getType() != IToken.Type.FIELD) {
-			throw new TargetBindingException(String.format("%1$s.%2$s: effector accepts only a FIELD parameter",
+			throw new TargetBindingException(String.format("%1$s.%2$s[]: effector accepts only a FIELD parameter",
 				super.target.getName(), super.getName()));
 		}
 		return parameterList[0].getOrdinal();

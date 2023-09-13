@@ -970,7 +970,7 @@ E:	do {
 				Bytes fieldName = new Bytes(parameterList[0].getSymbol().bytes());
 				int fieldOrdinal = getFieldOrdinal(fieldName);
 				if (fieldOrdinal < 0) {
-					throw new TargetBindingException(String.format("%1$s.%2$s: Field '%3$s' not found",
+					throw new TargetBindingException(String.format("%1$s.%2$s[]: Field '%3$s' not found",
 						super.getTarget().getName(), super.getName(), fieldName.toString()));
 				}
 				count = -1 - fieldOrdinal;
@@ -979,7 +979,7 @@ E:	do {
 				count = Base.decodeInt(value, value.length);
 			} else {
 				byte[] value = parameterList[0].getLiteral().bytes();
-				throw new TargetBindingException(String.format("%1$s.%2$s: invalid field|counter '%3$%s' for count effector",
+				throw new TargetBindingException(String.format("%1$s.%2$s[]: invalid field|counter '%3$%s' for count effector",
 					super.getTarget().getName(), super.getName(), Bytes.decode(super.getDecoder(), value, value.length)));
 			}
 			if (parameterList[1].getType() == IToken.Type.SIGNAL) {
@@ -987,7 +987,7 @@ E:	do {
 				assert signalOrdinal >= SIGNUL;
 				return new int[] { count, signalOrdinal };
 			} else {
-				throw new TargetBindingException(String.format("%1$s.%2$s: invalid signal '%3$%s' for count effector",
+				throw new TargetBindingException(String.format("%1$s.%2$s[]: invalid signal '%3$%s' for count effector",
 					super.getTarget().getName(), super.getName(), parameterList[1].toString()));
 			}
 		}

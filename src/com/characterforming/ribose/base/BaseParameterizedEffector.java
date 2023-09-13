@@ -116,7 +116,7 @@ public abstract class BaseParameterizedEffector<T extends ITarget, P> extends Ba
 				parameterErrors.add(e.getMessage());
 				fail = true;
 			} catch (Exception e) {
-				parameterErrors.add(String.format("%1$s.%2$s: %3$%s",
+				parameterErrors.add(String.format("%1$s.%2$s[]: %3$%s",
 					super.getTarget().getName(), super.getName(), e.getMessage()));
 				fail = true;
 			}
