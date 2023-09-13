@@ -29,7 +29,7 @@ import com.characterforming.ribose.base.Bytes;
  * To ribose a token may represent a literal or a symbolic reference to a transducer,
  * field or signal prefixed with a special byte designating the type of the referent
  * (@, ~ or !, respectively). Literal tokens that require a type prefix, (eg {@code
- * out[`!Aliteral`]}) can escape the prefix by doubling it ({@code `!!Aliteral`]}).
+ * out[`!Aliteral`]}) can escape the prefix by doubling it ({@code out[`!!Aliteral`]}).
  * <br><br>
  * Arrays of {@code IToken} objects, corresponding to effector parameters, are conveyed
  * to proxy parameterized instances during effector parameter precompilation. See the

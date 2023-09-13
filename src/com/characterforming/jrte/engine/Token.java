@@ -110,6 +110,8 @@ final class Token implements IToken {
 			} else if (token[0] == IToken.SIGNAL_TYPE) {
 				t = IToken.Type.SIGNAL;
 			}
+		} else if (token.length == 1 && token[0] == IToken.FIELD_TYPE) {
+			t = IToken.Type.FIELD;
 		}
 		return t;
 	}
