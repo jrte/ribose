@@ -134,7 +134,7 @@ sealed class Model permits ModelCompiler, ModelLoader {
 		}
 	}
 
-	protected void initialize() throws ModelException {
+	protected void initializeProxyEffectors() throws ModelException {
 		ITarget proxyTarget = null;
 		try {
 			Object proxyInstance = this.targetClass.getDeclaredConstructor().newInstance();

@@ -28,8 +28,8 @@
 
 <project name="ribose-build" default="package" basedir="." xmlns:if="ant:if" xmlns:unless="ant:unless">
   <property environment="env"/>
+	<loadfile property="ribose.version" srcFile="./version"/>
 	<property name="ribose" location="./ribose"/>
-	<property name="ribose.version" value="ribose-0.0.2"/>
   <property name="jdk" value="${env.JAVA_HOME}"/>
 	<property name="java.source.dir" value="src"/>
 	<property name="java.test.dir" value="test"/>
@@ -106,17 +106,21 @@
 		<exec outputproperty="git.branch" executable="git">
 			<arg line="branch --show-current"/>
 		</exec>
+		<exec outputproperty="git.commit" executable="git">
+			<arg line="log --oneline -n 1"/>
+		</exec>
 		<echo message="Git branch: ${git.branch}"/>
 		<echo message="Git commit: ${git.commit}"/>
 		<echo message="${ant.version}"/>
 		<echo message="Ant @ ${env.ANT_HOME}"/>
-		<java fork="true" jvm="${jdk}/bin/java" dir="." classname="com.characterforming.ribose.Ribose" classpathref="jrte.classpath">
-			<jvmarg line="-showversion"/><arg line="version"/>
+		<java fork="true" jvm="${jdk}/bin/java" classname="java.lang.Object">
+			<jvmarg line="-version"/>
 		</java>
 		<echo message="Java @ ${env.JAVA_HOME}"/>
 		<exec executable="bash">
 			<arg line="./rinr version"/>
 		</exec>
+		<echo message="Building ${ribose.version}"/>
 	</target>
 
 	<target name="init-ribose">

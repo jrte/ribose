@@ -165,7 +165,7 @@ public interface IEffector<T extends ITarget> {
 	 * This method is never called for effector instances that are 
 	 * bound to a live transduction. It is only called for proxy
 	 * effectors, which are retained only to transfer compiled
-	 * parameters to live effectors. Otherwise, proxy efectors are
+	 * parameters to live effectors. Otherwise, proxy effectors are
 	 * effectively zombies after parameter compilation is complete.
 	 */
 	public void passivate();

@@ -167,13 +167,28 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 		super(modelPath, targetClass);
 		assert super.modelPath.exists();
 		assert super.targetMode == TargetMode.RUN;
+		this.transductor = null;
+		this.inputStateMap = null;
+		this.stateTransitionMap = null;
+		this.transducerName = null;
+		this.effectorVectorMap = null;
+		this.inputEquivalenceIndex = null;
+		this.kernelMatrix = null;
+		this.header = null;
+		this.transitions = null;
+		this.transition = 0;
 		this.errors = new ArrayList<>();
 		super.writeLong(0);
 		super.writeString(super.modelVersion);
 		super.writeString(super.targetClass.getName());
 		super.signalOrdinalMap = new HashMap<>(256);
 		super.transducerOrdinalMap = new HashMap<>(256);
+		super.transducerOffsetIndex = new long[256];
+		super.transducerNameIndex = new Bytes[256];
 		super.fieldOrdinalMap = new HashMap<>(256);
+		super.fieldOrdinalMap.put(new Bytes(Model.ANONYMOUS_FIELD_NAME), Model.ANONYMOUS_FIELD_ORDINAL);
+		super.fieldOrdinalMap.put(new Bytes(Model.ALL_FIELDS_NAME), Model.CLEAR_ALL_FIELDS_ORDINAL);
+		super.initializeProxyEffectors();
 		for (Signal signal : Signal.values()) {
 			if (!signal.isNone()) {
 				assert super.getSignalLimit() == signal.signal();
@@ -185,27 +200,12 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 			this.tapeTokens.add(tape, new HashSet<>(128));
 		}
 		HashSet<Token> parameterTokens = this.tapeTokens.get(2);
+		parameterTokens.add(new Token(Model.ALL_FIELDS_NAME, Model.CLEAR_ALL_FIELDS_ORDINAL));
 		for (Signal signal : Signal.values()) {
 			if (!signal.isNone()) {
 				parameterTokens.add(new Token(signal.reference().bytes(), signal.signal()));
 			}
 		}
-		parameterTokens.add(new Token(Model.ALL_FIELDS_NAME, Model.CLEAR_ALL_FIELDS_ORDINAL));
-		super.fieldOrdinalMap.put(new Bytes(Model.ANONYMOUS_FIELD_NAME), Model.ANONYMOUS_FIELD_ORDINAL);
-		super.fieldOrdinalMap.put(new Bytes(Model.ALL_FIELDS_NAME), Model.CLEAR_ALL_FIELDS_ORDINAL);
-		super.transducerOffsetIndex = new long[256];
-		super.transducerNameIndex = new Bytes[256];
-		super.initialize();
-		this.transductor = null;
-		this.inputStateMap = null;
-		this.stateTransitionMap = null;
-		this.transducerName = null;
-		this.effectorVectorMap = null;
-		this.inputEquivalenceIndex = null;
-		this.kernelMatrix = null;
-		this.header = null;
-		this.transitions = null;
-		this.transition = 0;
 	}
 
 	@Override // com.characterforming.ribose.IEffector
@@ -216,9 +216,9 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 	@Override // com.characterforming.ribose.IEffector
 	public IEffector<?>[] getEffectors() throws TargetBindingException {
 		return new IEffector<?>[] {
-				new HeaderEffector(this),
-				new TransitionEffector(this),
-				new AutomatonEffector(this)
+			new HeaderEffector(this),
+			new TransitionEffector(this),
+			new AutomatonEffector(this)
 		};
 	}
 

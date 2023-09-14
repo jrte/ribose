@@ -89,12 +89,6 @@ public final class ModelLoader extends Model implements IModel {
 		model.fieldOrdinalMap = model.readOrdinalMap(0);
 		model.effectorOrdinalMap = model.readOrdinalMap(0);
 		model.transducerOrdinalMap = model.readOrdinalMap(0);
-		model.initialize();
-		assert model.effectorOrdinalMap.size() == model.proxyEffectors.length;
-		if (!model.transducerOrdinalMap.containsKey(Bytes.encode(model.encoder, model.targetName))) {
-			throw new ModelException(String.format("Target name '%1$s' not found in name offset map for model file '%2$s'",
-				model.targetName, model.modelPath.getPath()));
-		}
 		int transducerCount = model.transducerOrdinalMap.size();
 		model.transducerNameIndex = new Bytes[transducerCount];
 		model.transducerAccessIndex = new AtomicIntegerArray(transducerCount);
@@ -105,6 +99,7 @@ public final class ModelLoader extends Model implements IModel {
 			model.transducerOffsetIndex[transducerOrdinal] = model.readLong();
 			assert model.transducerOrdinalMap.get(model.transducerNameIndex[transducerOrdinal]) == transducerOrdinal;
 		}
+		model.initializeProxyEffectors();
 		List<String> errors = new ArrayList<>(32);
 		for (int effectorOrdinal = 0; effectorOrdinal < model.effectorOrdinalMap.size(); effectorOrdinal++) {
 			byte[][][] effectorParameters = model.readBytesArrays();
@@ -224,10 +219,10 @@ public final class ModelLoader extends Model implements IModel {
 			final Transducer oldt = this.transducerObjectIndex.compareAndExchange(transducerOrdinal, null, newt);
 			final int access = this.transducerAccessIndex.compareAndExchange(transducerOrdinal, 1, 2);
 			assert null == oldt && 1 == access;
-		} else
-			while (1 == this.transducerAccessIndex.compareAndExchange(transducerOrdinal, 1, 1)) {
-				java.lang.Thread.onSpinWait();
-			}
+		} else {
+			while (1 == this.transducerAccessIndex.compareAndExchange(transducerOrdinal, 1, 1))
+				Thread.onSpinWait();
+		}
 		final Transducer t = this.transducerObjectIndex.get(transducerOrdinal);
 		assert t != null && 2 == this.transducerAccessIndex.get(transducerOrdinal);
 		return t;
