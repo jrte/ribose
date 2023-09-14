@@ -80,11 +80,16 @@ public interface ITarget {
 	String getName();
 
 	/**
-	 * Lists the effectors expressed by the target class for binding to the runtime
+	 * Presents the effectors expressed by the target class for binding to the runtime
 	 * model. Implementation classes must include their effectors in the IEffector
 	 * array returned. After runtime binding is complete effectors are invoked when
 	 * triggered by running transductions in response to syntactic cues in the
 	 * input stream.
+	 * <br><br>
+	 * Each effector should be uniquely referenced from the returned array and used
+	 * solely by the {@link ITransductor} instance bound to the target. It is
+	 * unwise and unnecessary for the target to interact with its effectors unless
+	 * the interaction is driven from an effector invokation.
 	 *
 	 * @return an array of IEffector instances bound to the target instance
 	 * @throws TargetBindingException on error

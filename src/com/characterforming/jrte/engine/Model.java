@@ -83,6 +83,7 @@ sealed class Model permits ModelCompiler, ModelLoader {
 	private ArrayList<HashMap<BytesArray, Integer>> effectorParametersMaps;
 	private final CharsetDecoder decoder = Base.newCharsetDecoder();
 
+	/** Proxy compiler or ribose model for effector paramter compilation */
 	public Model() {
 		this.targetMode = TargetMode.COMPILE;
 		this.rtcLogger = Base.getCompileLogger();
@@ -92,6 +93,7 @@ sealed class Model permits ModelCompiler, ModelLoader {
 		this.deleteOnClose = false;
 	}
 	
+	/** Live compiler model loading to compile new target model */
 	protected Model(final File modelPath, Class<?> targetClass) throws ModelException {
 		this.targetClass = targetClass;
 		this.targetMode = TargetMode.RUN;
@@ -108,6 +110,7 @@ sealed class Model permits ModelCompiler, ModelLoader {
 		}
 	}
 
+	/** Live ribose model loading to run transductions */
 	protected Model(final File modelPath) throws ModelException {
 		this.targetMode = TargetMode.RUN;
 		this.modelPath = modelPath;
@@ -160,9 +163,7 @@ sealed class Model permits ModelCompiler, ModelLoader {
 			this.effectorOrdinalMap.put(this.proxyEffectors[effectorOrdinal].getName(), effectorOrdinal);
 			this.effectorParametersMaps.add(null);
 		}
-		// proxy transductor and effectors are persistent but passive zombies at this point
 		assert proxyTransductor == (Transductor)this.proxyEffectors[0].getTarget();
-		// serving only as containers for precompiled effector parameters
 	}
 
 	protected void close() {
@@ -176,7 +177,7 @@ sealed class Model permits ModelCompiler, ModelLoader {
 			this.deleteOnClose |= this.targetMode == TargetMode.RUN;
 		} finally {
 			assert !this.deleteOnClose || this.targetMode == TargetMode.RUN;
-			if (this.deleteOnClose && this.targetMode == TargetMode.COMPILE
+			if (this.deleteOnClose && this.targetMode == TargetMode.RUN
 			&& this.modelPath.exists() && !this.modelPath.delete()) {
 				this.rtcLogger.log(Level.WARNING, () -> String.format("Unable to delete model file %1$s",
 					this.modelPath.getPath()));

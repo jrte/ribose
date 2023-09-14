@@ -30,6 +30,7 @@ import com.characterforming.ribose.base.Bytes;
 import com.characterforming.ribose.base.ModelException;
 import com.characterforming.ribose.base.RiboseException;
 import com.characterforming.ribose.base.Signal;
+import com.characterforming.ribose.base.SimpleTarget;
 
 /**
  * The {@code IModel} interface provides static methods for compiling and loading 
@@ -101,17 +102,22 @@ public interface IModel extends AutoCloseable {
 	throws ModelException;
 
 	/**
-	 * Transduce an input stream onto an output stream. The streams are read and written
-	 * as raw byte streams and may contain UTF-8 and/or binary data as permitted by the
-	 * transduction input patterns. This method can be applied only for simple ribose models,
-	 * bound to {@link ITarget} classes that present a default constructor for instantiating
-	 * both live and proxy target instances. For fancy targets use {@link 
-	 * #stream(Bytes, ITarget, Signal, InputStream, OutputStream)}.
+	 * Transduce an input stream onto an output stream. The streams are read and
+	 * written as raw byte streams and may contain UTF-8 and/or binary data as
+	 * permitted by the transduction input patterns. This method can be applied
+	 * only for simple ribose models, bound to target classes like {@link SimpleTarget}
+	 * that present a default constructor for instantiating both live and proxy
+	 * target instances. For live targets that are instantiated externally
+	 * use {@link #stream(Bytes, ITarget, Signal, InputStream, OutputStream)}.
 	 * <br><br>
-	 * The {@code transducer} is pushed to start the transduction. If the {@code prologue}
-	 * signal is not {@link Signal#NONE} it will be applied as input to the first
-	 * transition when the transductor is run. This may be used to trigger some
-	 * preliminary effects before the input stream is transduced.
+	 * The {@code transducer} is pushed to start the transduction. If the
+	 * {@code prologue} signal is not {@link Signal#NONE} it will be applied as
+	 * input to the first transition when the transductor is run. This may be used
+	 * to trigger some preliminary effects before the input stream is transduced.
+	 * <br><br>
+	 * The {@code stream()} methods use a default size of 64kb for I/O buffers.
+	 * This can be changed by defining {@code -Dribose.inbuffer.size=Nbytes} and/or
+	 * {@code -Dribose.outbuffer.size=Nbytes} in the JVM arguments.
 	 *
 	 * @param transducer the UTF-8 encoded name of the transducer to start the transduction
 	 * @param prologue start signal to send to {@code transducer}
@@ -125,14 +131,14 @@ public interface IModel extends AutoCloseable {
 
 	/**
 	 * Bind a live {@link ITarget} to an transductor and transduce a byte input
-	 * stream onto it. The signal and input and output streams are treated as for
-	 * {@link #stream(Bytes, Signal, InputStream, OutputStream)}.
+	 * stream onto it. The signal and input and output streams and I/O buffers are
+	 * treated as for {@link #stream(Bytes, Signal, InputStream, OutputStream)}.
 	 * 
 	 * @param transducer the UTF-8 encoded name of the transducer to start
-	 * @param target     the transduction target instance
-	 * @param prologue   start signal to send to {@code transducer} (if not @link Signal#NONE})
-	 * @param in         the input stream to transduce (eg, {@code System.in})
-	 * @param out        the output stream to render output to (eg, {@code System.out})
+	 * @param target the transduction target instance
+	 * @param prologue start signal to send to {@code transducer} (if not @link Signal#NONE})
+	 * @param in the input stream to transduce (eg, {@code System.in})
+	 * @param out the output stream to render output to (eg, {@code System.out})
 	 * @return true if target is an instance of the model target class and transduction is complete
 	 * @throws RiboseException on error
 	 */

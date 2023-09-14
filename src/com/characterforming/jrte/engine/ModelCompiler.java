@@ -80,6 +80,84 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 	private int transition;
 	private int errorCount;
 
+	record Header (int version, int tapes, int transitions, int states, int symbols) {}
+
+	record Transition (int from, int to, int tape, Bytes symbol, boolean isFinal) {}
+
+	final class HeaderEffector extends BaseEffector<ModelCompiler> {
+		IField[] fields;
+
+		HeaderEffector(ModelCompiler compiler) {
+			super(compiler, "header");
+		}
+
+		@Override
+		public void setOutput(IOutput output) throws TargetBindingException {
+			super.setOutput(output);
+			this.fields = new IField[] {
+				super.getField("version"),
+				super.getField("tapes"),
+				super.getField("transitions"),
+				super.getField("states"),
+				super.getField("symbols")
+			};
+		}
+
+		@Override
+		public int invoke() throws EffectorException {
+			ModelCompiler.this.putHeader(new Header(
+				(int)fields[0].asInteger(),
+				(int)fields[1].asInteger(),
+				(int)fields[2].asInteger(),
+				(int)fields[3].asInteger(),
+				(int)fields[4].asInteger()));
+			return IEffector.RTX_NONE;
+		}
+	}
+
+	final class TransitionEffector extends BaseEffector<ModelCompiler> {
+		IField[] fields;
+
+		TransitionEffector(ModelCompiler compiler) {
+			super(compiler, "transition");
+		}
+
+		@Override
+		public void setOutput(IOutput output) throws TargetBindingException {
+			super.setOutput(output);
+			fields = new IField[] {
+				super.getField("from"),
+				super.getField("to"),
+				super.getField("tape"),
+				super.getField("symbol")
+			};
+		}
+
+		@Override
+		public int invoke() throws EffectorException {
+			int from = (int)fields[0].asInteger();
+			int to = (int)fields[1].asInteger();
+			int tape = (int)fields[2].asInteger();
+			Bytes symbol = new Bytes(fields[3].copyValue());
+			boolean isFinal = to == 1 && tape == 0 && symbol.getLength() == 0;
+			ModelCompiler.this.putTransition(new Transition(
+				from, to, tape, symbol, isFinal));
+			return IEffector.RTX_NONE;
+		}
+	}
+
+	final class AutomatonEffector extends BaseEffector<ModelCompiler> {
+		AutomatonEffector(ModelCompiler compiler) {
+			super(compiler, "automaton");
+		}
+
+		@Override
+		public int invoke() throws EffectorException {
+			ModelCompiler.this.putAutomaton();
+			return IEffector.RTX_NONE;
+		}
+	}
+
 	public ModelCompiler() {
 		super();
 	}
@@ -130,11 +208,6 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 		this.transition = 0;
 	}
 
-	@Override // AutoCloseable.close()
-	public void close() {
-		super.close();
-	}
-
 	@Override // com.characterforming.ribose.IEffector
 	public String getName() {
 		return this.getClass().getSimpleName();
@@ -147,6 +220,11 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 				new TransitionEffector(this),
 				new AutomatonEffector(this)
 		};
+	}
+
+	@Override // AutoCloseable.close()
+	public void close() {
+		super.close();
 	}
 
 	public static boolean compileAutomata(Class<?> targetClass, File riboseModelFile, File inrAutomataDirectory) throws ModelException {
@@ -163,6 +241,7 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 					if (compiler.compileCompiler(inrAutomataDirectory)) {
 						byte[][][][] compiledParameters = compiler.compileModelParameters(compiler.errors);
 						saved = compiler.validate() && compiler.save(compiledParameters);
+						assert saved || compiler.deleteOnClose;
 						assert saved == !compiler.hasErrors();
 						if (!saved) {
 							for (String error : compiler.getErrors()) {
@@ -170,6 +249,9 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 							}
 						}
 					}
+				} catch (Exception e) {
+					rtcLogger.log(Level.SEVERE, e, () -> String.format("%1$s caught compiling ribose compiler directory '%2$s'.",
+						e.getClass().getSimpleName(), inrAutomataDirectory.getPath()));
 				}
 				return saved;
 			}
@@ -200,6 +282,7 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 				}
 				byte[][][][] compiledParameters = compiler.compileModelParameters(compiler.errors);
 				saved = compiler.validate() && compiler.save(compiledParameters);
+				assert saved || compiler.deleteOnClose;
 				assert saved == !compiler.hasErrors();
 				if (!saved) {
 					for (String error : compiler.getErrors()) {
@@ -210,10 +293,7 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 				rtcLogger.log(Level.SEVERE, e, () -> String.format("%1$s caught compiling automata directory '%2$s'.",
 					e.getClass().getSimpleName(), inrAutomataDirectory.getPath()));
 			} finally {
-				if (!saved && riboseModelFile.exists() && !riboseModelFile.delete()) {
-					rtcLogger.log(Level.WARNING, () -> String.format("Unable to delete failed model file '%1$s'.",
-						riboseModelFile.getAbsolutePath()));
-				}
+				assert saved || !riboseModelFile.exists();
 			}
 			return saved;
 		}
@@ -236,8 +316,7 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 					InputStream mis = ModelCompiler.class.getClassLoader().getResourceAsStream(compilerModelPath);
 					OutputStream mos = new FileOutputStream(compilerModelFile)
 				) {
-					compilerModelFile.deleteOnExit();
-					byte[] data = new byte[65536];
+					byte[] data = new byte[4096];
 					int read = -1;
 					do {
 						read = mis.read(data);
@@ -1189,82 +1268,5 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 
 	private void setTransductor(ITransductor transductor) {
 		this.transductor = transductor;
-	}
-
-	record Header (int version, int tapes, int transitions, int states, int symbols) {}
-
-	record Transition (int from, int to, int tape, Bytes symbol, boolean isFinal) {}
-
-	final class HeaderEffector extends BaseEffector<ModelCompiler> {
-		IField[] fields;
-
-		HeaderEffector(ModelCompiler modelCompiler) {
-			super(modelCompiler, "header");
-		}
-
-		@Override
-		public void setOutput(IOutput output) throws TargetBindingException {
-			super.setOutput(output);
-			this.fields = new IField[] {
-				super.getField("version"),
-				super.getField("tapes"),
-				super.getField("transitions"),
-				super.getField("states"),
-				super.getField("symbols")
-			};
-		}
-
-		@Override
-		public int invoke() throws EffectorException {
-			ModelCompiler.this.putHeader(new Header(
-				(int)fields[0].asInteger(),
-				(int)fields[1].asInteger(),
-				(int)fields[2].asInteger(),
-				(int)fields[3].asInteger(),
-				(int)fields[4].asInteger()));
-			return IEffector.RTX_NONE;
-		}
-	}
-
-	final class TransitionEffector extends BaseEffector<ModelCompiler> {
-		IField[] fields;
-
-		TransitionEffector(ModelCompiler automaton) {
-			super(automaton, "transition");
-		}
-
-		@Override
-		public void setOutput(IOutput output) throws TargetBindingException {
-			super.setOutput(output);
-			fields = new IField[] {
-				super.getField("from"),
-				super.getField("to"),
-				super.getField("tape"),
-				super.getField("symbol")
-			};
-		}
-
-		@Override
-		public int invoke() throws EffectorException {
-			int from = (int)fields[0].asInteger();
-			int to = (int)fields[1].asInteger();
-			int tape = (int)fields[2].asInteger();
-			Bytes symbol = new Bytes(fields[3].copyValue());
-			boolean isFinal = to == 1 && tape == 0 && symbol.getLength() == 0;
-			ModelCompiler.this.putTransition(new Transition(from, to, tape, symbol, isFinal));
-			return IEffector.RTX_NONE;
-		}
-	}
-
-	final class AutomatonEffector extends BaseEffector<ModelCompiler> {
-		AutomatonEffector(ModelCompiler modelCompiler) {
-			super(modelCompiler, "automaton");
-		}
-
-		@Override
-		public int invoke() throws EffectorException {
-			ModelCompiler.this.putAutomaton();
-			return IEffector.RTX_NONE;
-		}
 	}
 }

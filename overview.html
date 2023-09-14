@@ -108,10 +108,10 @@ State transitions (from equivalent -> to effect...)
 To continue with the biologic metaphor, a transduction target presents itself to
 the transductor like a cell with receptors that effect specific changes inside the
 cell when they recognize specific shapes on the outside. Receptors typically don't
-interact with each other they just do their very specific thing, but there are plenty
-of shapes floating around and it all works out well for the cell most of the time.
-Same with transduction targets. The transductor knows nothing about target semantics,
-it just presents input to transducers that engage very specific target effectors as
+interact with each other they just do their very specific thing, but there are
+lots of different shapes floating around so it all works out for the cell. Same
+with transduction targets. The transductor knows nothing about target semantics, it
+just presents input to transducers that engage very specific target effectors as
 they recognize specific input patterns. Stuff happens in the target, maybe. That's
 all the transductor knows about the target.
 <br><br>
@@ -121,9 +121,9 @@ has a public default constructor and implements the {@code ITarget} interface, w
 exposes two methods: {@code String getName()} and {@code IEffector<?>[]
 getEffectors()}. The name can be whatever you like, and the target can express
 as many effectors as required. Effectors must extend {@code IEffector<T extends
-ITarget>} or {@code IParameterizedEffector<T extends ITarget, P> extends IEffector<T>>}
+ITarget>} or {@code IParameterizedEffector<T extends ITarget,P> extends IEffector<T>>}
 and are usually implemented as private inner classes of the target class, which
-allows them to access the private members of the target. They can be fat like 
+allows them to access the private members of the target. Targets can be fat like 
 {@code ModelCompiler} or they may be mere facades like {@code SimpleTarget} that
 hold a secret something that only their effectors know. Whatever works best for 
 your situation.
