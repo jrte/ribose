@@ -452,20 +452,21 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 		this.writeIntArray(this.inputEquivalenceIndex);
 		this.writeTransitionMatrix(this.kernelMatrix);
 		this.writeIntArray(this.effectorVectors);
-		int count = 0;
-		for (final int[][] row : this.kernelMatrix) {
-			for (final int[] col : row) {
-				if (col[1] != 0) {
-					count++;
+		int nInputs = this.kernelMatrix.length;
+		int nStates = this.kernelMatrix[0].length;
+		int nTransitions = 0;
+		for (int input = 0; input < nInputs; input++) {
+			for (int state = 0; state < nStates; state++) {
+				if (this.kernelMatrix[input][state][1] != 0) {
+					nTransitions++;
 				}
 			}
 		}
-		final int transitionCount = count;
-		double sparsity = 100 - (double) (100 * count) / (double) (this.kernelMatrix.length * this.kernelMatrix[0].length);
+		final int transitionCount = nTransitions;
+		double sparsity = 100 * (1 - ((double)nTransitions / (double)(nStates * nInputs)));
 		this.rtcLogger.log(Level.INFO, () -> String.format(
-			"%1$-21s %2$5d input classes %3$5d states %4$5d transitions (%5$.0f%% nul)",
-			this.getTransducerName()+":", this.kernelMatrix.length, this.kernelMatrix[0].length,
-			transitionCount, sparsity));
+			"%1$21s %2$5d input classes %3$5d states %4$5d transitions (%5$.0f%% nul)",
+			this.getTransducerName()+":", nInputs, nStates, transitionCount, sparsity));
 	}
 
 	private boolean save(byte[][][][] compiledParameters) throws ModelException {

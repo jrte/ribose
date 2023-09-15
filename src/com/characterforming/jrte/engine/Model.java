@@ -493,28 +493,30 @@ sealed class Model permits ModelCompiler, ModelLoader {
 	}
 
 	protected long[] readTransitionMatrix() throws ModelException {
+		// matrix is flattened to a 1-D array indexed as matrix[state * nInputs + input]
+		final long position = this.getSafeFilePosition();
 		long[] matrix;
-		long position = this.getSafeFilePosition();
 		try {
-			final int rows = this.io.readInt();
-			final int columns = this.io.readInt();
-			matrix = new long[columns * rows];
-			// matrix is an ExS array, columns range over inputs, rows over states
-			for (int column = 0; column < columns; column++) {
-				for (int row = 0; row < rows; row++) {
-					// Preset to invoke nul() effector on domain error
-					final int toState = column * rows;
-					matrix[toState + row] = Transducer.transition(toState, 0);
+			final int nStates = this.io.readInt();
+			final int nInputs = this.io.readInt();
+			matrix = new long[nStates * nInputs];
+			// preset all cells to invoke nul() effector on domain error
+			for (int state = 0; state < nStates; state++) {
+				final int toState = state * nInputs;
+				final long nul = Transducer.transition(toState, 0);
+				for (int input = 0; input < nInputs; input++) {
+					matrix[toState + input] = nul;
 				}
 			}
-			for (int row = 0; row < rows; row++) {
-				final int count = this.io.readInt();
-				for (int i = 0; i < count; i++) {
-					final int column = this.io.readInt();
-					final int fromState = column * rows;
-					final int toState = this.io.readInt() * rows;
+			// fill in defined transitions
+			for (int state = 0; state < nStates; state++) {
+				final int base = state * nInputs;
+				final int transitions = this.io.readInt();
+				for (int i = 0; i < transitions; i++) {
+					final int input = this.io.readInt() ;
+					final int toState = this.io.readInt() * nInputs;
 					final int effect = this.io.readInt();
-					matrix[fromState + row] = Transducer.transition(toState, effect);
+					matrix[base + input] = Transducer.transition(toState, effect);
 				}
 			}
 		} catch (final IOException e) {
@@ -651,23 +653,23 @@ sealed class Model permits ModelCompiler, ModelLoader {
 	protected void writeTransitionMatrix(final int[][][] matrix) throws ModelException {
 		final long position = this.getSafeFilePosition();
 		try {
-			final int rows = matrix.length;
-			final int columns = rows > 0 ? matrix[0].length : 0;
-			this.io.writeInt(rows);
-			this.io.writeInt(columns);
-			for (int row = 0; row < rows; row++) {
-				int count = 0;
-				for (int column = 0; column < columns; column++) {
-					if (matrix[row][column][1] != 0) {
-						count++;
+			final int nInputs = matrix.length;
+			final int nStates = nInputs > 0 ? matrix[0].length : 0;
+			this.io.writeInt(nStates);
+			this.io.writeInt(nInputs);
+			for (int state = 0; state < nStates; state++) {
+				int transitions = 0;
+				for (int input = 0; input < nInputs; input++) {
+					if (matrix[input][state][1] != 0) {
+						transitions++;
 					}
 				}
-				this.io.writeInt(count);
-				for (int column = 0; column < columns; column++) {
-					if (matrix[row][column][1] != 0) {
-						this.io.writeInt(column);
-						this.io.writeInt(matrix[row][column][0]);
-						this.io.writeInt(matrix[row][column][1]);
+				this.io.writeInt(transitions);
+				for (int input = 0; input < nInputs; input++) {
+					if (matrix[input][state][1] != 0) {
+						this.io.writeInt(input);
+						this.io.writeInt(matrix[input][state][0]);
+						this.io.writeInt(matrix[input][state][1]);
 					}
 				}
 			}
