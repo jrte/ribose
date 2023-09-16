@@ -43,6 +43,7 @@ import com.characterforming.ribose.IEffector;
 import com.characterforming.ribose.IParameterizedEffector;
 import com.characterforming.ribose.ITarget;
 import com.characterforming.ribose.IToken;
+import com.characterforming.ribose.base.BaseEffector;
 import com.characterforming.ribose.base.BaseParameterizedEffector;
 import com.characterforming.ribose.base.Bytes;
 import com.characterforming.ribose.base.CompilationException;
@@ -135,36 +136,32 @@ sealed class Model permits ModelCompiler, ModelLoader {
 	}
 
 	protected void initializeProxyEffectors() throws ModelException {
-		ITarget proxyTarget = null;
 		try {
-			Object proxyInstance = this.targetClass.getDeclaredConstructor().newInstance();
-			if (proxyInstance instanceof ITarget) {
-				proxyTarget = (ITarget) proxyInstance;
-			} else {
-				throw new ModelException(String.format("Class '%s' from model file %s does not implement the ITarget interface.",
-					this.targetClass.getName(), this.modelPath.toPath().toString()));
-			}
+			if (this.targetClass.getDeclaredConstructor().newInstance() instanceof ITarget proxyTarget) {
+				this.targetName = proxyTarget.getName();
+				Transductor proxyTransductor = new Transductor();
+				proxyTransductor.setFieldOrdinalMap(this.fieldOrdinalMap);
+				IEffector<?>[] trexFx = proxyTransductor.getEffectors();
+				IEffector<?>[] targetFx = proxyTarget.getEffectors();
+				this.proxyEffectors = new IEffector<?>[trexFx.length + targetFx.length];
+				System.arraycopy(trexFx, 0, this.proxyEffectors, 0, trexFx.length);
+				System.arraycopy(targetFx, 0, this.proxyEffectors, trexFx.length, targetFx.length);
+				this.effectorParametersMaps = new ArrayList<>(this.proxyEffectors.length);
+				this.effectorOrdinalMap = new HashMap<>((this.proxyEffectors.length * 5) >> 2);
+				for (int effectorOrdinal = 0; effectorOrdinal < this.proxyEffectors.length; effectorOrdinal++) {
+					this.effectorOrdinalMap.put(this.proxyEffectors[effectorOrdinal].getName(), effectorOrdinal);
+					this.effectorParametersMaps.add(null);
+				}
+				assert proxyTransductor == (Transductor)this.proxyEffectors[0].getTarget();
+			} else throw new ModelException(String.format(
+					"Class '%s' from model file %s does not implement the ITarget interface.",
+						this.targetClass.getName(), this.modelPath.toPath().toString()));
 		} catch (InstantiationException | IllegalAccessException | IllegalArgumentException
 			| InvocationTargetException | NoSuchMethodException | SecurityException e) {
 			throw new ModelException(String.format("Unable to instantiate proxy target '%s' from model file %s.",
 				this.targetClass.getName(), this.modelPath.toPath().toString()), e);
 		}
-		this.targetName = proxyTarget.getName();
-		Transductor proxyTransductor = new Transductor();
-		proxyTransductor.setFieldOrdinalMap(this.fieldOrdinalMap);
-		IEffector<?>[] trexFx = proxyTransductor.getEffectors();
-		IEffector<?>[] targetFx = proxyTarget.getEffectors();
-		this.proxyEffectors = new IEffector<?>[trexFx.length + targetFx.length];
-		System.arraycopy(trexFx, 0, this.proxyEffectors, 0, trexFx.length);
-		System.arraycopy(targetFx, 0, this.proxyEffectors, trexFx.length, targetFx.length);
-		this.effectorParametersMaps = new ArrayList<>(this.proxyEffectors.length);
-		this.effectorOrdinalMap = new HashMap<>((this.proxyEffectors.length * 5) >> 2);
-		for (int effectorOrdinal = 0; effectorOrdinal < this.proxyEffectors.length; effectorOrdinal++) {
-			this.effectorOrdinalMap.put(this.proxyEffectors[effectorOrdinal].getName(), effectorOrdinal);
-			this.effectorParametersMaps.add(null);
-		}
-		assert proxyTransductor == (Transductor)this.proxyEffectors[0].getTarget();
-	}
+			}
 
 	protected void close() {
 		try {
@@ -195,8 +192,7 @@ sealed class Model permits ModelCompiler, ModelLoader {
 	}
 
 	public String showParameter(int effectorOrdinal, int parameterIndex) {
-		if (this.proxyEffectors[effectorOrdinal] instanceof IParameterizedEffector) {
-			IParameterizedEffector<?, ?> effector = (IParameterizedEffector<?, ?>) this.proxyEffectors[effectorOrdinal];
+		if (this.proxyEffectors[effectorOrdinal] instanceof IParameterizedEffector<?,?> effector) {
 			return effector.showParameterTokens(parameterIndex);
 		}
 		return "VOID";
@@ -239,13 +235,11 @@ sealed class Model permits ModelCompiler, ModelLoader {
 		byte[][][][] effectorParameters = new byte[this.proxyEffectors.length][][][];
 		final Map<Bytes, Integer> effectorMap = this.getEffectorOrdinalMap();
 		for (int effectorOrdinal = 0; effectorOrdinal < this.proxyEffectors.length; effectorOrdinal++) {
-			IEffector<?> effector = this.proxyEffectors[effectorOrdinal];
 			HashMap<BytesArray, Integer> parametersMap = this.effectorParametersMaps.get(effectorOrdinal);
-			if (effector instanceof IParameterizedEffector<?,?>) {
+			if (this.proxyEffectors[effectorOrdinal] instanceof BaseParameterizedEffector<?,?> parameterizedEffector) {
 				if (parametersMap != null) {
-					assert parametersMap != null : String.format("Effector parameters map is null for %1$s effector", effector.getName());
-					assert effector instanceof BaseParameterizedEffector<?,?>;
-					final BaseParameterizedEffector<?, ?> parameterizedEffector = (BaseParameterizedEffector<?, ?>) effector;
+					assert parametersMap != null : String.format("Effector parameters map is null for %1$s effector", 
+						parameterizedEffector.getName());
 					byte[][][] effectorParameterBytes = new byte[parametersMap.size()][][];
 					IToken[][] effectorParameterTokens = new IToken[parametersMap.size()][];
 					for (Map.Entry<BytesArray, Integer> e : parametersMap.entrySet()) {
@@ -259,14 +253,17 @@ sealed class Model permits ModelCompiler, ModelLoader {
 				} else {
 					effectorParameters[effectorOrdinal] = new byte[0][][];
 				}
-			} else {
+				parameterizedEffector.passivate();
+			} else if (this.proxyEffectors[effectorOrdinal] instanceof BaseEffector<?> effector) {
 				if (parametersMap != null && parametersMap.size() > 0) {
 					errors.add(String.format("%1$s.%2$s: effector does not accept parameters",
-						this.targetName, effector.getName()));
+					this.targetName, effector.getName()));
 				}
 				effectorParameters[effectorOrdinal] = new byte[0][][];
+				effector.passivate();
+			} else {
+				assert false;
 			}
-			effector.passivate();
 		}
 		for (final Map.Entry<Bytes, Integer> entry : effectorMap.entrySet()) {
 			if (this.proxyEffectors[entry.getValue()] == null) {

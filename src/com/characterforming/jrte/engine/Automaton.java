@@ -114,7 +114,7 @@ final class Automaton {
 		return false;
 	}
 
-	private Bytes symbol(int length) {
+	private Bytes symbol(int length) throws ParseException {
 		Bytes symbol = new Bytes(
 			Arrays.copyOfRange(this.dfain.array, this.dfain.position, this.dfain.position + length)
 		);
@@ -123,9 +123,9 @@ final class Automaton {
 		if (d == '\n') {
 			return symbol;
 		}
-		throw new NumberFormatException(String.format(
-			"Number format error around '%1$c' on line %2$d",
-				d, this.line));
+		throw new ParseException(String.format(
+			"Malformed transition symbol; expected newline but received '%1$c' on line %2$d",
+				d, this.line), this.dfain.position - 1);
 	}
 
 	private int number() throws ParseException {
@@ -144,7 +144,7 @@ final class Automaton {
 			return sign * n;
 		}
 		throw new ParseException(String.format(
-			"Transition symbol terminated at '%1$c' on line %2$d",
+			"Malformed transition; expected tab or newline but received'%1$c' on line %2$d",
 				d, this.line), this.dfain.position);
 	}
 }

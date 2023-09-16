@@ -62,8 +62,9 @@ final class Ints {
 
 	@Override
 	public boolean equals(final Object other) {
-		return other == this || other instanceof Ints
-		&& ((Ints) other).hashCode() == this.hashCode()
-		&& Arrays.equals(((Ints) other).data, this.data);
+		return other == this
+		|| other instanceof Ints o
+		&& o.hashCode() == this.hashCode()
+		&& Arrays.equals(o.data, this.data);
 	}
 }

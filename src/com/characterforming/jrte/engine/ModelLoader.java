@@ -107,9 +107,7 @@ public final class ModelLoader extends Model implements IModel {
 			for (int i = 0; i < effectorParameters.length; i++) {
 				parameterTokens[i] = Token.getParameterTokens(model, effectorParameters[i]);
 			}
-			if (model.proxyEffectors[effectorOrdinal] instanceof IParameterizedEffector<?, ?>) {
-				assert model.proxyEffectors[effectorOrdinal] instanceof BaseParameterizedEffector<?, ?>;
-				BaseParameterizedEffector<?, ?> effector = (BaseParameterizedEffector<?, ?>) model.proxyEffectors[effectorOrdinal];
+			if (model.proxyEffectors[effectorOrdinal] instanceof BaseParameterizedEffector<?, ?> effector) {
 				effector.compileParameters(parameterTokens, errors);
 			}
 		}
@@ -259,9 +257,8 @@ public final class ModelLoader extends Model implements IModel {
 		assert runtimeEffectors.length == this.proxyEffectors.length;
 		for (int i = 0; i < this.proxyEffectors.length; i++) {
 			runtimeEffectors[i].setOutput(trex);
-			if (this.proxyEffectors[i] instanceof IParameterizedEffector<?, ?>) {
-				IParameterizedEffector<?, ?> proxyEffector = (IParameterizedEffector<?, ?>) this.proxyEffectors[i];
-				IParameterizedEffector<?, ?> boundEffector = (IParameterizedEffector<?, ?>) runtimeEffectors[i];
+			if (this.proxyEffectors[i] instanceof IParameterizedEffector<?, ?> proxyEffector
+			&& runtimeEffectors[i] instanceof IParameterizedEffector<?, ?> boundEffector) {
 				boundEffector.setParameters(proxyEffector);
 			}
 		}

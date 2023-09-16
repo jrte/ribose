@@ -148,9 +148,8 @@ final class Token implements IToken {
 
 	@Override
 	public boolean equals(Object other) {
-		return other instanceof Token
-		&& this.type == ((Token)other).type
-		&& this.symbol.equals(((Token) other).symbol);
+		return other instanceof Token o
+		&& this.type == o.type && this.symbol.equals(o.symbol);
 	}
 
 	@Override

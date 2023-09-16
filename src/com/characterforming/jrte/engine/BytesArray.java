@@ -72,6 +72,6 @@ final class BytesArray {
 	@Override
 	public boolean equals(final Object other) {
 		return other == this
-		|| other instanceof BytesArray && Arrays.equals(((BytesArray) other).data, this.data);
+		|| other instanceof BytesArray o && Arrays.equals(o.data, this.data);
 	}
 }

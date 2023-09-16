@@ -564,11 +564,10 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 			for (int i = 0; i < effectorIndex.length; i++) {
 				mapWriter.printf("%1$-32s%2$6d", String.format("effector %1$s", 
 					effectorIndex[i]), i);
-				if (this.proxyEffectors[i] instanceof IParameterizedEffector) {
-					BaseParameterizedEffector<?, ?> effector = (BaseParameterizedEffector<?, ?>) this.proxyEffectors[i];
-					mapWriter.printf("\t[ %1$s ]%n", effector.showParameterType());
-					for (int j = 0; j < effector.getParameterCount(); j++) {
-						mapWriter.printf("\t%1$s%n", effector.showParameterTokens(j));
+				if (this.proxyEffectors[i] instanceof BaseParameterizedEffector<?,?> proxyEffector) {
+					mapWriter.printf("\t[ %1$s ]%n", proxyEffector.showParameterType());
+					for (int j = 0; j < proxyEffector.getParameterCount(); j++) {
+						mapWriter.printf("\t%1$s%n", proxyEffector.showParameterTokens(j));
 					}
 				} else {
 					mapWriter.println();

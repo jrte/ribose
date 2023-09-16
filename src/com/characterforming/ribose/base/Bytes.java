@@ -141,14 +141,42 @@ public final class Bytes {
 		return this.data;
 	}
 
+	/**
+	 * Decode contents to a String.
+	 * 
+	 * @return a Unicode string
+	 */
 	@Override
-	/** Decode contents to a String. */
 	public String toString() {
 		try {
 			return Bytes.decode(Base.newCharsetDecoder(), this.bytes(), this.getLength()).toString();
 		} catch (Exception e) {
 			return this.toHexString();
 		}
+	}
+
+	/** 
+	 * Lazy hash code evaluation. 
+	 * 
+	 * @return a hash based on the contents
+	 */
+	@Override
+	public int hashCode() {
+		if (this.hash == 0) {
+			this.hash = this.hash();
+		}
+		return this.hash;
+	}
+
+	/**
+	 * Test for equality of contents.
+	 * 
+	 * @param other the other {@code Bytes} instance 
+	 * @return true if contents are identical
+	 */
+	@Override
+	public boolean equals(final Object other) {
+		return other instanceof Bytes o && Arrays.equals(o.data, this.data);
 	}
 	
 	/**
@@ -178,20 +206,5 @@ public final class Bytes {
 			h = -1;
 		}
 		return h;
-	}
-
-	@Override
-	/** Lazy hash code evaluation. */
-	public int hashCode() {
-		if (this.hash == 0) {
-			this.hash = this.hash();
-		}
-		return this.hash;
-	}
-
-	@Override
-	/** Test for equality of contents. */
-	public boolean equals(final Object other) {
-		return other instanceof Bytes && Arrays.equals(((Bytes) other).data, this.data);
 	}
 }
