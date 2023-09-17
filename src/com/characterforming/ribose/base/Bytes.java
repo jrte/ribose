@@ -144,6 +144,20 @@ public final class Bytes {
 	/**
 	 * Decode contents to a String.
 	 * 
+	 * @param decoder the decoder to use
+	 * @return a Unicode string
+	 */
+	public String toString(CharsetDecoder decoder) {
+		try {
+			return decoder.reset().decode(ByteBuffer.wrap(this.bytes())).toString();
+		} catch (Exception e) {
+			return this.toHexString();
+		}
+	}
+
+	/**
+	 * Decode contents to a String.
+	 * 
 	 * @return a Unicode string
 	 */
 	@Override

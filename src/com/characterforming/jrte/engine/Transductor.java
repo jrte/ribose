@@ -841,7 +841,7 @@ E:	do {
 			return IEffector.rtxSignal(super.getParameter(parameterIndex));
 		}
 
-		@Override // @see com.characterforming.ribose.IParameterizedEffector#iallocateParameters(int)
+		@Override // @see com.characterforming.ribose.IParameterizedEffector#allocateParameters(int)
 		public Integer[] allocateParameters(int parameterCount) {
 			return new Integer[parameterCount];
 		}
@@ -862,11 +862,6 @@ E:	do {
 				throw new TargetBindingException(String.format("Invalid signal reference `%s` for signal effector, requires type indicator ('%c') before the transducer name",
 					token.toString(), IToken.SIGNAL_TYPE));
 			}
-		}
-
-		@Override
-		public String showParameterType() {
-			return "Integer";
 		}
 	}
 
@@ -943,7 +938,7 @@ E:	do {
 			throw new EffectorException(String.format("Cannot invoke inline effector '%1$s'", super.getName()));
 		}
 
-		@Override // @see com.characterforming.ribose.IParameterizedEffector#iallocateParameters(int)
+		@Override // @see com.characterforming.ribose.IParameterizedEffector#allocateParameters(int)
 		public int[][] allocateParameters(int parameterCount) {
 			return new int[parameterCount][];
 		}
@@ -992,10 +987,10 @@ E:	do {
 			}
 		}
 
-		@Override 
-		public String showParameterType() {
-			return "int[]";
-		}
+		// @Override 
+		// public String showParameterType() {
+		// 	return "int[]";
+		// }
 	}
 
 	private final class StartEffector extends BaseParameterizedEffector<Transductor, Integer> {
@@ -1008,7 +1003,7 @@ E:	do {
 			throw new EffectorException("The start effector requires a parameter");
 		}
 
-		@Override // @see com.characterforming.ribose.IParameterizedEffector#iallocateParameters(int)
+		@Override // @see com.characterforming.ribose.IParameterizedEffector#allocateParameters(int)
 		public Integer[] allocateParameters(int parameterCount) {
 			return new Integer[parameterCount];
 		}
@@ -1037,11 +1032,6 @@ E:	do {
 			}
 			return IEffector.RTX_START;
 		}
-
-		@Override
-		public String showParameterType() {
-			return "Integer";
-		}
 	}
 
 	private final class PauseEffector extends BaseEffector<Transductor> {
@@ -1065,7 +1055,7 @@ E:	do {
 			return IEffector.RTX_NONE;
 		}
 
-		@Override // @see com.characterforming.ribose.IParameterizedEffector#iallocateParameters(int)
+		@Override // @see com.characterforming.ribose.IParameterizedEffector#allocateParameters(int)
 		public long[][] allocateParameters(int parameterCount) {
 			return new long[parameterCount][];
 		}
@@ -1094,11 +1084,6 @@ E:	do {
 			}
 			return byteMap;
  		}
-
-		@Override
-		public String showParameterType() {
-			return "long[]";
-		}
 
 		@Override
 		public String showParameterTokens(int parameterIndex) {
@@ -1162,7 +1147,7 @@ E:	do {
 			return IEffector.RTX_NONE;
 		}
 
-		@Override // @see com.characterforming.ribose.IParameterizedEffector#iallocateParameters(int)
+		@Override // @see com.characterforming.ribose.IParameterizedEffector#allocateParameters(int)
 		public byte[][] allocateParameters(int parameterCount) {
 			return new byte[parameterCount][];
 		}
@@ -1175,11 +1160,6 @@ E:	do {
 			byte[] tokens = parameterList[0].getLiteral().bytes();
 			return Arrays.copyOf(tokens, tokens.length);
  		}
-
-		@Override
-		public String showParameterType() {
-			return "byte[]";
-		}
 
 		@Override
 		public String showParameterTokens(int parameterIndex) {
@@ -1216,7 +1196,7 @@ E:	do {
 			return IEffector.RTX_NONE;
 		}
 
-		@Override // @see com.characterforming.ribose.IParameterizedEffector#iallocateParameters(int)
+		@Override // @see com.characterforming.ribose.IParameterizedEffector#allocateParameters(int)
 		public Integer[] allocateParameters(int parameterCount) {
 			return new Integer[parameterCount];
 		}
@@ -1227,11 +1207,6 @@ E:	do {
 				throw new TargetBindingException("The mscan effector accepts at most one parameter (a byte array of length 1)");
 			}
  			return 0xff & parameterList[0].getLiteral().bytes()[0];
-		}
-
-		@Override
-		public String showParameterType() {
-			return "Integer";
 		}
 
 		@Override

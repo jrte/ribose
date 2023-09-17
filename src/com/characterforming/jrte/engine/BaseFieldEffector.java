@@ -42,7 +42,7 @@ abstract class BaseFieldEffector extends BaseParameterizedEffector<Transductor, 
 		super(transductor, name);
 	}
 
-	@Override // @see com.characterforming.ribose.IParameterizedEffector#iallocateParameters(int)
+	@Override // @see com.characterforming.ribose.IParameterizedEffector#allocateParameters(int)
 	public Integer[] allocateParameters(int parameterCount) {
 		return new Integer[parameterCount];
 	}
@@ -58,10 +58,5 @@ abstract class BaseFieldEffector extends BaseParameterizedEffector<Transductor, 
 				super.target.getName(), super.getName()));
 		}
 		return parameterList[0].getOrdinal();
-	}
-
-	@Override 
-	public String showParameterType() {
-		return "Integer";
 	}
 }

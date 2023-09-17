@@ -72,7 +72,7 @@ public final class ModelLoader extends Model implements IModel {
 		model.seek(0);
 		long indexPosition = model.readLong();
 		final String loadedVersion = model.readString();
-		if (!loadedVersion.equals(Base.RTE_VERSION) && !loadedVersion.equals(Base.RTE_PREVIOUS)) {
+		if (!loadedVersion.equals(Base.RTE_VERSION)) {
 			throw new ModelException(
 				String.format("Current model version '%1$s' does not match version string '%2$s' from model file '%3$s'",
 					Base.RTE_VERSION, loadedVersion, model.modelPath.getPath()));
@@ -258,7 +258,7 @@ public final class ModelLoader extends Model implements IModel {
 		for (int i = 0; i < this.proxyEffectors.length; i++) {
 			runtimeEffectors[i].setOutput(trex);
 			if (this.proxyEffectors[i] instanceof IParameterizedEffector<?, ?> proxyEffector
-			&& runtimeEffectors[i] instanceof IParameterizedEffector<?, ?> boundEffector) {
+			&& runtimeEffectors[i] instanceof BaseParameterizedEffector<?, ?> boundEffector) {
 				boundEffector.setParameters(proxyEffector);
 			}
 		}

@@ -42,7 +42,6 @@ public final class Base {
 
 	/** previous and current version strings */
 	public static final String RTE_VERSION = "ribose-0.0.2";
-	public static final String RTE_PREVIOUS = "ribose-0.0.1";
 
 	/** '.dfa', filename suffix for saved ginr automata */
 	public static final String AUTOMATON_FILE_SUFFIX = ".dfa";

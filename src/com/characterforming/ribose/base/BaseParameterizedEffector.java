@@ -20,6 +20,8 @@
 
 package com.characterforming.ribose.base;
 
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 import java.util.List;
 
 import com.characterforming.ribose.IParameterizedEffector;
@@ -65,24 +67,16 @@ public abstract class BaseParameterizedEffector<T extends ITarget, P> extends Ba
 	@Override // @see com.characterforming.ribose.base.IParameterizedEffector#compileParameter(IToken[])
 	public abstract P compileParameter(IToken[] parameterTokens) throws TargetBindingException;
 
-	@Override // @see com.characterforming.ribose.base.IParameterizedEffector#showParameterType(int)
-	public abstract String showParameterType();
-
-	@Override // com.characterforming.ribose.IParameterizedEffector#getParameterTokens(int)
-	public final IToken[] getParameterTokens(int parameterIndex) {
-		return this.tokens[parameterIndex];
-	}
-
-	@Override // com.characterforming.ribose.IParameterizedEffector#getParameters(int)
 	public final P[] getParameters() {
 		return this.parameters;
 	}
 
-	@Override // com.characterforming.ribose.IParameterizedEffector#setParameters(Object)
 	@SuppressWarnings("unchecked")
-	public final void setParameters(Object proxyEffector) {
-		IParameterizedEffector<T,P> proxy = (IParameterizedEffector<T,P>)proxyEffector;
-		this.parameters = proxy.getParameters();
+	public final void setParameters(IParameterizedEffector<?,?> proxyEffector) {
+		assert proxyEffector instanceof BaseParameterizedEffector<?,?>;
+		if (proxyEffector instanceof BaseParameterizedEffector<?,?> proxy) {
+			this.parameters = (P[])proxy.getParameters();
+		}
 	}
 
 	/**
@@ -135,9 +129,16 @@ public abstract class BaseParameterizedEffector<T extends ITarget, P> extends Ba
 	}
 
 	@Override
+	public String showParameterType() {
+		return this.parameters != null && this.parameters.length > 0
+			? this.parameters[0].getClass().getSimpleName()
+			: "void";
+	}
+
+	@Override
 	public String showParameterTokens(int parameterIndex) {
 		StringBuilder sb = new StringBuilder(256);
-		for (IToken token : getParameterTokens(parameterIndex)) {
+		for (IToken token : this.tokens[parameterIndex]) {
 			sb.append(sb.length() == 0 ? "`" : " `").append(token.toString()).append("`");
 		}
 		return sb.toString();

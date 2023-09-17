@@ -44,7 +44,7 @@ abstract class BaseInputOutputEffector extends BaseParameterizedEffector<Transdu
 		throw new EffectorException(String.format("The %1$s effector requires at least one parameter", super.getName()));
 	}
 
-	@Override // @see com.characterforming.ribose.IParameterizedEffector#iallocateParameters(int)
+	@Override // @see com.characterforming.ribose.IParameterizedEffector#allocateParameters(int)
 	public IToken[][] allocateParameters(int parameterCount) {
 		return new IToken[parameterCount][];
 	}
@@ -63,10 +63,5 @@ abstract class BaseInputOutputEffector extends BaseParameterizedEffector<Transdu
 			}
 		}
 		return parameterList;
-	}
-
-	@Override // @see com.characterforming.ribose.IParameterizedEffector#showParameterType(int)
-	public String showParameterType() {
-		return "IToken[]";
 	}
 }
