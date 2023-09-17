@@ -27,19 +27,23 @@ import com.characterforming.ribose.base.TargetBindingException;
 
 /**
  * Interface for parameterized effectors extends {@link IEffector} with a monadic
- * {@link #invoke(int)} method. In ribose transducer patterns parameters are
- * represented as lists of one or more backquoted tokens, eg {@code out[`~field` `,`]}.
- * In ginr automata and ribose transducers ginr tokens are represented as arrays
- * of raw bytes which may contain text, which ginr encodes as UTF-8 bytes, binary
- * data encoded using hexadecimal {@code \xHH} representation for unprintable
- * bytes, or field (`~field`), transducer (`@transducer`) or signal (`!signal`)
- * references.
+ * {@link #invoke(int p)} method that produces an effect using a <b>P</b> instance
+ * selected from an array of immutable parameter objects. Each parameterized effector
+ * is thus an indexed collection of {@link IEffector}. The array is populated with
+ * <b>P</b> instances compiled from lists of tokens bound to parameterized effector
+ * references in the ribose model. In ribose transducer patterns parameters are
+ * represented as lists of one or more backquoted tokens, eg {@code 
+ * out[`~field` `,`]}. In ginr compiled FSTs and in ribose transducers these
+ * tokens are represented as arrays of raw bytes which may contain UTF-8 encoded
+ * text, binary data encoded using hexadecimal {@code \xHH} representation for
+ * unprintable bytes, or field (`~field`), transducer (`@transducer`) or 
+ * signal (`!signal`) references.
  * <br><br>
  * <i>Proxy</i> parameterized effectors compile parameters from arrays of {@link
  * IToken} when a model is compiled and when it is loaded for runtime use. Each
  * token array is compiled to an immutable instance of the effector's parameter
  * type <b>P</b>, which must be constructible from {@code IToken[]}. The model
- * will call {@link #allocateParameters(int)} to obtain an array <b>P[]</b> of
+ * will call {@link #allocateParameters(int)} to obtain an array <b>P</b>[] of
  * parameter instances and {@link #compileParameter(IToken[])} for each parameter
  * to populate the array. When parameter compilation is complete the proxy effector
  * is passivated with a call to {@link #passivate()} and its raw tokens and compiled
@@ -47,9 +51,7 @@ import com.characterforming.ribose.base.TargetBindingException;
  * and {@link #invoke(int)} methods are never called for proxy effectors. Proxy
  * effectors receive calls to {@link #showParameterTokens(int)} and {@link
  * #showParameterType()} from the model decompiler; these methods are implemented
- * in {@link BaseParameterizedEFfector} but may be overriden by subclasses.
- * <br><br>
- * 
+ * in {@link BaseParameterizedEffector} but may be overriden by subclasses.
  * <br><br>
  * For example:
  * <br><pre>
@@ -69,15 +71,16 @@ import com.characterforming.ribose.base.TargetBindingException;
  *     return RTX_NONE;
  *   }
  * }</pre>
- * <i>Live</i> parameterized effectors populate an array <b>P[]</b> of precompiled
- * parameters from their proxies via {@link #setParameters(Object)} when the model is
- * loaded into the runtime. Live effectors are not otherwise involved in parameter
- * compilation or decompilation and are never passivated. They reference their
- * parameters by array index in their {@link #invoke(int)} methods, which return an
- * {@code IEffector RTX} code as for {@link IEffector#invoke()}. Effectors normally
- * return {@code IEffector.RTX_NONE}, indicating no special condition, but may also
- * encode a {@link Signal} in the returned RTX code. See the javadoc comments for
- * {@link IEffector} for more information regarding effector {@code RTX} codes.
+ * <i>Live</i> parameterized effectors receive a reference to the parameters
+ * <b>P</b>[] precompiled by the respective proxy effector via {@link
+ * BaseParameterizedEffector#setParameters(IParameterizedEffector)} when the 
+ * model is loaded into the runtime. Live effectors are not otherwise involved
+ * in parameter compilation or decompilation and are never passivated. They
+ * select their parameters by array index in their {@link #invoke(int p)}
+ * methods, which normally return {@link IEffector#RTX_NONE} to indicate 
+ * no special condition. They may also return a {@link Signal} encoded by
+ * {@link IEffector#rtxSignal(int)}. See the javadoc comments for {@link
+ * IEffector} for more information regarding effector {@code RTX} codes.
  * <br><br>
  * All {@code IParameterizedEffector} implementations must be subclasses of
  * {@link BaseParameterizedEffector}, which implements the parameter compilation
@@ -90,10 +93,11 @@ import com.characterforming.ribose.base.TargetBindingException;
  * @author Kim Briggs
  * @param <T> the effector target type
  * @param <P> the effector parameter type, constructible from byte[][] (eg new P(byte[][]))
+ * @see BaseParameterizedEffector
  */
 public interface IParameterizedEffector<T extends ITarget, P> extends IEffector<T> {
 	/**
-	 * Parameterized effector invocation receives the index of the {@code P}
+	 * Parameterized effector invocation receives the index of the <b>P</b>
 	 * instance to apply for the invocation.
 	 *
 	 * @param parameterIndex the index of the parameter object to be applied
@@ -103,7 +107,7 @@ public interface IParameterizedEffector<T extends ITarget, P> extends IEffector<
 	int invoke(int parameterIndex) throws EffectorException;
 
 	/**
-	 * Allocate an array (<code>P[]</code>) to hold precompiled parameter objects
+	 * Allocate an array (<b>P</b>[]) to hold precompiled parameter objects
 	 * 
 	 * @param parameterCount the size of parameter array to allocate
 	 * @return the allocated array

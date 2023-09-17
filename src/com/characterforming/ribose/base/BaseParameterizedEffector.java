@@ -20,8 +20,6 @@
 
 package com.characterforming.ribose.base;
 
-import java.lang.reflect.ParameterizedType;
-import java.lang.reflect.Type;
 import java.util.List;
 
 import com.characterforming.ribose.IParameterizedEffector;
@@ -30,17 +28,24 @@ import com.characterforming.ribose.IToken;
 
 /**
  * Base {@link IParameterizedEffector} implementation class extends {@link BaseEffector} 
- * to support specialized effectors. All {@code IParameterizedEffector} implementation classes
- * <i>must</i> extend {@code BaseParameterizedEffector}. Subclasses <i>must</i> implement
- * {@link IParameterizedEffector#invoke()}, {@link IParameterizedEffector#invoke(int)},
- * {@link IParameterizedEffector#allocateParameters(int)}, {@link IParameterizedEffector#compileParameter(IToken[])}
- * and {@link IParameterizedEffector#showParameterType()} methods and <i>may</i> override
- * {@link IParameterizedEffector#showParameterTokens(int)} if required.
+ * to support specialized effectors. All {@link IParameterizedEffector} implementations
+ * <i>must</i> extend {@link BaseParameterizedEffector} and <i>must</i> implement:
+ * <ul>
+ * <li>{@link IParameterizedEffector#invoke()}</li>
+ * <li>{@link IParameterizedEffector#invoke(int)}</li>
+ * <li>{@link IParameterizedEffector#allocateParameters(int)}</li>
+ * <li>{@link IParameterizedEffector#compileParameter(IToken[])}</li>
+ * </ul>
+ * Default {@link showParameterType()} and {@link showParameterTokens(int)} methods are
+ * implemented here but subclasses <i>may</i> override these if desired. Otherwise, 
+ * public methods not exposed in the {@link IParameterizedEffector} interface are for
+ * internal use only. These methods implement the parameter compilation and binding
+ * protocols for all parameterized effector implementations.
  * 
  * @param <T> the effector target type
  * @param <P> the effector parameter type, constructible from IToken[] (eg new P(IToken[]))
  * @author Kim Briggs
- * @see com.characterforming.ribose.IParameterizedEffector
+ * @see IParameterizedEffector
  */
 public abstract class BaseParameterizedEffector<T extends ITarget, P> extends BaseEffector<T> implements IParameterizedEffector<T, P> {
 
@@ -67,15 +72,32 @@ public abstract class BaseParameterizedEffector<T extends ITarget, P> extends Ba
 	@Override // @see com.characterforming.ribose.base.IParameterizedEffector#compileParameter(IToken[])
 	public abstract P compileParameter(IToken[] parameterTokens) throws TargetBindingException;
 
-	public final P[] getParameters() {
-		return this.parameters;
+	@Override
+	public String showParameterType() {
+		return this.parameters != null && this.parameters.length > 0
+				? this.parameters[0].getClass().getSimpleName()
+				: "void";
 	}
 
+	@Override
+	public String showParameterTokens(int parameterIndex) {
+		StringBuilder sb = new StringBuilder(256);
+		for (IToken token : this.tokens[parameterIndex]) {
+			sb.append(sb.length() == 0 ? "`" : " `").append(token.toString()).append("`");
+		}
+		return sb.toString();
+	}
+
+	/**
+	 * Get the parameters array from proxy effector
+	 * 
+	 * @param proxyEffector the proxy effector
+	 */
 	@SuppressWarnings("unchecked")
 	public final void setParameters(IParameterizedEffector<?,?> proxyEffector) {
 		assert proxyEffector instanceof BaseParameterizedEffector<?,?>;
 		if (proxyEffector instanceof BaseParameterizedEffector<?,?> proxy) {
-			this.parameters = (P[])proxy.getParameters();
+			this.parameters = (P[])proxy.parameters;
 		}
 	}
 
@@ -126,21 +148,5 @@ public abstract class BaseParameterizedEffector<T extends ITarget, P> extends Ba
 	 */
 	protected final P getParameter(int parameterIndex) {
 		return this.parameters[parameterIndex];
-	}
-
-	@Override
-	public String showParameterType() {
-		return this.parameters != null && this.parameters.length > 0
-			? this.parameters[0].getClass().getSimpleName()
-			: "void";
-	}
-
-	@Override
-	public String showParameterTokens(int parameterIndex) {
-		StringBuilder sb = new StringBuilder(256);
-		for (IToken token : this.tokens[parameterIndex]) {
-			sb.append(sb.length() == 0 ? "`" : " `").append(token.toString()).append("`");
-		}
-		return sb.toString();
 	}
 }

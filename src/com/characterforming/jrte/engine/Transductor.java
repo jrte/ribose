@@ -846,7 +846,7 @@ E:	do {
 			return new Integer[parameterCount];
 		}
 	
-			@Override
+		@Override
 		public Integer compileParameter(final IToken[] parameterList) throws TargetBindingException {
 			if (parameterList.length != 1) {
 				throw new TargetBindingException("The signal effector accepts at most one parameter");
