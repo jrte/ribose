@@ -47,32 +47,26 @@ import com.characterforming.ribose.base.TargetBindingException;
  */
 public interface IOutput {
 	/**
-	 * Get the ribose compiler Logger instance (shared by transductor and all bound effectors)
+	 * Get a copy of the current value for a field
 	 *
-	 * @return compiler Logger instance
+	 * @param fieldOrdinal the ordinal number of the field to get
+	 * @return the specified field
 	 */
-	Logger getRtcLogger();
+	IField getField(int fieldOrdinal);
 
 	/**
-	 * Get the ribose runtime Logger instance (shared by transductor and all bound effectors)
+	 * Get the ordinal number for the current selected field
 	 *
-	 * @return runtime Logger instance
+	 * @return the ordinal number of the selected field
 	 */
-	Logger getRteLogger();
+	int getFieldOrdinal();
 
 	/**
-	 * Get the decoder bound to the transductor
-	 * 
-	 * @return the transductor's decoder
+	 * Get a copy of the current selected field
+	 *
+	 * @return the selected field
 	 */
-	public CharsetDecoder decoder();
-
-	/**
-	 * Get the encoder bound to the transductor
-	 * 
-	 * @return the transductor's encoder
-	 */
-	public CharsetEncoder encoder();
+	IField getField();
 
 	/**
 	 * Get a copy of the current value for a field from an effector parameter token
@@ -87,30 +81,36 @@ public interface IOutput {
 	 * Get a field ordinal from an effector parameter token
 	 *
 	 * @param fieldName the name of the field (UTF-8 bytes, without `~` prefix in lead byte)
-	 * @return the numeric index of the field
+	 * @return the ordinal number of the field
 	 * @throws TargetBindingException on error
 	 */
 	int getFieldOrdinal(Bytes fieldName) throws TargetBindingException;
 
 	/**
-	 * Get a copy of the current value for a field
-	 *
-	 * @param fieldOrdinal the numeric index of the field to get
-	 * @return the specified field
+	 * Get the decoder bound to the transductor
+	 * 
+	 * @return the transductor's decoder
 	 */
-	IField getField(int fieldOrdinal);
+	CharsetDecoder decoder();
 
 	/**
-	 * Get the numeric index for the current selected field
-	 *
-	 * @return the numeric index of the selected field
+	 * Get the encoder bound to the transductor
+	 * 
+	 * @return the transductor's encoder
 	 */
-	int getSelectedOrdinal();
+	CharsetEncoder encoder();
 
 	/**
-	 * Get a copy of the current selected field
+	 * Get the ribose compiler Logger instance
 	 *
-	 * @return the selected field
+	 * @return compiler Logger instance
 	 */
-	IField getSelectedField();
+	Logger getRtcLogger();
+
+	/**
+	 * Get the ribose runtime Logger instance
+	 *
+	 * @return runtime Logger instance
+	 */
+	Logger getRteLogger();
 }

@@ -6,30 +6,39 @@
  * documentation or type {@code ./ribose help} in the shell to see parameters and
  * options for the available commands. The {@link IModel} interface provides static
  * methods for compiling and loading ribose models in the Java runtime and non-static
- * methods for instantiating {@link ITransductor} and binding it to live target
+ * methods for instantiating and binding {@link ITransductor} to live {@link ITarget}
  * instances, permitting fine-grained control of transductions, and more granular
- * methods for stream transduction. Transduction input and output are treated as
- * raw byte streams; UTF-8 input is transduced to UTF-8 output without decoding.
- * {@link IField} provides methods for converting extracted bytes to common Java
- * primitives, including decoding UTF-8 bytes to Unicode text.
+ * methods for stream transduction.
  * <br><br>
- * Each model is associated with a specific {@link ITarget} implementation class that
- * expresses an enumerated collection of {@link IEffector} and {@link
- * IParameterizedEffector} classes, which are typically implemented as private inner
- * classes of the target class. Every target class must present a default constructor
- * that instantiates a <i>proxy</i> instance for effector parameter compilation. The
- * proxy target presents proxy effectors and each parameterized effector is called 
- * to compile an indexed collection of parameters. This process occurs once when the
- * model is compiled, to validate the supplied parameters, and once again every time
- * the model is loaded for runtime use. In runtime contexts the proxy target is
- * disposed of when parameter compilation is complete but the proxy effectors are
- * retained in the model so that precompiled parameters can be supplied to effectors
- * when live targets are instantiated and bound to new transductors. The relationship
- * between model and target is 1..1 (model-proxy target) and transient in compile
- * contexts and 1..N (model-live targets) in runtime contexts, persisting for the
- * lifetime of the transductor. See the {@link ITarget}, {@link IEffector} and {@link
- * IParameterizedEffector} documentation for more information regarding instantiation
- * and use of these classes in model compilation and runtime contexts. 
+ * A running {@link ITransductor} drives a stream of input bytes onto a live {@link
+ * ITarget} instance. Input and output are treated as raw byte streams. UTF-8 input
+ * is transduced as binary and passes through to UTF-8 output without decoding. 
+ * Each transductor implements {@link ITarget} and injects itself and its effectors
+ * into its bound {@code ITarget}. The transductor effectors, listed in {@link
+ * ITransductor}, effect control of the transductor's input and transducer stacks
+ * and enable byte field extraction and composition. Simple models rely
+ * solely on the transductor effectors and express output through the {@code
+ * out[..]} effector. Domain specific {@link ITarget} implementations may extend
+ * the range of the transductor target with specialized {@link IEffector} and 
+ * {@link IParameterizedEffector} implementations. All effectors receive {@link
+ * IOutput} views to access extracted {@link IField} output as raw bytes, common
+ * Java primitive, or Unicode text. 
+ * <br><br>
+ * {@link IEffector} and {@link IParameterizedEffector} classes are typically
+ * implemented as private inner classes of the target class. Every target class
+ * must present a default constructor that instantiates a <i>proxy</i> instance
+ * for effector parameter compilation. The proxy target presents proxy effectors
+ * and each parameterized effector is called  to compile an indexed collection
+ * of parameters. Parameters are compiled once when the model is compiled, to 
+ * validate the supplied parameters, and once again every time the model is 
+ * loaded for runtime use. In the runtime the compiled parameters are retained
+ * by the model in its proxy effectors so they can be supplied to live target
+ * effectors. The relationship between model and target is 1..1 (model-proxy
+ * target) and transient in compile contexts and 1..N (model-live targets) in
+ * runtime contexts, persisting for the lifetime of the transductor. See 
+ * {@link ITarget}, {@link IEffector} and {@link IParameterizedEffector} for
+ * more information regarding these classes in model compilation and runtime
+ * contexts. 
  * <br><br>
  * A ribose model is <i>simple</i> if the model target class defines no specialized
  * effectors, so the model transducers use only the built-in {@link ITransductor} 

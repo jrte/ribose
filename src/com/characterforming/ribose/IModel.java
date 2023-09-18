@@ -144,6 +144,15 @@ public interface IModel extends AutoCloseable {
 	boolean stream(Bytes transducer, ITarget target, Signal prologue, InputStream in, OutputStream out)
 	throws RiboseException;
 
+	/** 
+	 * Decompile a transducer to System.out
+	 * 
+	 * @param transducerName the transducer name as aUnicode string
+	 * @throws ModelException on error
+	 */
+	void decompile(String transducerName)
+	throws ModelException;
+
 	/**
 	 * Get the fully qualified name of the model target.
 	 * 

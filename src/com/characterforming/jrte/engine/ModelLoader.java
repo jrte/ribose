@@ -28,6 +28,8 @@ import java.io.OutputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicIntegerArray;
 import java.util.concurrent.atomic.AtomicReferenceArray;
 import java.util.logging.Level;
@@ -42,6 +44,7 @@ import com.characterforming.ribose.ITransductor.Metrics;
 import com.characterforming.ribose.base.BaseParameterizedEffector;
 import com.characterforming.ribose.base.Bytes;
 import com.characterforming.ribose.base.DomainErrorException;
+import com.characterforming.ribose.base.EffectorException;
 import com.characterforming.ribose.base.ModelException;
 import com.characterforming.ribose.base.RiboseException;
 import com.characterforming.ribose.base.Signal;
@@ -148,8 +151,7 @@ public final class ModelLoader extends Model implements IModel {
 	}
 
 	@Override // @see com.characterforming.ribose.IRiboseModel#transduce(Bytes, ITarget, Signal, InputStream, OutputStream)
-	public boolean stream(Bytes transducer, ITarget target, Signal prologue, InputStream in, OutputStream out)
-	throws RiboseException {
+	public boolean stream(Bytes transducer, ITarget target, Signal prologue, InputStream in, OutputStream out) {
 		String targetClassname = this.getTargetClassname();
 		try {
 			Metrics metrics = new Metrics();
@@ -184,9 +186,9 @@ public final class ModelLoader extends Model implements IModel {
 					assert trex.status().isStopped();
 				}
 			}
-		} catch (ModelException | DomainErrorException | IOException e) {
-			this.rteLogger.log(Level.SEVERE, e, () -> String.format("Transducer '%1$s' failed for target '%2$s'",
-				transducer.toString(), targetClassname));
+		} catch (RiboseException | ModelException | EffectorException | DomainErrorException | IOException e) {
+			this.rteLogger.log(Level.SEVERE, String.format("Transducer '%1$s' failed for target '%2$s'",
+				transducer.toString(), targetClassname), e);
 			return false;
 		}
 		return true;
@@ -266,5 +268,102 @@ public final class ModelLoader extends Model implements IModel {
 		}
 		trex.setEffectors(runtimeEffectors);
 		return runtimeEffectors;
+	}
+
+	@Override
+	public void decompile(final String transducerName) throws ModelException {
+		Transducer trex = this.loadTransducer(this.getTransducerOrdinal(Bytes.encode(encoder.reset(), transducerName)));
+		int[] effectorVectors = trex.getEffectorVector();
+		int[] inputEquivalenceIndex = trex.getInputFilter();
+		long[] transitionMatrix = trex.getTransitionMatrix();
+		int inputEquivalentCount = trex.getInputEquivalentsCount();
+		Set<Map.Entry<Bytes, Integer>> effectorOrdinalMap = this.getEffectorOrdinalMap().entrySet();
+		String[] effectorNames = new String[effectorOrdinalMap.size()];
+		for (Map.Entry<Bytes, Integer> entry : effectorOrdinalMap) {
+			effectorNames[entry.getValue()] = Bytes
+				.decode(this.decoder.reset(), entry.getKey().bytes(), entry.getKey().getLength()).toString();
+		}
+		System.out.printf("%s%n%nInput equivalents (equivalent: input...)%n%n", transducerName);
+		for (int i = 0; i < inputEquivalentCount; i++) {
+			int startToken = -1;
+			System.out.printf("%4d:", i);
+			for (int j = 0; j < inputEquivalenceIndex.length; j++) {
+				if (inputEquivalenceIndex[j] != i) {
+					if (startToken >= 0) {
+						if (startToken < (j - 2)) {
+							this.printStart(startToken);
+							this.printEnd(j - 1);
+						} else {
+							this.printStart(startToken);
+						}
+					}
+					startToken = -1;
+				} else if (startToken < 0) {
+					startToken = j;
+				}
+			}
+			if (startToken >= 0) {
+				int endToken = inputEquivalenceIndex.length - 1;
+				this.printStart(startToken);
+				if (startToken < endToken) {
+					this.printEnd(endToken);
+				}
+			}
+			System.out.printf("%n");
+		}
+		System.out.printf("%nState transitions (from equivalent -> to effect...)%n%n");
+		for (int i = 0; i < transitionMatrix.length; i++) {
+			int from = i / inputEquivalentCount;
+			int equivalent = i % inputEquivalentCount;
+			int to = Transducer.state(transitionMatrix[i]) / inputEquivalentCount;
+			int effect = Transducer.action(transitionMatrix[i]);
+			assert (effect != 0) || (to == from);
+			if ((to != from) || (effect != 0)) {
+				System.out.printf("%1$d %2$d -> %3$d", from, equivalent, to);
+				if (effect >= 0x10000) {
+					int effectorOrdinal = Transducer.effector(effect);
+					if (this.proxyEffectors[effectorOrdinal] instanceof BaseParameterizedEffector<?, ?> effector) {
+						int parameterOrdinal = Transducer.parameter(effect);
+						System.out.printf(" %s[", effectorNames[effectorOrdinal]);
+						System.out.printf(" %s ]", effector.showParameterTokens(this.getDecoder(), parameterOrdinal));
+					}
+				} else if (effect >= 0) {
+					if (effect > 1) {
+						System.out.printf(" %s", effectorNames[effect]);
+					}
+				} else {
+					int index = (-1 * effect);
+					while (effectorVectors[index] != 0) {
+						if (effectorVectors[index] > 0) {
+							System.out.printf(" %s", effectorNames[effectorVectors[index++]]);
+						} else {
+							int effectorOrdinal = -1 * effectorVectors[index++];
+							if (this.proxyEffectors[effectorOrdinal] instanceof BaseParameterizedEffector<?,?> effector) {
+								int parameterOrdinal = Transducer.parameter(effectorVectors[index++]);
+								System.out.printf(" %s[", effectorNames[effectorOrdinal]);
+								System.out.printf(" %s ]", effector.showParameterTokens(this.getDecoder(), parameterOrdinal));
+							}
+						}
+					}
+				}
+				System.out.printf("%n");
+			}
+		}
+	}
+
+	private void printStart(int startByte) {
+		if (startByte > 32 && startByte < 127) {
+			System.out.printf(" %c", (char) startByte);
+		} else {
+			System.out.printf(" #%x", startByte);
+		}
+	}
+
+	private void printEnd(int endByte) {
+		if (endByte > 32 && endByte < 127) {
+			System.out.printf("-%c", (char) endByte);
+		} else {
+			System.out.printf("-#%x", endByte);
+		}
 	}
 }

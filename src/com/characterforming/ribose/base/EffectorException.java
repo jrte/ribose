@@ -25,7 +25,7 @@ package com.characterforming.ribose.base;
  * 
  * @author Kim Briggs
  */
-public class EffectorException extends RiboseException {
+public class EffectorException extends Exception {
 	private static final long serialVersionUID = 1L;
 
 	/** Constructor */

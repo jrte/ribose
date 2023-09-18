@@ -25,6 +25,7 @@ import java.io.InputStream;
 
 import com.characterforming.ribose.base.Bytes;
 import com.characterforming.ribose.base.DomainErrorException;
+import com.characterforming.ribose.base.EffectorException;
 import com.characterforming.ribose.base.ModelException;
 import com.characterforming.ribose.base.RiboseException;
 import com.characterforming.ribose.base.Signal;
@@ -338,12 +339,12 @@ public interface ITransductor extends ITarget {
 	 * if the transduction involves backtracking with mark/reset.
 	 *
 	 * @return this ITransductor
-	 * @throws RiboseException on error
+	 * @throws EffectorException on error
 	 * @throws DomainErrorException on error
 	 * @see #recycle(byte[])
 	 * @see #status()
 	 */
-	ITransductor run() throws RiboseException;
+	ITransductor run() throws EffectorException, DomainErrorException;
 
 	/**
 	 * Return a new or unmarked byte[] buffer if the previous buffer ({@code bytes})

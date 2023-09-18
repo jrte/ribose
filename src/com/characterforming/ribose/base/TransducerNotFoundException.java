@@ -25,7 +25,7 @@ package com.characterforming.ribose.base;
  * 
  * @author Kim Briggs
  */
-public class TransducerNotFoundException extends RiboseException {
+public class TransducerNotFoundException extends Exception {
 	private static final long serialVersionUID = 1L;
 
 	/** Constructor */

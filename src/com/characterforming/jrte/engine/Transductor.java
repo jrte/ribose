@@ -305,7 +305,7 @@ public final class Transductor implements ITransductor, IOutput {
 	}
 
 	@Override	// @see com.characterforming.ribose.ITransductor#run()
-	public ITransductor run() throws RiboseException {
+	public ITransductor run() throws EffectorException, DomainErrorException {
 		assert !this.isProxy();
 		if (this.transducerStack.isEmpty()) {
 			return this;
@@ -442,7 +442,12 @@ S:				do {
 		this.metrics.update(accumulator);
 	}
 
-	@Override // @see com.characterforming.ribose.IOutput#getValueOrdinal(Bytes)
+	@Override // @see com.characterforming.ribose.IOutput#getFieldOrdinal()
+	public int getFieldOrdinal() {
+		return (this.selected != null) ? this.selected.getOrdinal() : -1;
+	}
+
+	@Override // @see com.characterforming.ribose.IOutput#getFieldOrdinal(Bytes)
 	public int getFieldOrdinal(final Bytes fieldName) {
 		if (this.fieldOrdinalMap.containsKey(fieldName)) {
 			return this.fieldOrdinalMap.get(fieldName);
@@ -450,9 +455,10 @@ S:				do {
 		return -1;
 	}
 
-	@Override // @see com.characterforming.ribose.IOutput#getSelectedOrdinal()
-	public int getSelectedOrdinal() {
-		return (this.selected != null) ? this.selected.getOrdinal() : -1;
+	@Override // @see com.characterforming.ribose.IOutput#getField()
+	public IField getField() {
+		assert !this.isProxy || this.selected == null;
+		return this.selected;
 	}
 
 	@Override // @see com.characterforming.ribose.IOutput#getField(int)
@@ -470,12 +476,6 @@ S:				do {
 		return this.getField(this.getFieldOrdinal(fieldName));
 	}
 
-	@Override // @see com.characterforming.ribose.IOutput#getSelectedValue()
-	public IField getSelectedField() {
-		assert !this.isProxy || this.selected == null;
-		return this.selected;
-	}
-
 	void setEffectors(IEffector<?>[] effectors) {
 		this.effectors = effectors;
 	}
@@ -487,7 +487,7 @@ S:				do {
 			for (final Entry<Bytes, Integer> entry : this.fieldOrdinalMap.entrySet()) {
 				final int fieldIndex = entry.getValue();
 				byte[] fieldBuffer = new byte[INITIAL_FIELD_VALUE_BYTES];
-				this.fieldHandles[fieldIndex] = new Field(this.decoder, entry.getKey(), fieldIndex, fieldBuffer, 0);
+				this.fieldHandles[fieldIndex] = new Field(this.decoder(), entry.getKey(), fieldIndex, fieldBuffer, 0);
 			}
 			this.selected = this.fieldHandles[Model.ANONYMOUS_FIELD_ORDINAL];
 		}
@@ -750,7 +750,7 @@ E:	do {
 						selected.append(token.getLiteral().bytes());
 					} else {
 						throw new EffectorException(String.format("Invalid token `%1$s` for effector '%2$s'", 
-							token.toString(decoder), super.getName()));
+							token.toString(super.decoder()), super.getName()));
 					}
 				}
 			}
@@ -875,12 +875,12 @@ E:	do {
 					int ordinal = token.getOrdinal();
 					if (ordinal < 0) {
 						throw new TargetBindingException(String.format("Null signal reference for signal effector: %s",
-							token.toString(decoder)));
+							token.toString(super.decoder())));
 					}
 					return ordinal;
 				} else {
 					throw new TargetBindingException(String.format("Invalid signal reference `%s` for signal effector, requires type indicator ('%c') before the transducer name",
-						token.toString(decoder), IToken.SIGNAL_TYPE));
+						token.toString(super.decoder()), IToken.SIGNAL_TYPE));
 				}
 			} else {
 				throw new TargetBindingException(String.format("Unknown IToken implementation class '%1$s'",

@@ -25,7 +25,7 @@ package com.characterforming.ribose.base;
  * 
  * @author Kim Briggs
  */
-public class ModelException extends RiboseException {
+public class ModelException extends Exception {
 	private static final long serialVersionUID = 1L;
 
 	/** Constructor */

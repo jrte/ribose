@@ -26,7 +26,7 @@ package com.characterforming.ribose.base;
  * 
  * @author Kim Briggs
  */
-public class DomainErrorException extends RiboseException {
+public class DomainErrorException extends Exception {
 	private static final long serialVersionUID = 1L;
 
 	/** Constructor */

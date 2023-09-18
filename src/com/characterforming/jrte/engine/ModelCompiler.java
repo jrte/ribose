@@ -272,7 +272,7 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 					if (filename.endsWith(Base.AUTOMATON_FILE_SUFFIX)) {
 						try {
 							compiler.compileTransducer(new File(inrAutomataDirectory, filename));
-						} catch (ModelException e) {
+						} catch (RiboseException e) {
 							String msg = String.format("%1$s: ModelException caught saving to model file; %2$s",
 								filename, e.getMessage());
 							compiler.addError(msg);
@@ -335,7 +335,7 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 	ModelCompiler reset(File inrFile) {
 		String name = inrFile.getName();
 		name = name.substring(0, name.length() - Base.AUTOMATON_FILE_SUFFIX.length());
-		this.transducerName = Bytes.encode(this.encoder, name);
+		this.transducerName = Bytes.encode(super.getEncoder(), name);
 		this.inputStateMap = new HashMap<>(256);
 		this.stateTransitionMap = new HashMap<>(1024);
 		this.effectorVectorMap = null;
@@ -385,7 +385,7 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 			return false;
 		}
 		try {
-			Bytes automaton = Bytes.encode(this.encoder, "Automaton");
+			Bytes automaton = Bytes.encode(super.getEncoder(), "Automaton");
 			if (this.transductor.stop().push(bytes, size).signal(Signal.NIL).start(automaton).status().isRunnable()
 			&& this.transductor.run().status().isPaused()) {
 				this.transductor.signal(Signal.EOS).run();
@@ -394,13 +394,10 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 			this.transductor.stop();
 			assert this.transductor.status().isStopped();
 			this.saveTransducer();
-		} catch (ModelException e) {
-			this.addError(String.format("%1$s: ModelException compiling '%2$s'; %3$s",
+		} catch (ModelException | EffectorException | DomainErrorException e) {
+			this.addError(String.format("%1$s: Failed to compile '%2$s'; %3$s",
 				this.transducerName, inrFile.getPath(), e.getMessage()));
 			return false;
-		} catch (DomainErrorException e) {
-			this.addError(String.format("%1$s: DomainErrorException compiling '%2$s'; %3$s",
-				this.transducerName, inrFile.getPath(), e.getMessage()));
 		}
 		return true;
 	}
@@ -469,7 +466,7 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 			this.getTransducerName()+":", nInputs, nStates, transitionCount, sparsity));
 	}
 
-	private boolean save(byte[][][][] compiledParameters) throws ModelException {
+	private boolean save(byte[][][][] compiledParameters) {
 		File mapFile = new File(this.modelPath.getPath().replaceAll(".model", ".map"));
 		long indexPosition = this.getSafeFilePosition();
 		try {
@@ -510,12 +507,9 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 			if (this.transducerOrdinalMap.size() == 0) {
 				this.rtcLogger.log(Level.SEVERE, "No transducers compiled to {0}", this.modelPath.getPath());
 			}
-		} catch (IOException e) {
-			throw new ModelException(String.format("IOException caught compiling model file '%1$s'",
-				this.modelPath.getPath()), e);
-		} catch (RiboseException e) {
-			throw new ModelException(String.format("RiboseException caught compiling model file '%1$s'",
-				this.modelPath.getPath()), e);
+		} catch (IOException | ModelException e) {
+			this.rtcLogger.log(Level.SEVERE, e, () -> String.format("Failed to save model '%1$s'",
+				this.modelPath.getPath()));
 		} finally {
 			if (super.deleteOnClose) {
 				this.rtcLogger.log(Level.SEVERE, () -> String.format("Compilation failed for model '%1$s'", 
@@ -539,7 +533,7 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 			}
 			for (int i = 0; i < signalIndex.length; i++) {
 				mapWriter.printf("%1$-32s%2$6d%n", String.format("signal %1$s", 
-					signalIndex[i].toString(this.decoder)), i + Base.RTE_SIGNAL_BASE);
+					signalIndex[i].toString(super.getDecoder())), i + Base.RTE_SIGNAL_BASE);
 			}
 			Bytes[] fieldIndex = new Bytes[this.fieldOrdinalMap.size()];
 			for (Map.Entry<Bytes, Integer> m : this.fieldOrdinalMap.entrySet()) {
@@ -547,7 +541,7 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 			}
 			for (int i = 0; i < fieldIndex.length; i++) {
 				mapWriter.printf("%1$-32s%2$6d%n", String.format("field %1$s", 
-					fieldIndex[i].toString(this.decoder)), i);
+					fieldIndex[i].toString(super.getDecoder())), i);
 			}
 			Bytes[] transducerIndex = new Bytes[this.transducerOrdinalMap.size()];
 			for (Map.Entry<Bytes, Integer> m : this.transducerOrdinalMap.entrySet()) {
@@ -555,7 +549,7 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 			}
 			for (int i = 0; i < (transducerIndex.length - 1); i++) {
 				mapWriter.printf("%1$-32s%2$6d%n", String.format("transducer %1$s", 
-					transducerIndex[i].toString(this.decoder)), i);
+					transducerIndex[i].toString(super.getDecoder())), i);
 			}
 			Bytes[] effectorIndex = new Bytes[this.effectorOrdinalMap.size()];
 			for (Map.Entry<Bytes, Integer> m : this.effectorOrdinalMap.entrySet()) {
@@ -563,7 +557,7 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 			}
 			for (int i = 0; i < effectorIndex.length; i++) {
 				mapWriter.printf("%1$-32s%2$6d", String.format("effector %1$s", 
-					effectorIndex[i].toString(this.decoder)), i);
+					effectorIndex[i].toString(super.getDecoder())), i);
 				if (super.proxyEffectors[i] instanceof BaseParameterizedEffector<?,?> proxyEffector) {
 					mapWriter.printf("\t[ %1$s ]%n", proxyEffector.showParameterType());
 					for (int j = 0; j < proxyEffector.getParameterCount(); j++) {
@@ -580,7 +574,7 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 	}
 
 	private String getTransducerName() {
-		return this.transducerName.toString(this.decoder.reset());
+		return this.transducerName.toString(super.getDecoder());
 	}
 
 	void putHeader(Header header) {
@@ -748,9 +742,9 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 		final int nStates = transitionMatrix[0].length;
 		final int nulSignal = Signal.NUL.signal();
 		final int nulEquivalent = this.inputEquivalenceIndex[nulSignal];
-		final int msumOrdinal = this.getEffectorOrdinal(Bytes.encode(this.encoder, "msum"));
-		final int mproductOrdinal = this.getEffectorOrdinal(Bytes.encode(this.encoder, "mproduct"));
-		final int mscanOrdinal = this.getEffectorOrdinal(Bytes.encode(this.encoder, "mscan"));
+		final int msumOrdinal = this.getEffectorOrdinal(Bytes.encode(super.getEncoder(), "msum"));
+		final int mproductOrdinal = this.getEffectorOrdinal(Bytes.encode(super.getEncoder(), "mproduct"));
+		final int mscanOrdinal = this.getEffectorOrdinal(Bytes.encode(super.getEncoder(), "mscan"));
 		final int[][] msumStateEffects = new int[nStates][];
 		final int[][] mproductStateEffects = new int[nStates][];
 		final int[][] mproductEndpoints = new int[nStates][2];

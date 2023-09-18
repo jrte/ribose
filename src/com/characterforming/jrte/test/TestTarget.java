@@ -37,7 +37,7 @@ public class TestTarget implements ITarget {
 
 		@Override
 		public int invoke() throws EffectorException {
-			IField field = super.output.getSelectedField();
+			IField field = super.output.getField();
 			String string = field.toString();
 			long integer = 0;
 			try {
@@ -56,7 +56,7 @@ public class TestTarget implements ITarget {
 
 		@Override
 		public int invoke() throws EffectorException {
-			IField field = super.output.getSelectedField();
+			IField field = super.output.getField();
 			String string = field.toString();
 			double real = 0.0;
 			try {
@@ -75,7 +75,7 @@ public class TestTarget implements ITarget {
 
 		@Override
 		public int invoke() throws EffectorException {
-			IField field = super.output.getSelectedField();
+			IField field = super.output.getField();
 			return field.toString().equals(field.asString()) ? IEffector.RTX_NONE : IEffector.rtxSignal(fail);
 		}
 	}

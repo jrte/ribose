@@ -40,7 +40,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import com.characterforming.ribose.IEffector;
-import com.characterforming.ribose.IParameterizedEffector;
 import com.characterforming.ribose.ITarget;
 import com.characterforming.ribose.IToken;
 import com.characterforming.ribose.base.BaseEffector;
@@ -204,13 +203,6 @@ sealed class Model permits ModelCompiler, ModelLoader {
 	 */
 	public String getModelVersion() {
 		return this.modelVersion;
-	}
-
-	public String showParameter(int effectorOrdinal, int parameterIndex) {
-		if (this.proxyEffectors[effectorOrdinal] instanceof IParameterizedEffector<?,?> effector) {
-			return effector.showParameterTokens(this.getDecoder(), parameterIndex);
-		}
-		return "VOID";
 	}
 
 	byte[] getTransducerName(int transducerOrdinal) {
