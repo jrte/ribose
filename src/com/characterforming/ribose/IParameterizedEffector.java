@@ -20,6 +20,8 @@
 
 package com.characterforming.ribose;
 
+import java.nio.charset.CharsetDecoder;
+
 import com.characterforming.ribose.base.BaseParameterizedEffector;
 import com.characterforming.ribose.base.EffectorException;
 import com.characterforming.ribose.base.Signal;
@@ -49,9 +51,10 @@ import com.characterforming.ribose.base.TargetBindingException;
  * is passivated with a call to {@link #passivate()} and its raw tokens and compiled
  * parameters are retained for binding to live effectors. The {@link #invoke()}
  * and {@link #invoke(int)} methods are never called for proxy effectors. Proxy
- * effectors receive calls to {@link #showParameterTokens(int)} and {@link
- * #showParameterType()} from the model decompiler; these methods are implemented
- * in {@link BaseParameterizedEffector} but may be overriden by subclasses.
+ * effectors receive calls to {@link #showParameterTokens(CharsetDecoder, int)}
+ * and {@link #showParameterType()} from the model decompiler; these methods are
+ * implemented in {@link BaseParameterizedEffector} but may be overridden by
+ * subclasses.
  * <br><br>
  * For example:
  * <br><pre>
@@ -140,8 +143,9 @@ public interface IParameterizedEffector<T extends ITarget, P> extends IEffector<
 	 * decompilation. This is implemented in {@link BaseParameterizedEffector}
 	 * but may be overriden by subclasses.
 	 * 
+	 * @param decoder the decoder to use
 	 * @param parameterIndex the parameter index
 	 * @return a printable string of space-delimited raw parameter tokens
 	 */
-	String showParameterTokens(int parameterIndex);
+	String showParameterTokens(CharsetDecoder decoder, int parameterIndex);
 }

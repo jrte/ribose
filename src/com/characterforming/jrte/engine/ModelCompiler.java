@@ -162,11 +162,11 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 		super();
 	}
 
-	private ModelCompiler(final File modelPath, Class<?> targetClass)
+	private ModelCompiler(final File modelPath, Class<?> targetClass, TargetMode targetMode)
 	throws ModelException {
-		super(modelPath, targetClass);
+		super(modelPath, targetClass, targetMode);
 		assert super.modelPath.exists();
-		assert super.targetMode == TargetMode.RUN;
+		assert super.targetMode.isLive();
 		this.transductor = null;
 		this.inputStateMap = null;
 		this.stateTransitionMap = null;
@@ -237,7 +237,7 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 
 			if (targetClass == ModelCompiler.class) {
 				boolean saved = false;
-				try (ModelCompiler compiler = new ModelCompiler(riboseModelFile, targetClass)) {
+				try (ModelCompiler compiler = new ModelCompiler(riboseModelFile, targetClass, TargetMode.LIVE_COMPILER)) {
 					if (compiler.compileCompiler(inrAutomataDirectory)) {
 						byte[][][][] compiledParameters = compiler.compileModelParameters(compiler.errors);
 						saved = compiler.validate() && compiler.save(compiledParameters);
@@ -265,7 +265,7 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 			boolean saved = false;
 			try (
 				IModel compilerRuntime = IModel.loadRiboseModel(compilerModelFile);
-				ModelCompiler compiler = new ModelCompiler(riboseModelFile, targetClass);
+				ModelCompiler compiler = new ModelCompiler(riboseModelFile, targetClass, TargetMode.LIVE_TARGET);
 			) {
 				compiler.setTransductor(compilerRuntime.transductor(compiler));
 				for (final String filename : inrAutomataDirectory.list()) {
@@ -409,32 +409,32 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 		for (Token token : this.tapeTokens.get(0)) {
 			if (token.getType() != Type.LITERAL && token.getType() != Type.SIGNAL) {
 				this.addError(String.format("Error: Invalid %2$s token '%1$s' on tape 0",
-					token.toString(), token.getTypeName()));
+					token.toString(super.getDecoder()), token.getTypeName()));
 			} else if (token.getSymbol().bytes().length > 1
 					&& !this.tapeTokens.get(2).contains(token)) {
 				this.addError(String.format("Error: Unrecognized signal reference '%1$s' on tape 0",
-					token.toString()));
+					token.toString(super.getDecoder())));
 			}
 		}
 		for (Token token : this.tapeTokens.get(1)) {
 			if (token.getType() != Type.LITERAL) {
 				this.addError(String.format("Error: Invalid %2$s token '%1$s' on tape 1",
-					token.toString(), token.getTypeName()));
+					token.toString(super.getDecoder()), token.getTypeName()));
 			} else if (this.getEffectorOrdinal(token.getSymbol()) < 0) {
 				this.addError(String.format("Error: Unrecognized effector token '%1$s' on tape 1",
-					token.toString()));
+					token.toString(super.getDecoder())));
 			}
 		}
 		for (Token token : this.tapeTokens.get(2)) {
 			if (token.getType() == Type.TRANSDUCER
 				&& this.getTransducerOrdinal(token.getSymbol()) < 0) {
 				this.addError(String.format("Error: Unrecognized transducer token '%1$s' on tape 1",
-					token.toString()));
+					token.toString(super.getDecoder())));
 			} else if (token.getType() == Type.SIGNAL
 				&& this.getSignalOrdinal(token.getSymbol()) > Signal.EOS.signal()
 				&& !this.tapeTokens.get(0).contains(token)) {
 				this.addError(String.format("Error: Signal token '%1$s' on tape 2 is never referenced on tape 0",
-					token.toString()));
+					token.toString(super.getDecoder())));
 			}
 		}
 		if (this.transducerOrdinalMap.isEmpty()) {
@@ -492,7 +492,7 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 				for (int effectorOrdinal = 0; effectorOrdinal < this.effectorOrdinalMap.size(); effectorOrdinal++) {
 					byte[][][] parameters = compiledParameters[effectorOrdinal];
 					if (parameters != null && parameters.length > 0) {
-						assert this.proxyEffectors[effectorOrdinal] instanceof IParameterizedEffector<?, ?>;
+						assert super.proxyEffectors[effectorOrdinal] instanceof IParameterizedEffector<?, ?>;
 						this.writeBytesArrays(parameters);
 					} else {
 						this.writeInt(-1);
@@ -539,7 +539,7 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 			}
 			for (int i = 0; i < signalIndex.length; i++) {
 				mapWriter.printf("%1$-32s%2$6d%n", String.format("signal %1$s", 
-					signalIndex[i]), i + Base.RTE_SIGNAL_BASE);
+					signalIndex[i].toString(this.decoder)), i + Base.RTE_SIGNAL_BASE);
 			}
 			Bytes[] fieldIndex = new Bytes[this.fieldOrdinalMap.size()];
 			for (Map.Entry<Bytes, Integer> m : this.fieldOrdinalMap.entrySet()) {
@@ -547,7 +547,7 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 			}
 			for (int i = 0; i < fieldIndex.length; i++) {
 				mapWriter.printf("%1$-32s%2$6d%n", String.format("field %1$s", 
-					fieldIndex[i]), i);
+					fieldIndex[i].toString(this.decoder)), i);
 			}
 			Bytes[] transducerIndex = new Bytes[this.transducerOrdinalMap.size()];
 			for (Map.Entry<Bytes, Integer> m : this.transducerOrdinalMap.entrySet()) {
@@ -555,7 +555,7 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 			}
 			for (int i = 0; i < (transducerIndex.length - 1); i++) {
 				mapWriter.printf("%1$-32s%2$6d%n", String.format("transducer %1$s", 
-					transducerIndex[i]), i);
+					transducerIndex[i].toString(this.decoder)), i);
 			}
 			Bytes[] effectorIndex = new Bytes[this.effectorOrdinalMap.size()];
 			for (Map.Entry<Bytes, Integer> m : this.effectorOrdinalMap.entrySet()) {
@@ -563,11 +563,11 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 			}
 			for (int i = 0; i < effectorIndex.length; i++) {
 				mapWriter.printf("%1$-32s%2$6d", String.format("effector %1$s", 
-					effectorIndex[i]), i);
-				if (this.proxyEffectors[i] instanceof BaseParameterizedEffector<?,?> proxyEffector) {
+					effectorIndex[i].toString(this.decoder)), i);
+				if (super.proxyEffectors[i] instanceof BaseParameterizedEffector<?,?> proxyEffector) {
 					mapWriter.printf("\t[ %1$s ]%n", proxyEffector.showParameterType());
 					for (int j = 0; j < proxyEffector.getParameterCount(); j++) {
-						mapWriter.printf("\t%1$s%n", proxyEffector.showParameterTokens(j));
+						mapWriter.printf("\t%1$s%n", proxyEffector.showParameterTokens(super.getDecoder(), j));
 					}
 				} else {
 					mapWriter.println();
@@ -580,7 +580,7 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 	}
 
 	private String getTransducerName() {
-		return this.transducerName.toString();
+		return this.transducerName.toString(this.decoder.reset());
 	}
 
 	void putHeader(Header header) {

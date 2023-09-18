@@ -162,11 +162,7 @@ public final class Bytes {
 	 */
 	@Override
 	public String toString() {
-		try {
-			return Bytes.decode(Base.newCharsetDecoder(), this.bytes(), this.getLength()).toString();
-		} catch (Exception e) {
-			return this.toHexString();
-		}
+		return this.toString(Base.newCharsetDecoder());
 	}
 
 	/** 

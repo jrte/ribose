@@ -59,7 +59,8 @@ abstract class BaseInputOutputEffector extends BaseParameterizedEffector<Transdu
 			if (token.getType() != IToken.Type.LITERAL && token.getType() != IToken.Type.FIELD) {
 				throw new TargetBindingException(
 					String.format("%1$s.%2$s[]: literal or field name expected, found '%3$s'",
-						super.target.getName(), super.getName().toString(), token.getLiteral().toString()));
+						super.target.getName(), super.getName().toString(super.decoder()),
+							token.getLiteral().toString(super.decoder())));
 			}
 		}
 		return parameterList;

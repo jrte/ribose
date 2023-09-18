@@ -19,7 +19,6 @@
  */
 package com.characterforming.jrte.engine;
 
-import java.nio.ByteBuffer;
 import java.nio.charset.CharsetDecoder;
 import java.util.Arrays;
 
@@ -157,16 +156,11 @@ final class Token implements IToken {
 		return this.symbol.hashCode() * (this.type.ordinal() + 1);
 	}
 
-	@Override
-	public String toString() {
-		if (this.literal.getLength() == 1 && this.literal.bytes()[0] == 0xa) {
-			return "#a";
-		} else try {
-			CharsetDecoder decoder = Base.newCharsetDecoder();
-			return decoder.decode(ByteBuffer.wrap(getLiteral().bytes())).toString();
-		} catch (Exception e) {
-			return getLiteral().toHexString();
-		}
+//	@Override
+	public String toString(CharsetDecoder decoder) {
+		return this.literal.getLength() != 1 || this.literal.bytes()[0] != 0xa
+			? this.getLiteral().toString(decoder)
+			: "#a";
 	}
 
 	private byte[] literal(byte[] token) {

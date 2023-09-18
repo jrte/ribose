@@ -110,6 +110,9 @@ public final class ModelLoader extends Model implements IModel {
 			if (model.proxyEffectors[effectorOrdinal] instanceof BaseParameterizedEffector<?, ?> effector) {
 				effector.compileParameters(parameterTokens, errors);
 			}
+			if (model.targetMode.isLive()) {
+				model.proxyEffectors[effectorOrdinal].passivate();
+			}
 		}
 		if (!errors.isEmpty()) {
 			for (String error : errors) {
@@ -119,7 +122,7 @@ public final class ModelLoader extends Model implements IModel {
 				"Failed to load '%1$s', effector parameter precompilation failed.",
 					modelPath.getAbsolutePath()));
 		}
-		assert model.targetMode == TargetMode.RUN;
+		assert model.targetMode.isLive();
 		return model;
 	}
 
@@ -138,7 +141,7 @@ public final class ModelLoader extends Model implements IModel {
 		} catch (InstantiationException | IllegalAccessException | IllegalArgumentException
 			| InvocationTargetException | NoSuchMethodException | SecurityException | ClassNotFoundException e) {
 			this.rteLogger.log(Level.SEVERE, e, () -> String.format("Failed to instantiate target '%1$s' transducer '%2$s'",
-				this.getTargetClassname(), transducer.toString()));
+				this.getTargetClassname(), transducer.toString(super.getDecoder())));
 			return false;
 		}
 		return this.stream(transducer, runTarget, prologue, in, out);
@@ -228,13 +231,12 @@ public final class ModelLoader extends Model implements IModel {
 
 	private Transductor bindTransductor(ITarget target)
 	throws ModelException {
-		assert this.targetMode == TargetMode.RUN;
 		if (!this.targetClass.isAssignableFrom(target.getClass())) {
 			throw new ModelException(
 				String.format("Cannot bind instance of target class '%1$s', can only bind to model target class '%2$s'",
 					target.getClass().getName(), this.targetClass.getName()));
 		}
-		if (null == this.proxyEffectors[2].getTarget()) {
+		if (super.targetMode.isProxy()) {
 			throw new ModelException(String.format("Cannot use model target instance as runtime target: $%s",
 				this.targetClass.getName()));
 		}

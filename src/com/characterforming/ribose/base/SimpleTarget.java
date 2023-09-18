@@ -21,7 +21,6 @@
 
 package com.characterforming.ribose.base;
 
-import com.characterforming.jrte.engine.Base;
 import com.characterforming.ribose.IEffector;
 import com.characterforming.ribose.ITarget;
 
@@ -40,8 +39,6 @@ public final class SimpleTarget implements ITarget {
 	/** Constructor */
 	public SimpleTarget() {
 		super();
-		Base.newCharsetDecoder();
-		Base.newCharsetEncoder();
 	}
 
 	@Override // ITarget#getEffectors()

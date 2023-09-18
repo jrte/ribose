@@ -137,7 +137,7 @@ public interface IToken {
 	void setOrdinal(int ordinal);
 
 	/**
-	 * Make a reference for a symbol
+	 * Make a reference (eg `!name`) for a symbol (eg `name`)
 	 * 
 	 * @param type the type of reference to make
 	 * @param symbol the symbal to reference

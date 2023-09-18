@@ -44,8 +44,6 @@ public abstract class BaseEffector<T extends ITarget> implements IEffector<T> {
 	/** Effector view of Transductor loggers, UTF-8 codecs and fields. */
 	protected IOutput output;
 
-	private CharsetDecoder decoder;
-	private CharsetEncoder encoder;
 	private final Bytes name;
 	
 	/**
@@ -58,8 +56,6 @@ public abstract class BaseEffector<T extends ITarget> implements IEffector<T> {
 		this.name = Bytes.encode(Base.newCharsetEncoder(), name);
 		this.target = target;
 		this.output = null;
-		this.decoder = null;
-		this.encoder = null;
 	}
 
 	@Override // @see com.characterforming.ribose.base.IEffector#nvoke()
@@ -83,7 +79,7 @@ public abstract class BaseEffector<T extends ITarget> implements IEffector<T> {
 	@Override // com.characterforming.ribose.IEffector#getField(String)
 	public IField getField(String fieldName) {
 		try {
-			return this.output.getField(Bytes.encode(this.getEncoder(), fieldName));
+			return this.output.getField(Bytes.encode(this.encoder(), fieldName));
 		} catch (TargetBindingException e) {
 			assert false;
 			return null;
@@ -92,15 +88,13 @@ public abstract class BaseEffector<T extends ITarget> implements IEffector<T> {
 
 	@Override // @see java.lang.Object#toString()
 	public String toString() {
-		return this.name.toString();
+		return this.name.toString(this.decoder());
 	}
 
 	@Override // com.characterforming.ribose.IEffector#passivate()
 	public void passivate() {
 		this.target = null;
 		this.output = null;
-		this.encoder = null;
-		this.decoder = null;
 	}
 
 	/**
@@ -108,11 +102,8 @@ public abstract class BaseEffector<T extends ITarget> implements IEffector<T> {
 	 * 
 	 * @return a decoder instance
 	*/
-	protected CharsetDecoder getDecoder() {
-		if (this.decoder == null) {
-			this.decoder = Base.newCharsetDecoder();
-		}
-		return this.decoder;
+	protected CharsetDecoder decoder() {
+		return this.output.decoder();
 	}
 
 	/**
@@ -120,10 +111,7 @@ public abstract class BaseEffector<T extends ITarget> implements IEffector<T> {
 	 * 
 	 * @return a encoder instance
 	*/
-	protected CharsetEncoder getEncoder() {
-		if (this.encoder == null) {
-			this.encoder = Base.newCharsetEncoder();
-		}
-		return this.encoder;
+	protected CharsetEncoder encoder() {
+		return this.output.encoder();
 	}
 }

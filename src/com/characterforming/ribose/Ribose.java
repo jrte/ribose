@@ -34,7 +34,7 @@ import java.util.logging.Logger;
 import com.characterforming.jrte.engine.Base;
 import com.characterforming.jrte.engine.ModelDecompiler;
 import com.characterforming.ribose.base.Bytes;
-import com.characterforming.ribose.base.ModelException;
+import com.characterforming.ribose.base.RiboseException;
 import com.characterforming.ribose.base.Signal;
 import com.characterforming.ribose.base.SimpleTarget;
 
@@ -323,7 +323,7 @@ public final class Ribose {
 			decompiler = new ModelDecompiler(modelFile);
 			decompiler.decompile(transducerName);
 			decompiled = true;
-		} catch (ModelException e) {
+		} catch (RiboseException e) {
 			final String format = "Failed to load %1$s";
 			rteLogger.log(Level.SEVERE, e, () -> String.format(format,
 				transducerName));

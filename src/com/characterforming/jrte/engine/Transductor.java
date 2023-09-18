@@ -22,12 +22,13 @@ package com.characterforming.jrte.engine;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.charset.CharsetDecoder;
+import java.nio.charset.CharsetEncoder;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.logging.Logger;
 
-import com.characterforming.jrte.engine.Model.TargetMode;
 import com.characterforming.ribose.IEffector;
 import com.characterforming.ribose.IField;
 import com.characterforming.ribose.IOutput;
@@ -103,7 +104,7 @@ public final class Transductor implements ITransductor, IOutput {
 	private Signal prologue;
 	private final Model model;
 	private final ModelLoader loader;
-	private final TargetMode mode;
+	private final boolean isProxy;
 	private TransducerState transducer;
 	private IEffector<?>[] effectors;
 	private Field selected;
@@ -119,6 +120,8 @@ public final class Transductor implements ITransductor, IOutput {
 	private int errorInput;
 	private final int signalLimit;
 	private OutputStream outputStream;
+	private final CharsetDecoder decoder;
+	private final CharsetEncoder encoder;
 	private final Logger rtcLogger;
 	private final Logger rteLogger;
 	private final ITransductor.Metrics metrics;
@@ -129,7 +132,9 @@ public final class Transductor implements ITransductor, IOutput {
 	Transductor() {
 		this.model = null;
 		this.loader = null;
-		this.mode = TargetMode.COMPILE;
+		this.isProxy = true;
+		this.decoder = Base.newCharsetDecoder();
+		this.encoder = Base.newCharsetEncoder();
 		this.transducerStack = null;
 		this.inputStack = null;
 		this.signalLimit = -1;
@@ -146,8 +151,10 @@ public final class Transductor implements ITransductor, IOutput {
 	 */
 	Transductor(final Model model) {
 		super();
-		this.mode = TargetMode.RUN;
 		this.model = model;
+		this.isProxy = false;
+		this.decoder = Base.newCharsetDecoder();
+		this.encoder = Base.newCharsetEncoder();
 		this.loader = (ModelLoader)this.model;
 		this.prologue = null;
 		this.effectors = null;
@@ -205,6 +212,16 @@ public final class Transductor implements ITransductor, IOutput {
 		return this.rteLogger;
 	}
 
+	@Override // @see com.characterforming.ribose.IOutput#decoder()
+	public CharsetDecoder decoder() {
+		return this.decoder.reset();
+	}
+
+	@Override // @see com.characterforming.ribose.IOutput#encoder()
+	public CharsetEncoder encoder() {
+		return this.encoder.reset();
+	}
+
 	@Override // @see com.characterforming.ribose.ITarget#getName()
 	public String getName() {
 		return this.getClass().getSimpleName();
@@ -212,7 +229,7 @@ public final class Transductor implements ITransductor, IOutput {
 
 	@Override // @see com.characterforming.ribose.ITransductor#status()
 	public Status status() {
-		if (this.mode == TargetMode.RUN) {
+		if (!this.isProxy) {
 			assert this.inputStack != null;
 			assert this.transducerStack != null;
 			if (this.transducerStack.isEmpty()) {
@@ -440,7 +457,7 @@ S:				do {
 
 	@Override // @see com.characterforming.ribose.IOutput#getField(int)
 	public IField getField(final int fieldOrdinal) {
-		if (this.mode == TargetMode.RUN && this.fieldHandles != null
+		if (!this.isProxy && this.fieldHandles != null
 		&& fieldOrdinal < this.fieldHandles.length) {
 			return this.fieldHandles[fieldOrdinal];
 		} else {
@@ -455,7 +472,7 @@ S:				do {
 
 	@Override // @see com.characterforming.ribose.IOutput#getSelectedValue()
 	public IField getSelectedField() {
-		assert this.mode == TargetMode.RUN || this.selected == null;
+		assert !this.isProxy || this.selected == null;
 		return this.selected;
 	}
 
@@ -470,14 +487,14 @@ S:				do {
 			for (final Entry<Bytes, Integer> entry : this.fieldOrdinalMap.entrySet()) {
 				final int fieldIndex = entry.getValue();
 				byte[] fieldBuffer = new byte[INITIAL_FIELD_VALUE_BYTES];
-				this.fieldHandles[fieldIndex] = new Field(entry.getKey(), fieldIndex, fieldBuffer, 0);
+				this.fieldHandles[fieldIndex] = new Field(this.decoder, entry.getKey(), fieldIndex, fieldBuffer, 0);
 			}
 			this.selected = this.fieldHandles[Model.ANONYMOUS_FIELD_ORDINAL];
 		}
 	}
 
 	boolean isProxy() {
-		return this.mode == TargetMode.COMPILE;
+		return this.isProxy;
 	}
 
 	// invoke a scalar effector or vector of effectors and record side effects on transducer and input stacks
@@ -722,17 +739,19 @@ E:	do {
 
 		@Override
 		public int invoke(final int parameterIndex) throws EffectorException {
-			for (IToken token : super.getParameter(parameterIndex)) {
-				if (token.getType() == IToken.Type.FIELD) {
-					IField field = Transductor.this.getField(token.getOrdinal());
-					if (field != null) {
-						selected.append(field.copyValue());
+			for (IToken t : super.getParameter(parameterIndex)) {
+				if (t instanceof Token token) { 
+					if (token.getType() == IToken.Type.FIELD) {
+						IField field = Transductor.this.getField(token.getOrdinal());
+						if (field != null) {
+							selected.append(field.copyValue());
+						}
+					} else if (token.getType() == IToken.Type.LITERAL) {
+						selected.append(token.getLiteral().bytes());
+					} else {
+						throw new EffectorException(String.format("Invalid token `%1$s` for effector '%2$s'", 
+							token.toString(decoder), super.getName()));
 					}
-				} else if (token.getType() == IToken.Type.LITERAL) {
-					selected.append(token.getLiteral().bytes());
-				} else {
-					throw new EffectorException(String.format("Invalid token `%1$s` for effector '%2$s'", 
-						token.toString(), super.getName()));
 				}
 			}
 			return IEffector.RTX_NONE;
@@ -851,16 +870,21 @@ E:	do {
 			if (parameterList.length != 1) {
 				throw new TargetBindingException("The signal effector accepts at most one parameter");
 			}
-			IToken token = parameterList[0];
-			if (token.getType() == IToken.Type.SIGNAL) {
-				int ordinal = token.getOrdinal();
-				if (ordinal < 0) {
-					throw new TargetBindingException(String.format("Null signal reference for signal effector: %s", token.toString()));
+			if (parameterList[0] instanceof Token token) {
+				if (token.getType() == IToken.Type.SIGNAL) {
+					int ordinal = token.getOrdinal();
+					if (ordinal < 0) {
+						throw new TargetBindingException(String.format("Null signal reference for signal effector: %s",
+							token.toString(decoder)));
+					}
+					return ordinal;
+				} else {
+					throw new TargetBindingException(String.format("Invalid signal reference `%s` for signal effector, requires type indicator ('%c') before the transducer name",
+						token.toString(decoder), IToken.SIGNAL_TYPE));
 				}
-				return ordinal;
 			} else {
-				throw new TargetBindingException(String.format("Invalid signal reference `%s` for signal effector, requires type indicator ('%c') before the transducer name",
-					token.toString(), IToken.SIGNAL_TYPE));
+				throw new TargetBindingException(String.format("Unknown IToken implementation class '%1$s'",
+				parameterList[0].getClass().getTypeName()));
 			}
 		}
 	}
@@ -975,7 +999,7 @@ E:	do {
 			} else {
 				byte[] value = parameterList[0].getLiteral().bytes();
 				throw new TargetBindingException(String.format("%1$s.%2$s[]: invalid field|counter '%3$%s' for count effector",
-					super.getTarget().getName(), super.getName(), Bytes.decode(super.getDecoder(), value, value.length)));
+					super.getTarget().getName(), super.getName(), Bytes.decode(super.decoder(), value, value.length)));
 			}
 			if (parameterList[1].getType() == IToken.Type.SIGNAL) {
 				int signalOrdinal = parameterList[1].getOrdinal();
@@ -986,11 +1010,6 @@ E:	do {
 					super.getTarget().getName(), super.getName(), parameterList[1].toString()));
 			}
 		}
-
-		// @Override 
-		// public String showParameterType() {
-		// 	return "int[]";
-		// }
 	}
 
 	private final class StartEffector extends BaseParameterizedEffector<Transductor, Integer> {
@@ -1028,7 +1047,7 @@ E:	do {
 			} catch (final ModelException e) {
 				byte[] bytes = model.getTransducerName(super.getParameter(parameterIndex));
 				throw new EffectorException(String.format("The start effector failed to load %1$s", 
-					Bytes.decode(super.getDecoder(), bytes, bytes.length)), e);
+					Bytes.decode(super.decoder(), bytes, bytes.length)), e);
 			}
 			return IEffector.RTX_START;
 		}
@@ -1086,7 +1105,7 @@ E:	do {
  		}
 
 		@Override
-		public String showParameterTokens(int parameterIndex) {
+		public String showParameterTokens(CharsetDecoder decoder, int parameterIndex) {
 			long[] sum = super.getParameter(parameterIndex);
 			StringBuilder sb = new StringBuilder();
 			int endBit = 0, startBit = -1;
@@ -1162,7 +1181,7 @@ E:	do {
  		}
 
 		@Override
-		public String showParameterTokens(int parameterIndex) {
+		public String showParameterTokens(CharsetDecoder decoder, int parameterIndex) {
 			byte[] product = super.getParameter(parameterIndex);
 			StringBuilder sb = new StringBuilder();
 			for (int j = 0; j < product.length; j++) {
@@ -1210,7 +1229,7 @@ E:	do {
 		}
 
 		@Override
-		public String showParameterTokens(int parameterIndex) {
+		public String showParameterTokens(CharsetDecoder decoder, int parameterIndex) {
 			int scanbyte = super.getParameter(parameterIndex);
 			return 32 < scanbyte && 127 > scanbyte
 			?	String.format(" %c", (char)scanbyte)

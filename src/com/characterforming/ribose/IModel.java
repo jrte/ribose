@@ -76,8 +76,7 @@ public interface IModel extends AutoCloseable {
 
 	/**
 	 * Load a ribose runtime model from persistent store and bind it to a model
-	 * target instance. The runtime model can be used to instantiate runtime
-	 * transductors.
+	 * target instance. A runtime model can be used to instantiate transductors.
 	 * 
 	 * @param riboseModelFile path to the runtime model to load
 	 * @return a live ribose runtime model instance

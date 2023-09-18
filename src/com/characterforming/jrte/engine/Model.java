@@ -60,7 +60,15 @@ sealed class Model permits ModelCompiler, ModelLoader {
 	static final byte[] ALL_FIELDS_NAME = { '*' };
 
 	public enum TargetMode {
-		COMPILE, RUN;
+		PROXY_COMPILER, LIVE_COMPILER, PROXY_TARGET, LIVE_TARGET;
+
+		boolean isLive() {
+			return this == LIVE_COMPILER || this == LIVE_TARGET;
+		}
+
+		boolean isProxy() {
+			return this == PROXY_COMPILER || this == PROXY_TARGET;
+		}
 	}
 
 	protected String targetName;
@@ -68,7 +76,8 @@ sealed class Model permits ModelCompiler, ModelLoader {
 	protected final Class<?> targetClass;
 	protected final Logger rtcLogger;
 	protected final Logger rteLogger;
-	protected final CharsetEncoder encoder = Base.newCharsetEncoder();
+	protected final CharsetDecoder decoder;
+	protected final CharsetEncoder encoder;
 	protected HashMap<Bytes, Integer> signalOrdinalMap;
 	protected HashMap<Bytes, Integer> fieldOrdinalMap;
 	protected HashMap<Bytes, Integer> effectorOrdinalMap;
@@ -82,24 +91,27 @@ sealed class Model permits ModelCompiler, ModelLoader {
 	protected File modelPath;
 	
 	private ArrayList<HashMap<BytesArray, Integer>> effectorParametersMaps;
-	private final CharsetDecoder decoder = Base.newCharsetDecoder();
 
-	/** Proxy compiler or ribose model for effector paramter compilation */
+	/** Proxy compiler model for effector parameter compilation */
 	public Model() {
-		this.targetMode = TargetMode.COMPILE;
+		this.targetMode = TargetMode.PROXY_COMPILER;
 		this.rtcLogger = Base.getCompileLogger();
 		this.rteLogger = Base.getRuntimeLogger();
+		this.decoder = Base.newCharsetDecoder();
+		this.encoder = Base.newCharsetEncoder();
 		this.modelVersion = Base.RTE_VERSION;
 		this.targetClass = this.getClass();
 		this.deleteOnClose = false;
 	}
 	
 	/** Live compiler model loading to compile new target model */
-	protected Model(final File modelPath, Class<?> targetClass) throws ModelException {
+	protected Model(final File modelPath, Class<?> targetClass, TargetMode targetMode) throws ModelException {
 		this.targetClass = targetClass;
-		this.targetMode = TargetMode.RUN;
+		this.targetMode = targetMode;
 		this.rtcLogger = Base.getCompileLogger();
 		this.rteLogger = Base.getRuntimeLogger();
+		this.decoder = Base.newCharsetDecoder();
+		this.encoder = Base.newCharsetEncoder();
 		this.modelVersion = Base.RTE_VERSION;
 		this.modelPath = modelPath;
 		this.deleteOnClose = true;
@@ -113,10 +125,12 @@ sealed class Model permits ModelCompiler, ModelLoader {
 
 	/** Live ribose model loading to run transductions */
 	protected Model(final File modelPath) throws ModelException {
-		this.targetMode = TargetMode.RUN;
+		this.targetMode = TargetMode.LIVE_TARGET;
 		this.modelPath = modelPath;
 		this.rtcLogger = Base.getCompileLogger();
 		this.rteLogger = Base.getRuntimeLogger();
+		this.decoder = Base.newCharsetDecoder();
+		this.encoder = Base.newCharsetEncoder();
 		this.deleteOnClose = false;
 		String targetClassname = "?";
 		try {
@@ -149,6 +163,7 @@ sealed class Model permits ModelCompiler, ModelLoader {
 				this.effectorParametersMaps = new ArrayList<>(this.proxyEffectors.length);
 				this.effectorOrdinalMap = new HashMap<>((this.proxyEffectors.length * 5) >> 2);
 				for (int effectorOrdinal = 0; effectorOrdinal < this.proxyEffectors.length; effectorOrdinal++) {
+					this.proxyEffectors[effectorOrdinal].setOutput(proxyTransductor);
 					this.effectorOrdinalMap.put(this.proxyEffectors[effectorOrdinal].getName(), effectorOrdinal);
 					this.effectorParametersMaps.add(null);
 				}
@@ -161,7 +176,7 @@ sealed class Model permits ModelCompiler, ModelLoader {
 			throw new ModelException(String.format("Unable to instantiate proxy target '%s' from model file %s.",
 				this.targetClass.getName(), this.modelPath.toPath().toString()), e);
 		}
-			}
+	}
 
 	protected void close() {
 		try {
@@ -171,10 +186,10 @@ sealed class Model permits ModelCompiler, ModelLoader {
 		} catch (IOException e) {
 			this.rtcLogger.log(Level.SEVERE, e, () -> String.format("Unable to close model file %1$s",
 				this.modelPath.getPath()));
-			this.deleteOnClose |= this.targetMode == TargetMode.RUN;
+			this.deleteOnClose |= this.targetMode.isLive();
 		} finally {
-			assert !this.deleteOnClose || this.targetMode == TargetMode.RUN;
-			if (this.deleteOnClose && this.targetMode == TargetMode.RUN
+			assert !this.deleteOnClose || this.targetMode.isLive();
+			if (this.deleteOnClose && this.targetMode.isLive()
 			&& this.modelPath.exists() && !this.modelPath.delete()) {
 				this.rtcLogger.log(Level.WARNING, () -> String.format("Unable to delete model file %1$s",
 					this.modelPath.getPath()));
@@ -193,7 +208,7 @@ sealed class Model permits ModelCompiler, ModelLoader {
 
 	public String showParameter(int effectorOrdinal, int parameterIndex) {
 		if (this.proxyEffectors[effectorOrdinal] instanceof IParameterizedEffector<?,?> effector) {
-			return effector.showParameterTokens(parameterIndex);
+			return effector.showParameterTokens(this.getDecoder(), parameterIndex);
 		}
 		return "VOID";
 	}
@@ -208,6 +223,14 @@ sealed class Model permits ModelCompiler, ModelLoader {
 
 	public String getTargetClassname() {
 		return this.targetClass.getName();
+	}
+
+	protected CharsetDecoder getDecoder() {
+		return this.decoder.reset();
+	}
+
+	protected CharsetEncoder getEncoder() {
+		return this.encoder.reset();
 	}
 
 	protected boolean checkTargetEffectors(ITarget target, IEffector<?>[] boundFx) {
@@ -253,14 +276,12 @@ sealed class Model permits ModelCompiler, ModelLoader {
 				} else {
 					effectorParameters[effectorOrdinal] = new byte[0][][];
 				}
-				parameterizedEffector.passivate();
 			} else if (this.proxyEffectors[effectorOrdinal] instanceof BaseEffector<?> effector) {
 				if (parametersMap != null && parametersMap.size() > 0) {
 					errors.add(String.format("%1$s.%2$s: effector does not accept parameters",
 					this.targetName, effector.getName()));
 				}
 				effectorParameters[effectorOrdinal] = new byte[0][][];
-				effector.passivate();
 			} else {
 				assert false;
 			}
@@ -268,7 +289,7 @@ sealed class Model permits ModelCompiler, ModelLoader {
 		for (final Map.Entry<Bytes, Integer> entry : effectorMap.entrySet()) {
 			if (this.proxyEffectors[entry.getValue()] == null) {
 				this.rtcLogger.log(Level.SEVERE, () -> String.format("%1$s.%2$s: effector ordinal not found",
-					this.targetName, entry.getKey().toString()));
+					this.targetName, entry.getKey().toString(this.getDecoder())));
 			}
 		}
 		return effectorParameters;
@@ -303,7 +324,7 @@ sealed class Model permits ModelCompiler, ModelLoader {
 			Integer ordinal = this.getSignalOrdinal(new Bytes(input));
 			if (ordinal < 0) {
 				throw new CompilationException(String.format("Invalid input token %s",
-					Bytes.decode(this.decoder, input, input.length)));
+					Bytes.decode(this.getDecoder(), input, input.length)));
 			}
 			return ordinal;
 		}
@@ -477,14 +498,14 @@ sealed class Model permits ModelCompiler, ModelLoader {
 
 	protected String readString() throws ModelException {
 		byte[] bytes = this.readBytes();
-		return Bytes.decode(this.decoder, bytes, bytes.length).toString();
+		return Bytes.decode(this.getDecoder(), bytes, bytes.length).toString();
 	}
 
 	protected String[] readStringArray() throws ModelException {
 		final byte[][] bytesArray = this.readBytesArray();
 		final String[] stringArray = new String[bytesArray.length];
 		for (int i = 0; i < bytesArray.length; i++) {
-			stringArray[i] = Bytes.decode(this.decoder, bytesArray[i], bytesArray[i].length).toString();
+			stringArray[i] = Bytes.decode(this.getDecoder(), bytesArray[i], bytesArray[i].length).toString();
 		}
 		return stringArray;
 	}
@@ -644,7 +665,7 @@ sealed class Model permits ModelCompiler, ModelLoader {
 	}
 
 	protected void writeString(final String s) throws ModelException {
-		this.writeBytes(Bytes.encode(this.encoder, s));
+		this.writeBytes(Bytes.encode(this.getEncoder(), s));
 	}
 
 	protected void writeTransitionMatrix(final int[][][] matrix) throws ModelException {

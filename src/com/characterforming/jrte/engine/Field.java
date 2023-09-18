@@ -49,25 +49,16 @@ final class Field implements IField {
 	 * Constructor
 	 * @param charset
 	 */
-	Field(Bytes name, int ordinal, byte[] value, int length) {
+	Field(CharsetDecoder decoder, Bytes name, int ordinal, byte[] value, int length) {
 		if (value == null) {
 			value = new byte[Math.min(INITIAL_FIELD_VALUE_BYTES, length)];
 		}
 		assert value.length >= length;
-		this.decoder = Base.newCharsetDecoder();
+		this.decoder = decoder;
 		this.name = name;
 		this.ordinal = ordinal;
 		this.data = value;
 		this.length = length;
-	}
-
-	Field(Field field) {
-		this.name = field.name;
-		this.ordinal = field.ordinal;
-		this.length = field.length;
-		this.data = new byte[this.length];
-		this.decoder = Base.newCharsetDecoder();
-		System.arraycopy(field.data, 0, this.data, 0, field.length);
 	}
 
 	@Override // @see com.characterforming.ribose.IField#getName()
@@ -185,6 +176,6 @@ final class Field implements IField {
 
 	@Override // @see java.lang.Object#toString()
 	public String toString() {
-		return Bytes.decode(this.decoder, data, length).toString();
+		return Bytes.decode(this.decoder, this.data, this.length).toString();
 	}
 }

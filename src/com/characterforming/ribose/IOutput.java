@@ -20,6 +20,8 @@
 
 package com.characterforming.ribose;
 
+import java.nio.charset.CharsetDecoder;
+import java.nio.charset.CharsetEncoder;
 import java.util.logging.Logger;
 
 import com.characterforming.ribose.base.Bytes;
@@ -57,6 +59,20 @@ public interface IOutput {
 	 * @return runtime Logger instance
 	 */
 	Logger getRteLogger();
+
+	/**
+	 * Get the decoder bound to the transductor
+	 * 
+	 * @return the transductor's decoder
+	 */
+	public CharsetDecoder decoder();
+
+	/**
+	 * Get the encoder bound to the transductor
+	 * 
+	 * @return the transductor's encoder
+	 */
+	public CharsetEncoder encoder();
 
 	/**
 	 * Get a copy of the current value for a field from an effector parameter token
