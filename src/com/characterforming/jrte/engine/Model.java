@@ -351,7 +351,7 @@ sealed class Model permits ModelCompiler, ModelLoader {
 	}
 
 	protected int addTransducer(Bytes transducerName) {
-		Integer ordinal = this.transducerOrdinalMap.get(transducerName);
+		Integer ordinal = this.transducerOrdinalMap.computeIfAbsent(transducerName, absent -> null);
 		assert ordinal == null || transducerName.equals(this.transducerNameIndex[ordinal]);
 		if (ordinal == null) {
 			ordinal = this.transducerOrdinalMap.size();
