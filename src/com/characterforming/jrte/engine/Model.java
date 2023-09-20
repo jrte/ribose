@@ -512,10 +512,10 @@ sealed class Model permits ModelCompiler, ModelLoader {
 			matrix = new long[nStates * nInputs];
 			// preset all cells to signal NUL without changing state
 			for (int state = 0; state < nStates; state++) {
-				final int toState = state * nInputs;
-				final long nul = Transducer.transition(toState, 0);
+				final int base = state * nInputs, toState = base;
+				final long nul = Transducer.transition(toState, Signal.NUL.ordinal());
 				for (int input = 0; input < nInputs; input++) {
-					matrix[toState + input] = nul;
+					matrix[base + input] = nul;
 				}
 			}
 			// fill in defined transitions

@@ -54,8 +54,6 @@ import com.characterforming.ribose.ITransductor;
  *
  */
 public enum Signal {
-	/** Signals nothing, for optionality (use as null) */
-	NONE(new byte[] {}, -1),
 	/** Signals first chance to handle missing transition on current input symbol */
 	NUL(new byte[] { 'n', 'u', 'l' }, 256), 
 	/** Signals anything, used as a generic out-of-band prompt to trigger actions */
@@ -63,7 +61,9 @@ public enum Signal {
 	/** Signals end of feature, used as a generic feature delimiter */
 	EOL(new byte[] { 'e', 'o', 'l' }, 258),
 	/** Signals end of transduction input */
-	EOS(new byte[] { 'e', 'o', 's' }, 259);
+	EOS(new byte[] { 'e', 'o', 's' }, 259),
+	/** Signals nothing, for optionality (use as null) */
+	NONE(new byte[] {}, -1);
 	
 	private final Bytes sym;
 	private final Bytes ref;
