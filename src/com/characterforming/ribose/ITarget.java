@@ -92,7 +92,7 @@ public interface ITarget {
 	 * the interaction is driven from an effector invokation.
 	 *
 	 * @return an array of IEffector instances bound to the target instance
-	 * @throws TargetBindingException on error
+	 * @throws TargetBindingException if things don't work out
 	 */
 	IEffector<?>[] getEffectors() throws TargetBindingException;
 }

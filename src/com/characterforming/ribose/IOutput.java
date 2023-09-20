@@ -73,7 +73,7 @@ public interface IOutput {
 	 *
 	 * @param fieldName the name of the field (UTF-8 bytes, withouy `~` prefix in lead byte)
 	 * @return a field instance or null
-	 * @throws TargetBindingException on error
+	 * @throws TargetBindingException if things don't work out
 	 */
 	IField getField(Bytes fieldName) throws TargetBindingException;
 
@@ -82,7 +82,7 @@ public interface IOutput {
 	 *
 	 * @param fieldName the name of the field (UTF-8 bytes, without `~` prefix in lead byte)
 	 * @return the ordinal number of the field
-	 * @throws TargetBindingException on error
+	 * @throws TargetBindingException if things don't work out
 	 */
 	int getFieldOrdinal(Bytes fieldName) throws TargetBindingException;
 

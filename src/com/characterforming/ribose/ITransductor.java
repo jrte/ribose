@@ -314,7 +314,7 @@ public interface ITransductor extends ITarget {
 	 *
 	 * @param transducer the name of the transducer to push
 	 * @return this ITransductor
-	 * @throws ModelException on error
+	 * @throws ModelException if things don't work out
 	 */
 	ITransductor start(Bytes transducer) throws ModelException;
 
@@ -339,8 +339,8 @@ public interface ITransductor extends ITarget {
 	 * if the transduction involves backtracking with mark/reset.
 	 *
 	 * @return this ITransductor
-	 * @throws EffectorException on error
-	 * @throws DomainErrorException on error
+	 * @throws EffectorException if an effector invocation fails
+	 * @throws DomainErrorException if no transition defined for current input
 	 * @see #recycle(byte[])
 	 * @see #status()
 	 */

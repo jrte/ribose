@@ -63,7 +63,7 @@ public interface IModel extends AutoCloseable {
  * @param riboseModelFile path indicating where to create the model file
  * @return true if the model was created successfully
  * @throws ClassNotFoundException if {@code targetClassname} not found
- * @throws ModelException if compilation 
+ * @throws ModelException if compilation fails
  */
 	public static boolean compileRiboseModel(String targetClassname, File ginrAutomataDirectory, File riboseModelFile)
 	throws ClassNotFoundException, ModelException {
@@ -94,7 +94,7 @@ public interface IModel extends AutoCloseable {
 	 *
 	 * @param target the target instance to bind to the transductor
 	 * @return a new transductor
-	 * @throws ModelException on error
+	 * @throws ModelException if things don't work out
 	 * @see ITransductor
 	 */
 	ITransductor transductor(ITarget target)
@@ -123,7 +123,7 @@ public interface IModel extends AutoCloseable {
 	 * @param in the input stream to transduce (eg, {@code System.in})
 	 * @param out the output stream to render output to (eg, {@code System.out})
 	 * @return true if transduction is complete, otherwise false
-	 * @throws RiboseException on error
+	 * @throws RiboseException if things don't work out
 	 */
 	boolean stream(Bytes transducer, Signal prologue, InputStream in, OutputStream out)
 	throws RiboseException;
@@ -139,7 +139,7 @@ public interface IModel extends AutoCloseable {
 	 * @param in the input stream to transduce (eg, {@code System.in})
 	 * @param out the output stream to render output to (eg, {@code System.out})
 	 * @return true if target is an instance of the model target class and transduction is complete
-	 * @throws RiboseException on error
+	 * @throws RiboseException if things don't work out
 	 */
 	boolean stream(Bytes transducer, ITarget target, Signal prologue, InputStream in, OutputStream out)
 	throws RiboseException;
@@ -148,7 +148,7 @@ public interface IModel extends AutoCloseable {
 	 * Decompile a transducer to System.out
 	 * 
 	 * @param transducerName the transducer name as aUnicode string
-	 * @throws ModelException on error
+	 * @throws ModelException if things don't work out
 	 */
 	void decompile(String transducerName)
 	throws ModelException;
@@ -163,7 +163,7 @@ public interface IModel extends AutoCloseable {
 	/**
 	 * Close the runtime model and file.
 	 *
-	 * @throws ModelException on error
+	 * @throws ModelException if things don't work out
 	 */
 	@Override
 	void close()

@@ -105,7 +105,7 @@ public interface IParameterizedEffector<T extends ITarget, P> extends IEffector<
 	 *
 	 * @param parameterIndex the index of the parameter object to be applied
 	 * @return user-defined effectors should return 0 (RTX_SI)
-	 * @throws EffectorException on error
+	 * @throws EffectorException if things don't work out
 	 */
 	int invoke(int parameterIndex) throws EffectorException;
 
@@ -124,7 +124,7 @@ public interface IParameterizedEffector<T extends ITarget, P> extends IEffector<
 	 *
 	 * @param parameterTokens an array of parameters, where each parameter is an array of bytes.
 	 * @return the compiled parameter value object
-	 * @throws TargetBindingException on error
+	 * @throws TargetBindingException if things don't work out
 	 */
 	P compileParameter(IToken[] parameterTokens) throws TargetBindingException;
 

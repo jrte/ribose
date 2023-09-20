@@ -24,7 +24,6 @@ package com.characterforming.jrte.test;
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.CharsetDecoder;
@@ -40,18 +39,16 @@ import com.characterforming.ribose.IModel;
 import com.characterforming.ribose.ITransductor;
 import com.characterforming.ribose.ITransductor.Metrics;
 import com.characterforming.ribose.base.Bytes;
-import com.characterforming.ribose.base.RiboseException;
 import com.characterforming.ribose.base.Signal;
 
 public class FileRunner {
 
 	/**
-	 * @param args
-	 * @throws InterruptedException on error
-	 * @throws RiboseException on error
-	 * @throws IOException on error
+	 * Shell interface.
+	 * 
+	 * @param args arguments from the shell
 	 */
-	public static void main(final String[] args) throws InterruptedException, RiboseException, IOException {
+	public static void main(final String[] args) {
 		final boolean nil = args[0].compareTo("--nil") == 0;
 		int arg = nil ? 1 : 0;
 		if ((args.length - arg) < 3) {

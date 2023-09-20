@@ -20,7 +20,6 @@
 package com.characterforming.jrte.test;
 
 import java.io.File;
-import java.io.IOException;
 import java.nio.CharBuffer;
 import java.nio.charset.CharsetEncoder;
 import java.util.logging.Level;
@@ -33,19 +32,16 @@ import com.characterforming.ribose.IModel;
 import com.characterforming.ribose.ITransductor;
 import com.characterforming.ribose.ITransductor.Status;
 import com.characterforming.ribose.base.Bytes;
-import com.characterforming.ribose.base.RiboseException;
 import com.characterforming.ribose.base.Signal;
 
 public class TestRunner {
 
 	/**
-	 * @param args
-	 * @throws InterruptedException on error
-	 * @throws RiboseException on error
-	 * @throws IOException on error
-	 * @throws SecurityException on error
+	 * Shell interface.
+	 * 
+	 * @param args arguments from the shell
 	 */
-	public static void main(final String[] args) throws InterruptedException, RiboseException, SecurityException, IOException {
+	public static void main(final String[] args) {
 		if (args.length == 0) {
 			System.out.println(String.format("Usage: java -cp <classpath> %1$s <model-path> [wait-ms]", TestRunner.class.getName()));
 			System.exit(1);

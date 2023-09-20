@@ -47,6 +47,7 @@ import com.characterforming.ribose.base.BaseParameterizedEffector;
 import com.characterforming.ribose.base.Bytes;
 import com.characterforming.ribose.base.CompilationException;
 import com.characterforming.ribose.base.ModelException;
+import com.characterforming.ribose.base.Signal;
 
 /**
  * @author Kim Briggs
@@ -351,17 +352,16 @@ sealed class Model permits ModelCompiler, ModelLoader {
 
 	protected int addTransducer(Bytes transducerName) {
 		Integer ordinal = this.transducerOrdinalMap.get(transducerName);
+		assert ordinal == null || transducerName.equals(this.transducerNameIndex[ordinal]);
 		if (ordinal == null) {
 			ordinal = this.transducerOrdinalMap.size();
 			this.transducerOrdinalMap.put(transducerName, ordinal);
 			if (ordinal >= this.transducerNameIndex.length) {
-				int length = ordinal + (ordinal << 1);
+				int length = ordinal + (Math.max(ordinal, 4) >> 1);
 				this.transducerNameIndex = Arrays.copyOf(this.transducerNameIndex, length);
 				this.transducerOffsetIndex = Arrays.copyOf(this.transducerOffsetIndex, length);
 			}
 			this.transducerNameIndex[ordinal] = transducerName;
-		} else {
-			assert this.transducerNameIndex[ordinal].equals(transducerName);
 		}
 		return ordinal;
 	}
@@ -510,7 +510,7 @@ sealed class Model permits ModelCompiler, ModelLoader {
 			final int nStates = this.io.readInt();
 			final int nInputs = this.io.readInt();
 			matrix = new long[nStates * nInputs];
-			// preset all cells to invoke nul() effector on domain error
+			// preset all cells to signal NUL without changing state
 			for (int state = 0; state < nStates; state++) {
 				final int toState = state * nInputs;
 				final long nul = Transducer.transition(toState, 0);

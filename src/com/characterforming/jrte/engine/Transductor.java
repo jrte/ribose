@@ -147,7 +147,7 @@ public final class Transductor implements ITransductor, IOutput {
 	 *  Constructor
 	 *
 	 * @param model The runtime model
-	 * @throws ModelException on error
+	 * @throws ModelException if things don't work out
 	 */
 	Transductor(final Model model) {
 		super();

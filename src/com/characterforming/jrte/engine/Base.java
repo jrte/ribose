@@ -144,7 +144,7 @@ public final class Base {
 	 * @param bytes  The UTF-8 byte array
 	 * @param length The number of bytes to decode, starting from 0
 	 * @return the decoded integer
-	 * @throws NumberFormatException on error
+	 * @throws NumberFormatException if things don't work out
 	 */
 	public static int decodeInt(final byte[] bytes, int length) throws NumberFormatException {
 		int value = 0;

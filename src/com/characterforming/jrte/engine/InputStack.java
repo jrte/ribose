@@ -54,7 +54,7 @@ final class InputStack {
 	}
 	
 	InputStack(final int initialSize) {
-		this.logger = Base.getCompileLogger();
+		this.logger = Base.getRuntimeLogger();
 		this.stack = Input.stack(initialSize);
 		this.markList = Input.stack(initialSize);
 		this.markState = InputStack.CLEAR;

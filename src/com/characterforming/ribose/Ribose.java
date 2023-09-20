@@ -323,7 +323,7 @@ public final class Ribose {
 		} catch (ModelException e) {
 			final String format = "Failed to decompile %1$s";
 			rteLogger.log(Level.SEVERE, e, () -> String.format(format,
-					transducerName));
+				transducerName));
 		} finally {
 			Base.endLogging();
 		}

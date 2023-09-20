@@ -80,7 +80,7 @@ public interface IEffector<T extends ITarget> {
 	 * This method is invoked at runtime when triggered by an input transition.
 	 *
 	 * @return user-defined effectors should return {@code IEffector.RTX_NONE}
-	 * @throws EffectorException on error
+	 * @throws EffectorException if things don't work out
 	 */
 	int invoke() throws EffectorException;
 

@@ -101,7 +101,6 @@ public abstract class BaseParameterizedEffector<T extends ITarget, P> extends Ba
 		assert proxyEffector instanceof BaseParameterizedEffector<?,?>;
 		if (proxyEffector instanceof BaseParameterizedEffector<?,?> proxy) {
 			this.parameters = (P[])proxy.parameters;
-			this.tokens = proxy.tokens;
 		}
 	}
 

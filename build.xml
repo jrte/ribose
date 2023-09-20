@@ -76,21 +76,19 @@
 		<pathelement location="${jars.dir}/${ribose.version}.jar"/>
 	</path>
 
-	<target name="clean" depends="clean-ribose,clean-test">
+	<target name="clean" depends="clean-ribose,clean-test,clean-javadoc">
   	<delete failonerror="false" dir="build"/>
-		<delete failonerror="false" verbose="true">
-			<fileset dir="." includes="ribose-*.log*"/>
-		</delete>
+		<delete failonerror="false" dir="." includes="ribose-*.log*"/>
 	</target>
 	
-	<target name="clean-ribose" depends="clean-javadoc">
+	<target name="clean-ribose">
+		<delete failonerror="false" dir="${jars.dir}" includes="*"/>
 		<delete failonerror="false" dir="${build.java.classes}/com"/>
 		<delete failonerror="false" dir="${build.compiler.model}"/>
 		<delete failonerror="false" dir="/tmp" includes="*.ginrout,*.ginrerr"/>
 	</target>
 
 	<target name="clean-javadoc">
-  	<delete failonerror="false" file="${jars.dir}/${ribose.version}-api.jar"/>
   	<delete failonerror="false" dir="javadoc" includes="**/*"/>
 	</target>
 

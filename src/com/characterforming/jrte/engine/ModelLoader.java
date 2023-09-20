@@ -67,7 +67,7 @@ public final class ModelLoader extends Model implements IModel {
 	 *
 	 * @param modelFile the model file
 	 * @return the loaded model instance
-	 * @throws ModelException on error
+	 * @throws ModelException if things don't work out
 	 */
 	public static ModelLoader loadModel(File modelPath)
 	throws ModelException {
@@ -161,6 +161,7 @@ public final class ModelLoader extends Model implements IModel {
 			int position = read;
 			if (read > 0) {
 				ITransductor trex = transductor(target);
+				trex.output(out);
 				if (prologue != null)
 					trex.signal(prologue);
 				if (trex.push(bytes, read).start(transducer).status().isRunnable()) {
