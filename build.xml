@@ -392,22 +392,22 @@
 				--nil build/Test.model verbosegcregex ${test.input.dir}/verbosegc.vgc &apos;${regex.verbosegc}&apos;"/>
 		</exec>
 		<echo message="Ribose: Tintervals ${test.input.dir}/verbosegc.vgc -> ${build.testenv}/vgc.tintervals.(out,gc)"/>
-		<exec failonerror="true" executable="bash" output="${build.testenv}/vgc.tintervals.out">
+		<exec failonerror="true" executable="bash">
 			<arg value="-c"/>
-			<arg value="etc/sh/FileRunner ${jargs} ${jargs.gc.test}/vgc.tintervals.gc -Djrte.out.enabled=true -Dregex.out.enabled=false
-				--nil build/Test.model Tintervals ${test.input.dir}/verbosegc.vgc"/>
+			<arg value="./ribose ${jargs} ${jargs.gc.test}/vgc.tintervals.gc run --target-path ${jars.dir}/ribose-0.0.2-test.jar
+				--nil build/Test.model Tintervals ${test.input.dir}/verbosegc.vgc ${build.testenv}/vgc.tintervals.out"/>
 		</exec>
 		<echo message="Ribose: Sintervals ${test.input.dir}/verbosegc.vgc -> ${build.testenv}/vgc.sintervals.(out,gc)"/>
-		<exec failonerror="true" executable="bash" output="${build.testenv}/vgc.sintervals.out">
+		<exec failonerror="true" executable="bash">
 			<arg value="-c"/>
-			<arg value="etc/sh/FileRunner ${jargs} ${jargs.gc.test}/vgc.sintervals.gc -Djrte.out.enabled=true -Dregex.out.enabled=false
-				--nil build/Test.model Sintervals ${test.input.dir}/verbosegc.vgc"/>
+			<arg value="./ribose ${jargs} ${jargs.gc.test}/vgc.sintervals.gc run --target-path ${jars.dir}/ribose-0.0.2-test.jar
+				--nil build/Test.model Sintervals ${test.input.dir}/verbosegc.vgc ${build.testenv}/vgc.sintervals.out"/>
 		</exec>
 		<echo message="Ribose: Rintervals ${test.input.dir}/verbosegc.vgc -> ${build.testenv}/vgc.rintervals.(out,gc)"/>
-		<exec failonerror="true" executable="bash" output="${build.testenv}/vgc.rintervals.out">
+		<exec failonerror="true" executable="bash">
 			<arg value="-c"/>
-			<arg value="etc/sh/FileRunner ${jargs} ${jargs.gc.test}/vgc.rintervals.gc -Djrte.out.enabled=true -Dregex.out.enabled=false
-				--nil build/Test.model Rintervals ${test.input.dir}/verbosegc.vgc"/>
+			<arg value="./ribose ${jargs} ${jargs.gc.test}/vgc.rintervals.gc run --target-path ${jars.dir}/ribose-0.0.2-test.jar
+				--nil build/Test.model Rintervals ${test.input.dir}/verbosegc.vgc ${build.testenv}/vgc.rintervals.out"/>
 		</exec>
 <!-- verbose gc verify -->
 		<fixcrlf srcDir="${build.testenv}" includes="vgc.*.out"/>
@@ -445,28 +445,28 @@
 				--nil build/Test.model linuxkernelregex ${test.input.dir}/kern.log &apos;${regex.linuxkernel}&apos;"/>
 		</exec>
 		<echo message="Ribose: LinuxKernel ${test.input.dir}/kern.log -> ${build.testenv}/linuxkernel.(out,gc)"/>
-		<exec failonerror="true" executable="bash" output="${build.testenv}/linuxkernel.out">
+		<exec failonerror="true" executable="bash">
 			<arg value="-c"/>
-			<arg value="etc/sh/FileRunner ${jargs} ${jargs.gc.test}/linuxkernel.gc -Djrte.out.enabled=true -Dregex.out.enabled=false
-				--nil build/Test.model LinuxKernel ${test.input.dir}/kern.log"/>
+			<arg value="./ribose ${jargs} ${jargs.gc.test}/linuxkernel.gc run --target-path ${jars.dir}/ribose-0.0.2-test.jar
+				--nil build/Test.model LinuxKernel ${test.input.dir}/kern.log ${build.testenv}/linuxkernel.out"/>
 		</exec>
 		<echo message="Ribose: LinuxKernelLoose ${test.input.dir}/kern.log -> ${build.testenv}/linuxkernelloose.(out,gc)"/>
-		<exec failonerror="true" executable="bash" output="${build.testenv}/linuxkernelloose.out">
+		<exec failonerror="true" executable="bash">
 			<arg value="-c"/>
-			<arg value="etc/sh/FileRunner ${jargs} ${jargs.gc.test}/linuxkernelloose.gc -Djrte.out.enabled=true -Dregex.out.enabled=false
-				--nil build/Test.model LinuxKernelLoose ${test.input.dir}/kern.log"/>
+			<arg value="./ribose ${jargs} ${jargs.gc.test}/linuxkernelloose.gc run --target-path ${jars.dir}/ribose-0.0.2-test.jar
+				--nil build/Test.model LinuxKernelLoose ${test.input.dir}/kern.log ${build.testenv}/linuxkernelloose.out"/>
 		</exec>
 		<echo message="Ribose: LinuxKernelStrict ${test.input.dir}/kern.log -> ${build.testenv}/linuxkernelstrict.(out,gc)"/>
-		<exec failonerror="true" executable="bash" output="${build.testenv}/linuxkernelstrict.out">
+		<exec failonerror="true" executable="bash">
 			<arg value="-c"/>
-			<arg value="etc/sh/FileRunner ${jargs} ${jargs.gc.test}/linuxkernelstrict.gc -Djrte.out.enabled=true -Dregex.out.enabled=false
-				--nil build/Test.model LinuxKernelStrict ${test.input.dir}/kern.log"/>
+			<arg value="./ribose ${jargs} ${jargs.gc.test}/linuxkernelstrict.gc run --target-path ${jars.dir}/ribose-0.0.2-test.jar
+				--nil build/Test.model LinuxKernelStrict ${test.input.dir}/kern.log ${build.testenv}/linuxkernelstrict.out"/>
 		</exec>
 		<echo message="Ribose[67 byte input buffer]: LinuxKernelStrict ${test.input.dir}/kern.log -> ${build.testenv}/linuxkernelstrict-67.(out,gc)"/>
-		<exec failonerror="true" executable="bash" output="${build.testenv}/linuxkernelstrict-67.out">
+		<exec failonerror="true" executable="bash" >
 			<arg value="-c"/>
-			<arg value="etc/sh/FileRunner ${jargs} ${jargs.gc.test}/linuxkernelstrict-67.gc -Dribose.inbuffer.size=67 -Djrte.out.enabled=true -Dregex.out.enabled=false
-				--nil build/Test.model LinuxKernelStrict ${test.input.dir}/kern.log"/>
+			<arg value="./ribose ${jargs} ${jargs.gc.test}/linuxkernelstrict-67.gc -Dribose.inbuffer.size=67 run --target-path ${jars.dir}/ribose-0.0.2-test.jar
+				--nil build/Test.model LinuxKernelStrict ${test.input.dir}/kern.log ${build.testenv}/linuxkernelstrict-67.out"/>
 		</exec>
 <!-- linux kernel verify -->
 		<fixcrlf srcDir="${build.testenv}" includes="linuxkernel*.out"/>
