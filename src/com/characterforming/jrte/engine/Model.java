@@ -561,16 +561,9 @@ sealed class Model permits ModelCompiler, ModelLoader {
 		}
 	}
 
-	protected void writeBytes(final Bytes bytes) throws ModelException {
-		if (bytes != null) {
-			this.writeBytes(bytes.bytes());
-		}
-	}
-
 	protected void writeBytes(final ByteBuffer byteBuffer) throws ModelException {
-		byte[] bytes = null;
 		if (byteBuffer != null) {
-			bytes = new byte[byteBuffer.limit() - byteBuffer.position()];
+			byte[] bytes = new byte[byteBuffer.limit() - byteBuffer.position()];
 			byteBuffer.get(bytes, byteBuffer.position(), byteBuffer.limit());
 			this.writeBytes(bytes);
 		}
@@ -657,7 +650,7 @@ sealed class Model permits ModelCompiler, ModelLoader {
 	}
 
 	protected void writeString(final String s) throws ModelException {
-		this.writeBytes(Bytes.encode(this.getEncoder(), s));
+		this.writeBytes(Bytes.encode(this.getEncoder(), s).bytes());
 	}
 
 	protected void writeTransitionMatrix(final int[][][] matrix) throws ModelException {

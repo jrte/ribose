@@ -343,7 +343,7 @@ I:			do {
 					}
 					
 					// absorb self-referencing (msum,mscan) or sequential (mproduct) transitions with nil effect
-					if (this.matchMode != MATCH_NONE && token < SIGNUL) {
+					while (this.matchMode != MATCH_NONE && token < SIGNUL) {
 						switch (this.matchMode) {
 						case MATCH_SUM:
 							token = sumTrap(input, token);
