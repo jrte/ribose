@@ -275,6 +275,7 @@
 			<arg line="./ribose ${jargs} compile --target-path ${jars.dir}/${ribose.version}-test.jar --target com.characterforming.jrte.test.TestTarget ${build.automata} build/Test.model"/>
 		</exec>
 		<fixcrlf file="build/Test.map" eol="lf"/>
+		<concat><filelist dir="build" files="Test.map"/></concat>
 	</target>
 
 	<target name="check-package-source">
