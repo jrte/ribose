@@ -114,7 +114,7 @@
 		<java fork="true" jvm="${jdk}/bin/java" classname="java.lang.Object">
 			<jvmarg line="-version"/>
 		</java>
-		<echo message="Java @ ${env.JAVA_HOME}"/>
+		<echo message="Java @ ${jdk}"/>
 		<exec executable="bash">
 			<arg line="./rinr version"/>
 		</exec>
