@@ -351,7 +351,7 @@ sealed class Model permits ModelCompiler, ModelLoader {
 	}
 
 	protected int addTransducer(Bytes transducerName) {
-		Integer ordinal = this.transducerOrdinalMap.computeIfAbsent(transducerName, absent -> null);
+		Integer ordinal = this.transducerOrdinalMap.get(transducerName);
 		assert ordinal == null || transducerName.equals(this.transducerNameIndex[ordinal]);
 		if (ordinal == null) {
 			ordinal = this.transducerOrdinalMap.size();
@@ -561,9 +561,16 @@ sealed class Model permits ModelCompiler, ModelLoader {
 		}
 	}
 
+	protected void writeBytes(final Bytes bytes) throws ModelException {
+		if (bytes != null) {
+			this.writeBytes(bytes.bytes());
+		}
+	}
+
 	protected void writeBytes(final ByteBuffer byteBuffer) throws ModelException {
+		byte[] bytes = null;
 		if (byteBuffer != null) {
-			byte[] bytes = new byte[byteBuffer.limit() - byteBuffer.position()];
+			bytes = new byte[byteBuffer.limit() - byteBuffer.position()];
 			byteBuffer.get(bytes, byteBuffer.position(), byteBuffer.limit());
 			this.writeBytes(bytes);
 		}
@@ -650,7 +657,7 @@ sealed class Model permits ModelCompiler, ModelLoader {
 	}
 
 	protected void writeString(final String s) throws ModelException {
-		this.writeBytes(Bytes.encode(this.getEncoder(), s).bytes());
+		this.writeBytes(Bytes.encode(this.getEncoder(), s));
 	}
 
 	protected void writeTransitionMatrix(final int[][][] matrix) throws ModelException {

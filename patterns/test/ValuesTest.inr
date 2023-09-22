@@ -8,7 +8,7 @@ ValuesTest = (
 		| ((black - {digit,dash,dot,query}), paste) (black, paste) (space, string paste out clear)
 		| (query, signal[`!pass`])
 		)
-		(pass, out[` ` `!!pass; `])?
+		(pass, out[` ` `!!pass`])?
 	)*
 	(dash, paste)? (digit, paste)*
 	(
@@ -17,7 +17,7 @@ ValuesTest = (
 	| ((black - {digit,dash,dot,query}), paste) (black, paste) (nl|eos, string out in[nl])
 	| (query, signal[`!pass`])
 	)
-	(pass, out[` ` `!!pass; `])?
+	(pass, out[` ` `!!pass`])?
 	(nl, out[nl])
 ):dfamin;
 

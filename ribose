@@ -6,7 +6,6 @@ execRun() {
 		shift
 	fi
 	$JAVA -ea -cp $path $vmargs com.characterforming.ribose.Ribose run $nil "$@"
-	rc=$?; if (($rc!=0)); then echo "Task failed with exit code $rc"; cat ./ribose-runtime-0.log; exit $rc; fi
 }
 
 execCompile() {
@@ -21,7 +20,6 @@ execCompile() {
 	else
 		$JAVA -ea -cp $path $vmargs com.characterforming.ribose.Ribose compile --target com.characterforming.jrte.engine.SimpleTarget "$@"
 	fi
-	rc=$?; if (($rc!=0)); then echo "Task failed with exit code $rc"; cat ./ribose-compile-0.log; exit $rc; fi
 }
 
 execDecompile() {

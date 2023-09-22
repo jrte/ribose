@@ -482,7 +482,7 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 				this.writeOrdinalMap(transducerOrdinalMap, 0);
 				for (int index = 0; index < transducerCount; index++) {
 					if (this.transducerOffsetIndex[index] > 0) {
-						this.writeBytes(this.transducerNameIndex[index].bytes());
+						this.writeBytes(this.transducerNameIndex[index]);
 						this.writeLong(this.transducerOffsetIndex[index]);
 					}
 				}

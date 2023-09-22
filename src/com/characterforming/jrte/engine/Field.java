@@ -21,8 +21,9 @@
 package com.characterforming.jrte.engine;
 
 import java.nio.ByteBuffer;
-import java.nio.charset.CharacterCodingException;
+import java.nio.CharBuffer;
 import java.nio.charset.CharsetDecoder;
+import java.nio.charset.CoderResult;
 import java.util.Arrays;
 
 import com.characterforming.ribose.IField;
@@ -80,19 +81,23 @@ final class Field implements IField {
 		return Arrays.copyOf(this.data, this.length);
 	}
 
+	@Override // @see com.characterforming.ribose.IField#decodeValue()
+	public char[] decodeValue() {
+		char[] chars = null;
+		ByteBuffer in = ByteBuffer.wrap(this.data, 0, this.getLength());
+		CharBuffer out = CharBuffer.allocate(this.getLength());
+		CoderResult result = this.decoder.reset().decode(in, out, true);
+		assert !result.isOverflow() && !result.isError();
+		if (!result.isOverflow() && !result.isError()) {
+			chars = new char[out.flip().length()];
+			out.get(chars);
+		}
+		return chars;
+	}
+
 	@Override // @see com.characterforming.ribose.IField#asString()
 	public String asString() {
-		try {
-			return this.decoder.reset().decode(
-				ByteBuffer.wrap(this.data, 0, this.length)
-			).flip().toString();
-		} catch (CharacterCodingException e) {
-			char[] chars = new char[this.length];
-			for (int i = 0; i < chars.length; i++) {
-				chars[i] = (char)(0xff & this.data[i]);
-			}
-			return new String(chars);
-		}
+		return new String(this.decodeValue());
 	}
 	
 	@Override // @see com.characterforming.ribose.IField#asInteger()
@@ -132,11 +137,6 @@ final class Field implements IField {
 		return fraction * value;
 	}
 
-	@Override // @see java.lang.Object#toString()
-	public String toString() {
-		return this.asString();
-	}
-
 	void clear() {
 		this.length = 0;
 	}
@@ -172,5 +172,10 @@ final class Field implements IField {
 			System.arraycopy(this.data, 0, v, 0, this.length);
 			this.data = v;
 		}
+	}
+
+	@Override // @see java.lang.Object#toString()
+	public String toString() {
+		return Bytes.decode(this.decoder, this.data, this.length).toString();
 	}
 }
