@@ -21,7 +21,8 @@
 package com.characterforming.jrte.engine;
 
 final class TransducerState {
-	final int[] countdown;
+	int countdown;
+	int signal;
 	int state;
 	int[] inputFilter;
 	long[] transitionMatrix;
@@ -30,28 +31,28 @@ final class TransducerState {
 	String name;
 
 	TransducerState() {
-		this.countdown = new int[] {0, 0};
-	}
-
-	TransducerState transducer(Transducer transducer) {
-		this.state = 0;
-		this.name = transducer.getName();
-		this.inputFilter = transducer.getInputFilter();
-		this.transitionMatrix = transducer.getTransitionMatrix();
-		this.effectorVector = transducer.getEffectorVector();
-		this.inputEquivalents = transducer.getInputEquivalentsCount();
-		this.countdown[0] = this.countdown[1] = 0;
-		return this;
-	}
-
-	void reset() {
-		this.state = 0;
+		this.reset();
 		this.name = null;
 		this.inputFilter = null;
 		this.transitionMatrix = null;
 		this.effectorVector = null;
 		this.inputEquivalents = 0;
-		this.countdown[0] = this.countdown[1] = 0;
+	}
+
+	TransducerState transducer(Transducer transducer) {
+		this.reset();
+		this.name = transducer.getName();
+		this.inputFilter = transducer.getInputFilter();
+		this.transitionMatrix = transducer.getTransitionMatrix();
+		this.effectorVector = transducer.getEffectorVector();
+		this.inputEquivalents = transducer.getInputEquivalentsCount();
+		return this;
+	}
+
+	void reset() {
+		this.state = 0;
+		this.countdown = 0;
+		this.signal = -1;
 }
 
 	@Override

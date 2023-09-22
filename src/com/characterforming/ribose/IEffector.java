@@ -20,7 +20,6 @@
 
 package com.characterforming.ribose;
 
-import com.characterforming.jrte.engine.Base;
 import com.characterforming.ribose.base.Bytes;
 import com.characterforming.ribose.base.EffectorException;
 import com.characterforming.ribose.base.TargetBindingException;
@@ -38,7 +37,7 @@ import com.characterforming.ribose.base.TargetBindingException;
  * All effectors return an integer <a href="#field.summary">RTX</a> code, which is a bit
  * map of special conditions. RTX bits are additive and accumulate as the effect vector is
  * executed for a transition. Specialized effectors should return only {@code RTX_NONE}
- * (to continue transduction normally) or a signal encoded using {@link IEffector#rtxSignal(int)}.
+ * (to continue transduction normally) or a signal encoded using {@link IOutput#signal(int)}.
  * Care should be taken to ensure that at most one effector in any effect vector may
  * return an encoded signal. The built-in {@code count} and {@code signal} effectors and
  * any specialized target effectors that return encoded signals should never appear in
@@ -119,23 +118,6 @@ public interface IEffector<T extends ITarget> {
 	 * 
 	 */
 	IField getField(String fieldName);
-
-	/**
-	 * Encode a signal with an {@link IEffector#RTX_SIGNAL} value to return from 
-	 * an effctor {@link IEffector#invoke()} or {@link IParameterizedEffector#invoke(int)}
-	 * method. The transductor will decode and inject {@code signal} into the 
-	 * input stream for immediate transduction. Since the return values from successive
-	 * invocations of effectors in a vector triggered by a state transition are OR'd
-	 * together the decoded final value may be out of range of the model's defined signals
-	 * if &gt;1 effectors return values with encoded signals.
-	 * 
-	 * @param signal the signal value (&gt;255, &lt;256+#signals) to encode
-	 * @return signal &lt;&lt; 16 | {@code IEffector.RTX_SIGNAL}
-	 */
-	static int rtxSignal(int signal) {
-		assert signal >= Base.RTE_SIGNAL_BASE;
-		return (signal << 16) | RTX_SIGNAL;
-	}
 
 	/**
 	 * Test two effector instances for functional equivalence. Effector

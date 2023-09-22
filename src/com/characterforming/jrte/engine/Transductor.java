@@ -343,7 +343,7 @@ I:			do {
 					}
 					
 					// absorb self-referencing (msum,mscan) or sequential (mproduct) transitions with nil effect
-					if (this.matchMode != MATCH_NONE && token < SIGNUL) {
+					while (this.matchMode != MATCH_NONE && token < SIGNUL) {
 						switch (this.matchMode) {
 						case MATCH_SUM:
 							token = sumTrap(input, token);
@@ -389,7 +389,7 @@ S:				do {
 						}
 						if (0 != (aftereffects & IEffector.RTX_SIGNAL)) {
 							signal = aftereffects >>> 16;
-							if ((signal < SIGNUL) || (signal >= this.signalLimit)) {
+							if ((signal < SIGNUL) || (signal >= this.transducer.inputFilter.length)) {
 								assert false : String.format("Signal %1$d out of range [256..%2$d)", signal, this.signalLimit);
 								signal = SIGNUL;
 							}
@@ -476,6 +476,15 @@ S:				do {
 		return this.getField(this.getFieldOrdinal(fieldName));
 	}
 
+	@Override // @see com.characterforming.ribose.IOutput#signal(int)
+	public int signal(int signalOrdinal) throws EffectorException {
+		if (256 > signalOrdinal || signalOrdinal >= this.model.getSignalLimit()) {
+			throw new EffectorException(String.format("Signal ordinal %1$d is out of range [256,%2$d)", 
+				signalOrdinal, this.transducerStack.peek().inputFilter.length));
+		}
+		return (signalOrdinal << 16) | IEffector.RTX_SIGNAL;
+	}
+
 	void setEffectors(IEffector<?>[] effectors) {
 		this.effectors = effectors;
 	}
@@ -530,7 +539,7 @@ E:	do {
 					if ((token != SIGNUL && token != SIGEOS)) {
 						++this.metrics.errors;
 						this.errorInput = token;
-						aftereffects |= IEffector.rtxSignal(SIGNUL);
+						aftereffects |= this.signal(Signal.NUL.signal());
 					} else {
 						aftereffects |= IEffector.RTX_STOPPED;
 					}
@@ -555,9 +564,9 @@ E:	do {
 					this.selected.clear();
 					break;
 				case COUNT:
-					if (--this.transducer.countdown[0] <= 0) {
-						this.transducer.countdown[0] = 0;
-						aftereffects |= IEffector.rtxSignal(this.transducer.countdown[1]);
+					if (--this.transducer.countdown <= 0) {
+						this.transducer.countdown = 0;
+						aftereffects |= this.signal(this.transducer.signal);
 					}
 					break;
 				case IN:
@@ -852,12 +861,12 @@ E:	do {
 
 		@Override
 		public int invoke() throws EffectorException {
-			return IEffector.rtxSignal(Signal.NIL.signal());
+			return signal(Signal.NIL.signal());
 		}
 
 		@Override
 		public int invoke(final int parameterIndex) throws EffectorException {
-			return IEffector.rtxSignal(super.getParameter(parameterIndex));
+			return signal(super.getParameter(parameterIndex));
 		}
 
 		@Override // @see com.characterforming.ribose.IParameterizedEffector#allocateParameters(int)
@@ -970,12 +979,14 @@ E:	do {
 		@Override
 		public int invoke(final int parameterIndex) throws EffectorException {
 			assert (transducer == transducerStack.peek()) || (transducer == transducerStack.get(transducerStack.tos()-1));
-			System.arraycopy(super.getParameter(parameterIndex), 0, transducer.countdown, 0, 2);
-			if (transducer.countdown[0] < 0) {
-				IField field = Transductor.this.getField(-1 - transducer.countdown[0]);
-				transducer.countdown[0] = (field != null) ? (int)field.asInteger() : -1;
+			int[] parameter = super.getParameter(parameterIndex);
+			transducer.countdown = parameter[0];
+			transducer.signal = parameter[1];
+			if (transducer.countdown < 0) {
+				IField field = Transductor.this.getField(-1 - transducer.countdown);
+				transducer.countdown = (field != null) ? (int)field.asInteger() : -1;
 			}
-			return transducer.countdown[0] <= 0 ? IEffector.rtxSignal(transducer.countdown[1]) : IEffector.RTX_NONE;
+			return transducer.countdown <= 0 ? signal(transducer.signal) : IEffector.RTX_NONE;
 		}
 
 		@Override

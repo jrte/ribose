@@ -56,13 +56,6 @@ public interface IField {
 	int getLength();
 
 	/**
-	 * Decode a UTF-8 encoded value using the default charset.
-	 * 
-	 * @return a Unicode char[] array holding the decoded value
-	 */
-	char[] decodeValue();
-
-	/**
 	 * Get a copy of the value, trimmed to actual length.
 	 * 
 	 * @return a trimmed copy of the contents of the value array

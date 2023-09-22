@@ -1,24 +1,16 @@
+fail = nul;
+pass = nil;
 ValuesTest = (
 	(nil, clear)
 	(
 		(dash, paste)? (digit, paste)*
 		(
-			(digit, paste)+ (space, integer paste out clear)
-		|	(dot, paste) (digit, paste)* (space, real paste out clear)
-		| ((black - {digit,dash,dot,query}), paste) (black, paste) (space, string paste out clear)
-		| (query, signal[`!pass`])
+			(digit, paste)+ (space|nl, integer paste out clear)
+		|	(dot, paste) (digit, paste)* (space|nl, real paste out clear)
+		| ((black - {digit,dash,dot}), paste) (black, paste) (space|nl, string paste out clear)
 		)
-		(pass, out[` ` `!!pass`])?
+		((pass, out[`!!pass; `]) | (fail, out[`!!fail; `]))
 	)*
-	(dash, paste)? (digit, paste)*
-	(
-		(digit, paste)+ (nl|eos, integer out in[nl])
-	|	(dot, paste) (digit, paste)* (nl|eos, real out in[nl])
-	| ((black - {digit,dash,dot,query}), paste) (black, paste) (nl|eos, string out in[nl])
-	| (query, signal[`!pass`])
-	)
-	(pass, out[` ` `!!pass`])?
-	(nl, out[nl])
 ):dfamin;
 
 ValuesTest$(0,1):prsseq `build/automata/ValuesTest.pr`;

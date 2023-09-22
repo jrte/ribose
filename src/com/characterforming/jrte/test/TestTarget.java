@@ -5,10 +5,13 @@ import com.characterforming.ribose.IField;
 import com.characterforming.ribose.ITarget;
 import com.characterforming.ribose.base.BaseEffector;
 import com.characterforming.ribose.base.EffectorException;
+import com.characterforming.ribose.base.Signal;
 import com.characterforming.ribose.base.TargetBindingException;
 
 public class TestTarget implements ITarget {
-	private static final int fail = 266;
+	private static final int fail = Signal.NUL.signal();
+	private static final int pass = Signal.NIL.signal();
+
 	/**
 	 * Constructor
 	 */
@@ -43,9 +46,9 @@ public class TestTarget implements ITarget {
 			try {
 				integer = Long.parseLong(string);
 			} catch (NumberFormatException e) {
-				return IEffector.rtxSignal(fail);
+				return super.output.signal(fail);
 			}
-			return integer == field.asInteger() ? IEffector.RTX_NONE : IEffector.rtxSignal(fail);
+			return super.output.signal(integer == field.asInteger() ? pass : fail);
 		}
 	}
 
@@ -62,9 +65,9 @@ public class TestTarget implements ITarget {
 			try {
 				real = Double.parseDouble(string);
 			} catch (NumberFormatException e) {
-				return IEffector.rtxSignal(fail);			
+				return super.output.signal(fail);			
 			}
-			return real == field.asReal() ? IEffector.RTX_NONE : IEffector.rtxSignal(fail);
+			return super.output.signal(real == field.asReal() ? pass : fail);
 		}
 	}
 
@@ -76,7 +79,7 @@ public class TestTarget implements ITarget {
 		@Override
 		public int invoke() throws EffectorException {
 			IField field = super.output.getField();
-			return field.toString().equals(field.asString()) ? IEffector.RTX_NONE : IEffector.rtxSignal(fail);
+			return super.output.signal(field.toString().equals(field.asString()) ? pass : fail);
 		}
 	}
 }

@@ -82,7 +82,7 @@ import com.characterforming.ribose.base.TargetBindingException;
  * select their parameters by array index in their {@link #invoke(int p)}
  * methods, which normally return {@link IEffector#RTX_NONE} to indicate 
  * no special condition. They may also return a {@link Signal} encoded by
- * {@link IEffector#rtxSignal(int)}. See the javadoc comments for {@link
+ * {@link IOutput#signal(int)}. See the javadoc comments for {@link
  * IEffector} for more information regarding effector {@code RTX} codes.
  * <br><br>
  * All {@code IParameterizedEffector} implementations must be subclasses of

@@ -25,6 +25,7 @@ import java.nio.charset.CharsetEncoder;
 import java.util.logging.Logger;
 
 import com.characterforming.ribose.base.Bytes;
+import com.characterforming.ribose.base.EffectorException;
 import com.characterforming.ribose.base.TargetBindingException;
 
 /**
@@ -85,6 +86,19 @@ public interface IOutput {
 	 * @throws TargetBindingException if things don't work out
 	 */
 	int getFieldOrdinal(Bytes fieldName) throws TargetBindingException;
+
+	/**
+	 * Encode a signal in an effector.invoke() return value. The signal will be consumed
+	 * in the next transition of the running transductor. Since the return values from
+	 * successive effector invocations in a vector triggered by a state transition are OR'd
+	 * together the decoded final value may be out of range of the model's defined signals
+	 * if &gt;1 effectors return values with encoded signals.
+	 * 
+	 * @param signal the signal value to encode (&ge;256&lt;value&lt;256+#signals)
+	 * @return an encoding of the signal to return from effector {@code invoke()} 
+	 * @throws EffectorException is {@code signalOrdinal} is out of range 
+	 */
+	int signal(int signal) throws EffectorException;
 
 	/**
 	 * Get the decoder bound to the transductor

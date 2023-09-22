@@ -140,7 +140,12 @@
 		description="Clean build for java and patterns"/>
 
 	<target name="ci-test" depends="clean,ribose,package-test,compile-test-model,test,test-output-equivalence,env"
-		description="Full build with CI tests for java and patterns"/>
+		description="Full build with CI tests for java and patterns">
+		<echo message="Ribose compiler log ..."/>
+		<concat> <fileset dir="." includes="ribose-compile-0.log"/></concat>
+		<echo message="Ribose runtime log ..."/>
+		<concat> <fileset dir="." includes="ribose-runtime-0.log"/></concat>
+	</target>
 
 	<target name="check-compile-java" depends="init">
 		<depend srcdir="${java.source.dir}" destdir="${build.java.classes}" closure="yes">
