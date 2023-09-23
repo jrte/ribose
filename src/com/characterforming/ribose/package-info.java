@@ -27,29 +27,30 @@
  * {@link IEffector} and {@link IParameterizedEffector} classes are typically
  * implemented as private inner classes of the target class. Every target class
  * must present a default constructor that instantiates a <i>proxy</i> instance
- * for effector parameter compilation. The proxy target presents proxy effectors
- * and each parameterized effector is called  to compile an indexed collection
- * of parameters. Parameters are compiled once when the model is compiled, to 
- * validate the supplied parameters, and once again every time the model is 
- * loaded for runtime use. In the runtime the compiled parameters are retained
- * by the model in its proxy effectors so they can be supplied to live target
- * effectors. The relationship between model and target is 1..1 (model-proxy
- * target) and transient in compile contexts and 1..N (model-live targets) in
- * runtime contexts, persisting for the lifetime of the transductor. See 
- * {@link ITarget}, {@link IEffector} and {@link IParameterizedEffector} for
- * more information regarding these classes in model compilation and runtime
- * contexts. 
+ * for effector parameter compilation. Parameters are compiled once when the 
+ * model is compiled, to validate the supplied parameters, and once again every
+ * time the model is loaded for runtime use. Parameters are represented as lists of 
+ * backquoted Unicode {@code `tokens`} in ribose patterns and presented as arrays
+ * of UTF-8 {@code bytes} to parameterized effectors to compile. A parameterized
+ * effector {@code E<T,P>} compiles from each token array an instance of {@code P}.
+ * The compiled parameters are retained by the runtime model and supplied to live
+ * target effectors when live targets are bound to transductors. The relationship
+ * between model and target is 1..1 (model-proxy target) and transient in compile
+ * contexts and 1..N (model-live targets) in runtime contexts, persisting for
+ * the lifetime of the transductor. See {@link ITarget}, {@link IEffector} and 
+ * {@link IParameterizedEffector} for more information regarding these classes
+ * in model compilation and runtime contexts. 
  * <br><br>
  * A ribose model is <i>simple</i> if the model target class defines no specialized
  * effectors, so the model transducers use only the built-in {@link ITransductor} 
- * effectors, and if live and proxy target instances can be instantiated using a
- * default constructor. Simple models encapsulate regular and context-free
+ * effectors, <i>or</i> if proxy <i>and</i> live target instances can be instantiated
+ * using a default constructor. Simple models encapsulate regular and context-free
  * transductions that only write transduction output through the {@code out}
- * effector. They use {@link SimpleTarget} as target class, which provides access
- * to the {@link ITransductor} effectors. {@link SimpleTarget} is {@code final}
- * and exists only to expose the transductor effectors as these are otherwise
- * inaccessible. For <i>simple</i> models both live and proxy targets are
- * instantiated with the default constructor.
+ * effector. They typically use {@link SimpleTarget} as target class, which
+ * provides access to the {@link ITransductor} effectors. {@link SimpleTarget}
+ * is {@code final} and exists only to expose the transductor effectors as these
+ * are otherwise inaccessible. For <i>simple</i> models both live and proxy
+ * targets are instantiated with the default constructor. 
  * <br><br>
  * A model is <i>fancy</i> if the model target class presents specialized effectors
  * and/or requires a non-default constructor to instantiate live target instances. 

@@ -42,10 +42,9 @@ import com.characterforming.ribose.base.TargetBindingException;
  * return an encoded signal. The built-in {@code count} and {@code signal} effectors and
  * any specialized target effectors that return encoded signals should never appear in
  * combination within a single effector vector, and this condition can be checked in
- * the pattern domain. An {@code AssertionError} will be thrown from {@link ITransductor#run()}
- * if the decoded signal is out of range and assertions are enabled in the JVM, but
- * mixed signals that remain in range will go undetected (or force a domain error and
- * transition on {@code nul}).
+ * the pattern domain. An {@code EffectorException} will be thrown from {@link ITransductor#run()}
+ * if the decoded signal is out of range, but mixed signals that remain in range will
+ * go undetected (or force a domain error and transition on {@code nul}).
  * <br><br>
  * To verify that transducer <b>T</b> from a model using signalling effectors in 
  * <b>S</b>={{@code count}, {@code signal}, {@code ...}} satisfies this signalling
