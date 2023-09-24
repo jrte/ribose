@@ -8,7 +8,7 @@ execRun() {
 	$JAVA -ea -cp $path $vmargs com.characterforming.ribose.Ribose run $nil "$@"
 	rc=$?
 	if ((rc!=0)); then
-		echo "Run failed with exit code $rc"; cat ./ribose-runtime-0.log
+		echo "Run failed with exit code $rc"
 	fi
 	return $rc
 }
@@ -21,19 +21,28 @@ execCompile() {
 		fi
 	fi
 	if (($#==4)); then
-		$JAVA -ea -cp $path $vmargs com.characterforming.ribose.Ribose compile "$@" 
+	 	$JAVA -ea -cp $path $vmargs com.characterforming.ribose.Ribose compile "$@" 
+	elif (($#>0)); then
+	 	$JAVA -ea -cp $path $vmargs com.characterforming.ribose.Ribose compile --target com.characterforming.ribose.base.SimpleTarget "$@"
 	else
-		$JAVA -ea -cp $path $vmargs com.characterforming.ribose.Ribose compile --target com.characterforming.jrte.engine.SimpleTarget "$@"
+	 	$JAVA -ea -cp $path $vmargs com.characterforming.ribose.Ribose compile
 	fi
 	rc=$?
 	if ((rc!=0)); then
-		echo "Compile failed with exit code $rc"; cat ./ribose-compile-0.log
+		echo "Compile failed with exit code $rc"
 	fi
 	return $rc
 }
 
 execDecompile() {
 	$JAVA -ea -cp $path $vmargs com.characterforming.ribose.Ribose decompile "$@"
+	rc=$?
+	if (($#==0)); then
+		rc=0
+	fi
+	if ((rc!=0)); then
+		echo "Decompile failed with exit code $rc"
+	fi
 }
 
 execHelp() {
@@ -63,7 +72,7 @@ while [[ ! "$1" =~ ^(help|compile|run|decompile) ]]; do
 	shift
 	if (($#==0)); then
 		execHelp
-		exit 1
+		exit 0
 	fi
 done
 selector=$1

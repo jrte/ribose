@@ -134,6 +134,8 @@
 		<echoproperties/>
 	</target>
 
+	<target name="all" depends="ci-test,javadoc"/>
+
 	<target name="package" depends="clean,ribose,package-test,compile-test-model,javadoc"/>
 
 	<target name="ribose" depends="init-ribose,package-java,build-compiler-model"

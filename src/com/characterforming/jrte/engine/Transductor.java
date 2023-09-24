@@ -687,33 +687,33 @@ E:	do {
 		}
 		message.append(Base.LINEEND).append("\tInput stack:").append(Base.LINEEND);
 		for (int i = this.inputStack.tos(); i >= 0; i--) {
-			final Input input = this.inputStack.get(i);
-			if (input.array == null) {
+			final Input in = this.inputStack.get(i);
+			if (in.array == null) {
 				message.append("\t\t(null)").append(Base.LINEEND);
-			} else if (!input.hasRemaining()) {
+			} else if (!in.hasRemaining()) {
 				message.append("[ ]").append(Base.LINEEND);
-			} else if (input.position < input.length) {
-				assert input.position < input.length && input.length <= input.array.length ;
-				int position = Math.max(0, input.position - 1);
+			} else if (in.position < in.length) {
+				assert in.position < in.length && in.length <= in.array.length ;
+				int position = Math.max(0, in.position - 1);
 				int start = Math.max(0, position - 8);
-				int end = Math.min(start + 16, input.length);
+				int end = Math.min(start + 16, in.length);
 				String inchar = "";
 				int inbyte = -1;
-				if (input.array[position] >= 0x20 && input.array[position] < 0x7f) {
-					inchar = String.format("%1$2c", (char)input.array[position]);
+				if (in.array[position] >= 0x20 && in.array[position] < 0x7f) {
+					inchar = String.format("%1$2c", (char)in.array[position]);
 				} else {
-					inchar = String.format("%1$2x", Byte.toUnsignedInt(input.array[position]));
+					inchar = String.format("%1$2x", Byte.toUnsignedInt(in.array[position]));
 				}
-				inbyte = Byte.toUnsignedInt(input.array[position]);
+				inbyte = Byte.toUnsignedInt(in.array[position]);
 				message.append(String.format("\t\t[ char='%1$s' (0x%2$02X); pos=%3$d; length=%4$d < ",
-					inchar, inbyte, position, input.array.length));
+					inchar, inbyte, position, in.array.length));
 				while (start < end) {
-					int ubyte = Byte.toUnsignedInt(input.array[start]);
+					int ubyte = Byte.toUnsignedInt(in.array[start]);
 					int equiv = top.inputFilter[ubyte];
 					if ((ubyte < 0x20) || (ubyte > 0x7e)) {
 						message.append(String.format((start != position) ? "%1$02X~%2$d " : "[%1$02X~%2$d] ", ubyte, equiv));
 					} else {
-						message.append(String.format((start != position) ? "%1$c~%2$d " : "[%1$c~%2$d] ", (char)input.array[start], equiv));
+						message.append(String.format((start != position) ? "%1$c~%2$d " : "[%1$c~%2$d] ", (char)in.array[start], equiv));
 					}
 					start += 1;
 				}

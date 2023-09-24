@@ -24,6 +24,7 @@ import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.CharsetEncoder;
@@ -34,6 +35,7 @@ import java.util.logging.Logger;
 import com.characterforming.jrte.engine.Base;
 import com.characterforming.ribose.base.Bytes;
 import com.characterforming.ribose.base.ModelException;
+import com.characterforming.ribose.base.RiboseException;
 import com.characterforming.ribose.base.Signal;
 import com.characterforming.ribose.base.SimpleTarget;
 
@@ -123,7 +125,7 @@ public final class Ribose {
 		return Command.NULL;
 	}
 
-	private static void help(Command command) {
+	private static boolean help(Command command) {
 		switch(command) {
 		case NULL:
 		case HELP:
@@ -141,6 +143,7 @@ public final class Ribose {
 			Ribose.execDecompile(EMPTY);
 			break;
 		}
+		return true;
 	}
 
 	/**
@@ -154,7 +157,7 @@ public final class Ribose {
 		if (args.length > 0) {
 			Command command = Ribose.which(args[0]);
 			if (command == Command.NULL || command == Command.HELP) {
-				Ribose.help(args.length == 1 ? Command.HELP : Ribose.which(args[1]));
+				fail = !Ribose.help(args.length == 1 ? Command.HELP : Ribose.which(args[1]));
 			} else if (command == Command.VERSION) {
 				System.out.println(String.format(VERSION, Base.RTE_VERSION));
 				fail = false;
@@ -168,44 +171,52 @@ public final class Ribose {
 					fail = !Ribose.execDecompile(cargs);
 				}
 			}
+		} else {
+			fail = !Ribose.help(Command.HELP);
 		}
 		System.exit(fail ? 1 : 0);
 	}
 
 	private static boolean execCompile(final String[] args) throws SecurityException {
+		Base.startLogging();
 		File ginrAutomataDirectory = null;
 		File riboseModelFile = null;
+		String riboseModelPath = null;
 		String targetClassname = null;
+		Logger rtcLogger = Base.getCompileLogger();
 
-		Base.startLogging();
-		final Logger rtcLogger = Base.getCompileLogger();
-		boolean argsOk = (args.length == 4) && args[0].equals("--target");
-		if (argsOk) {
+		int arg = 0;
+		if ((args.length == 4) && args[0].equals("--target")) {
 			targetClassname = args[1];
-			ginrAutomataDirectory = new File(args[2]);
-			riboseModelFile = new File(args[3]);
-			System.out.println(String.format("Compiling %1$s to runtime model %2$s",
-				ginrAutomataDirectory.getPath(), riboseModelFile.getPath()));
+			arg = 2;
+		}
+		boolean argsOk = (args.length - arg) == 2;
+		if (argsOk) {
+			ginrAutomataDirectory = new File(args[arg++]);
 			if (!ginrAutomataDirectory.isDirectory()) {
 				final String directoryPath = ginrAutomataDirectory.getPath();
 				rtcLogger.log(Level.SEVERE, () -> String.format("Automata path '%1$s' is not a directory",
 					directoryPath));
 				argsOk = false;
 			}
+			riboseModelFile = new File(args[arg]);
+			riboseModelPath = riboseModelFile.getPath();
 			if (riboseModelFile.isDirectory()) {
-				final String riboseModelPath = riboseModelFile.getPath();
+				final String modelPath = riboseModelPath;
 				rtcLogger.log(Level.SEVERE, () -> String.format("Model path '%1$s' is a directory, a file path is required",
-					riboseModelPath));
+					modelPath));
 				argsOk = false;
+			} else if (riboseModelFile.exists()) {
+				riboseModelFile.delete();
 			}
 		}
-
+		
 		if (!argsOk) {
 			System.out.println();
 			System.out.println(
 				"Use: java [<jvm-args>] com.characterforming.ribose.Ribose compile [--target-path <classpath> --target <classname>] <automata-path> <model-path>");
 			System.out.println(
-					" or: ribose [<jvm-args>] compile [--target-path <classpath> --target <classname>] <automata-path> <model-path>");
+				" or: ribose [<jvm-args>] compile [--target-path <classpath> --target <classname>] <automata-path> <model-path>");
 			System.out.println("  --target-path <classpath> -- model target classpath");
 			System.out.println("       --target <classname> -- fully qualified <classname> of the target class (implements ITarget)");
 			System.out.println("              automata-path -- path to directory containing transducer automata compiled by ginr");
@@ -213,32 +224,32 @@ public final class Ribose {
 			System.out.println("The target class path and name must be specified (excepting SimpleTarget).");
 			System.out.println("The target class must have a default constructor.");
 			System.out.println();
-			return false;
 		}
-
+				
 		boolean compiled = false;
-		try {
+		if (argsOk) try {
+			System.out.println(String.format("Compiling %1$s to runtime model %2$s",
+				ginrAutomataDirectory.getPath(), riboseModelPath));
 			compiled = IModel.compileRiboseModel(targetClassname, ginrAutomataDirectory, riboseModelFile);
 		} catch (Exception e) {
-			final String modelPath = riboseModelFile.getPath();
+			final String modelPath = riboseModelPath;
 			rtcLogger.log(Level.SEVERE, e, () -> String.format("Model compilation failed for '%1$s'",
 				modelPath));
-			System.out.println("Compiler failed, see log for details.");
-		} finally {
-			if (!compiled) {
-				System.out.println("Runtime compilation failed, see log for details.");
-			}
-			Base.endLogging();
+		}
+		Base.endLogging();
+		if (argsOk && !compiled) {
+			System.out.println("Runtime compilation failed, see log for details.");
 		}
 		return compiled;
 	}
 
 	private static boolean execRun(final String[] args) throws SecurityException {
 		int argc = args.length;
-		final boolean nil = argc > 0 && args[0].compareTo("--nil") == 0;
+		boolean nil = argc > 0 && args[0].compareTo("--nil") == 0;
 		int arg = nil ? 1 : 0;
 		arg += (arg > (nil ? 1 : 0)) ? 1 : 0;
-		if ((argc - arg) != 3 && (argc - arg) != 4) {
+		boolean argsOk = ((argc - arg) == 3) || ((argc - arg) == 4);
+		if (!argsOk) {
 			System.out.println();
 			System.out.println(
 				"Use: java [<jvm-args>] com.characterforming.ribose.Ribose run [--nil] model transducer input [output]");
@@ -256,43 +267,46 @@ public final class Ribose {
 			System.out.println("can be overridden in the jvm options. Specify '-Dribose.outbuffer.size=N'");
 			System.out.println("and/or '-Dribose.inbuffer.size=N' for a buffer size of N bytes.");
 			System.out.println();
-			return false;
+			return args.length == 0;
 		}
+
+		Base.startLogging();
 		final String modelPath = args[arg++];
 		final String transducerName = args[arg++];
 		final String inputPath = arg < argc ? args[arg++] : "-";
 		final String output = arg < argc ? args[arg++] : null;
-
-		Base.startLogging();
 		final Logger rteLogger = Base.getRuntimeLogger();
 		final CharsetEncoder encoder = Base.newCharsetEncoder();
 		final File input = inputPath.charAt(0) == '-' ? null : new File(inputPath);
+		boolean run = true;
 		if (input != null && !input.exists()) {
 			rteLogger.log(Level.SEVERE, "No input file found at {0}", inputPath);
-			return false;
+			run = false;
 		}
 		final File model = new File(modelPath);
 		if (!model.exists()) {
 			rteLogger.log(Level.SEVERE, "No ribose model file found at {0}", modelPath);
-			return false;
+			run = false;
 		}
 
-		boolean run = false;
-		try (
+		if (run) try (
 			IModel ribose = IModel.loadRiboseModel(model);
 			InputStream streamIn = input == null ? System.in : new FileInputStream(input);
 			OutputStream streamOut = new BufferedOutputStream(
 				output == null ? System.out : new FileOutputStream(new File(output)), Base.getOutBufferSize()
 			);
 		) {
-			Bytes transducer = Bytes.encode(encoder, transducerName);
-			run = ribose.stream(transducer, nil ? Signal.NIL : Signal.NONE, streamIn, streamOut);
+			run = ribose.stream(
+				Bytes.encode(encoder, transducerName),
+				nil ? Signal.NIL : Signal.NONE, streamIn, streamOut
+			);
 			streamOut.flush();
-		} catch (final Exception e) {
+		} catch (final IOException | ModelException | RiboseException e) {
 			rteLogger.log(Level.SEVERE, "Runtime failed", e);
+		}
+		Base.endLogging();
+		if (!run) {
 			System.out.println("Runtime failed, see log for details.");
-		} finally {
-			Base.endLogging();
 		}
 		return run;
 	}
@@ -309,7 +323,7 @@ public final class Ribose {
 			System.out.println("                 transducer -- name of transducer to decompile");
 			System.out.println("The target class path must be specified (excepting SimpleTarget).");
 			System.out.println();
-			return false;
+			return args.length == 0;
 		}
 		final String transducerName = args[1];
 		final File modelFile = new File(args[0]);
@@ -326,6 +340,9 @@ public final class Ribose {
 				transducerName));
 		} finally {
 			Base.endLogging();
+		}
+		if (!decompiled) {
+			System.out.println("Decompilation failed, see log for details.");
 		}
 		return decompiled;
 	}
