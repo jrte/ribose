@@ -105,7 +105,8 @@ public final class Ribose {
 		COMPILE("compile"),
 		RUN("run"),
 		DECOMPILE("decompile"),
-		VERSION("version");
+		VERSION("version"),
+		MAP("map");
 
 		private String name;
 
@@ -142,6 +143,9 @@ public final class Ribose {
 		case DECOMPILE:
 			Ribose.execDecompile(EMPTY);
 			break;
+		case MAP:
+			Ribose.execMap(EMPTY);
+			break;
 		}
 		return true;
 	}
@@ -169,6 +173,8 @@ public final class Ribose {
 					fail = !Ribose.execRun(cargs);
 				} else if (command == Command.DECOMPILE) {
 					fail = !Ribose.execDecompile(cargs);
+				} else if (command == Command.MAP) {
+					fail = !Ribose.execMap(cargs);
 				}
 			}
 		} else {
@@ -221,15 +227,15 @@ public final class Ribose {
 			System.out.println("       --target <classname> -- fully qualified <classname> of the target class (implements ITarget)");
 			System.out.println("              automata-path -- path to directory containing transducer automata compiled by ginr");
 			System.out.println("                 model-path -- path for output model file");
-			System.out.println("The target class path and name must be specified (excepting SimpleTarget).");
-			System.out.println("The target class must have a default constructor.");
+			System.out.println("The target class path and name must be specified unless target class is SimpleTarget.");
+			System.out.println("The target class must have a default constructor for effector parameter compilation.");
+			System.out.println("The model map will be written to System.out; redirect to persistent file if required.");
 			System.out.println();
+			return args.length == 0;
 		}
 				
 		boolean compiled = false;
 		if (argsOk) try {
-			System.out.println(String.format("Compiling %1$s to runtime model %2$s",
-				ginrAutomataDirectory.getPath(), riboseModelPath));
 			compiled = IModel.compileRiboseModel(targetClassname, ginrAutomataDirectory, riboseModelFile);
 		} catch (Exception e) {
 			final String modelPath = riboseModelPath;
@@ -261,8 +267,8 @@ public final class Ribose {
 			System.out.println("                 transducer -- name of transducer to run");
 			System.out.println("                      input -- path to input file (or - to read System.in)");
 			System.out.println("                     output -- path to UTF-8 output file (optional, default is System.out)");
-			System.out.println("The target class path must be specified (excepting SimpleTarget).");
-			System.out.printf("%nDefault buffer sizes are %1$d bytes for output and %2$d for input. These%n",
+			System.out.println("The target class path can be omitted if the target class is SimpleTarget.");
+			System.out.printf("Default buffer sizes are %1$d bytes for output and %2$d for input. These%n",
 				Base.getOutBufferSize(), Base.getInBufferSize());
 			System.out.println("can be overridden in the jvm options. Specify '-Dribose.outbuffer.size=N'");
 			System.out.println("and/or '-Dribose.inbuffer.size=N' for a buffer size of N bytes.");
@@ -321,7 +327,8 @@ public final class Ribose {
 			System.out.println("  --target-path <classpath> -- model target classpath");
 			System.out.println("                      model -- path to model file");
 			System.out.println("                 transducer -- name of transducer to decompile");
-			System.out.println("The target class path must be specified (excepting SimpleTarget).");
+			System.out.println("The target class path can be omitted if the target class is SimpleTarget.");
+			System.out.println("Ouput is written to System.out and may be redirected in the shell.");
 			System.out.println();
 			return args.length == 0;
 		}
@@ -345,5 +352,40 @@ public final class Ribose {
 			System.out.println("Decompilation failed, see log for details.");
 		}
 		return decompiled;
+	}
+
+	private static boolean execMap(final String[] args) {
+		if (args.length != 1) {
+			System.out.println();
+			System.out.println(
+					"Use: java [<jvm-args>] com.characterforming.ribose.Ribose map <model>");
+			System.out.println(
+					" or: ribose [<jvm-args>] map [--target-path <classpath>] <model>");
+			System.out.println("  --target-path <classpath> -- model target classpath");
+			System.out.println("                      model -- path to model file");
+			System.out.println("The target class path can be omitted if the target class is SimpleTarget.");
+			System.out.println("Map is written to System.out and may be redirected in the shell.");
+			System.out.println();
+			return args.length == 0;
+		}
+
+		final File modelFile = new File(args[0]);
+
+		Base.startLogging();
+		Logger rteLogger = Base.getRuntimeLogger();
+		boolean mapped = false;
+		try (IModel model = IModel.loadRiboseModel(modelFile)) {
+			mapped = model.map();
+		} catch (ModelException e) {
+			final String format = "Failed to decompile %1$s";
+			rteLogger.log(Level.SEVERE, e, () -> String.format(
+				format,	modelFile.getAbsolutePath()));
+		} finally {
+			Base.endLogging();
+		}
+		if (!mapped) {
+			System.out.println("Map writer failed, see log for details.");
+		}
+		return mapped;
 	}
 }

@@ -153,6 +153,15 @@ public interface IModel extends AutoCloseable {
 	void decompile(String transducerName)
 	throws ModelException;
 
+	/** 
+	 * Print the model map to System.out
+	 * 
+	 * @return true unless an uncaught exception is thrown
+	 * @throws ModelException if things don't work out
+	 */
+	boolean map()
+	throws ModelException;
+
 	/**
 	 * Get the fully qualified name of the model target.
 	 * 

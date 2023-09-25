@@ -24,6 +24,7 @@ package com.characterforming.jrte.engine;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.io.RandomAccessFile;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.ByteBuffer;
@@ -204,6 +205,57 @@ sealed class Model permits ModelCompiler, ModelLoader {
 	 */
 	public String getModelVersion() {
 		return this.modelVersion;
+	}
+
+	/**
+	 * Print the model map to System.out
+	 */
+	public boolean map() {
+		PrintStream mapWriter = System.out;
+		mapWriter.println(String.format("version %1$s", this.modelVersion));
+		mapWriter.println(String.format("target %1$s", this.targetClass.getName()));
+		Bytes[] signalIndex = new Bytes[this.signalOrdinalMap.size()];
+		for (Map.Entry<Bytes, Integer> m : this.signalOrdinalMap.entrySet()) {
+			signalIndex[m.getValue() - Base.RTE_SIGNAL_BASE] = m.getKey();
+		}
+		for (int i = 0; i < signalIndex.length; i++) {
+			mapWriter.printf("%1$-32s%2$6d%n", String.format("signal %1$s",
+				signalIndex[i].toString(this.getDecoder())), i + Base.RTE_SIGNAL_BASE);
+		}
+		Bytes[] fieldIndex = new Bytes[this.fieldOrdinalMap.size()];
+		for (Map.Entry<Bytes, Integer> m : this.fieldOrdinalMap.entrySet()) {
+			fieldIndex[m.getValue()] = m.getKey();
+		}
+		for (int i = 0; i < fieldIndex.length; i++) {
+			mapWriter.printf("%1$-32s%2$6d%n", String.format("field %1$s",
+				fieldIndex[i].toString(this.getDecoder())), i);
+		}
+		Bytes[] transducerIndex = new Bytes[this.transducerOrdinalMap.size()];
+		for (Map.Entry<Bytes, Integer> m : this.transducerOrdinalMap.entrySet()) {
+			transducerIndex[m.getValue()] = m.getKey();
+		}
+		for (int i = 0; i < (transducerIndex.length - 1); i++) {
+			mapWriter.printf("%1$-32s%2$6d%n", String.format("transducer %1$s",
+				transducerIndex[i].toString(this.getDecoder())), i);
+		}
+		Bytes[] effectorIndex = new Bytes[this.effectorOrdinalMap.size()];
+		for (Map.Entry<Bytes, Integer> m : this.effectorOrdinalMap.entrySet()) {
+			effectorIndex[m.getValue()] = m.getKey();
+		}
+		for (int i = 0; i < effectorIndex.length; i++) {
+			mapWriter.printf("%1$-32s%2$6d", String.format("effector %1$s",
+				effectorIndex[i].toString(this.getDecoder())), i);
+			if (this.proxyEffectors[i] instanceof BaseParameterizedEffector<?, ?> proxyEffector) {
+				mapWriter.printf("\t[ %1$s ]%n", proxyEffector.showParameterType());
+				for (int j = 0; j < proxyEffector.getParameterCount(); j++) {
+					mapWriter.printf("\t%1$s%n", proxyEffector.showParameterTokens(this.getDecoder(), j));
+				}
+			} else {
+				mapWriter.println();
+			}
+		}
+		mapWriter.flush();
+		return true;
 	}
 
 	byte[] getTransducerName(int transducerOrdinal) {

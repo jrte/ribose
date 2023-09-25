@@ -82,8 +82,9 @@
 	</target>
 	
 	<target name="clean-ribose">
-		<delete failonerror="false" dir="${jars.dir}" includes="*"/>
-		<delete failonerror="false" dir="${build.java.classes}/com"/>
+		<delete failonerror="false" verbose="true">
+			<fileset dir="${jars.dir}" includes="*"/>
+		</delete>		<delete failonerror="false" dir="${build.java.classes}/com"/>
 		<delete failonerror="false" dir="${build.compiler.model}"/>
 		<delete failonerror="false" dir="/tmp" includes="*.ginrout,*.ginrerr"/>
 	</target>
@@ -216,7 +217,7 @@
 			<arg line="./rinr patterns/alpha.inr ${ribose.patterns} patterns/after.inr"/>
 		</exec>
 		<echo message="Building ${build.compiler.model}/TCompile.model"/>
-		<exec failonerror="true" executable="bash">
+		<exec failonerror="true" executable="bash" output="${build.compiler.model}/TCompile.map">
 			<arg line="./ribose ${jargs} compile --target com.characterforming.jrte.engine.ModelCompiler ${build.compiler.model} ${build.compiler.model}/TCompile.model"/>
 		</exec>
 		<fixcrlf file="${build.compiler.model}/TCompile.map" eol="lf"/>
@@ -278,7 +279,7 @@
 		<delete file="build/Test.model"/>
 		<delete file="build/Test.map"/>
 		<echo message="Building build/Test.model"/>
-		<exec failonerror="true" executable="bash">
+		<exec failonerror="true" executable="bash" output="build/Test.map">
 			<arg line="./ribose ${jargs} compile --target-path ${jars.dir}/${ribose.version}-test.jar --target com.characterforming.jrte.test.TestTarget ${build.automata} build/Test.model"/>
 		</exec>
 		<fixcrlf file="build/Test.map" eol="lf"/>

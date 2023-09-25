@@ -29,7 +29,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -49,7 +48,6 @@ import com.characterforming.ribose.ITarget;
 import com.characterforming.ribose.ITransductor;
 import com.characterforming.ribose.IToken.Type;
 import com.characterforming.ribose.base.BaseEffector;
-import com.characterforming.ribose.base.BaseParameterizedEffector;
 import com.characterforming.ribose.base.Bytes;
 import com.characterforming.ribose.base.CompilationException;
 import com.characterforming.ribose.base.DomainErrorException;
@@ -497,7 +495,7 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 				}
 				this.seek(0);
 				this.writeLong(indexPosition);
-				this.saveMapFile(mapFile);
+				this.map();
 				this.rtcLogger.log(Level.INFO, () -> String.format(
 					"%1$s: target class %2$s%n%3$d transducers; %4$d effectors; %5$d fields; %6$d signal ordinals%n",
 					this.modelPath.getPath(), this.targetClass.getName(), this.transducerOrdinalMap.size() - 1,
@@ -521,56 +519,6 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 			}
 		}
 		return !super.deleteOnClose;
-	}
-
-	private void saveMapFile(File mapFile) {
-		try (PrintWriter mapWriter = new PrintWriter(mapFile)) {
-			mapWriter.println(String.format("version %1$s", this.modelVersion));
-			mapWriter.println(String.format("target %1$s", this.targetClass.getName()));
-			Bytes[] signalIndex = new Bytes[this.signalOrdinalMap.size()];
-			for (Map.Entry<Bytes, Integer> m : this.signalOrdinalMap.entrySet()) {
-				signalIndex[m.getValue() - Base.RTE_SIGNAL_BASE] = m.getKey();
-			}
-			for (int i = 0; i < signalIndex.length; i++) {
-				mapWriter.printf("%1$-32s%2$6d%n", String.format("signal %1$s", 
-					signalIndex[i].toString(super.getDecoder())), i + Base.RTE_SIGNAL_BASE);
-			}
-			Bytes[] fieldIndex = new Bytes[this.fieldOrdinalMap.size()];
-			for (Map.Entry<Bytes, Integer> m : this.fieldOrdinalMap.entrySet()) {
-				fieldIndex[m.getValue()] = m.getKey();
-			}
-			for (int i = 0; i < fieldIndex.length; i++) {
-				mapWriter.printf("%1$-32s%2$6d%n", String.format("field %1$s", 
-					fieldIndex[i].toString(super.getDecoder())), i);
-			}
-			Bytes[] transducerIndex = new Bytes[this.transducerOrdinalMap.size()];
-			for (Map.Entry<Bytes, Integer> m : this.transducerOrdinalMap.entrySet()) {
-				transducerIndex[m.getValue()] = m.getKey();
-			}
-			for (int i = 0; i < (transducerIndex.length - 1); i++) {
-				mapWriter.printf("%1$-32s%2$6d%n", String.format("transducer %1$s", 
-					transducerIndex[i].toString(super.getDecoder())), i);
-			}
-			Bytes[] effectorIndex = new Bytes[this.effectorOrdinalMap.size()];
-			for (Map.Entry<Bytes, Integer> m : this.effectorOrdinalMap.entrySet()) {
-				effectorIndex[m.getValue()] = m.getKey();
-			}
-			for (int i = 0; i < effectorIndex.length; i++) {
-				mapWriter.printf("%1$-32s%2$6d", String.format("effector %1$s", 
-					effectorIndex[i].toString(super.getDecoder())), i);
-				if (super.proxyEffectors[i] instanceof BaseParameterizedEffector<?,?> proxyEffector) {
-					mapWriter.printf("\t[ %1$s ]%n", proxyEffector.showParameterType());
-					for (int j = 0; j < proxyEffector.getParameterCount(); j++) {
-						mapWriter.printf("\t%1$s%n", proxyEffector.showParameterTokens(super.getDecoder(), j));
-					}
-				} else {
-					mapWriter.println();
-				}
-			}
-			mapWriter.flush();
-		} catch (final IOException e) {
-			this.rtcLogger.log(Level.SEVERE, e, () -> "Model unable to create map file " + mapFile.getPath());
-		}
 	}
 
 	private String getTransducerName() {

@@ -45,6 +45,17 @@ execDecompile() {
 	fi
 }
 
+execMap() {
+	$JAVA -ea -cp $path $vmargs com.characterforming.ribose.Ribose map "$@"
+	rc=$?
+	if (($#==0)); then
+		rc=0
+	fi
+	if ((rc!=0)); then
+		echo "Map failed with exit code $rc"
+	fi
+}
+
 execHelp() {
 	local selector="help"
 	if (($#>0)); then
@@ -55,7 +66,8 @@ execHelp() {
 	compile) execCompile;;
 	run) execRun;;
 	decompile) execDecompile;;
-	*) echo "Usage: ribose help [compile | run | decompile]";
+	map) execMap;;
+	*) echo "Usage: ribose help [compile | run | decompile | map]";
 	esac
 	return 0
 }
@@ -67,7 +79,7 @@ if [[ ! -f "$JAVA" ]]; then
 fi
 jrte=$(realpath $(dirname $0))
 vmargs=""
-while [[ ! "$1" =~ ^(help|compile|run|decompile) ]]; do
+while [[ ! "$1" =~ ^(help|compile|run|decompile|map) ]]; do
 	vmargs="$vmargs $1";
 	shift
 	if (($#==0)); then
@@ -92,5 +104,6 @@ help) execHelp $@;;
 compile) execCompile $@;;
 run) execRun $@;;
 decompile) execDecompile $@;;
+map) execMap $@;;
 *) execHelp $@;;
 esac
