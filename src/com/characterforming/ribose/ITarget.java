@@ -54,13 +54,22 @@ import com.characterforming.ribose.base.TargetBindingException;
  * effectors, and at least one other {@code ITarget instance} (eg, {@link
  * SimpleTarget}). To construct a composite target, select one target class as
  * the representative target to present to the transduction. The representative
- * target calls {@link #getEffectors()} on each of the subordinate
- * {@code ITarget}
+ * target calls {@link #getEffectors()} on each of the subordinate {@code ITarget}
  * instances and merges their effectors with its own effectors into a single
  * array to return when its {@link #getEffectors()} method is called from the
  * ribose compiler or runtime. Composite targets may be especially useful for
  * separating concerns within complex semantic domains, as they encapsulate
  * discrete semantic models in tightly focussed and reusable target classes.
+ * <br><br>
+ * For example, a validation model containing a collection of transducers that
+ * syntactically recognize domain artifacts would be bound to a target expressing
+ * effectors to support semantic validation. The validation model and target, 
+ * supplied by the service provider, can then be combined with specialized models
+ * in receiving domains to obtain a composite model including provider validation
+ * and consumer reception models and effectors. With some ginr magic reception
+ * patterns can be joined with corresponding validation patterns to obtain
+ * transductors that validate input in stepwise synchrony with reception and
+ * assimilation into the receiving domain. 
  * <br><br>
  * The {@link SimpleTarget} class is included in the ribose jar file and exposes
  * the base transductor effectors listed in the {@link ITransductor}
