@@ -1,7 +1,7 @@
 package com.characterforming.jrte.test;
 
 import com.characterforming.ribose.IEffector;
-import com.characterforming.ribose.IField;
+import com.characterforming.ribose.IOutput;
 import com.characterforming.ribose.ITarget;
 import com.characterforming.ribose.base.BaseEffector;
 import com.characterforming.ribose.base.EffectorException;
@@ -40,15 +40,13 @@ public class TestTarget implements ITarget {
 
 		@Override
 		public int invoke() throws EffectorException {
-			IField field = super.output.getField();
-			String string = field.toString();
 			long integer = 0;
 			try {
-				integer = Long.parseLong(string);
+				integer = Long.parseLong(super.output.asString(0));
 			} catch (NumberFormatException e) {
 				return super.output.signal(fail);
 			}
-			return super.output.signal(integer == field.asInteger() ? pass : fail);
+			return super.output.signal(integer == super.output.asInteger(0) ? pass : fail);
 		}
 	}
 
@@ -59,15 +57,13 @@ public class TestTarget implements ITarget {
 
 		@Override
 		public int invoke() throws EffectorException {
-			IField field = super.output.getField();
-			String string = field.toString();
 			double real = 0.0;
 			try {
-				real = Double.parseDouble(string);
+				real = Double.parseDouble(super.output.asString(0));
 			} catch (NumberFormatException e) {
 				return super.output.signal(fail);			
 			}
-			return super.output.signal(real == field.asReal() ? pass : fail);
+			return super.output.signal(real == super.output.asReal(0) ? pass : fail);
 		}
 	}
 
@@ -77,9 +73,14 @@ public class TestTarget implements ITarget {
 		}
 
 		@Override
+		public void setOutput(IOutput output) throws EffectorException {
+			super.setOutput(output);
+		}
+
+		@Override
 		public int invoke() throws EffectorException {
-			IField field = super.output.getField();
-			return super.output.signal(field.toString().equals(field.asString()) ? pass : fail);
+			String field = super.output.asString(0);
+			return super.output.signal(field.equals("pi") || field.equals("-pi") ? pass : fail);
 		}
 	}
 }

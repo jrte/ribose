@@ -24,39 +24,36 @@ final class TransducerState {
 	int countdown;
 	int signal;
 	int state;
-	int[] inputFilter;
-	long[] transitionMatrix;
-	int[] effectorVector;
-	int inputEquivalents;
-	String name;
+	int frame;
+	int selected;
+	Transducer transducer;
 
 	TransducerState() {
 		this.reset();
-		this.name = null;
-		this.inputFilter = null;
-		this.transitionMatrix = null;
-		this.effectorVector = null;
-		this.inputEquivalents = 0;
 	}
 
-	TransducerState transducer(Transducer transducer) {
+	TransducerState set(Transducer transducer, int frame) {
 		this.reset();
-		this.name = transducer.getName();
-		this.inputFilter = transducer.getInputFilter();
-		this.transitionMatrix = transducer.getTransitionMatrix();
-		this.effectorVector = transducer.getEffectorVector();
-		this.inputEquivalents = transducer.getInputEquivalentsCount();
+		this.transducer = transducer;
+		this.frame = frame;
 		return this;
+	}
+
+	Transducer get() {
+		return this.transducer;
 	}
 
 	void reset() {
 		this.state = 0;
 		this.countdown = 0;
 		this.signal = -1;
-}
+		this.frame = -1;
+		this.selected = -1;
+		this.transducer = null;
+	}
 
 	@Override
 	public String toString() {
-		return this.name != null ? this.name : "empty";
+		return this.transducer != null ? this.transducer.getName() : "empty";
 	}
 }

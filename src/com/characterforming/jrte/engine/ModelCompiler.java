@@ -40,9 +40,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import com.characterforming.ribose.IEffector;
-import com.characterforming.ribose.IField;
 import com.characterforming.ribose.IOutput;
-import com.characterforming.ribose.IParameterizedEffector;
 import com.characterforming.ribose.IModel;
 import com.characterforming.ribose.ITarget;
 import com.characterforming.ribose.ITransductor;
@@ -62,8 +60,9 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 
 	private static final long VERSION = 210;
 	private static final String AMBIGUOUS_STATE_MESSAGE = "%1$s: Ambiguous state %2$d";
-
+	
 	private Bytes transducerName;
+	private int transducerOrdinal;
 	private ITransductor transductor;
 	private HashMap<Integer, Integer> inputStateMap;
 	private HashMap<Integer, ArrayList<Transition>> stateTransitionMap;
@@ -76,67 +75,69 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 	private int[] inputEquivalenceIndex;
 	private int[][][] kernelMatrix;
 	private int transition;
-	private int errorCount;
-
-	record Header (int version, int tapes, int transitions, int states, int symbols) {}
+	
+	private static final String AUTOMATON = "Automaton";
 
 	record Transition (int from, int to, int tape, Bytes symbol, boolean isFinal) {}
 
+	record Header (int version, int tapes, int transitions, int states, int symbols) {}
+
 	final class HeaderEffector extends BaseEffector<ModelCompiler> {
-		IField[] fields;
+		private static final String[] fields = new String[] {
+			"version", "tapes", "transitions", "states", "symbols"
+		};
+		private final int[] fieldOrdinals;
 
 		HeaderEffector(ModelCompiler compiler) {
 			super(compiler, "header");
+			this.fieldOrdinals = new int[fields.length];
 		}
 
 		@Override
-		public void setOutput(IOutput output) throws TargetBindingException {
+		public void setOutput(IOutput output) throws EffectorException {
 			super.setOutput(output);
-			this.fields = new IField[] {
-				super.getField("version"),
-				super.getField("tapes"),
-				super.getField("transitions"),
-				super.getField("states"),
-				super.getField("symbols")
-			};
+			for (int i = 0; i < fields.length; i++) {
+				this.fieldOrdinals[i] = super.output.getLocalizedFieldIndex(ModelCompiler.AUTOMATON, fields[i]);
+			}
 		}
 
 		@Override
 		public int invoke() throws EffectorException {
 			ModelCompiler.this.putHeader(new Header(
-				(int)fields[0].asInteger(),
-				(int)fields[1].asInteger(),
-				(int)fields[2].asInteger(),
-				(int)fields[3].asInteger(),
-				(int)fields[4].asInteger()));
+				(int)super.output.asInteger(this.fieldOrdinals[0]),
+				(int)super.output.asInteger(this.fieldOrdinals[1]),
+				(int)super.output.asInteger(this.fieldOrdinals[2]),
+				(int)super.output.asInteger(this.fieldOrdinals[3]),
+				(int)super.output.asInteger(this.fieldOrdinals[4])));
 			return IEffector.RTX_NONE;
 		}
 	}
 
 	final class TransitionEffector extends BaseEffector<ModelCompiler> {
-		IField[] fields;
+		private static final String[] fields = new String[] {
+			"from", "to", "tape", "symbol"
+		};
+		private final int[] fieldOrdinals;
 
 		TransitionEffector(ModelCompiler compiler) {
 			super(compiler, "transition");
+			this.fieldOrdinals = new int[fields.length];
 		}
 
 		@Override
-		public void setOutput(IOutput output) throws TargetBindingException {
+		public void setOutput(IOutput output) throws EffectorException {
 			super.setOutput(output);
-			fields = new IField[] {
-				super.getField("from"),
-				super.getField("to"),
-				super.getField("tape"),
-				super.getField("symbol")
-			};
+			for (int i = 0; i < fields.length; i++) {
+				this.fieldOrdinals[i] = super.output.getLocalizedFieldIndex(ModelCompiler.AUTOMATON, fields[i]);
+			}
 		}
 
 		@Override
 		public int invoke() throws EffectorException {
-			int from = (int)fields[0].asInteger();
-			int to = (int)fields[1].asInteger();
-			int tape = (int)fields[2].asInteger();
-			Bytes symbol = new Bytes(fields[3].copyValue());
+			int from = (int)super.output.asInteger(this.fieldOrdinals[0]);
+			int to = (int)super.output.asInteger(this.fieldOrdinals[1]);
+			int tape = (int)super.output.asInteger(this.fieldOrdinals[2]);
+			Bytes symbol = new Bytes(super.output.asBytes(this.fieldOrdinals[3]));
 			boolean isFinal = to == 1 && tape == 0 && symbol.getLength() == 0;
 			ModelCompiler.this.putTransition(new Transition(
 				from, to, tape, symbol, isFinal));
@@ -169,6 +170,7 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 		this.inputStateMap = null;
 		this.stateTransitionMap = null;
 		this.transducerName = null;
+		this.transducerOrdinal = -1;
 		this.effectorVectorMap = null;
 		this.inputEquivalenceIndex = null;
 		this.kernelMatrix = null;
@@ -176,29 +178,12 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 		this.transitions = null;
 		this.transition = 0;
 		this.errors = new ArrayList<>();
-		super.writeLong(0);
-		super.writeString(super.modelVersion);
-		super.writeString(super.targetClass.getName());
-		super.signalOrdinalMap = new HashMap<>(256);
-		super.transducerOrdinalMap = new HashMap<>(256);
-		super.transducerOffsetIndex = new long[256];
-		super.transducerNameIndex = new Bytes[256];
-		super.fieldOrdinalMap = new HashMap<>(256);
-		super.fieldOrdinalMap.put(new Bytes(Model.ANONYMOUS_FIELD_NAME), Model.ANONYMOUS_FIELD_ORDINAL);
-		super.fieldOrdinalMap.put(new Bytes(Model.ALL_FIELDS_NAME), Model.CLEAR_ALL_FIELDS_ORDINAL);
-		super.initializeProxyEffectors();
-		for (Signal signal : Signal.values()) {
-			if (!signal.isNone()) {
-				assert super.getSignalLimit() == signal.signal();
-				super.signalOrdinalMap.put(signal.symbol(), signal.signal());
-			}
-		}
 		this.tapeTokens = new ArrayList<>(3);
 		for (int tape = 0; tape < 3; tape++) {
 			this.tapeTokens.add(tape, new HashSet<>(128));
 		}
 		HashSet<Token> parameterTokens = this.tapeTokens.get(2);
-		parameterTokens.add(new Token(Model.ALL_FIELDS_NAME, Model.CLEAR_ALL_FIELDS_ORDINAL));
+		parameterTokens.add(new Token(Model.ALL_FIELDS_NAME, Model.ALL_FIELDS_ORDINAL));
 		for (Signal signal : Signal.values()) {
 			if (!signal.isNone()) {
 				parameterTokens.add(new Token(signal.reference().bytes(), signal.signal()));
@@ -206,12 +191,12 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 		}
 	}
 
-	@Override // com.characterforming.ribose.IEffector
+	@Override // com.characterforming.ribose.IModel.getName()
 	public String getName() {
 		return this.getClass().getSimpleName();
 	}
 
-	@Override // com.characterforming.ribose.IEffector
+	@Override // com.characterforming.ribose.IModel.getEffectors()
 	public IEffector<?>[] getEffectors() throws TargetBindingException {
 		return new IEffector<?>[] {
 			new HeaderEffector(this),
@@ -237,7 +222,7 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 				boolean saved = false;
 				try (ModelCompiler compiler = new ModelCompiler(riboseModelFile, targetClass, TargetMode.LIVE_COMPILER)) {
 					if (compiler.compileCompiler(inrAutomataDirectory)) {
-						byte[][][][] compiledParameters = compiler.compileModelParameters(compiler.errors);
+						Argument[][] compiledParameters = compiler.compileModelParameters(compiler.errors);
 						saved = compiler.validate() && compiler.save(compiledParameters);
 						assert saved || compiler.deleteOnClose;
 						assert saved == !compiler.hasErrors();
@@ -278,7 +263,7 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 						}
 					}
 				}
-				byte[][][][] compiledParameters = compiler.compileModelParameters(compiler.errors);
+				Argument[][] compiledParameters = compiler.compileModelParameters(compiler.errors);
 				saved = compiler.validate() && compiler.save(compiledParameters);
 				assert saved || compiler.deleteOnClose;
 				assert saved == !compiler.hasErrors();
@@ -298,7 +283,7 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 	}
 
 	private boolean compileCompiler(File inrAutomataDirectory) {
-		Automaton automaton = new Automaton(this, this.rtcLogger);
+		Automaton automaton = new Automaton(this, super.rtcLogger);
 
 		return automaton.assemble(inrAutomataDirectory);
 	}
@@ -334,6 +319,7 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 		String name = inrFile.getName();
 		name = name.substring(0, name.length() - Base.AUTOMATON_FILE_SUFFIX.length());
 		this.transducerName = Bytes.encode(super.getEncoder(), name);
+		this.transducerOrdinal = super.addTransducer(this.transducerName);
 		this.inputStateMap = new HashMap<>(256);
 		this.stateTransitionMap = new HashMap<>(1024);
 		this.effectorVectorMap = null;
@@ -382,6 +368,7 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 				this.transducerName, inrFile.getPath(), e.getMessage()));
 			return false;
 		}
+		boolean fail = true;
 		try {
 			Bytes automaton = Bytes.encode(super.getEncoder(), "Automaton");
 			if (this.transductor.stop().push(bytes, size).signal(Signal.NIL).start(automaton).status().isRunnable()
@@ -392,61 +379,70 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 			this.transductor.stop();
 			assert this.transductor.status().isStopped();
 			this.saveTransducer();
+			fail = false;
 		} catch (ModelException | EffectorException | DomainErrorException e) {
 			this.addError(String.format("%1$s: Failed to compile '%2$s'; %3$s",
 				this.transducerName, inrFile.getPath(), e.getMessage()));
-			return false;
 		}
-		return true;
+		return !fail;
 	}
 
 	private boolean validate() {
 		for (Token token : this.tapeTokens.get(0)) {
 			if (token.getType() != Type.LITERAL && token.getType() != Type.SIGNAL) {
 				this.addError(String.format("Error: Invalid %2$s token '%1$s' on tape 0",
-					token.toString(super.getDecoder()), token.getTypeName()));
+					token.getName(super.getDecoder()), token.getTypeName()));
 			} else if (token.getSymbol().bytes().length > 1
 					&& !this.tapeTokens.get(2).contains(token)) {
 				this.addError(String.format("Error: Unrecognized signal reference '%1$s' on tape 0",
-					token.toString(super.getDecoder())));
+					token.getName(super.getDecoder())));
 			}
 		}
 		for (Token token : this.tapeTokens.get(1)) {
 			if (token.getType() != Type.LITERAL) {
 				this.addError(String.format("Error: Invalid %2$s token '%1$s' on tape 1",
-					token.toString(super.getDecoder()), token.getTypeName()));
+					token.getName(super.getDecoder()), token.getTypeName()));
 			} else if (this.getEffectorOrdinal(token.getSymbol()) < 0) {
 				this.addError(String.format("Error: Unrecognized effector token '%1$s' on tape 1",
-					token.toString(super.getDecoder())));
+					token.getName(super.getDecoder())));
 			}
 		}
 		for (Token token : this.tapeTokens.get(2)) {
 			if (token.getType() == Type.TRANSDUCER
-				&& this.getTransducerOrdinal(token.getSymbol()) < 0) {
+				&& super.getTransducerOrdinal(token.getSymbol()) < 0) {
 				this.addError(String.format("Error: Unrecognized transducer token '%1$s' on tape 1",
-					token.toString(super.getDecoder())));
+					token.getName(super.getDecoder())));
 			} else if (token.getType() == Type.SIGNAL
-				&& this.getSignalOrdinal(token.getSymbol()) > Signal.EOS.signal()
+				&& super.getSignalOrdinal(token.getSymbol()) > Signal.EOS.signal()
 				&& !this.tapeTokens.get(0).contains(token)) {
 				this.addError(String.format("Error: Signal token '%1$s' on tape 2 is never referenced on tape 0",
-					token.toString(super.getDecoder())));
+					token.getName(super.getDecoder())));
 			}
 		}
-		if (this.transducerOrdinalMap.isEmpty()) {
+		for (Entry<Bytes, Integer> e : super.transducerOrdinalMap.entrySet()) {
+			int ordinal = e.getValue();
+			if (super.transducerNameIndex[ordinal] == null
+			|| !super.transducerNameIndex[ordinal].equals(e.getKey())
+			|| super.transducerOffsetIndex[ordinal] <= 0) {
+					this.addError(String.format("'%1$s': referenced but not compiled in model",
+					e.getKey().toString(this.getDecoder())));
+
+			}
+		}
+		
+		if (super.transducerOrdinalMap.isEmpty()) {
 			this.addError("Error: The model is empty");
 		}
 		return !this.hasErrors();
 	}
 
 	void saveTransducer() throws ModelException {
-		long filePosition = this.seek(-1);
-		int transducerOrdinal = this.addTransducer(this.transducerName);
-		this.setTransducerOffset(transducerOrdinal, filePosition);
-		this.writeString(this.getTransducerName());
-		this.writeString(this.targetClass.getSimpleName());
-		this.writeIntArray(this.inputEquivalenceIndex);
-		this.writeTransitionMatrix(this.kernelMatrix);
-		this.writeIntArray(this.effectorVectors);
+		HashMap<Integer, Integer> localFieldMap = this.transducerFieldMaps.get(this.transducerOrdinal);
+		int[] fields = new int[localFieldMap.size()];
+		for (Entry<Integer, Integer> e : localFieldMap.entrySet()) {
+			fields[e.getValue()] = e.getKey();
+		}
+		super.writeTransducer(this.transducerName, this.transducerOrdinal, fields, this.inputEquivalenceIndex, this.kernelMatrix, this.effectorVectors);
 		int nInputs = this.kernelMatrix.length;
 		int nStates = this.kernelMatrix[0].length;
 		int nTransitions = 0;
@@ -458,67 +454,13 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 			}
 		}
 		final int transitionCount = nTransitions;
+		final int fieldCount = super.getFieldCount(this.transducerOrdinal);
 		double sparsity = 100 * (1 - ((double)nTransitions / (double)(nStates * nInputs)));
-		this.rtcLogger.log(Level.INFO, () -> String.format(
-			"%1$21s %2$5d input classes %3$5d states %4$5d transitions (%5$.0f%% nul)",
-			this.getTransducerName()+":", nInputs, nStates, transitionCount, sparsity));
-	}
-
-	private boolean save(byte[][][][] compiledParameters) {
-		File mapFile = new File(this.modelPath.getPath().replaceAll(".model", ".map"));
-		long indexPosition = this.getSafeFilePosition();
-		try {
-			assert indexPosition == super.io.length();
-			if (this.errorCount == 0 && this.transducerOrdinalMap.size() > 0) {
-				long filePosition = this.seek(-1);
-				int targetOrdinal = this.addTransducer(new Bytes(this.targetName.getBytes()));
-				int transducerCount = this.transducerOrdinalMap.size();
-				this.setTransducerOffset(targetOrdinal, filePosition);
-				this.writeOrdinalMap(signalOrdinalMap, Base.RTE_SIGNAL_BASE);
-				this.writeOrdinalMap(fieldOrdinalMap, 0);
-				this.writeOrdinalMap(effectorOrdinalMap, 0);
-				this.writeOrdinalMap(transducerOrdinalMap, 0);
-				for (int index = 0; index < transducerCount; index++) {
-					if (this.transducerOffsetIndex[index] > 0) {
-						this.writeBytes(this.transducerNameIndex[index].bytes());
-						this.writeLong(this.transducerOffsetIndex[index]);
-					}
-				}
-				for (int effectorOrdinal = 0; effectorOrdinal < this.effectorOrdinalMap.size(); effectorOrdinal++) {
-					byte[][][] parameters = compiledParameters[effectorOrdinal];
-					if (parameters != null && parameters.length > 0) {
-						assert super.proxyEffectors[effectorOrdinal] instanceof IParameterizedEffector<?, ?>;
-						this.writeBytesArrays(parameters);
-					} else {
-						this.writeInt(-1);
-					}
-				}
-				this.seek(0);
-				this.writeLong(indexPosition);
-				this.map();
-				this.rtcLogger.log(Level.INFO, () -> String.format(
-					"%1$s: target class %2$s%n%3$d transducers; %4$d effectors; %5$d fields; %6$d signal ordinals%n",
-					this.modelPath.getPath(), this.targetClass.getName(), this.transducerOrdinalMap.size() - 1,
-					this.effectorOrdinalMap.size(), this.fieldOrdinalMap.size(), this.getSignalCount()));
-				super.deleteOnClose = false;
-			}
-			if (this.transducerOrdinalMap.size() == 0) {
-				this.rtcLogger.log(Level.SEVERE, "No transducers compiled to {0}", this.modelPath.getPath());
-			}
-		} catch (IOException | ModelException e) {
-			this.rtcLogger.log(Level.SEVERE, e, () -> String.format("Failed to save model '%1$s'",
-				this.modelPath.getPath()));
-		} finally {
-			if (super.deleteOnClose) {
-				this.rtcLogger.log(Level.SEVERE, () -> String.format("Compilation failed for model '%1$s'", 
-					this.modelPath.getPath()));
-				if (mapFile.exists() && !mapFile.delete()) {
-					this.rtcLogger.log(Level.WARNING, () -> String.format("Unable to delete model '%1$s'",
-						mapFile.getPath()));
-				}
-			}
-		}
-		return !super.deleteOnClose;
+		String info = String.format(
+			"%1$21s %2$5d input classes %3$5d states %4$5d transitions; %5$5d fields; (%6$.0f%% nul)",
+			this.getTransducerName()+":", nInputs, nStates, transitionCount, fieldCount, sparsity);
+		super.rtcLogger.log(Level.INFO, () -> info);
+		System.out.println(info);
 	}
 
 	private String getTransducerName() {
@@ -554,23 +496,23 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 					this.inputStateMap.putIfAbsent(transition.from, this.inputStateMap.size());
 				}
 				if (transition.tape == 1 || transition.symbol.getLength() > 1) {
-					Token token = new Token(transition.symbol.bytes());
+					Token token = new Token(transition.symbol.bytes(), -1, transducerOrdinal);
 					Bytes symbol = token.getSymbol();
 					Type type = token.getType();
 					if (transition.tape == 0 && type == Type.LITERAL && transition.symbol.getLength() > 1) {
-						this.addSignal(symbol);
+						super.addSignal(symbol);
 						this.tapeTokens.get(0).add(new Token(token.getReference(Type.SIGNAL, symbol.bytes())));
 					} else if (transition.tape == 1) {
 						this.tapeTokens.get(1).add(token);
 					} else if (transition.tape == 2 && type != Type.LITERAL) {
-						this.tapeTokens.get(2).add(token);
 						if (type == Type.FIELD) {
-							token.setOrdinal(this.addField(symbol));
+							token.setOrdinal(super.addLocalField(this.transducerOrdinal, super.addField(symbol)));
 						} else if (type == Type.TRANSDUCER) {
-							token.setOrdinal(this.addTransducer(symbol));
+							token.setOrdinal(super.addTransducer(symbol));
 						} else if (type == Type.SIGNAL) {
-							token.setOrdinal(this.addSignal(symbol));
+							token.setOrdinal(super.addSignal(symbol));
 						}
+						this.tapeTokens.get(2).add(token);
 					}
 				}
 				ArrayList<Transition> outgoing = this.stateTransitionMap.get(transition.from);
@@ -594,7 +536,7 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 			transitionList.trimToSize();
 		}
 
-		final int[][][] transitionMatrix = new int[this.getSignalLimit()][inrInputStates.length][2];
+		final int[][][] transitionMatrix = new int[super.getSignalLimit()][inrInputStates.length][2];
 		for (int i = 0; i < transitionMatrix.length; i++) {
 			for (int j = 0; j < inrInputStates.length; j++) {
 				transitionMatrix[i][j][0] = j;
@@ -614,16 +556,16 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 					}
 					try {
 						final int rteState = this.inputStateMap.get(t.from);
-						final int inputOrdinal = this.getInputOrdinal(t.symbol.bytes());
+						final int inputOrdinal = super.getInputOrdinal(t.symbol.bytes());
 						final Chain chain = this.chain(t);
 						if (chain != null) {
 							final int[] effectVector = chain.getEffectVector();
 							transitionMatrix[inputOrdinal][rteState][0] = this.inputStateMap.get(chain.getOutS());
 							if (chain.isEmpty()) {
 								transitionMatrix[inputOrdinal][rteState][1] = 1;
-							} else if (chain.isScalar()) {
+							} else if (chain.isEffector()) {
 								transitionMatrix[inputOrdinal][rteState][1] = effectVector[0];
-							} else if (chain.isParameterized()) {
+							} else if (chain.isParameterizedEffector()) {
 								transitionMatrix[inputOrdinal][rteState][1] = Transducer.action(-1 * effectVector[0], effectVector[1]);
 							} else {
 								Ints vector = new Ints(effectVector);
@@ -690,9 +632,9 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 		final int nStates = transitionMatrix[0].length;
 		final int nulSignal = Signal.NUL.signal();
 		final int nulEquivalent = this.inputEquivalenceIndex[nulSignal];
-		final int msumOrdinal = this.getEffectorOrdinal(Bytes.encode(super.getEncoder(), "msum"));
-		final int mproductOrdinal = this.getEffectorOrdinal(Bytes.encode(super.getEncoder(), "mproduct"));
-		final int mscanOrdinal = this.getEffectorOrdinal(Bytes.encode(super.getEncoder(), "mscan"));
+		final int msumOrdinal = super.getEffectorOrdinal(Bytes.encode(super.getEncoder(), "msum"));
+		final int mproductOrdinal = super.getEffectorOrdinal(Bytes.encode(super.getEncoder(), "mproduct"));
+		final int mscanOrdinal = super.getEffectorOrdinal(Bytes.encode(super.getEncoder(), "mscan"));
 		final int[][] msumStateEffects = new int[nStates][];
 		final int[][] mproductStateEffects = new int[nStates][];
 		final int[][] mproductEndpoints = new int[nStates][2];
@@ -729,16 +671,16 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 				assert mscanStateEffects[state] == null;
 				for (int token = 0; token < nulSignal; token++) {
 					if (!allBytes[token]) {
-						byte[][] mscanParameterBytes = { new byte[] { (byte)token } };
-						int mscanParameterIndex = this.compileParameters(mscanOrdinal, mscanParameterBytes);
+						Argument argument = new Argument(-1, new BytesArray(new byte[][] { { (byte) token } }));
+						int mscanParameterIndex = super.compileParameters(mscanOrdinal, argument);
 						mscanStateEffects[state] = new int[] { -1 * mscanOrdinal, mscanParameterIndex, 0 };
 						break;
 					}
 				}
 			} else if (selfCount > 64) {
 				assert msumStateEffects[state] == null;
-				byte[][] msumParameterBytes = { Arrays.copyOf(selfBytes, selfCount) };
-				int msumParameterIndex = this.compileParameters(msumOrdinal, msumParameterBytes);
+				Argument argument = new Argument(-1, new BytesArray(new byte[][] { Arrays.copyOf(selfBytes, selfCount) }));
+				int msumParameterIndex = super.compileParameters(msumOrdinal, argument);
 				msumStateEffects[state] = new int[] { -1 * msumOrdinal, msumParameterIndex, 0 };
 			}
 		}
@@ -804,7 +746,7 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 						assert this.inputEquivalenceIndex[walkedBytes[0]] == exitEquivalent[toState];
 						if (mproductStateEffects[toState] == null) {
 							byte[][] product = new byte[][] { Arrays.copyOfRange(walkedBytes, 0, walkResult[0]) };
-							int effects = this.compileParameters(mproductOrdinal, product);
+							int effects = super.compileParameters(mproductOrdinal, new Argument(-1, new BytesArray(product)));
 							mproductStateEffects[toState] = new int[] { -1 * mproductOrdinal, effects, 0 };
 							mproductEndpoints[toState][0] = nextState;
 							mproductEndpoints[toState][1] = walkResult[2];
@@ -1115,14 +1057,14 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 					if (effectorOrdinal >= 0 && parameterPos > 0) {
 						assert((effectorPos > 0) && (effectorOrdinal == effectorVector[effectorPos - 1]));
 						effectorVector[effectorPos - 1] *= -1;
-						final byte[][] parameters = Arrays.copyOf(parameterList, parameterPos);
-						int parameterOrdinal = this.compileParameters(effectorOrdinal, parameters);
+						final Argument argument = new Argument(this.transducerOrdinal, new BytesArray(Arrays.copyOf(parameterList, parameterPos)));
+						int parameterOrdinal = super.compileParameters(effectorOrdinal, argument);
 						effectorVector[effectorPos] = parameterOrdinal;
 						parameterList = new byte[8][];
 						++effectorPos;
 					}
 					Bytes effectorSymbol = t.symbol;
-					effectorOrdinal = this.getEffectorOrdinal(effectorSymbol);
+					effectorOrdinal = super.getEffectorOrdinal(effectorSymbol);
 					if (effectorOrdinal >= 0) {
 						effectorVector[effectorPos] = effectorOrdinal;
 						++effectorPos;
@@ -1161,8 +1103,9 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 			}
 			if (parameterPos > 0) {
 				assert((effectorPos > 0) && (effectorOrdinal == effectorVector[effectorPos - 1]));
-				final byte[][] parameters = Arrays.copyOf(parameterList, parameterPos);
-				int parameterOrdinal = this.compileParameters(effectorOrdinal, parameters);
+				final BytesArray parameters = new BytesArray(Arrays.copyOf(parameterList, parameterPos));
+				final Argument argument = new Argument(this.transducerOrdinal, parameters);
+				int parameterOrdinal = super.compileParameters(effectorOrdinal, argument);
 				effectorVector[effectorPos] = parameterOrdinal;
 				effectorVector[effectorPos - 1] *= -1;
 				++effectorPos;

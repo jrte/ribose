@@ -61,7 +61,7 @@ public class TestRunner {
 
 		int exitCode = 1;
 		String[] tests = new String[] {
-			"SelectPasteTest", "PasteSpeedTest", "NilPauseTest", "PastePauseTest", "PasteCutTest", "StackTest", "PasteCountTest", "CounterTest", "NilSpeedTest"
+			 "NilSpeedTest", "PasteSpeedTest", "PasteCutTest", "SelectPasteTest", "PasteCountTest", "CounterTest", "NilPauseTest", "PastePauseTest", "StackTest"
 		};
 		final CharsetEncoder encoder = Base.newCharsetEncoder();
 		try (final IModel ribose = IModel.loadRiboseModel(new File(modelPath))) {

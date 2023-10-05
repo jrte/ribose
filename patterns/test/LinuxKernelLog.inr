@@ -82,17 +82,17 @@ LinuxKernel = nil (
 ###
 
 LinuxKernelDropped = (
-	header (space, select[`~tag`]) ('DROPPED' @@ PasteAny) fields
+	(nil, clear[`~*`] select[`~timestamp`]) header (space, select[`~tag`]) ('DROPPED' @@ PasteAny) fields
 	((nl, save signal[`!nil`] stop) | (eos, save signal[`!eos`] stop))
 ):dfamin;
 
 LinuxKernelLimited = (
-	header (space, select[`~tag`]) ('LIMITED' @@ PasteAny) fields
+	(nil, clear[`~*`] select[`~timestamp`]) header (space, select[`~tag`]) ('LIMITED' @@ PasteAny) fields
 	((nl, save signal[`!nil`] stop) | (eos, save signal[`!eos`] stop))
 ):dfamin;
 
 LinuxKernelAborted = (
-	header (space, select[`~tag`]) ('ABORTED' @@ PasteAny) fields
+	(nil, clear[`~*`] select[`~timestamp`]) header (space, select[`~tag`]) ('ABORTED' @@ PasteAny) fields
 	((nl, save signal[`!nil`] stop) | (eos, save signal[`!eos`] stop))
 ):dfamin;
 
@@ -102,11 +102,11 @@ aborted = LinuxKernelAborted$0;
 
 iptables = (dropped | limited | aborted) / (nl | eos);
 null = ((iptables:pref) - iptables) nul (byte - nl)*;
-next = reset continue;
+next = reset signal[`!nil`];
 
 LinuxKernelStrict = (
 	(
-		(nil, mark)
+		(nil, mark signal[`!nil`])
 		(
 			(dropped, next start[`@LinuxKernelDropped`])
 		|	(limited, next start[`@LinuxKernelLimited`])

@@ -213,7 +213,7 @@ public final class Ribose {
 					modelPath));
 				argsOk = false;
 			} else if (riboseModelFile.exists()) {
-				riboseModelFile.delete();
+				argsOk &= riboseModelFile.delete();
 			}
 		}
 		
@@ -375,7 +375,7 @@ public final class Ribose {
 		Logger rteLogger = Base.getRuntimeLogger();
 		boolean mapped = false;
 		try (IModel model = IModel.loadRiboseModel(modelFile)) {
-			mapped = model.map();
+			mapped = model.map(System.out);
 		} catch (ModelException e) {
 			final String format = "Failed to decompile %1$s";
 			rteLogger.log(Level.SEVERE, e, () -> String.format(

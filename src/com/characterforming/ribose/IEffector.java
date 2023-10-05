@@ -22,7 +22,6 @@ package com.characterforming.ribose;
 
 import com.characterforming.ribose.base.Bytes;
 import com.characterforming.ribose.base.EffectorException;
-import com.characterforming.ribose.base.TargetBindingException;
 
 /**
  * Interface for simple effectors that present only a niladic {@link #invoke()}
@@ -83,16 +82,15 @@ public interface IEffector<T extends ITarget> {
 	int invoke() throws EffectorException;
 
 	/**
-	 * Receive an IOutput view of transduction loggers and fields. Fields are
-	 * arrays of bytes extracted from transduction input. Effectors will
-	 * typically select and hold a {@link java.util.logging.Logger} and a subset
-	 * of {@link IField} fields of interest here and extract field data in
-	 * {@link #invoke()} for assimilation into the target.
-	 *
+	 * Receive an {@link IOutput} view of the transductor that the effector target
+	 * is bound to. Effectors retain their IOutput view to look up field ordinals
+	 * for parameter compilation and to transfer data out of runnimg transductors.
+	 * 
 	 * @param output an object that provides a view of transduction runtime fields
-	 * @throws TargetBindingException if field names can't be resolved
+	 * @throws EffectorException if field names can't be resolved
+	 * @see IOutput#getLocalizedFieldIndex(String, String)
 	 */
-	void setOutput(IOutput output) throws TargetBindingException;
+	void setOutput(IOutput output) throws EffectorException;
 
 	/**
 	 * Returns the target that expresses the effector.
@@ -108,15 +106,6 @@ public interface IEffector<T extends ITarget> {
 	 * @return the effector name.
 	 */
 	Bytes getName();
-
-	/**
-	 * Helper method simplifies {@link IField} access
-	 * 
-	 * @param fieldName the name of the field (Unicode)
-	 * @return the corresponding field
-	 * 
-	 */
-	IField getField(String fieldName);
 
 	/**
 	 * Test two effector instances for functional equivalence. Effector

@@ -26,27 +26,65 @@ import java.util.Arrays;
  * @author Kim Briggs
  */
 final class TransducerStack {
-	private TransducerState[] stack;
-	private int tos;
+	class Value {
+		private byte[] val;
+		private int len;
 
-	TransducerStack(final int initialSize) {
-		this.stack = TransducerStack.stack(initialSize);
-		this.tos = -1;
+		Value(int size) {
+			this.val = new byte[Math.max(size, 16)];
+			this.len = 0;
+		}
+
+		int length() { return this.len; }
+
+		byte[] value() { return this.val; }
+
+		void clear() { this.len = 0; }
+
+		void paste(byte input) {
+			if (this.len >= this.val.length) {
+				this.val = Arrays.copyOf(this.val, this.len + (this.len >> 1));
+			}
+			this.val[this.len] = input;
+			this.len += 1;
+		}
+
+		void paste(byte[] input, int length) {
+			assert length <= input.length;
+			int newLength = this.len + length;
+			if (newLength > this.val.length) {
+				this.val = Arrays.copyOf(this.val, newLength + (this.len >> 1));
+			}
+			System.arraycopy(input, 0, this.val, this.len, length);
+			this.len += length;
+		}
+
+		void paste(Value value) {
+			this.paste(value.val, value.length());
+		}
 	}
 
-	private static TransducerState[] stack(final int initialSize) {
+	private Value[] values;
+	private TransducerState[] stack;
+	private int tos, bof;
+
+	TransducerStack(final int initialSize) {
 		int size = initialSize > 4 ? initialSize : 4;
-		TransducerState[] stack = new TransducerState[size];
+		this.stack = new TransducerState[size];
 		for (int i = size - 1; i >= 0; i--) {
-			stack[i] = new TransducerState();
+			this.stack[i] = new TransducerState();
 		}
-		return stack;
+		this.values = new Value[size << 3];
+		for (int i = 0; i < this.values.length; i++) {
+			this.values[i] = new Value(128);
+		}
+		this.tos = this.bof = -1;
 	}
 	
 	private TransducerState stackcheck() {
 		this.tos += 1;
 		if (this.tos >= this.stack.length) {
-			this.stack = Arrays.copyOf(this.stack, (this.tos * 5) >> 2);
+			this.stack = Arrays.copyOf(this.stack, this.tos + (this.tos >> 1));
 			for (int pos = this.tos; pos < this.stack.length; pos++) {
 				this.stack[pos] = new TransducerState();
 			}
@@ -69,7 +107,21 @@ final class TransducerStack {
 	 * @param transducer The transducer to push
 	 */
 	TransducerState push(final Transducer transducer) {
-		return this.stackcheck().transducer(transducer);
+		assert this.bof >= 0 || (this.bof == -1) && (this.tos == -1);
+		this.bof += this.bof >= 0 ? this.stack[this.tos].get().getFieldCount() : 1;
+		TransducerState t = this.stackcheck().set(transducer, this.bof);
+		int tof = this.bof + t.get().getFieldCount();
+		int size = this.values.length;
+		if (tof > size) {
+			this.values = Arrays.copyOf(this.values, tof + (size >> 1));
+			while (size < this.values.length) {
+				this.values[size++] = new Value(128);
+			}
+		}
+		while (tof-- > this.bof) {
+			this.values[tof].clear();
+		}
+		return t;
 	}
 
 	/**
@@ -87,7 +139,10 @@ final class TransducerStack {
 	 * @return The item on top of the stack after the pop
 	 */
 	TransducerState pop() {
-		return this.tos-- > 0 ? this.stack[this.tos] : null;
+		assert this.tos >= 0;
+		TransducerState top = this.tos-- > 0 ? this.stack[this.tos] : null;
+		this.bof = top != null ? top.frame : -1;
+		return top;
 	}
 
 	/**
@@ -125,5 +180,39 @@ final class TransducerStack {
 	 */
 	boolean isEmpty() {
 		return this.tos < 0;
+	}
+
+	/**
+	 * Clear all values in the current frame
+	 */
+	void clear() {
+		if (this.bof >= 0) {
+			int tof = this.bof + this.stack[tos].get().getFieldCount();
+			while (tof-- > this.bof) {
+				this.values[tof].clear();
+			}
+		}
+	}
+
+	/**
+	 * Clear a value in the current frame
+	 * 
+	 * @param ordinal The index of the value to clear
+	 */
+	void clear(int ordinal) {
+		if (this.bof >= 0 && (ordinal == 0 || ordinal < this.stack[this.tos].get().getFieldCount())) {
+			this.values[this.bof + ordinal].clear();
+		}
+	}
+
+	/**
+	 * Get a value in the current frame
+	 * 
+	 * @param ordinal The index of the value in the current frame
+	 * @return The value
+	 */
+	Value value(int ordinal) {
+		assert this.bof < 0 || ordinal == 0 || ordinal < this.stack[this.tos].get().getFieldCount();
+		return this.values[this.bof + ordinal];
 	}
 }

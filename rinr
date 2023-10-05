@@ -12,8 +12,8 @@ if [[ ! -x "$ginr" ]]; then
 fi
 
 if (($#==1)) && [[ "$1" == "version" ]]; then
+	echo ginr @ $(realpath "$ginr")
 	echo ":bye;" | "$ginr" | grep ' '
-	echo ginr@$(realpath "$ginr")
 	exit 0
 elif (($# <2)) || (($#>3)); then
 	echo "Usage: rinr <prologue-file> <ginr-source-directory> [<epilogue-file>]"

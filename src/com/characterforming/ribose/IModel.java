@@ -23,6 +23,7 @@ package com.characterforming.ribose;
 import java.io.File;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.PrintStream;
 
 import com.characterforming.jrte.engine.ModelCompiler;
 import com.characterforming.jrte.engine.ModelLoader;
@@ -154,12 +155,13 @@ public interface IModel extends AutoCloseable {
 	throws ModelException;
 
 	/** 
-	 * Print the model map to System.out
+	 * Print the model map to an output stream
 	 * 
+	 * @param mapWriter the output sink
 	 * @return true unless an uncaught exception is thrown
 	 * @throws ModelException if things don't work out
 	 */
-	boolean map()
+	boolean map(PrintStream mapWriter)
 	throws ModelException;
 
 	/**

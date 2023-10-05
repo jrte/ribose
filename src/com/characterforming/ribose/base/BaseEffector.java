@@ -25,7 +25,6 @@ import java.nio.charset.CharsetEncoder;
 
 import com.characterforming.jrte.engine.Base;
 import com.characterforming.ribose.IEffector;
-import com.characterforming.ribose.IField;
 import com.characterforming.ribose.IOutput;
 import com.characterforming.ribose.ITarget;
 
@@ -62,7 +61,7 @@ public abstract class BaseEffector<T extends ITarget> implements IEffector<T> {
 	public abstract int invoke() throws EffectorException;
 	
 	@Override // @see com.characterforming.ribose.base.IEffector#setOutput(IOutput)
-	public void setOutput(IOutput output) throws TargetBindingException {
+	public void setOutput(IOutput output) throws EffectorException {
 		this.output = output;
 	}
 
@@ -74,16 +73,6 @@ public abstract class BaseEffector<T extends ITarget> implements IEffector<T> {
 	@Override // @see com.characterforming.ribose.IEffector#getTarget()
 	public final T getTarget() {
 		return this.target;
-	}
-
-	@Override // com.characterforming.ribose.IEffector#getField(String)
-	public IField getField(String fieldName) {
-		try {
-			return this.output.getField(Bytes.encode(this.encoder(), fieldName));
-		} catch (TargetBindingException e) {
-			assert false;
-			return null;
-		}
 	}
 
 	@Override // @see java.lang.Object#toString()

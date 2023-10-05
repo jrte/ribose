@@ -74,16 +74,16 @@ final class Automaton {
 						name, inrFile.getPath(), e.getMessage()));
 				}
 				try {
-					compiler.reset(inrFile);
+					this.compiler.reset(inrFile);
 					commit = this.parse(bytes);
 					if (commit) {
-						compiler.saveTransducer();
+						this.compiler.saveTransducer();
 					}
 				} catch (ModelException | ParseException e) {
 					String msg = String.format("%1$s: Exception caught assembling compiler model file; %2$s",
 						filename, e.getMessage());
 					rtcLogger.log(Level.SEVERE, msg, e);
-					compiler.addError(msg);
+					this.compiler.addError(msg);
 					commit = false;
 				}
 			}

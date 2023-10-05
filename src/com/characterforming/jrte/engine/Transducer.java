@@ -24,20 +24,35 @@ package com.characterforming.jrte.engine;
  * @author Kim Briggs
  */
 final class Transducer {
+	private final int ordinal;
 	private final String name;
-	private final String targetName;
+	private final int[] fields;
 	private final int[] inputFilter;
 	private final long[] transitionMatrix;
 	private final int[] effectorVector;
-	int inputEquivalents;
+	private final int inputEquivalents;
 
-	Transducer(String name, String targetName, int[] inputFilter, long[] transitionMatrix, int[] effectorVector) {
+	Transducer(
+		String name,
+		int ordinal,
+		int[] fields,
+		int[] inputFilter,
+		long[] transitionMatrix,
+		int[] effectorVector
+	) {
 		this.name = name;
-		this.targetName = targetName;
+		this.ordinal = ordinal;
+		this.fields = fields;
 		this.inputFilter = inputFilter;
 		this.transitionMatrix = transitionMatrix;
 		this.effectorVector = effectorVector;
-		this.inputEquivalents = 0;
+		int max = -1;
+		for (int eq : this.inputFilter) {
+			if (eq > max) {
+				max = eq;
+			}
+		}
+		this.inputEquivalents = max + 1;
 	}
 
 	// encode state and action in transition matrix cell
@@ -70,12 +85,17 @@ final class Transducer {
 		return action & 0xffff;
 	}
 
-	String getName() {
-		return this.name;
+	// decode signal from RTX_SIGNAL code from an effector 
+	static int signal(int rtxSignal) {
+		return rtxSignal >>> 16;
 	}
 
-	String getTargetName() {
-		return this.targetName;
+	int getOrdinal() {
+		return this.ordinal;
+	}
+
+	String getName() {
+		return this.name;
 	}
 
 	long[] getTransitionMatrix() {
@@ -89,17 +109,16 @@ final class Transducer {
 	int[] getEffectorVector() {
 		return this.effectorVector;
 	}
+
+	int[] getFields() {
+		return this.fields;
+	}
+
+	int getFieldCount() {
+		return this.fields.length;
+	}
 	
 	int getInputEquivalentsCount() {
-		if (this.inputEquivalents == 0) {
-			int max = 0;
-			for (int equiv : this.inputFilter) {
-				if (equiv > max) {
-					max = equiv;
-				}
-			}
-			this.inputEquivalents = max + 1;
-		}
 		return this.inputEquivalents;
 	}
 }

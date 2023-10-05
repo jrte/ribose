@@ -26,8 +26,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.lang.reflect.InvocationTargetException;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicIntegerArray;
@@ -38,7 +36,6 @@ import com.characterforming.ribose.IEffector;
 import com.characterforming.ribose.IParameterizedEffector;
 import com.characterforming.ribose.IModel;
 import com.characterforming.ribose.ITarget;
-import com.characterforming.ribose.IToken;
 import com.characterforming.ribose.ITransductor;
 import com.characterforming.ribose.ITransductor.Metrics;
 import com.characterforming.ribose.base.BaseParameterizedEffector;
@@ -48,18 +45,19 @@ import com.characterforming.ribose.base.EffectorException;
 import com.characterforming.ribose.base.ModelException;
 import com.characterforming.ribose.base.RiboseException;
 import com.characterforming.ribose.base.Signal;
-import com.characterforming.ribose.base.TargetBindingException;
 
 /** Model loader load model files and arbitrates concurrent trandsucer loading. */
 public final class ModelLoader extends Model implements IModel {
-	private AtomicIntegerArray transducerAccessIndex;
-	private AtomicReferenceArray<Transducer> transducerObjectIndex;
+	private final AtomicIntegerArray transducerAccessIndex;
+	private final AtomicReferenceArray<Transducer> transducerObjectIndex;
 
 	private ModelLoader(final File modelPath)
 	throws ModelException {
 		super(modelPath);
-		this.transducerAccessIndex = null;
-		this.transducerObjectIndex = null;
+		super.load();
+		int size = super.transducerOrdinalMap.size();
+		this.transducerAccessIndex = new AtomicIntegerArray(size);
+		this.transducerObjectIndex = new AtomicReferenceArray<>(size);
 	}
 	
 	/**
@@ -71,88 +69,36 @@ public final class ModelLoader extends Model implements IModel {
 	 */
 	public static ModelLoader loadModel(File modelPath)
 	throws ModelException {
-		ModelLoader model = new ModelLoader(modelPath);
-		model.seek(0);
-		long indexPosition = model.readLong();
-		final String loadedVersion = model.readString();
-		if (!loadedVersion.equals(Base.RTE_VERSION)) {
-			throw new ModelException(
-				String.format("Current model version '%1$s' does not match version string '%2$s' from model file '%3$s'",
-					Base.RTE_VERSION, loadedVersion, model.modelPath.getPath()));
-		}
-		final String targetClassname = model.readString();
-		if (!targetClassname.equals(model.targetClass.getName())) {
-			throw new ModelException(
-				String.format("Can't load model for target class '%1$s'; '%2$s' is target class for model file '%3$s'",
-					model.targetName, targetClassname, model.modelPath.getPath()));
-		}
-		model.modelVersion = loadedVersion;
-		model.seek(indexPosition);
-		model.signalOrdinalMap = model.readOrdinalMap(Base.RTE_SIGNAL_BASE);
-		model.fieldOrdinalMap = model.readOrdinalMap(0);
-		model.effectorOrdinalMap = model.readOrdinalMap(0);
-		model.transducerOrdinalMap = model.readOrdinalMap(0);
-		int transducerCount = model.transducerOrdinalMap.size();
-		model.transducerNameIndex = new Bytes[transducerCount];
-		model.transducerAccessIndex = new AtomicIntegerArray(transducerCount);
-		model.transducerObjectIndex = new AtomicReferenceArray<>(transducerCount);
-		model.transducerOffsetIndex = new long[transducerCount];
-		for (int transducerOrdinal = 0; transducerOrdinal < transducerCount; transducerOrdinal++) {
-			model.transducerNameIndex[transducerOrdinal] = new Bytes(model.readBytes());
-			model.transducerOffsetIndex[transducerOrdinal] = model.readLong();
-			assert model.transducerOrdinalMap.get(model.transducerNameIndex[transducerOrdinal]) == transducerOrdinal;
-		}
-		model.initializeProxyEffectors();
-		List<String> errors = new ArrayList<>(32);
-		for (int effectorOrdinal = 0; effectorOrdinal < model.effectorOrdinalMap.size(); effectorOrdinal++) {
-			byte[][][] effectorParameters = model.readBytesArrays();
-			IToken[][] parameterTokens = new IToken[effectorParameters.length][];
-			for (int i = 0; i < effectorParameters.length; i++) {
-				parameterTokens[i] = Token.getParameterTokens(model, effectorParameters[i]);
-			}
-			if (model.proxyEffectors[effectorOrdinal] instanceof BaseParameterizedEffector<?, ?> effector) {
-				effector.compileParameters(parameterTokens, errors);
-			}
-			if (model.targetMode.isLive()) {
-				model.proxyEffectors[effectorOrdinal].passivate();
-			}
-		}
-		if (!errors.isEmpty()) {
-			for (String error : errors) {
-				model.rtcLogger.log(Level.SEVERE, error);
-			}
-			throw new ModelException(String.format(
-				"Failed to load '%1$s', effector parameter precompilation failed.",
-					modelPath.getAbsolutePath()));
-		}
-		assert model.targetMode.isLive();
-		return model;
+		return new ModelLoader(modelPath);
 	}
 
-	@Override // @see com.characterforming.ribose.IRiboseModel#transductor(ITarget)
+	@Override // @see com.characterforming.ribose.IModel#transductor(ITarget)
 	public ITransductor transductor(ITarget target)
 	throws ModelException {
 		return this.bindTransductor(target);
 	}
 
-	@Override // @see com.characterforming.ribose.IRiboseModel#stream(Bytes, Signal, InputStream, OutputStream)
+	@Override // @see com.characterforming.ribose.IModel#stream(Bytes, Signal, InputStream, OutputStream)
 	public boolean stream(final Bytes transducer, Signal prologue, InputStream in, OutputStream out)
 	throws RiboseException {
 		ITarget runTarget = null;
 		try {
-			runTarget = (ITarget) Class.forName(this.getTargetClassname()).getDeclaredConstructor().newInstance();
+			Class<?> targetClass = Class.forName(super.getTargetClassname());
+			runTarget = (ITarget) targetClass.getDeclaredConstructor().newInstance();
 		} catch (InstantiationException | IllegalAccessException | IllegalArgumentException
-			| InvocationTargetException | NoSuchMethodException | SecurityException | ClassNotFoundException e) {
-			this.rteLogger.log(Level.SEVERE, e, () -> String.format("Failed to instantiate target '%1$s' transducer '%2$s'",
-				this.getTargetClassname(), transducer.toString(super.getDecoder())));
+			| InvocationTargetException | NoSuchMethodException | SecurityException
+			| ClassNotFoundException e) {
+			super.rteLogger.log(Level.SEVERE, e, () -> String.format(
+				"Failed to instantiate target '%1$s' transducer '%2$s'",
+				super.getTargetClassname(), transducer.toString(super.getDecoder())));
 			return false;
 		}
 		return this.stream(transducer, runTarget, prologue, in, out);
 	}
 
-	@Override // @see com.characterforming.ribose.IRiboseModel#transduce(Bytes, ITarget, Signal, InputStream, OutputStream)
+	@Override // @see com.characterforming.ribose.IModel#transduce(Bytes, ITarget, Signal, InputStream, OutputStream)
 	public boolean stream(Bytes transducer, ITarget target, Signal prologue, InputStream in, OutputStream out) {
-		String targetClassname = this.getTargetClassname();
+		String targetClassname = super.getTargetClassname();
 		try {
 			Metrics metrics = new Metrics();
 			byte[] bytes = new byte[Base.getInBufferSize()];
@@ -164,32 +110,33 @@ public final class ModelLoader extends Model implements IModel {
 				trex.output(out);
 				if (prologue != null)
 					trex.signal(prologue);
-				if (trex.push(bytes, read).start(transducer).status().isRunnable()) {
-					do {
-						if (trex.run().status().isPaused()) {
-							bytes = trex.recycle(bytes);
-							trex.metrics(metrics);
-							assert bytes != null;
-							read = in.read(bytes);
-							if (read > 0) {
-								trex.push(bytes, read);
-								position += read;
-							} else {
-								break;
-							}
+				trex.push(bytes, read).start(transducer);
+				while (trex.status().isRunnable()) {
+					if (trex.run().status().isPaused()) {
+						bytes = trex.recycle(bytes);
+						trex.metrics(metrics);
+						assert bytes != null;
+						read = in.read(bytes);
+						if (read > 0) {
+							trex.push(bytes, read);
+							position += read;
+						} else {
+							break;
 						}
-					} while (trex.status().isRunnable());
-					if (trex.status().isPaused()) {
-						trex.signal(Signal.EOS).run();
 					}
-					assert !trex.status().isRunnable();
-					trex.stop();
-					assert trex.status().isStopped();
 				}
+				if (trex.status().isPaused()) {
+					trex.signal(Signal.EOS).run();
+				}
+				assert !trex.status().isRunnable();
+				trex.stop();
+				assert trex.status().isStopped();
 			}
-		} catch (RiboseException | ModelException | EffectorException | DomainErrorException | IOException e) {
-			this.rteLogger.log(Level.SEVERE, String.format("Transducer '%1$s' failed for target '%2$s'",
-				transducer.toString(), targetClassname), e);
+		} catch (RiboseException | ModelException | EffectorException
+			| DomainErrorException | IOException e) {
+			super.rteLogger.log(Level.SEVERE, e, () -> String.format(
+				"Transducer '%1$s' failed for target '%2$s'",
+				transducer.toString(), targetClassname));
 			return false;
 		}
 		return true;
@@ -207,19 +154,7 @@ public final class ModelLoader extends Model implements IModel {
 				transducerOrdinal, this.transducerObjectIndex.length()));
 		}
 		if (0 == this.transducerAccessIndex.compareAndExchange(transducerOrdinal, 0, 1)) {
-			try {
-				super.io.seek(transducerOffsetIndex[transducerOrdinal]);
-			} catch (final IOException e) {
-				throw new ModelException(
-					String.format("RuntimeModel.loadTransducer(ordinal:%d) IOException after seek to %d",
-						transducerOrdinal, transducerOffsetIndex[transducerOrdinal]), e);
-			}
-			final String name = super.readString();
-			final String target = super.readString();
-			final int[] inputs = super.readIntArray();
-			final long[] transitions = super.readTransitionMatrix();
-			final int[] effects = super.readIntArray();
-			final Transducer newt = new Transducer(name, target, inputs, transitions, effects);
+			final Transducer newt = super.readTransducer(transducerOrdinal);
 			final Transducer oldt = this.transducerObjectIndex.compareAndExchange(transducerOrdinal, null, newt);
 			final int access = this.transducerAccessIndex.compareAndExchange(transducerOrdinal, 1, 2);
 			assert null == oldt && 1 == access;
@@ -234,14 +169,14 @@ public final class ModelLoader extends Model implements IModel {
 
 	private Transductor bindTransductor(ITarget target)
 	throws ModelException {
-		if (!this.targetClass.isAssignableFrom(target.getClass())) {
+		if (!super.targetClass.isAssignableFrom(target.getClass())) {
 			throw new ModelException(
 				String.format("Cannot bind instance of target class '%1$s', can only bind to model target class '%2$s'",
-					target.getClass().getName(), this.targetClass.getName()));
+					target.getClass().getName(), super.targetClass.getName()));
 		}
 		if (super.targetMode.isProxy()) {
 			throw new ModelException(String.format("Cannot use model target instance as runtime target: $%s",
-				this.targetClass.getName()));
+				super.targetClass.getName()));
 		}
 		Transductor trex = new Transductor(this);
 		IEffector<?>[] trexFx = trex.getEffectors();
@@ -252,17 +187,20 @@ public final class ModelLoader extends Model implements IModel {
 		if (!checkTargetEffectors(trex, boundFx)) {
 			throw new ModelException("Target effectors do not match model effectors");
 		}
-		trex.setFieldOrdinalMap(this.fieldOrdinalMap);
-		this.bindParameters(trex, boundFx);
+		try {
+			this.bindParameters(trex, boundFx);
+		} catch (EffectorException e) {
+			throw new ModelException("Target effectors do not match model effectors", e);
+		}
 		return trex;
 	}
 
 	private IEffector<?>[] bindParameters(Transductor trex, IEffector<?>[] runtimeEffectors)
-	throws TargetBindingException {
-		assert runtimeEffectors.length == this.proxyEffectors.length;
-		for (int i = 0; i < this.proxyEffectors.length; i++) {
+	throws EffectorException {
+		assert runtimeEffectors.length == super.proxyEffectors.length;
+		for (int i = 0; i < super.proxyEffectors.length; i++) {
 			runtimeEffectors[i].setOutput(trex);
-			if (this.proxyEffectors[i] instanceof IParameterizedEffector<?, ?> proxyEffector
+			if (super.proxyEffectors[i] instanceof IParameterizedEffector<?, ?> proxyEffector
 			&& runtimeEffectors[i] instanceof BaseParameterizedEffector<?, ?> boundEffector) {
 				boundEffector.setParameters(proxyEffector);
 			}
@@ -272,17 +210,18 @@ public final class ModelLoader extends Model implements IModel {
 	}
 
 	@Override
-	public void decompile(final String transducerName) throws ModelException {
-		Transducer trex = this.loadTransducer(this.getTransducerOrdinal(Bytes.encode(encoder.reset(), transducerName)));
+	public void decompile(final String transducerName)
+	throws ModelException {
+		Transducer trex = this.loadTransducer(super.getTransducerOrdinal(Bytes.encode(encoder.reset(), transducerName)));
 		int[] effectorVectors = trex.getEffectorVector();
 		int[] inputEquivalenceIndex = trex.getInputFilter();
 		long[] transitionMatrix = trex.getTransitionMatrix();
 		int inputEquivalentCount = trex.getInputEquivalentsCount();
-		Set<Map.Entry<Bytes, Integer>> effectorOrdinalMap = this.getEffectorOrdinalMap().entrySet();
+		Set<Map.Entry<Bytes, Integer>> effectorOrdinalMap = super.getEffectorOrdinalMap().entrySet();
 		String[] effectorNames = new String[effectorOrdinalMap.size()];
 		for (Map.Entry<Bytes, Integer> entry : effectorOrdinalMap) {
 			effectorNames[entry.getValue()] = Bytes
-				.decode(this.decoder.reset(), entry.getKey().bytes(), entry.getKey().getLength()).toString();
+				.decode(super.getDecoder(), entry.getKey().bytes(), entry.getKey().getLength()).toString();
 		}
 		System.out.printf("%s%n%nInput equivalents (equivalent: input...)%n%n", transducerName);
 		for (int i = 0; i < inputEquivalentCount; i++) {
@@ -323,10 +262,10 @@ public final class ModelLoader extends Model implements IModel {
 				System.out.printf("%1$d %2$d -> %3$d", from, equivalent, to);
 				if (effect >= 0x10000) {
 					int effectorOrdinal = Transducer.effector(effect);
-					if (this.proxyEffectors[effectorOrdinal] instanceof BaseParameterizedEffector<?, ?> effector) {
+					if (super.proxyEffectors[effectorOrdinal] instanceof BaseParameterizedEffector<?, ?> effector) {
 						int parameterOrdinal = Transducer.parameter(effect);
 						System.out.printf(" %s[", effectorNames[effectorOrdinal]);
-						System.out.printf(" %s ]", effector.showParameterTokens(this.getDecoder(), parameterOrdinal));
+						System.out.printf(" %s ]", effector.showParameterTokens(super.getDecoder(), parameterOrdinal));
 					}
 				} else if (effect >= 0) {
 					if (effect > 1) {
@@ -339,7 +278,7 @@ public final class ModelLoader extends Model implements IModel {
 							System.out.printf(" %s", effectorNames[effectorVectors[index++]]);
 						} else {
 							int effectorOrdinal = -1 * effectorVectors[index++];
-							if (this.proxyEffectors[effectorOrdinal] instanceof BaseParameterizedEffector<?,?> effector) {
+							if (super.proxyEffectors[effectorOrdinal] instanceof BaseParameterizedEffector<?,?> effector) {
 								int parameterOrdinal = Transducer.parameter(effectorVectors[index++]);
 								System.out.printf(" %s[", effectorNames[effectorOrdinal]);
 								System.out.printf(" %s ]", effector.showParameterTokens(this.getDecoder(), parameterOrdinal));

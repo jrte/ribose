@@ -21,7 +21,7 @@
  * out[..]} effector. Domain specific {@link ITarget} implementations may extend
  * the range of the transductor target with specialized {@link IEffector} and 
  * {@link IParameterizedEffector} implementations. All effectors receive {@link
- * IOutput} views to access extracted {@link IField} output as raw bytes, common
+ * IOutput} views to access extracted field output as raw bytes, common
  * Java primitive, or Unicode text. 
  * <br><br>
  * {@link IEffector} and {@link IParameterizedEffector} classes are typically
@@ -59,9 +59,8 @@
  * transduction output into the target domain. For <i>fancy</i> models proxy targets
  * are instantiated with the default constructor but live targets must be instantiated
  * outside the ribose runtime. All effectors receive a reference to their enclosing
- * target as well as an {@link IOutput} view of the transductor's fields. Fields
- * are represented by the {@link IField} interface, which provides methods for
- * decoding extracted field contents as Java primitives.
+ * target as well as an {@link IOutput} view of the transductor's fields, which
+ * provides methods for decoding extracted field contents as Java primitives.
  * <br><br>
  * Transductions and the involved objects (transductor, target, effectors, fields) are
  * assumed to be single-threaded. Concurrent transductions should run on separate

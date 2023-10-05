@@ -21,7 +21,9 @@ package com.characterforming.jrte.engine;
 
 import java.nio.charset.CharsetDecoder;
 import java.util.Arrays;
+import java.util.HashMap;
 
+import com.characterforming.jrte.engine.Model.Argument;
 import com.characterforming.ribose.IToken;
 import com.characterforming.ribose.base.Bytes;
 
@@ -38,7 +40,8 @@ final class Token implements IToken {
 	private final IToken.Type type;
 	private final Bytes literal;
 	private final Bytes symbol;
-	private int ordinal;
+	private int transducerOrdinal;
+	private int tokenOrdinal;
 
 	/**
 	 * Assemble tokens from effector parameter bytes. For internal use
@@ -51,18 +54,25 @@ final class Token implements IToken {
 	 * effector parameter type (int[2]) as {@code new int[] {99, 257}}.
 	 * 
 	 * @param model the containing ribose model
-	 * @param rawTokens a series of raw effector parameter tokens
+	 * @param argument a series of raw effector parameter tokens
 	 */
-	public static IToken[] getParameterTokens(Model model, byte[][] rawTokens) {
-		IToken[] tokens = new Token[rawTokens.length];
-		for (int i = 0; i < rawTokens.length; i++) {
-			Token token = new Token(rawTokens[i]);
+	public static IToken[] getParameterTokens(Model model, Argument argument) {
+		byte[][] bytes = argument.tokens().getBytes();
+		IToken[] tokens = new Token[bytes.length];
+		for (int i = 0; i < tokens.length; i++) {
+			Token token = new Token(argument.tokens().getBytes(i));
 			if (token.type == Type.TRANSDUCER) {
-				tokens[i] = new Token(rawTokens[i], model.getTransducerOrdinal(token.symbol));
+				tokens[i] = new Token(bytes[i], model.getTransducerOrdinal(token.symbol));
 			} else if (token.type == Type.FIELD) {
-				tokens[i] = new Token(rawTokens[i], model.getFieldMap().getOrDefault(token.symbol, -1));
+				int transducerOrdinal = argument.transducerOrdinal();
+				int fieldOrdinal = model.getFieldOrdinal(token.symbol);
+				HashMap<Integer, Integer> localFieldMap = model.transducerFieldMaps.get(transducerOrdinal);
+				int localFieldIndex = localFieldMap.computeIfAbsent(fieldOrdinal, absent -> localFieldMap.size());
+				tokens[i] = new Token(bytes[i], localFieldIndex);
+				assert transducerOrdinal >= 0 && fieldOrdinal >= 0
+				&& (localFieldMap.isEmpty() || localFieldIndex >= 0);
 			} else if (token.type == Type.SIGNAL) {
-				tokens[i] = new Token(rawTokens[i], model.getSignalOrdinal(token.symbol));
+				tokens[i] = new Token(bytes[i], model.getSignalOrdinal(token.symbol));
 			} else {
 				tokens[i] = token;
 			}
@@ -76,7 +86,7 @@ final class Token implements IToken {
 	 * @param token a literal token
 	 */
 	public Token(byte[] token) {
-		this(token, -1);
+		this(token, -1, -1);
 	}
 
 	/**
@@ -87,15 +97,29 @@ final class Token implements IToken {
 	 * @param ordinal the symbolic token ordinal
 	 */
 	public Token(byte[] token, int ordinal) {
+		this(token, ordinal, -1);
+	}
+
+	/**
+	 * Constructor for literal or symbolic tokens. The ordinal value is
+	 * ignored if the token does not represent a symbol.
+	 * 
+	 * @param token a literal or symbolic token
+	 * @param ordinal the symbolic token ordinal
+	 * @param transducer the ordinal of the transducer the token is bound to
+	 */
+	public Token(byte[] token, int ordinal, int transducer) {
 		this.type = Token.type(token);
 		if (this.type != IToken.Type.LITERAL) {
 			this.literal = new Bytes(token);
 			this.symbol = new Bytes(Arrays.copyOfRange(token, 1, token.length));
-			this.ordinal = ordinal;
+			this.transducerOrdinal = transducer;
+			this.tokenOrdinal = ordinal;
 		} else {
 			this.literal = new Bytes(this.literal(token));
 			this.symbol = this.literal;
-			this.ordinal = -1;
+			this.tokenOrdinal = -1;
+			this.transducerOrdinal = -1;
 		}
 	}
 
@@ -120,6 +144,13 @@ final class Token implements IToken {
 		return this.type;
 	}
 	
+	@Override // @see com.characterforming.ribose.IToken#getName()
+	public String getName(CharsetDecoder decoder) {
+		return this.literal.getLength() != 1 || this.literal.bytes()[0] != 0xa
+		? this.getLiteral().toString(decoder)
+		: "#a";
+	}
+	
 	@Override // @see com.characterforming.ribose.IToken#getLiteralValue()
 	public Bytes getLiteral() {
 		return this.literal;
@@ -132,17 +163,17 @@ final class Token implements IToken {
 
 	@Override // @see com.characterforming.ribose.IToken#getOrdinal()
 	public int getOrdinal() {
-		return this.ordinal;
+		return this.tokenOrdinal;
 	}
 
-	@Override // @see com.characterforming.ribose.IToken#setOrdinal(int)
-	public void setOrdinal(int ordinal) {
-		this.ordinal = ordinal;
-	}
-
-	@Override
+	@Override // @see com.characterforming.ribose.IToken#getTypeName()
 	public String getTypeName() {
 		return Token.types[this.type.ordinal()];
+	}
+
+	@Override // @see com.characterforming.ribose.IToken#getTransducerOrdinal()
+	public int getTransducerOrdinal() {
+		return this.transducerOrdinal;
 	}
 
 	@Override
@@ -156,11 +187,12 @@ final class Token implements IToken {
 		return this.symbol.hashCode() * (this.type.ordinal() + 1);
 	}
 
-//	@Override
-	public String toString(CharsetDecoder decoder) {
-		return this.literal.getLength() != 1 || this.literal.bytes()[0] != 0xa
-			? this.getLiteral().toString(decoder)
-			: "#a";
+	void setOrdinal(int ordinal) {
+		this.tokenOrdinal = ordinal;
+	}
+
+	void setTransducerOrdinal(int transducerOrdinal) {
+		this.transducerOrdinal = transducerOrdinal;
 	}
 
 	private byte[] literal(byte[] token) {

@@ -41,14 +41,14 @@ final class Chain {
 		return this.effectVector.length == 0;
 	}
 
-	boolean isScalar() {
+	boolean isEffector() {
 		return this.effectVector.length == 2
 		&& this.effectVector[1] == 0;
 	}
 
-	boolean isParameterized() {
+	boolean isParameterizedEffector() {
 		return this.effectVector.length == 3
-		&& this.effectVector[2] == 0
-		&& this.effectVector[0] < 0;
+		&& this.effectVector[0] < 0
+		&& this.effectVector[2] == 0;
 	}
 }

@@ -63,13 +63,29 @@ import com.characterforming.ribose.base.TargetBindingException;
  * <br><br>
  * For example, a validation model containing a collection of transducers that
  * syntactically recognize domain artifacts would be bound to a target expressing
- * effectors to support semantic validation. The validation model and target, 
+ * effectors to support semantic validation. The validation patterns and target, 
  * supplied by the service provider, can then be combined with specialized models
- * in receiving domains to obtain a composite model including provider validation
- * and consumer reception models and effectors. With some ginr magic reception
- * patterns can be joined with corresponding validation patterns to obtain
- * transductors that validate input in stepwise synchrony with reception and
- * assimilation into the receiving domain. 
+ * in receiving domains to obtain composite models that include provider validation
+ * and consumer reception patterns, targets and effectors. With some ginr magic
+ * validators can be merged with corresponding receptors to produce transductors
+ * that validate input in stepwise synchrony with reception and assimilation into
+ * the receiving domain.
+ * <br><pre>
+ * validator = (a, u) (b, v) (c, w);
+ * receptor = (a, x) (b, y) (c, z);
+ * receiver = (
+ *   ((receptor$(1,0)) @@ validator)$(1,2 0)
+ * );
+ * a b c @ receiver:;
+ * u x v y w z</pre>
+ * In the above case the vendor would provide validation target and effectors
+ * in a jar along with validation patterns. Consumer would use the validation
+ * pattern input syntax and effector semantics as templates for producing receptor
+ * patterns specialized for use in the consumer domain, and build a receptor target
+ * class to express effectors to support the receptor patterns. The receptor target
+ * would include an instance of the validation target and expose the validation
+ * effectors along with its receptor effectors, presenting itself as a composite
+ * target to the transductor.
  * <br><br>
  * The {@link SimpleTarget} class is included in the ribose jar file and exposes
  * the base transductor effectors listed in the {@link ITransductor}

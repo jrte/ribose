@@ -44,10 +44,10 @@ compilation.
 For example, the ribose compiler model {@code TCompile.model} includes an {@code Automaton}
 transducer pattern, shown <a href="https://github.com/jrte/ribose/blob/master/patterns/ribose/Automaton.inr"
 target="_blank">here</a>, that is compiled with the {@code rinr} shell script as follows:
-<br><pre>./rinr patterns/alpha.inr patterns/ribose patterns/after.inr</pre>
-which produces {@code build/compiler/Automaton.dfa}. The ribose model compiler then
-transduces each FST (*.dfa) file in the {@code build/automata} directory to assemble
-a ribose transducer and saves each transducer in {@code TCompile.model}.
+<br><pre>./rinr patterns/alpha.inr patterns/ribose patterns/after.inr</pre> to produce
+{@code build/compiler/Automaton.dfa}. The ribose model compiler then transduces each FST
+(*.dfa) file in the {@code build/automata} directory to assemble ribose transducers
+and saves them in {@code TCompile.model}.
 <br><pre>./ribose compile build/automata build/TCompile.model</pre>
 The target in this case is the {@code ModelCompiler}, which expresses three
 effectors to extract {@code Header} and {@code Transition} records and finally

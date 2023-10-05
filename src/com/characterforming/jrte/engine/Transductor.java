@@ -22,15 +22,14 @@ package com.characterforming.jrte.engine;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.ByteBuffer;
+import java.nio.charset.CharacterCodingException;
 import java.nio.charset.CharsetDecoder;
 import java.nio.charset.CharsetEncoder;
 import java.util.Arrays;
-import java.util.Map;
-import java.util.Map.Entry;
 import java.util.logging.Logger;
 
 import com.characterforming.ribose.IEffector;
-import com.characterforming.ribose.IField;
 import com.characterforming.ribose.IOutput;
 import com.characterforming.ribose.IParameterizedEffector;
 import com.characterforming.ribose.IModel;
@@ -101,15 +100,14 @@ public final class Transductor implements ITransductor, IOutput {
 	private static final int MATCH_PRODUCT = 2;
 	private static final int MATCH_SCAN = 3;
 	
-	private Signal prologue;
-	private final Model model;
-	private final ModelLoader loader;
+	private Model model;
 	private final boolean isProxy;
+	private final ModelLoader loader;
 	private TransducerState transducer;
 	private IEffector<?>[] effectors;
-	private Field selected;
-	private Field[] fieldHandles;
-	private Map<Bytes, Integer> fieldOrdinalMap;
+	private TransducerStack.Value value;
+	private Signal prologue;
+	private int selected;
 	private final TransducerStack transducerStack;
 	private final InputStack inputStack;
 	private int matchMode;
@@ -136,10 +134,12 @@ public final class Transductor implements ITransductor, IOutput {
 		this.decoder = Base.newCharsetDecoder();
 		this.encoder = Base.newCharsetEncoder();
 		this.transducerStack = null;
+		this.selected = -1;
+		this.value = null;
 		this.inputStack = null;
 		this.signalLimit = -1;
-		this.rtcLogger = null;
-		this.rteLogger = null;
+		this.rtcLogger = Base.getCompileLogger();
+		this.rteLogger = Base.getRuntimeLogger();
 		this.metrics = null;
 	}
 
@@ -159,12 +159,11 @@ public final class Transductor implements ITransductor, IOutput {
 		this.prologue = null;
 		this.effectors = null;
 		this.transducer = null;
-		this.fieldHandles = null;
-		this.fieldOrdinalMap = null;
+		this.selected = -1;
+		this.value = null;
 		this.inputStack = new InputStack(INITIAL_STACK_SIZE);
 		this.transducerStack = new TransducerStack(INITIAL_STACK_SIZE);
 		this.outputStream = System.getProperty("jrte.out.enabled", "true").equals("true") ? System.out : null;
-		this.selected = null;
 		this.matchMode = MATCH_NONE;
 		this.matchSum = null;
 		this.matchProduct = null;
@@ -180,26 +179,136 @@ public final class Transductor implements ITransductor, IOutput {
 	@Override // @see com.characterforming.ribose.ITarget#getEffectors()
 	public IEffector<?>[] getEffectors() throws TargetBindingException {
 		return new IEffector<?>[] {
-		/* 0*/ new InlineEffector(this, "0"),
-		/* 1*/ new InlineEffector(this, "1"),
-		/* 2*/ new PasteEffector(this),
-		/* 3*/ new SelectEffector(this),
-		/* 4*/ new CopyEffector(this),
-		/* 5*/ new CutEffector(this),
-		/* 6*/ new ClearEffector(this),
-		/* 7*/ new CountEffector(this),
-		/* 8*/ new SignalEffector(this),
-		/* 9*/ new InEffector(this),
-		/*10*/ new OutEffector(this),
-		/*11*/ new InlineEffector(this, "mark"),
-		/*12*/ new InlineEffector(this, "reset"),
-		/*13*/ new StartEffector(this),
-		/*14*/ new PauseEffector(this),
-		/*15*/ new InlineEffector(this, "stop"),
-		/*16*/ new MsumEffector(this),
-		/*17*/ new MproductEffector(this),
-		/*18*/ new MscanEffector(this)
+				/* 0*/ new InlineEffector(this, "0"),
+				/* 1*/ new InlineEffector(this, "1"),
+				/* 2*/ new PasteEffector(this),
+				/* 3*/ new SelectEffector(this),
+				/* 4*/ new CopyEffector(this),
+				/* 5*/ new CutEffector(this),
+				/* 6*/ new ClearEffector(this),
+				/* 7*/ new CountEffector(this),
+				/* 8*/ new SignalEffector(this),
+				/* 9*/ new InEffector(this),
+				/*10*/ new OutEffector(this),
+				/*11*/ new InlineEffector(this, "mark"),
+				/*12*/ new InlineEffector(this, "reset"),
+				/*13*/ new StartEffector(this),
+				/*14*/ new PauseEffector(this),
+				/*15*/ new InlineEffector(this, "stop"),
+				/*16*/ new MsumEffector(this),
+				/*17*/ new MproductEffector(this),
+				/*18*/ new MscanEffector(this)
 		};
+	}
+
+	@Override // @see com.characterforming.ribose.ITarget#getName()
+	public String getName() {
+		return this.getClass().getSimpleName();
+	}
+
+	@Override // @see com.characterforming.ribose.IOutput#getLocalizedFieldIndex(Bytes, Bytes)
+	public int getLocalizedFieldIndex(String transducerName, String fieldName) {
+		int transducerOrdinal = this.model.getTransducerOrdinal(Bytes.encode(this.encoder(), transducerName));
+		int fieldOrdinal = this.model.getFieldOrdinal(Bytes.encode(this.encoder(), fieldName));
+		return this.model.getLocalField(transducerOrdinal, fieldOrdinal);
+	}
+
+	@Override // @see com.characterforming.ribose.IOutput#getLocalizedFieldIndex()
+	public int getLocalizedFieldndex() throws EffectorException {
+		if (!this.isProxy) {
+			return this.selected;
+		} else
+			throw new EffectorException("Not valid for proxy transductor");
+	}
+
+	@Override // @see com.characterforming.ribose.IOutput#asBytes(int)
+	public byte[] asBytes(int fieldOrdinal) throws EffectorException {
+		if (!this.isProxy) {
+			TransducerStack.Value v = this.transducerStack.value(fieldOrdinal);
+			return Arrays.copyOf(v.value(), v.length());
+		} else
+			throw new EffectorException("Not valid for proxy transductor");
+	}
+
+	@Override // @see com.characterforming.ribose.IOutput#asString(int)
+	public String asString(int fieldOrdinal) throws EffectorException {
+		if (!this.isProxy) {
+			TransducerStack.Value v = this.transducerStack.value(fieldOrdinal);
+			try {
+				return this.decoder().decode(
+						ByteBuffer.wrap(v.value(), 0, v.length())).toString();
+			} catch (CharacterCodingException e) {
+				char[] chars = new char[v.length()];
+				byte[] data = v.value();
+				for (int i = 0; i < chars.length; i++) {
+					chars[i] = (char) (0xff & data[i]);
+				}
+				return new String(chars);
+			}
+		} else
+			throw new EffectorException("Not valid for proxy transductor");
+	}
+
+	@Override // @see com.characterforming.ribose.IOutput#asInteger()
+	public long asInteger(int fieldOrdinal) throws EffectorException {
+		if (!this.isProxy) {
+			TransducerStack.Value v = this.transducerStack.value(fieldOrdinal);
+			byte[] data = v.value();
+			long sign = data[0] == '-' ? -1 : 1;
+			long n = 0;
+			for (int i = sign > 0 ? 0 : 1; i < v.length(); i++) {
+				int digit = data[i];
+				if (Character.getType(digit) == Character.DECIMAL_DIGIT_NUMBER) {
+					n = (10 * n) + (digit - 48);
+				} else {
+					throw new NumberFormatException(String.format(
+							"Not a numeric value '%1$s'", this.toString()));
+				}
+			}
+			return sign * n;
+		} else
+			throw new EffectorException("Not valid for proxy transductor");
+	}
+
+	@Override // @see com.characterforming.ribose.IOutput#asReal()
+	public double asReal(int fieldOrdinal) throws EffectorException {
+		if (!this.isProxy) {
+			TransducerStack.Value v = this.transducerStack.value(fieldOrdinal);
+			byte[] data = v.value();
+			double f = data[0] == '-' ? -1.0 : 1.0;
+			boolean mark = false;
+			long n = 0;
+			for (int i = f < 0.0 ? 1 : 0; i < v.length(); i++) {
+				byte digit = data[i];
+				if (Character.getType(digit) == Character.DECIMAL_DIGIT_NUMBER) {
+					n = (10 * n) + (digit - 48);
+					if (mark) {
+						f /= 10.0;
+					}
+				} else if (digit == '.') {
+					mark = true;
+				} else {
+					throw new NumberFormatException(String.format(
+							"Not a floating point value '%1$s'", this.toString()));
+				}
+			}
+			return f * n;
+		} else
+			throw new EffectorException("Not valid for proxy transductor");
+	}
+
+	@Override // @see com.characterforming.ribose.IOutput#signal(int)
+	public int signal(int signalOrdinal) throws EffectorException {
+		if (256 > signalOrdinal || signalOrdinal >= this.model.getSignalLimit()) {
+			throw new EffectorException(String.format("Signal ordinal %1$d is out of range [256,%2$d)",
+					signalOrdinal, this.model.getSignalLimit()));
+		}
+		return (signalOrdinal << 16) | IEffector.RTX_SIGNAL;
+	}
+
+	@Override // @see com.characterforming.ribose.IOutput#isProxy()
+	public boolean isProxy() {
+		return this.isProxy;
 	}
 
 	@Override // @see com.characterforming.ribose.IOutput#rtcLogger()
@@ -222,9 +331,14 @@ public final class Transductor implements ITransductor, IOutput {
 		return this.encoder.reset();
 	}
 
-	@Override // @see com.characterforming.ribose.ITarget#getName()
-	public String getName() {
-		return this.getClass().getSimpleName();
+	@Override // @see com.characterforming.ribose.ITransductor#recycle()
+	public byte[] recycle(byte[] bytes) {
+		return this.inputStack.recycle(bytes);
+	}
+
+	@Override // @see com.characterforming.ribose.ITransductor#metrics()
+	public void metrics(Metrics accumulator) {
+		this.metrics.update(accumulator);
 	}
 
 	@Override // @see com.characterforming.ribose.ITransductor#status()
@@ -271,8 +385,7 @@ public final class Transductor implements ITransductor, IOutput {
 	public ITransductor start(final Bytes transducerName) throws ModelException {
 		assert !isProxy();
 		this.transducerStack.push(this.loader.loadTransducer(this.model.getTransducerOrdinal(transducerName)));
-		this.selected = this.fieldHandles[Model.ANONYMOUS_FIELD_ORDINAL];
-		this.clear();
+		this.transducerStack.peek().selected = Model.ANONYMOUS_FIELD_ORDINAL;
 		return this;
 	}
 
@@ -289,15 +402,8 @@ public final class Transductor implements ITransductor, IOutput {
 		}
 		if (this.transducerStack != null) {
 			while (!this.transducerStack.isEmpty()) {
+				this.transducerStack.clear();
 				this.transducerStack.pop();
-			}
-		}
-		if (this.fieldHandles != null) {
-			this.selected = this.fieldHandles[Model.ANONYMOUS_FIELD_ORDINAL];
-			for (Field field : this.fieldHandles) {
-				if (field != null) {
-					field.clear();
-				}
 			}
 		}
 		this.matchMode = MATCH_NONE;
@@ -322,9 +428,11 @@ public final class Transductor implements ITransductor, IOutput {
 T:		do {
 				// start a pushed transducer, or resume caller after pushed transducer is popped
 				this.transducer = this.transducerStack.peek();
-				final int[] inputFilter = this.transducer.inputFilter;
-				final long[] transitionMatrix = this.transducer.transitionMatrix;
-				final int[] effectorVector = this.transducer.effectorVector;
+				final int[] inputFilter = this.transducer.get().getInputFilter();
+				final long[] transitionMatrix = this.transducer.get().getTransitionMatrix();
+				final int[] effectorVector = this.transducer.get().getEffectorVector();
+				this.value = this.transducerStack.value(this.transducer.selected);
+				this.selected = this.transducer.selected;
 				state = this.transducer.state;
 I:			do {
 					// get next input token
@@ -370,7 +478,7 @@ S:				do {
 						last = state; state = Transducer.state(transition);
 						action = Transducer.action(transition);
 						if (action == PASTE) {
-							this.selected.append((byte)token);
+							this.value.paste((byte)token);
 						} else if (action != NIL) {
 							break S;
 						}
@@ -388,8 +496,8 @@ S:				do {
 							input = this.inputStack.peek();
 						}
 						if (0 != (aftereffects & IEffector.RTX_SIGNAL)) {
-							signal = aftereffects >>> 16;
-							if ((signal < SIGNUL) || (signal >= this.transducer.inputFilter.length)) {
+							signal = Transducer.signal(aftereffects);
+							if ((signal < SIGNUL) || (signal >= this.signalLimit)) {
 								assert false : String.format("Signal %1$d out of range [256..%2$d)", signal, this.signalLimit);
 								signal = SIGNUL;
 							}
@@ -397,6 +505,7 @@ S:				do {
 						int stackeffect = aftereffects & (IEffector.RTX_START | IEffector.RTX_STOP);
 						if (stackeffect == IEffector.RTX_START) {
 							assert this.transducerStack.tos() > 0 && this.transducer == this.transducerStack.get(this.transducerStack.tos() - 1);
+							this.transducer.selected = this.selected;
 							this.transducer.state = state;
 						}
 						if (0 != (aftereffects & (IEffector.RTX_PAUSE | IEffector.RTX_STOPPED))) {
@@ -424,7 +533,8 @@ S:				do {
 			this.metrics.bytes = this.inputStack.getBytesRead();
 			this.metrics.allocated = this.inputStack.getBytesAllocated();
 			if (transducer == this.transducerStack.peek()) {
-				transducer.state = state;
+				this.transducer.selected = this.selected;
+				this.transducer.state = state;
 			}
 		}
 
@@ -432,78 +542,13 @@ S:				do {
 		return this;
 	}
 
-	@Override // @see com.characterforming.ribose.ITransductor#recycle()
-	public byte[] recycle(byte[] bytes) {
-		return this.inputStack.recycle(bytes);
-	}
-
-	@Override // @see com.characterforming.ribose.ITransductor#metrics()
-	public void metrics(Metrics accumulator) {
-		this.metrics.update(accumulator);
-	}
-
-	@Override // @see com.characterforming.ribose.IOutput#getFieldOrdinal()
-	public int getFieldOrdinal() {
-		return (this.selected != null) ? this.selected.getOrdinal() : -1;
-	}
-
-	@Override // @see com.characterforming.ribose.IOutput#getFieldOrdinal(Bytes)
-	public int getFieldOrdinal(final Bytes fieldName) {
-		if (this.fieldOrdinalMap.containsKey(fieldName)) {
-			return this.fieldOrdinalMap.get(fieldName);
-		}
-		return -1;
-	}
-
-	@Override // @see com.characterforming.ribose.IOutput#getField()
-	public IField getField() {
-		assert !this.isProxy || this.selected == null;
-		return this.selected;
-	}
-
-	@Override // @see com.characterforming.ribose.IOutput#getField(int)
-	public IField getField(final int fieldOrdinal) {
-		if (!this.isProxy && this.fieldHandles != null
-		&& fieldOrdinal < this.fieldHandles.length) {
-			return this.fieldHandles[fieldOrdinal];
-		} else {
-			return null;
-		}
-	}
-
-	@Override // @see com.characterforming.ribose.IOutput#getField(String)
-	public IField getField(final Bytes fieldName) {
-		return this.getField(this.getFieldOrdinal(fieldName));
-	}
-
-	@Override // @see com.characterforming.ribose.IOutput#signal(int)
-	public int signal(int signalOrdinal) throws EffectorException {
-		if (256 > signalOrdinal || signalOrdinal >= this.model.getSignalLimit()) {
-			throw new EffectorException(String.format("Signal ordinal %1$d is out of range [256,%2$d)", 
-				signalOrdinal, this.transducerStack.peek().inputFilter.length));
-		}
-		return (signalOrdinal << 16) | IEffector.RTX_SIGNAL;
+	void setModel(Model model) {
+		assert this.isProxy();
+		this.model = model;
 	}
 
 	void setEffectors(IEffector<?>[] effectors) {
 		this.effectors = effectors;
-	}
-
-	void setFieldOrdinalMap(Map<Bytes, Integer> fieldOrdinalMap) {
-		this.fieldOrdinalMap = fieldOrdinalMap;
-		if (this.fieldOrdinalMap.size() > 0) {
-			this.fieldHandles = new Field[this.fieldOrdinalMap.size()];
-			for (final Entry<Bytes, Integer> entry : this.fieldOrdinalMap.entrySet()) {
-				final int fieldIndex = entry.getValue();
-				byte[] fieldBuffer = new byte[INITIAL_FIELD_VALUE_BYTES];
-				this.fieldHandles[fieldIndex] = new Field(this.decoder(), entry.getKey(), fieldIndex, fieldBuffer, 0);
-			}
-			this.selected = this.fieldHandles[Model.ANONYMOUS_FIELD_ORDINAL];
-		}
-	}
-
-	boolean isProxy() {
-		return this.isProxy;
 	}
 
 	// invoke a scalar effector or vector of effectors and record side effects on transducer and input stacks
@@ -548,20 +593,21 @@ E:	do {
 					assert false;
 					break;
 				case PASTE:
-					this.selected.append((byte)token);
+					this.value.paste((byte)token);
 					break;
 				case SELECT:
-					this.selected = this.fieldHandles[Model.ANONYMOUS_FIELD_ORDINAL];
+					this.selected = Model.ANONYMOUS_FIELD_ORDINAL;
+					this.value = this.transducerStack.value(this.selected);
 					break;
 				case COPY:
-					this.selected.append(this.fieldHandles[Model.ANONYMOUS_FIELD_ORDINAL]);
+					this.value.paste(this.transducerStack.value(Model.ANONYMOUS_FIELD_ORDINAL));
 					break;
 				case CUT:
-					this.selected.append(this.fieldHandles[Model.ANONYMOUS_FIELD_ORDINAL]);
-					this.fieldHandles[Model.ANONYMOUS_FIELD_ORDINAL].clear();
+					this.value.paste(this.transducerStack.value(Model.ANONYMOUS_FIELD_ORDINAL));
+					this.transducerStack.value(Model.ANONYMOUS_FIELD_ORDINAL).clear();
 					break;
 				case CLEAR:
-					this.selected.clear();
+					this.transducerStack.value(this.selected).clear();
 					break;
 				case COUNT:
 					if (--this.transducer.countdown <= 0) {
@@ -570,12 +616,12 @@ E:	do {
 					}
 					break;
 				case IN:
-					this.inputStack.push(this.selected.getData(), this.selected.getLength());
+					this.inputStack.push(this.value.value(), this.value.length());
 					aftereffects |= IEffector.RTX_INPUT;
 					break;
 				case OUT:
 					if (this.outputStream != null) {
-						this.outputStream.write(this.selected.getData(), 0, this.selected.getLength());
+						this.outputStream.write(this.value.value(), 0, this.value.length());
 					}
 					break;
 				case MARK:
@@ -659,28 +705,24 @@ E:	do {
 		return token;
 	}
 
-	private int clear() {
-		for (Field nv : this.fieldHandles) nv.clear();
-		return IEffector.RTX_NONE;
-	}
-
 	private String getErrorInput(int last, int state) {
 		TransducerState top = this.transducerStack.peek();
-		top.state = state;
-		last /= top.inputEquivalents;
-		state /= top.inputEquivalents;
+		int eqCount = top.get().getInputEquivalentsCount();
+		state /= eqCount; last /= eqCount;
 		StringBuilder message = new StringBuilder(256);
 		message.append(String.format("Domain error on (%1$d~%2$d) in %3$s [%4$d]->[%5$d]%n,\tTransducer stack:%n",
-			this.errorInput, this.errorInput >= 0 ? top.inputFilter[this.errorInput] : this.errorInput, 
-			top.name, last, state));
+			this.errorInput, this.errorInput >= 0 ? top.get().getInputFilter()[this.errorInput] : this.errorInput, 
+			top.get().getName(), last, state));
 		for (int i = this.transducerStack.tos(); i >= 0; i--) {
 			TransducerState t = this.transducerStack.get(i);
-			int s = t.state / t.inputEquivalents;
-			message.append(String.format("\t\t%1$20s state:%2$3d; accepting", t.name, s));
-			for (int j = 0; j < top.inputEquivalents; j++) {
-				if (Transducer.action(t.transitionMatrix[t.state + j]) != Transductor.NUL) {
+			long[] transitionMatrix = t.get().getTransitionMatrix();
+			eqCount = t.get().getInputEquivalentsCount();
+			int s = t.state / eqCount;
+			message.append(String.format("\t\t%1$20s state:%2$3d; accepting", t.get().getName(), s));
+			for (int j = 0; j < eqCount; j++) {
+				if (Transducer.action(transitionMatrix[t.state + j]) != Transductor.NUL) {
 					message.append(String.format(" (%1$d)->[%2$d]", j,
-						Transducer.state(t.transitionMatrix[t.state + j]) / t.inputEquivalents));
+						Transducer.state(transitionMatrix[t.state + j]) / eqCount));
 				}
 			}
 			message.append(Base.LINEEND);
@@ -702,14 +744,15 @@ E:	do {
 				if (in.array[position] >= 0x20 && in.array[position] < 0x7f) {
 					inchar = String.format("%1$2c", (char)in.array[position]);
 				} else {
-					inchar = String.format("%1$2x", Byte.toUnsignedInt(in.array[position]));
+					inchar = String.format("%1$02X", Byte.toUnsignedInt(in.array[position]));
 				}
 				inbyte = Byte.toUnsignedInt(in.array[position]);
 				message.append(String.format("\t\t[ char='%1$s' (0x%2$02X); pos=%3$d; length=%4$d < ",
 					inchar, inbyte, position, in.array.length));
+				final int[] inputFilter = top.get().getInputFilter();
 				while (start < end) {
 					int ubyte = Byte.toUnsignedInt(in.array[start]);
-					int equiv = top.inputFilter[ubyte];
+					int equiv = inputFilter[ubyte];
 					if ((ubyte < 0x20) || (ubyte > 0x7e)) {
 						message.append(String.format((start != position) ? "%1$02X~%2$d " : "[%1$02X~%2$d] ", ubyte, equiv));
 					} else {
@@ -751,15 +794,16 @@ E:	do {
 			for (IToken t : super.getParameter(parameterIndex)) {
 				if (t instanceof Token token) { 
 					if (token.getType() == IToken.Type.FIELD) {
-						IField field = Transductor.this.getField(token.getOrdinal());
+						TransducerStack.Value field = transducerStack.value(token.getOrdinal());
 						if (field != null) {
-							selected.append(field.copyValue());
+							value.paste(field);
 						}
 					} else if (token.getType() == IToken.Type.LITERAL) {
-						selected.append(token.getLiteral().bytes());
+						byte[] bytes = token.getLiteral().bytes();
+						value.paste(bytes, bytes.length);
 					} else {
 						throw new EffectorException(String.format("Invalid token `%1$s` for effector '%2$s'", 
-							token.toString(super.decoder()), super.getName()));
+							token.getName(super.decoder()), super.getName()));
 					}
 				}
 			}
@@ -774,15 +818,18 @@ E:	do {
 
 		@Override
 		public int invoke() throws EffectorException {
-			selected = fieldHandles[Model.ANONYMOUS_FIELD_ORDINAL];
+			selected = Model.ANONYMOUS_FIELD_ORDINAL;
+			value = transducerStack.value(selected);
 			return IEffector.RTX_NONE;
 		}
 
 		@Override
 		public int invoke(final int parameterIndex) throws EffectorException {
-			int fieldOrdinal = super.getParameter(parameterIndex);
-			if (fieldOrdinal != 1) {
-				selected = fieldHandles[fieldOrdinal];
+			selected = super.getParameter(parameterIndex);
+			value = transducerStack.value(selected);
+			assert selected != Model.ALL_FIELDS_ORDINAL;
+			if (selected != Model.ALL_FIELDS_ORDINAL) {
+				value = transducerStack.value(selected);
 			}
 			return IEffector.RTX_NONE;
 		}
@@ -802,8 +849,9 @@ E:	do {
 		@Override
 		public int invoke(final int parameterIndex) throws EffectorException {
 			int fieldOrdinal = super.getParameter(parameterIndex);
-			if (fieldOrdinal != 1) {
-				selected.append(fieldHandles[fieldOrdinal]);
+			assert fieldOrdinal != Model.ALL_FIELDS_ORDINAL;
+			if (fieldOrdinal != Model.ALL_FIELDS_ORDINAL) {
+				value.paste(transducerStack.value(fieldOrdinal));
 			}
 			return IEffector.RTX_NONE;
 		}
@@ -822,9 +870,10 @@ E:	do {
 		@Override
 		public int invoke(final int parameterIndex) throws EffectorException {
 			int fieldOrdinal = super.getParameter(parameterIndex);
-			if (fieldOrdinal != 1) {
-				selected.append(fieldHandles[fieldOrdinal]);
-				fieldHandles[fieldOrdinal].clear();
+			assert fieldOrdinal != Model.ALL_FIELDS_ORDINAL;
+			if (fieldOrdinal != Model.ALL_FIELDS_ORDINAL) {
+				value.paste(transducerStack.value(fieldOrdinal));
+				transducerStack.value(fieldOrdinal).clear();
 			}
 			return IEffector.RTX_NONE;
 		}
@@ -837,18 +886,19 @@ E:	do {
 
 		@Override
 		public int invoke() throws EffectorException {
-			return clear();
+			transducerStack.clear();
+			return IEffector.RTX_NONE;
 		}
 
 		@Override
 		public int invoke(final int parameterIndex) throws EffectorException {
 			final int nameIndex = super.getParameter(parameterIndex);
-			assert (nameIndex >= 0) || (nameIndex == -1);
-			int index = (nameIndex >= 0) ? nameIndex : selected.getOrdinal();
-			if (index != Model.CLEAR_ALL_FIELDS_ORDINAL) {
-				fieldHandles[index].clear();
+			int index = (nameIndex >= 0) ? nameIndex : selected;
+			assert index >= -1;
+			if (index != Model.ALL_FIELDS_ORDINAL) {
+				transducerStack.clear(index);
 			} else {
-				clear();
+				transducerStack.clear();
 			}
 			return IEffector.RTX_NONE;
 		}
@@ -884,12 +934,12 @@ E:	do {
 					int ordinal = token.getOrdinal();
 					if (ordinal < 0) {
 						throw new TargetBindingException(String.format("Null signal reference for signal effector: %s",
-							token.toString(super.decoder())));
+							token.getName(super.decoder())));
 					}
 					return ordinal;
 				} else {
 					throw new TargetBindingException(String.format("Invalid signal reference `%s` for signal effector, requires type indicator ('%c') before the transducer name",
-						token.toString(super.decoder()), IToken.SIGNAL_TYPE));
+						token.getName(super.decoder()), IToken.SIGNAL_TYPE));
 				}
 			} else {
 				throw new TargetBindingException(String.format("Unknown IToken implementation class '%1$s'",
@@ -915,8 +965,8 @@ E:	do {
 			byte[][] tokens = new byte[parameters.length][];
 			for (int i = 0; i < parameters.length; i++) {
 				if (parameters[i].getType() == IToken.Type.FIELD) {
-					IField field = Transductor.this.getField(parameters[i].getOrdinal());
-					tokens[i] = (field != null) ? field.copyValue() : Bytes.EMPTY_BYTES;
+					TransducerStack.Value field = transducerStack.value(parameters[i].getOrdinal());
+					tokens[i] = (field != null) ? field.value() : Bytes.EMPTY_BYTES;
 				} else {
 					assert parameters[i].getType() == IToken.Type.LITERAL;
 					tokens[i] = parameters[i].getLiteral().bytes();
@@ -943,9 +993,9 @@ E:	do {
 				for (final IToken token : super.getParameter(parameterIndex)) {
 					try {
 						if (token.getType() == IToken.Type.FIELD) {
-							Field field = (Field)Transductor.this.getField(token.getOrdinal());
+							TransducerStack.Value field = transducerStack.value(token.getOrdinal());
 							if (field != null) {
-								outputStream.write(field.getData(), 0, field.getLength());
+								outputStream.write(field.value(), 0, field.length());
 							}
 						} else {
 							assert token.getType() == IToken.Type.LITERAL;
@@ -983,8 +1033,7 @@ E:	do {
 			transducer.countdown = parameter[0];
 			transducer.signal = parameter[1];
 			if (transducer.countdown < 0) {
-				IField field = Transductor.this.getField(-1 - transducer.countdown);
-				transducer.countdown = (field != null) ? (int)field.asInteger() : -1;
+				transducer.countdown = (int)asInteger(-1 - transducer.countdown);
 			}
 			return transducer.countdown <= 0 ? signal(transducer.signal) : IEffector.RTX_NONE;
 		}
@@ -997,20 +1046,14 @@ E:	do {
 			}
 			int count = -1;
 			if (parameterList[0].getType() == IToken.Type.FIELD) {
-				Bytes fieldName = new Bytes(parameterList[0].getSymbol().bytes());
-				int fieldOrdinal = getFieldOrdinal(fieldName);
-				if (fieldOrdinal < 0) {
-					throw new TargetBindingException(String.format("%1$s.%2$s[]: Field '%3$s' not found",
-						super.getTarget().getName(), super.getName(), fieldName.toString()));
-				}
-				count = -1 - fieldOrdinal;
+				count = -1 - parameterList[0].getOrdinal();
 			} else if (parameterList[0].getType() == IToken.Type.LITERAL) {
-				byte[] value = parameterList[0].getLiteral().bytes();
-				count = Base.decodeInt(value, value.length);
+				byte[] v = parameterList[0].getLiteral().bytes();
+				count = Base.decodeInt(v, v.length);
 			} else {
-				byte[] value = parameterList[0].getLiteral().bytes();
+				byte[] v = parameterList[0].getLiteral().bytes();
 				throw new TargetBindingException(String.format("%1$s.%2$s[]: invalid field|counter '%3$%s' for count effector",
-					super.getTarget().getName(), super.getName(), Bytes.decode(super.decoder(), value, value.length)));
+					super.getTarget().getName(), super.getName(), Bytes.decode(super.decoder(), v, v.length)));
 			}
 			if (parameterList[1].getType() == IToken.Type.SIGNAL) {
 				int signalOrdinal = parameterList[1].getOrdinal();
@@ -1018,7 +1061,7 @@ E:	do {
 				return new int[] { count, signalOrdinal };
 			} else {
 				throw new TargetBindingException(String.format("%1$s.%2$s[]: invalid signal '%3$%s' for count effector",
-					super.getTarget().getName(), super.getName(), parameterList[1].toString()));
+					super.getTarget().getName(), super.getName(), parameterList[1].getName(this.decoder())));
 			}
 		}
 	}
@@ -1055,6 +1098,7 @@ E:	do {
 		public int invoke(final int parameterIndex) throws EffectorException {
 			try {
 				transducerStack.push(loader.loadTransducer(super.getParameter(parameterIndex)));
+				transducerStack.peek().selected = Model.ANONYMOUS_FIELD_ORDINAL;
 			} catch (final ModelException e) {
 				byte[] bytes = model.getTransducerName(super.getParameter(parameterIndex));
 				throw new EffectorException(String.format("The start effector failed to load %1$s", 

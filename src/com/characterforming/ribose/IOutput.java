@@ -24,69 +24,129 @@ import java.nio.charset.CharsetDecoder;
 import java.nio.charset.CharsetEncoder;
 import java.util.logging.Logger;
 
-import com.characterforming.ribose.base.Bytes;
 import com.characterforming.ribose.base.EffectorException;
 import com.characterforming.ribose.base.Signal;
-import com.characterforming.ribose.base.TargetBindingException;
 
 /**
  * Provides loggers, UTF-8 codecs and a view of fields (data extracted by the transduction)
  * to {@link IEffector} implementations. Effectors receive their {@code IOutput} instance via
- * {@link IEffector#setOutput(IOutput)} when they are first bound to a transductor. Fields can be
- * accessed by name or ordinal number as {@link IField} instances. There is an anonymous field
- * with ordinal 0 that can be referenced by the anonymous name token (`~`) in patterns or by the
- * empty string in Java. Fields are referenced with a field type prefix <b>~</b> in ribose 
- * transducer patterns (eg, {@code out[`~data`]}) and without the type prefix in Java (eg,
- * {@code getFieldOrdinal("data")}.
- * <br><br>
+ * {@link IEffector#setOutput(IOutput)} when they are first bound to a transductor. Transducer 
+ * fields are local and bound to the defining transducer and can be accessed by stable
+ * field ordinal numbers. Every transducer has an anonymous field with ordinal number 0 
+ * (the anonymous name token (`~`) in patterns). Ordinal numbers for named fields
+ * (referenced with a <b>~</b> field type prefix in transducer patterns, eg, {@code
+ * out[`~data`]}) are obtained by providing defining transducer and field names to {@link
+ * #getLocalizedFieldIndex(String, String)}. Effectors should obtain field ordinals in {@code
+ * setOutput()} and retain then for use with the data transfer methods {@link #asInteger(int)},
+ * {@link #asReal(int)}, {@link #asBytes(int)} and {@link #asString(int)} in {@link
+ * IEffector#invoke()} and {@link IParameterizedEffector#invoke(int)} as shown in the
+ * example below.
+ * <br><pre>
+ * record Header (int version, int tapes, int transitions, int states, int symbols) {}
+ * final class HeaderEffector extends BaseEffector&lt;ModelCompiler&gt; {
+ *   private static final String transducerName = "Automaton");
+ *   private static final String[] fieldNames = new String[] {
+ *     "version", "tapes", "transitions", "states", "symbols"
+ *   };
+ *   private final int[] fields;
+ *
+ *   HeaderEffector(ModelCompiler compiler) {
+ *     super(compiler, "header");
+ *     this.fields = new int[HeaderEffector.fieldNames.length];
+ *   }
+ *
+ *   &#64;Override // called once per proxy (compile) or live (run) transductor
+ *   public void setOutput(IOutput output) throws EffectorException {
+ *     super.setOutput(output);
+ *     for (int i = 0; i &lt; this.fields.length; i++) {
+ *       this.fields[i] = super.output.getLocalizedFieldOrdinal(transducerName, fieldNames[i]);
+ *     }
+ *   }
+
+ *   &#64;Override // called from transducer running on top of live transductor's stack
+ *   public int invoke() throws EffectorException {
+ *     ModelCompiler.this.putHeader(new Header(
+ *       (int)super.output.asInteger(fields[0]),
+ *       (int)super.output.asInteger(fields[1]),
+ *       (int)super.output.asInteger(fields[2]),
+ *       (int)super.output.asInteger(fields[3]),
+ *       (int)super.output.asInteger(fields[4])));
+ *     return IEffector.RTX_NONE;
+ *   }
+ * }</pre>
  * All effectors receive with {@code IOutput} identical instances of loggers and codecs,
  * which are shared by the transductor and its effectors. The compiler logger is exposed
- * here for use by proxy effectors in compilation contexts and should not be
- * used otherwise. The runtime logger should be used to log events in live transduction
- * contexts.
+ * here for use by proxy effectors in compilation contexts and should not be used otherwise.
+ * The runtime logger should be used to log events in live transduction contexts.
  *
  * @author Kim Briggs
  */
 public interface IOutput {
 	/**
-	 * Get a copy of the current value for a field
-	 *
-	 * @param fieldOrdinal the ordinal number of the field to get
-	 * @return the specified field
+	 * Determine whether the output instance is a bound to proxy transductor. In that case
+	 * attempts to access transduction runtime field data or the currently selected field
+	 * will throw {@link EffectorException}.
+	 * 
+	 * @return true if output bound to a proxy transductor
 	 */
-	IField getField(int fieldOrdinal);
+	boolean isProxy();
 
 	/**
-	 * Get the ordinal number for the current selected field
+	 * Get a localized field ordinal from an effector parameter token. This method may
+	 * be called by proxy effectors during paramter compilation. The localized ordinal
+	 * is the offset to the field in the transducer stack frame.
 	 *
-	 * @return the ordinal number of the selected field
+	 * @param transducerName the name of the transducer that defines the field (without `@` prefix in lead byte)
+	 * @param fieldName the name of the field (`~` prefix in lead byte)
+	 * @return the localized index of the field in the current transducer stack frame
+	 * @throws EffectorException if things don't work out
 	 */
-	int getFieldOrdinal();
+	int getLocalizedFieldIndex(String transducerName, String fieldName) throws EffectorException;
 
 	/**
-	 * Get a copy of the current selected field
-	 *
-	 * @return the selected field
+	 * Get the ordinal number for the current selected field. Not valid for proxy effectors.
+	 * The localized index is the offset to the field in the transducer stack frame.
+	 * 
+	 * @return the localized index of the selected field in the current transducer stack frame
+	 * @throws EffectorException if called on a proxy transductor
 	 */
-	IField getField();
+	int getLocalizedFieldndex() throws EffectorException;
 
 	/**
-	 * Get a copy of the current value for a field from an effector parameter token
-	 *
-	 * @param fieldName the name of the field (UTF-8 bytes, withouy `~` prefix in lead byte)
-	 * @return a field instance or null
-	 * @throws TargetBindingException if things don't work out
+	 * Get current field value as integer value.
+	 * 
+	 * @param fieldOrdinal the field ordinal
+	 * @return the integer value decoded from the field contents
+	 * @throws EffectorException if called on a proxy transductor
 	 */
-	IField getField(Bytes fieldName) throws TargetBindingException;
+	long asInteger(int fieldOrdinal) throws EffectorException;
 
 	/**
-	 * Get a field ordinal from an effector parameter token
-	 *
-	 * @param fieldName the name of the field (UTF-8 bytes, without `~` prefix in lead byte)
-	 * @return the ordinal number of the field
-	 * @throws TargetBindingException if things don't work out
+	 * Get current field value as real value.
+	 * 
+	 * @param fieldOrdinal the field ordinal
+	 * @return the real value decoded from the field contents
+	 * @throws EffectorException if called on a proxy transductor
 	 */
-	int getFieldOrdinal(Bytes fieldName) throws TargetBindingException;
+	double asReal(int fieldOrdinal) throws EffectorException;
+
+	/**
+	 * Get current field value as integer value.
+	 * 
+	 * @param fieldOrdinal the field ordinal
+	 * @return the string decoded from the field contents
+	 * @throws EffectorException if called on a proxy transductor
+	 */
+	String asString(int fieldOrdinal) throws EffectorException;
+
+	/**
+	 * Get current field value as integer value.
+	 * 
+	 * @param fieldOrdinal the field ordinal
+	 * @return the field contents
+	 * @throws EffectorException if called on a proxy transductor
+	 */
+	byte[] asBytes(int fieldOrdinal) throws EffectorException;
 
 	/**
 	 * Encode a signal in an {@code effector.invoke()} return value. The signal will be
@@ -112,14 +172,14 @@ public interface IOutput {
 	int signal(int signalOrdinal) throws EffectorException;
 
 	/**
-	 * Get the decoder bound to the transductor
+	 * Get and reset the decoder bound to the transductor
 	 * 
 	 * @return the transductor's decoder
 	 */
 	CharsetDecoder decoder();
 
 	/**
-	 * Get the encoder bound to the transductor
+	 * Get and reset the encoder bound to the transductor
 	 * 
 	 * @return the transductor's encoder
 	 */

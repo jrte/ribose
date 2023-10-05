@@ -102,23 +102,35 @@
 	</target>
 
 	<target name="init" depends="init-ribose,init-test">
+		<exec outputproperty="git.which" executable="bash">
+			<arg line="-c 'which git'"/>
+		</exec>
+		<exec outputproperty="git.version" executable="git">
+			<arg line="--version"/>
+		</exec>
 		<exec outputproperty="git.branch" executable="git">
 			<arg line="branch --show-current"/>
 		</exec>
 		<exec outputproperty="git.commit" executable="git">
 			<arg line="log --oneline -n 1"/>
 		</exec>
+		<echo message="git @ ${git.which}"/>
+		<echo message="${git.version}"/>
 		<echo message="Git branch: ${git.branch}"/>
 		<echo message="Git commit: ${git.commit}"/>
-		<echo message="${ant.version}"/>
+		<echo/>
 		<echo message="Ant @ ${env.ANT_HOME}"/>
+		<echo message="${ant.version}"/>
+		<echo/>
+		<echo message="Java @ ${env.JAVA_HOME}"/>
 		<java fork="true" jvm="${jdk}/bin/java" classname="java.lang.Object">
 			<jvmarg line="-version"/>
 		</java>
-		<echo message="Java @ ${env.JAVA_HOME}"/>
+		<echo/>
 		<exec executable="bash">
 			<arg line="./rinr version"/>
 		</exec>
+		<echo/>
 		<echo message="Building ${ribose.version}"/>
 	</target>
 
@@ -216,8 +228,9 @@
 		<exec failonerror="true" executable="bash">
 			<arg line="./rinr patterns/alpha.inr ${ribose.patterns} patterns/after.inr"/>
 		</exec>
+		<echo/>
 		<echo message="Building ${build.compiler.model}/TCompile.model"/>
-		<exec failonerror="true" executable="bash" output="${build.compiler.model}/TCompile.map">
+		<exec failonerror="true" executable="bash">
 			<arg line="./ribose ${jargs} compile --target com.characterforming.jrte.engine.ModelCompiler ${build.compiler.model} ${build.compiler.model}/TCompile.model"/>
 		</exec>
 		<fixcrlf file="${build.compiler.model}/TCompile.map" eol="lf"/>
@@ -279,7 +292,7 @@
 		<delete file="build/Test.model"/>
 		<delete file="build/Test.map"/>
 		<echo message="Building build/Test.model"/>
-		<exec failonerror="true" executable="bash" output="build/Test.map">
+		<exec failonerror="true" executable="bash">
 			<arg line="./ribose ${jargs} compile --target-path ${jars.dir}/${ribose.version}-test.jar --target com.characterforming.jrte.test.TestTarget ${build.automata} build/Test.model"/>
 		</exec>
 		<fixcrlf file="build/Test.map" eol="lf"/>
