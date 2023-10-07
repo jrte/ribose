@@ -202,7 +202,7 @@
 
   <target name="javadoc" unless="javadoc.uptodate" depends="check-javadoc">
   	<delete dir="javadoc" includes="**/*"/>
-    <javadoc executable="${jdk}/bin/javadoc" access="protected" overview="overview.html" 
+    <javadoc executable="${jdk}/bin/javadoc" access="protected" overview="overview.html" additionalparam="-quiet"
 			sourcepath="src" destdir="javadoc" verbose="false" use="true" failonerror="false" failonwarning="false"
 			doctitle="Ribose" packagenames="com.characterforming.ribose.base,com.characterforming.ribose"
 			encoding="UTF-8" charset="UTF-8" docencoding="UTF-8">

@@ -20,18 +20,23 @@
 
 package com.characterforming.ribose;
 
+import com.characterforming.ribose.base.BaseEffector;
 import com.characterforming.ribose.base.Bytes;
 import com.characterforming.ribose.base.EffectorException;
 
 /**
  * Interface for simple effectors that present only a niladic {@link #invoke()}
  * method which is called on live effector instances in response to state transitions
- * in a running transduction. They are typically implemented as anonymous inner classes
- * within a specialized {@link ITarget} implementation classes. In compile contexts
- * simple effectors are instantiated as proxies but receive only {@link #passivate()}, 
- * which clears its internal fields. In runtime contexts they instantiated as live
- * effectors. Live simple effectors receive a {@link #setOutput(IOutput)} call followed
- * by 0 or more calls to {@link #invoke()}.
+ * in a running transduction. Simple effector implementations must extend {@link
+ * BaseEffector} and implement {@link invoke()} and may override other base effector
+ * methods. They are typically implemented as anonymous inner classes within a specialized
+ * {@link ITarget} implementation classes. Proxy simple effectors, instantiated in model
+ * compilation and loding contexts, receive {@link #setOutput(IOutput)} and {@link #passivate()}
+ * but never receive {@link #invoke()}. They lose access to their {@link ITarget} instance
+ * when they are passivated, {@link #getTarget()} will return {@code null}. Live simple
+ * effectors instantiated in runtime contexts receive {@link #setOutput(IOutput)} once
+ * followed by 0 or more {@link #invoke()}. Live effectors are never passivated and may
+ * use {@link #getTarget()} in their {@link #invoke()} methods.
  * <br><br>
  * All effectors return an integer <a href="#field.summary">RTX</a> code, which is a bit
  * map of special conditions. RTX bits are additive and accumulate as the effect vector is

@@ -26,44 +26,6 @@ import java.util.Arrays;
  * @author Kim Briggs
  */
 final class TransducerStack {
-	class Value {
-		private byte[] val;
-		private int len;
-
-		Value(int size) {
-			this.val = new byte[Math.max(size, 16)];
-			this.len = 0;
-		}
-
-		int length() { return this.len; }
-
-		byte[] value() { return this.val; }
-
-		void clear() { this.len = 0; }
-
-		void paste(byte input) {
-			if (this.len >= this.val.length) {
-				this.val = Arrays.copyOf(this.val, this.len + (this.len >> 1));
-			}
-			this.val[this.len] = input;
-			this.len += 1;
-		}
-
-		void paste(byte[] input, int length) {
-			assert length <= input.length;
-			int newLength = this.len + length;
-			if (newLength > this.val.length) {
-				this.val = Arrays.copyOf(this.val, newLength + (this.len >> 1));
-			}
-			System.arraycopy(input, 0, this.val, this.len, length);
-			this.len += length;
-		}
-
-		void paste(Value value) {
-			this.paste(value.val, value.length());
-		}
-	}
-
 	private Value[] values;
 	private TransducerState[] stack;
 	private int tos, bof;
@@ -188,8 +150,8 @@ final class TransducerStack {
 	void clear() {
 		if (this.bof >= 0) {
 			int tof = this.bof + this.stack[tos].get().getFieldCount();
-			while (tof-- > this.bof) {
-				this.values[tof].clear();
+			while (tof > this.bof) {
+				this.values[--tof].clear();
 			}
 		}
 	}
@@ -200,9 +162,10 @@ final class TransducerStack {
 	 * @param ordinal The index of the value to clear
 	 */
 	void clear(int ordinal) {
-		if (this.bof >= 0 && (ordinal == 0 || ordinal < this.stack[this.tos].get().getFieldCount())) {
-			this.values[this.bof + ordinal].clear();
-		}
+		assert this.bof >= 0 && ordinal < this.stack[this.tos].get().getFieldCount()
+		: String.format("TransducerStack.clear(ordinal=%1$d): bof=%2$d, %3$d fields in frame",
+				ordinal, this.bof, this.tos >= 0 ? this.stack[this.tos].get().getFieldCount() : 0);
+		this.values[this.bof + ordinal].clear();
 	}
 
 	/**
@@ -212,7 +175,9 @@ final class TransducerStack {
 	 * @return The value
 	 */
 	Value value(int ordinal) {
-		assert this.bof < 0 || ordinal == 0 || ordinal < this.stack[this.tos].get().getFieldCount();
+		assert this.bof >= 0 && ordinal < this.stack[this.tos].get().getFieldCount()
+		: String.format("TransducerStack.value(ordinal=%1$d): bof=%2$d, %3$d fields in frame",
+				ordinal, this.bof, this.tos >= 0 ? this.stack[this.tos].get().getFieldCount() : 0);
 		return this.values[this.bof + ordinal];
 	}
 }

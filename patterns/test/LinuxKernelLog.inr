@@ -62,15 +62,10 @@ continue = clear[`~*`] select[`~timestamp`];
 
 done = [continue] (((a0$(0,0))* (eos, nul)) @ null);
 
-LinuxKernel = nil (
-	(
-		[continue]
-		(
-			iptables ((nl, save) | (eos, save stop))
-		|	null? (nl | (eos, stop))
-		)
-	)*
-	done
+LinuxKernel = (
+	(nil, continue)
+	(iptables (nl, save continue) | null? (nl, continue))*
+	(iptables (eos, save stop) | null? (eos, stop))
 ):dfamin;
 
 ### LinuxKernelStrict

@@ -105,7 +105,7 @@ public final class Transductor implements ITransductor, IOutput {
 	private final ModelLoader loader;
 	private TransducerState transducer;
 	private IEffector<?>[] effectors;
-	private TransducerStack.Value value;
+	private Value value;
 	private Signal prologue;
 	private int selected;
 	private final TransducerStack transducerStack;
@@ -224,7 +224,7 @@ public final class Transductor implements ITransductor, IOutput {
 	@Override // @see com.characterforming.ribose.IOutput#asBytes(int)
 	public byte[] asBytes(int fieldOrdinal) throws EffectorException {
 		if (!this.isProxy) {
-			TransducerStack.Value v = this.transducerStack.value(fieldOrdinal);
+			Value v = this.transducerStack.value(fieldOrdinal);
 			return Arrays.copyOf(v.value(), v.length());
 		} else
 			throw new EffectorException("Not valid for proxy transductor");
@@ -233,7 +233,7 @@ public final class Transductor implements ITransductor, IOutput {
 	@Override // @see com.characterforming.ribose.IOutput#asString(int)
 	public String asString(int fieldOrdinal) throws EffectorException {
 		if (!this.isProxy) {
-			TransducerStack.Value v = this.transducerStack.value(fieldOrdinal);
+			Value v = this.transducerStack.value(fieldOrdinal);
 			try {
 				return this.decoder().decode(
 						ByteBuffer.wrap(v.value(), 0, v.length())).toString();
@@ -252,7 +252,7 @@ public final class Transductor implements ITransductor, IOutput {
 	@Override // @see com.characterforming.ribose.IOutput#asInteger()
 	public long asInteger(int fieldOrdinal) throws EffectorException {
 		if (!this.isProxy) {
-			TransducerStack.Value v = this.transducerStack.value(fieldOrdinal);
+			Value v = this.transducerStack.value(fieldOrdinal);
 			byte[] data = v.value();
 			long sign = data[0] == '-' ? -1 : 1;
 			long n = 0;
@@ -273,7 +273,7 @@ public final class Transductor implements ITransductor, IOutput {
 	@Override // @see com.characterforming.ribose.IOutput#asReal()
 	public double asReal(int fieldOrdinal) throws EffectorException {
 		if (!this.isProxy) {
-			TransducerStack.Value v = this.transducerStack.value(fieldOrdinal);
+			Value v = this.transducerStack.value(fieldOrdinal);
 			byte[] data = v.value();
 			double f = data[0] == '-' ? -1.0 : 1.0;
 			boolean mark = false;
@@ -794,7 +794,7 @@ E:	do {
 			for (IToken t : super.getParameter(parameterIndex)) {
 				if (t instanceof Token token) { 
 					if (token.getType() == IToken.Type.FIELD) {
-						TransducerStack.Value field = transducerStack.value(token.getOrdinal());
+						Value field = transducerStack.value(token.getOrdinal());
 						if (field != null) {
 							value.paste(field);
 						}
@@ -850,9 +850,7 @@ E:	do {
 		public int invoke(final int parameterIndex) throws EffectorException {
 			int fieldOrdinal = super.getParameter(parameterIndex);
 			assert fieldOrdinal != Model.ALL_FIELDS_ORDINAL;
-			if (fieldOrdinal != Model.ALL_FIELDS_ORDINAL) {
-				value.paste(transducerStack.value(fieldOrdinal));
-			}
+			value.paste(transducerStack.value(fieldOrdinal));
 			return IEffector.RTX_NONE;
 		}
 	}
@@ -871,10 +869,8 @@ E:	do {
 		public int invoke(final int parameterIndex) throws EffectorException {
 			int fieldOrdinal = super.getParameter(parameterIndex);
 			assert fieldOrdinal != Model.ALL_FIELDS_ORDINAL;
-			if (fieldOrdinal != Model.ALL_FIELDS_ORDINAL) {
-				value.paste(transducerStack.value(fieldOrdinal));
-				transducerStack.value(fieldOrdinal).clear();
-			}
+			value.paste(transducerStack.value(fieldOrdinal));
+			transducerStack.value(fieldOrdinal).clear();
 			return IEffector.RTX_NONE;
 		}
 	}
@@ -928,8 +924,7 @@ E:	do {
 		public Integer compileParameter(final IToken[] parameterList) throws TargetBindingException {
 			if (parameterList.length != 1) {
 				throw new TargetBindingException("The signal effector accepts at most one parameter");
-			}
-			if (parameterList[0] instanceof Token token) {
+			} else if (parameterList[0] instanceof Token token) {
 				if (token.getType() == IToken.Type.SIGNAL) {
 					int ordinal = token.getOrdinal();
 					if (ordinal < 0) {
@@ -965,7 +960,7 @@ E:	do {
 			byte[][] tokens = new byte[parameters.length][];
 			for (int i = 0; i < parameters.length; i++) {
 				if (parameters[i].getType() == IToken.Type.FIELD) {
-					TransducerStack.Value field = transducerStack.value(parameters[i].getOrdinal());
+					Value field = transducerStack.value(parameters[i].getOrdinal());
 					tokens[i] = (field != null) ? field.value() : Bytes.EMPTY_BYTES;
 				} else {
 					assert parameters[i].getType() == IToken.Type.LITERAL;
@@ -993,7 +988,7 @@ E:	do {
 				for (final IToken token : super.getParameter(parameterIndex)) {
 					try {
 						if (token.getType() == IToken.Type.FIELD) {
-							TransducerStack.Value field = transducerStack.value(token.getOrdinal());
+							Value field = transducerStack.value(token.getOrdinal());
 							if (field != null) {
 								outputStream.write(field.value(), 0, field.length());
 							}
@@ -1085,13 +1080,12 @@ E:	do {
 		public Integer compileParameter(final IToken[] parameterTokens) throws TargetBindingException {
 			if (parameterTokens.length != 1) {
 				throw new TargetBindingException("The start effector accepts only one parameter");
-			}
-			if (parameterTokens[0].getType() == IToken.Type.TRANSDUCER) {
-				return parameterTokens[0].getOrdinal();
-			} else {
-				throw new TargetBindingException(String.format("Invalid transducer reference `%s` for start effector, requires type indicator ('%c') before the transducer name",
+			} else if (parameterTokens[0].getType() != IToken.Type.TRANSDUCER) {
+				throw new TargetBindingException(String.format(
+					"Invalid transducer reference `%s` for start effector, requires type indicator ('%c') before the transducer name",
 					parameterTokens[0].toString(), IToken.TRANSDUCER_TYPE));
 			}
+				return parameterTokens[0].getOrdinal();
 		}
 
 		@Override
