@@ -84,7 +84,8 @@ public interface IEffector<T extends ITarget> {
 	 * @return user-defined effectors should return {@code IEffector.RTX_NONE}
 	 * @throws EffectorException if things don't work out
 	 */
-	int invoke() throws EffectorException;
+	int invoke()
+	throws EffectorException;
 
 	/**
 	 * Receive an {@link IOutput} view of the transductor that the effector target
@@ -95,7 +96,8 @@ public interface IEffector<T extends ITarget> {
 	 * @throws EffectorException if field names can't be resolved
 	 * @see IOutput#getLocalizedFieldIndex(String, String)
 	 */
-	void setOutput(IOutput output) throws EffectorException;
+	void setOutput(IOutput output)
+	throws EffectorException;
 
 	/**
 	 * Returns the target that expresses the effector.
@@ -129,10 +131,10 @@ public interface IEffector<T extends ITarget> {
 
 	/**
 	 * Called for proxy effectors after parameter compilation is
-	 * complete. This will null out the target, output, decoder and
-	 * encoder fields in the {@code BaseEffector} superclass. This
-	 * allows the proxy model and transducer to be garbage collected
-	 * after all effector parameters have been compiled. Subclasses
+	 * complete. This will null out the target and output fields
+	 * in the {@code BaseEffector} superclass. This allows the 
+	 * proxy model and transducer to be garbage collected after
+	 * all effector parameters have been compiled. Subclasses
 	 * may override this method to dispose of additional resources
 	 * as well, but must also call {@code super.passivate()} in 
 	 * the overriding method.

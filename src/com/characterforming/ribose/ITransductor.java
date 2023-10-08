@@ -316,7 +316,8 @@ public interface ITransductor extends ITarget {
 	 * @return this ITransductor
 	 * @throws ModelException if things don't work out
 	 */
-	ITransductor start(Bytes transducer) throws ModelException;
+	ITransductor start(Bytes transducer)
+	throws ModelException;
 
 	/**
 	 * Run the transduction with current input until the input or transduction
@@ -344,7 +345,8 @@ public interface ITransductor extends ITarget {
 	 * @see #recycle(byte[])
 	 * @see #status()
 	 */
-	ITransductor run() throws EffectorException, DomainErrorException;
+	ITransductor run()
+	throws EffectorException, DomainErrorException;
 
 	/**
 	 * Return a new or unmarked byte[] buffer if the previous buffer ({@code bytes})
@@ -379,5 +381,6 @@ public interface ITransductor extends ITarget {
 	 * @throws RiboseException if transductor is proxy for parameter compilation
 	 * @see #status()
 	 */
-	ITransductor stop() throws RiboseException;
+	ITransductor stop()
+	throws RiboseException;
 }

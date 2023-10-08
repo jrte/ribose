@@ -20,10 +20,8 @@
 
 package com.characterforming.ribose.base;
 
-import java.nio.charset.CharsetDecoder;
-import java.nio.charset.CharsetEncoder;
-
-import com.characterforming.jrte.engine.Base;
+import java.nio.charset.CharacterCodingException;
+import com.characterforming.jrte.engine.Codec;
 import com.characterforming.ribose.IEffector;
 import com.characterforming.ribose.IOutput;
 import com.characterforming.ribose.ITarget;
@@ -50,9 +48,11 @@ public abstract class BaseEffector<T extends ITarget> implements IEffector<T> {
 	 * 
 	 * @param target the target that binds the effector
 	 * @param name the effector name
+	 * @throws CharacterCodingException if encoder fails
 	 */
-	protected BaseEffector(final T target, final String name) {
-		this.name = Bytes.encode(Base.newCharsetEncoder(), name);
+	protected BaseEffector(final T target, final String name)
+	throws CharacterCodingException {
+		this.name = Codec.encode(name);
 		this.target = target;
 		this.output = null;
 	}
@@ -61,7 +61,8 @@ public abstract class BaseEffector<T extends ITarget> implements IEffector<T> {
 	public abstract int invoke() throws EffectorException;
 	
 	@Override // @see com.characterforming.ribose.base.IEffector#setOutput(IOutput)
-	public void setOutput(IOutput output) throws EffectorException {
+	public void setOutput(IOutput output)
+	throws EffectorException {
 		this.output = output;
 	}
 
@@ -77,30 +78,12 @@ public abstract class BaseEffector<T extends ITarget> implements IEffector<T> {
 
 	@Override // @see java.lang.Object#toString()
 	public String toString() {
-		return this.name.toString(this.decoder());
+		return this.name.asString();
 	}
 
 	@Override // com.characterforming.ribose.IEffector#passivate()
 	public void passivate() {
 		this.target = null;
 		this.output = null;
-	}
-
-	/**
-	 * Lazy instantiation for charset decoder
-	 * 
-	 * @return a decoder instance
-	*/
-	protected CharsetDecoder decoder() {
-		return this.output.decoder();
-	}
-
-	/**
-	 * Lazy instantiation for charset encoder
-	 * 
-	 * @return a encoder instance
-	*/
-	protected CharsetEncoder encoder() {
-		return this.output.encoder();
 	}
 }

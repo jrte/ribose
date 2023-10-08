@@ -20,8 +20,6 @@
 
 package com.characterforming.ribose;
 
-import java.nio.charset.CharsetDecoder;
-
 import com.characterforming.ribose.base.Bytes;
 
 /**
@@ -103,12 +101,13 @@ public interface IToken {
 	Type getType();
 
 	/**
-	 * Get the name of the token.
+	 * Get the a string representing the token. This will obtained by decoding the 
+	 * token literal value as a UTF-8 byte sequence, or converting all bytes to
+	 * /xHH representation if decoding fails.
 	 * 
-	 * @param decoder the decoder to use for the name
-	 * @return the name of this token
+	 * @return a string representation of this token
 	 */
-	String getName(CharsetDecoder decoder);
+	String asString();
 
 	/**
 	 * Get the name of the type, eg "signal", "field" or "transducer".

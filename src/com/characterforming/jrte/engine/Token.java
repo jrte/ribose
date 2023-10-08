@@ -19,7 +19,6 @@
  */
 package com.characterforming.jrte.engine;
 
-import java.nio.charset.CharsetDecoder;
 import java.util.Arrays;
 import java.util.HashMap;
 
@@ -144,11 +143,9 @@ final class Token implements IToken {
 		return this.type;
 	}
 	
-	@Override // @see com.characterforming.ribose.IToken#getName()
-	public String getName(CharsetDecoder decoder) {
-		return this.literal.getLength() != 1 || this.literal.bytes()[0] != 0xa
-		? this.getLiteral().toString(decoder)
-		: "#a";
+	@Override // @see com.characterforming.ribose.IToken#asString()
+	public String asString() {
+		return this.literal.asString();
 	}
 	
 	@Override // @see com.characterforming.ribose.IToken#getLiteralValue()

@@ -24,17 +24,13 @@ package com.characterforming.jrte.test;
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.nio.ByteBuffer;
-import java.nio.CharBuffer;
-import java.nio.charset.CharsetDecoder;
-import java.nio.charset.CharsetEncoder;
-import java.nio.charset.CoderResult;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import com.characterforming.jrte.engine.Base;
+import com.characterforming.jrte.engine.Codec;
 import com.characterforming.ribose.IModel;
 import com.characterforming.ribose.ITransductor;
 import com.characterforming.ribose.ITransductor.Metrics;
@@ -83,14 +79,12 @@ public class FileRunner {
 		int exitCode = 1;
 		Base.startLogging();
 		final Logger rteLogger = Base.getRuntimeLogger();
-		final CharsetDecoder decoder = Base.newCharsetDecoder();
-		final CharsetEncoder encoder = Base.newCharsetEncoder();
 		byte[] bbuf = new byte[(int)blen];
-		CharBuffer charInput = null;
+		String charInput = null;
 		try (final FileInputStream isr = new FileInputStream(f)) {
 			blen = isr.read(bbuf, 0, (int)blen);
 			assert blen == bbuf.length;
-			charInput = decoder.reset().decode(ByteBuffer.wrap(bbuf, 0, bbuf.length));
+			charInput = Codec.decode(bbuf);
 		} catch (Exception e) {
 			System.out.println("Runtime exception thrown.");
 			rteLogger.log(Level.SEVERE, "Runtime failed, exception thrown.", e);
@@ -110,7 +104,7 @@ public class FileRunner {
 							assert trex.status().isStopped();
 							if (trex.push(bbuf, (int)blen).status().isWaiting()
 							&& (!nil || (trex.signal(Signal.NIL).status().isWaiting()))
-							&& (trex.start(Bytes.encode(encoder, transducerName)).status().isRunnable())) {
+							&& (trex.start(Codec.encode(transducerName)).status().isRunnable())) {
 								t0 = System.nanoTime();
 								do {
 									trex.run();
@@ -142,7 +136,7 @@ public class FileRunner {
 							final FileInputStream isr = new FileInputStream(f);
 							final BufferedOutputStream osw = new BufferedOutputStream(System.out, Base.getOutBufferSize())
 						) {
-							ribose.stream(Bytes.encode(encoder, transducerName), nil ? Signal.NIL : Signal.NONE, isr, osw);
+							ribose.stream(Codec.encode(transducerName), nil ? Signal.NIL : Signal.NONE, isr, osw);
 						} catch (Exception e) {
 							System.out.println("Runtime exception thrown.");
 							rteLogger.log(Level.SEVERE, "Runtime failed, exception thrown.", e);
@@ -187,34 +181,18 @@ public class FileRunner {
 					System.out.println(String.format(" : %8.3f mb/s", mbps));
 				} else {
 					int count = 0;
-					charInput.rewind();
-					byte[] bytes = new byte[Base.getOutBufferSize()];
-					ByteBuffer bbuffer = ByteBuffer.wrap(bytes);
-					CharBuffer cbuffer = CharBuffer.allocate(bytes.length);
+					final byte[] delimiters = new byte[] {'|','\n'};
 					Matcher matcher = pattern.matcher(charInput);
 					while (matcher.find()) {
 						int k = matcher.groupCount();
 						for (int j = 1; j <= k; j++) {
-							String match = matcher.group(j);
-							if (match == null) {
-								match = "";
-							}
-							if (cbuffer.remaining() < (match.length() + 1)) {
-								CoderResult code = encoder.encode(cbuffer.flip(), bbuffer, false);
-								assert code.isUnderflow();
-								System.out.write(bbuffer.array(), 0, bbuffer.position());
-								bbuffer.clear(); cbuffer.clear();
-							}
-							cbuffer.append(match).append(j < k ? '|' : '\n');
+							String group = matcher.group(j);
+							System.out.write(group != null ? Codec.encode(group).bytes() : Bytes.EMPTY_BYTES);
+							System.out.write(delimiters[j < k ? 0 : 1]);
 						}
 						if (k > 0) {
 							count++;
 						}
-					}
-					if (cbuffer.position() > 0) {
-						CoderResult code = encoder.encode(cbuffer.flip(), bbuffer, true);
-						assert code.isUnderflow();
-						System.out.write(bytes, 0, bbuffer.position());
 					}
 					System.out.flush();
 					assert count > 0;

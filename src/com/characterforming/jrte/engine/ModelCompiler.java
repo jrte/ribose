@@ -29,6 +29,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.charset.CharacterCodingException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -88,7 +89,7 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 		};
 		private final int[] fieldOrdinals;
 
-		HeaderEffector(ModelCompiler compiler) {
+		HeaderEffector(ModelCompiler compiler) throws CharacterCodingException {
 			super(compiler, "header");
 			this.fieldOrdinals = new int[fields.length];
 		}
@@ -96,8 +97,12 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 		@Override
 		public void setOutput(IOutput output) throws EffectorException {
 			super.setOutput(output);
-			for (int i = 0; i < fields.length; i++) {
-				this.fieldOrdinals[i] = super.output.getLocalizedFieldIndex(ModelCompiler.AUTOMATON, fields[i]);
+			try {
+				for (int i = 0; i < fields.length; i++) {
+					this.fieldOrdinals[i] = super.output.getLocalizedFieldIndex(ModelCompiler.AUTOMATON, fields[i]);
+				}
+			} catch (CharacterCodingException e) {
+				throw new EffectorException(e);
 			}
 		}
 
@@ -119,7 +124,7 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 		};
 		private final int[] fieldOrdinals;
 
-		TransitionEffector(ModelCompiler compiler) {
+		TransitionEffector(ModelCompiler compiler) throws CharacterCodingException {
 			super(compiler, "transition");
 			this.fieldOrdinals = new int[fields.length];
 		}
@@ -127,8 +132,12 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 		@Override
 		public void setOutput(IOutput output) throws EffectorException {
 			super.setOutput(output);
-			for (int i = 0; i < fields.length; i++) {
-				this.fieldOrdinals[i] = super.output.getLocalizedFieldIndex(ModelCompiler.AUTOMATON, fields[i]);
+			try {
+				for (int i = 0; i < fields.length; i++) {
+					this.fieldOrdinals[i] = super.output.getLocalizedFieldIndex(ModelCompiler.AUTOMATON, fields[i]);
+				}
+			} catch (CharacterCodingException e) {
+				throw new EffectorException(e);
 			}
 		}
 
@@ -146,13 +155,17 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 	}
 
 	final class AutomatonEffector extends BaseEffector<ModelCompiler> {
-		AutomatonEffector(ModelCompiler compiler) {
+		AutomatonEffector(ModelCompiler compiler) throws CharacterCodingException {
 			super(compiler, "automaton");
 		}
 
 		@Override
 		public int invoke() throws EffectorException {
-			ModelCompiler.this.putAutomaton();
+			try {
+				ModelCompiler.this.putAutomaton();
+			} catch (CharacterCodingException e) {
+				throw new EffectorException(e);
+			}
 			return IEffector.RTX_NONE;
 		}
 	}
@@ -198,11 +211,15 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 
 	@Override // com.characterforming.ribose.IModel.getEffectors()
 	public IEffector<?>[] getEffectors() throws TargetBindingException {
-		return new IEffector<?>[] {
-			new HeaderEffector(this),
-			new TransitionEffector(this),
-			new AutomatonEffector(this)
-		};
+		try {
+			return new IEffector<?>[] {
+				new HeaderEffector(this),
+				new TransitionEffector(this),
+				new AutomatonEffector(this)
+			};
+		} catch (CharacterCodingException e) {
+			throw new TargetBindingException(e);
+		}
 	}
 
 	@Override // AutoCloseable.close()
@@ -315,10 +332,10 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 		return compilerModelFile;
 	}
 
-	ModelCompiler reset(File inrFile) {
+	ModelCompiler reset(File inrFile) throws CharacterCodingException {
 		String name = inrFile.getName();
 		name = name.substring(0, name.length() - Base.AUTOMATON_FILE_SUFFIX.length());
-		this.transducerName = Bytes.encode(super.getEncoder(), name);
+		this.transducerName = Codec.encode(name);
 		this.transducerOrdinal = super.addTransducer(this.transducerName);
 		this.inputStateMap = new HashMap<>(256);
 		this.stateTransitionMap = new HashMap<>(1024);
@@ -347,10 +364,11 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 	}
 
 	private boolean compileTransducer(File inrFile) throws RiboseException {
-		this.reset(inrFile);
 		int size = (int)inrFile.length();
 		byte[] bytes = null;
+		boolean fail = true;
 		try (DataInputStream f = new DataInputStream(new FileInputStream(inrFile))) {
+			this.reset(inrFile);
 			int position = 0, length = size;
 			bytes = new byte[length];
 			while (length > 0) {
@@ -362,15 +380,14 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 		} catch (FileNotFoundException e) {
 			this.addError(String.format("%1$s: File not found '%2$s'",
 				this.transducerName, inrFile.getPath()));
-			return false;
+			return !fail;
 		} catch (IOException e) {
 			this.addError(String.format("%1$s: IOException compiling '%2$s'; %3$s",
 				this.transducerName, inrFile.getPath(), e.getMessage()));
-			return false;
+			return !fail;
 		}
-		boolean fail = true;
 		try {
-			Bytes automaton = Bytes.encode(super.getEncoder(), "Automaton");
+			Bytes automaton = Codec.encode("Automaton");
 			if (this.transductor.stop().push(bytes, size).signal(Signal.NIL).start(automaton).status().isRunnable()
 			&& this.transductor.run().status().isPaused()) {
 				this.transductor.signal(Signal.EOS).run();
@@ -383,6 +400,9 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 		} catch (ModelException | EffectorException | DomainErrorException e) {
 			this.addError(String.format("%1$s: Failed to compile '%2$s'; %3$s",
 				this.transducerName, inrFile.getPath(), e.getMessage()));
+		} catch (CharacterCodingException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
 		return !fail;
 	}
@@ -391,32 +411,32 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 		for (Token token : this.tapeTokens.get(0)) {
 			if (token.getType() != Type.LITERAL && token.getType() != Type.SIGNAL) {
 				this.addError(String.format("Error: Invalid %2$s token '%1$s' on tape 0",
-					token.getName(super.getDecoder()), token.getTypeName()));
+					token.asString(), token.getTypeName()));
 			} else if (token.getSymbol().bytes().length > 1
 					&& !this.tapeTokens.get(2).contains(token)) {
 				this.addError(String.format("Error: Unrecognized signal reference '%1$s' on tape 0",
-					token.getName(super.getDecoder())));
+					token.asString()));
 			}
 		}
 		for (Token token : this.tapeTokens.get(1)) {
 			if (token.getType() != Type.LITERAL) {
 				this.addError(String.format("Error: Invalid %2$s token '%1$s' on tape 1",
-					token.getName(super.getDecoder()), token.getTypeName()));
+					token.asString(), token.getTypeName()));
 			} else if (this.getEffectorOrdinal(token.getSymbol()) < 0) {
 				this.addError(String.format("Error: Unrecognized effector token '%1$s' on tape 1",
-					token.getName(super.getDecoder())));
+					token.asString()));
 			}
 		}
 		for (Token token : this.tapeTokens.get(2)) {
 			if (token.getType() == Type.TRANSDUCER
 				&& super.getTransducerOrdinal(token.getSymbol()) < 0) {
 				this.addError(String.format("Error: Unrecognized transducer token '%1$s' on tape 1",
-					token.getName(super.getDecoder())));
+					token.asString()));
 			} else if (token.getType() == Type.SIGNAL
 				&& super.getSignalOrdinal(token.getSymbol()) > Signal.EOS.signal()
 				&& !this.tapeTokens.get(0).contains(token)) {
 				this.addError(String.format("Error: Signal token '%1$s' on tape 2 is never referenced on tape 0",
-					token.getName(super.getDecoder())));
+					token.asString()));
 			}
 		}
 		for (Entry<Bytes, Integer> e : super.transducerOrdinalMap.entrySet()) {
@@ -425,7 +445,7 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 			|| !super.transducerNameIndex[ordinal].equals(e.getKey())
 			|| super.transducerOffsetIndex[ordinal] <= 0) {
 					this.addError(String.format("'%1$s': referenced but not compiled in model",
-					e.getKey().toString(this.getDecoder())));
+					e.getKey().asString()));
 
 			}
 		}
@@ -436,7 +456,7 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 		return !this.hasErrors();
 	}
 
-	void saveTransducer() throws ModelException {
+	void saveTransducer() throws ModelException, CharacterCodingException {
 		HashMap<Integer, Integer> localFieldMap = this.transducerFieldMaps.get(this.transducerOrdinal);
 		int[] fields = new int[localFieldMap.size()];
 		for (Entry<Integer, Integer> e : localFieldMap.entrySet()) {
@@ -464,7 +484,7 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 	}
 
 	private String getTransducerName() {
-		return this.transducerName.toString(super.getDecoder());
+		return this.transducerName.asString();
 	}
 
 	void putHeader(Header header) {
@@ -525,7 +545,7 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 		}
 	}
 
-	void putAutomaton() {
+	void putAutomaton() throws CharacterCodingException {
 		final Integer[] inrInputStates = this.getInrStates();
 		if (inrInputStates == null) {
 			this.addError("Empty automaton " + this.getTransducerName());
@@ -602,7 +622,7 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 		return this.errors;
 	}
 
-	private void factor(final int[][][] transitionMatrix) {
+	private void factor(final int[][][] transitionMatrix) throws CharacterCodingException {
 		// factor matrix modulo input equivalence
 		final HashMap<IntsArray, HashSet<Integer>> rowEquivalenceMap =
 			new HashMap<>((5 * transitionMatrix.length) >> 2);
@@ -632,9 +652,9 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 		final int nStates = transitionMatrix[0].length;
 		final int nulSignal = Signal.NUL.signal();
 		final int nulEquivalent = this.inputEquivalenceIndex[nulSignal];
-		final int msumOrdinal = super.getEffectorOrdinal(Bytes.encode(super.getEncoder(), "msum"));
-		final int mproductOrdinal = super.getEffectorOrdinal(Bytes.encode(super.getEncoder(), "mproduct"));
-		final int mscanOrdinal = super.getEffectorOrdinal(Bytes.encode(super.getEncoder(), "mscan"));
+		final int msumOrdinal = super.getEffectorOrdinal(Codec.encode("msum"));
+		final int mproductOrdinal = super.getEffectorOrdinal(Codec.encode("mproduct"));
+		final int mscanOrdinal = super.getEffectorOrdinal(Codec.encode("mscan"));
 		final int[][] msumStateEffects = new int[nStates][];
 		final int[][] mproductStateEffects = new int[nStates][];
 		final int[][] mproductEndpoints = new int[nStates][2];
@@ -875,9 +895,9 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 		for (int input = 0; input < this.kernelMatrix.length; input++) {
 			assert this.kernelMatrix[input].length == this.kernelMatrix[0].length;
 			final IntsArray row = new IntsArray(this.kernelMatrix[input]);
-			HashSet<Integer> equivalentClassOrdinals = rowEquivalenceMap.get(row);
-			if (equivalentClassOrdinals == null) {
-				equivalentClassOrdinals = new HashSet<>(16);
+			HashSet<Integer> equivalentClassOrdinals = rowEquivalenceMap.computeIfAbsent(
+				row, absent -> new HashSet<>(16));
+			if (equivalentClassOrdinals.isEmpty()) {
 				rowEquivalenceMap.put(row, equivalentClassOrdinals);
 			}
 			equivalentClassOrdinals.add(input);

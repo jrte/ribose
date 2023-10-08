@@ -28,8 +28,7 @@ import java.io.PrintStream;
 import java.io.RandomAccessFile;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.ByteBuffer;
-import java.nio.charset.CharsetDecoder;
-import java.nio.charset.CharsetEncoder;
+import java.nio.charset.CharacterCodingException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -84,8 +83,6 @@ sealed class Model permits ModelCompiler, ModelLoader {
 	protected final Class<?> targetClass;
 	protected final Logger rtcLogger;
 	protected final Logger rteLogger;
-	protected final CharsetDecoder decoder;
-	protected final CharsetEncoder encoder;
 	protected HashMap<Bytes, Integer> signalOrdinalMap;
 	protected HashMap<Bytes, Integer> fieldOrdinalMap;
 	protected HashMap<Bytes, Integer> effectorOrdinalMap;
@@ -106,8 +103,6 @@ sealed class Model permits ModelCompiler, ModelLoader {
 		this.targetMode = TargetMode.PROXY_COMPILER;
 		this.rtcLogger = Base.getCompileLogger();
 		this.rteLogger = Base.getRuntimeLogger();
-		this.decoder = Base.newCharsetDecoder();
-		this.encoder = Base.newCharsetEncoder();
 		this.modelVersion = Base.RTE_VERSION;
 		this.targetClass = this.getClass();
 		this.deleteOnClose = false;
@@ -119,8 +114,6 @@ sealed class Model permits ModelCompiler, ModelLoader {
 		this.targetMode = targetMode;
 		this.rtcLogger = Base.getCompileLogger();
 		this.rteLogger = Base.getRuntimeLogger();
-		this.decoder = Base.newCharsetDecoder();
-		this.encoder = Base.newCharsetEncoder();
 		this.modelVersion = Base.RTE_VERSION;
 		this.modelPath = modelPath;
 		this.deleteOnClose = true;
@@ -144,7 +137,7 @@ sealed class Model permits ModelCompiler, ModelLoader {
 			this.writeLong(0);
 			this.writeString(this.modelVersion);
 			this.writeString(this.targetClass.getName());
-		} catch (FileNotFoundException e) {
+		} catch (FileNotFoundException | CharacterCodingException e) {
 			throw new ModelException(String.format("Unable to create model file '%s'.",
 				this.modelPath.toPath().toString()), e);
 		}
@@ -156,8 +149,6 @@ sealed class Model permits ModelCompiler, ModelLoader {
 		this.modelPath = modelPath;
 		this.rtcLogger = Base.getCompileLogger();
 		this.rteLogger = Base.getRuntimeLogger();
-		this.decoder = Base.newCharsetDecoder();
-		this.encoder = Base.newCharsetEncoder();
 		this.transducerFieldMaps = new HashMap<>(256);
 		this.deleteOnClose = false;
 		String targetClassname = "?";
@@ -215,6 +206,7 @@ sealed class Model permits ModelCompiler, ModelLoader {
 				this.modelPath.getPath()));
 			this.deleteOnClose |= this.targetMode.isLive();
 		} finally {
+			Codec.detach();
 			assert !this.deleteOnClose || this.targetMode.isLive();
 			if (this.deleteOnClose && this.targetMode.isLive()
 			&& this.modelPath.exists() && !this.modelPath.delete()) {
@@ -300,7 +292,7 @@ sealed class Model permits ModelCompiler, ModelLoader {
 		return !this.deleteOnClose;
 	}
 
-	protected Model load() throws ModelException {
+	protected Model load() throws ModelException, CharacterCodingException {
 		this.seek(0);
 		long indexPosition = this.readLong();
 		final String loadedVersion = this.readString();
@@ -389,7 +381,7 @@ sealed class Model permits ModelCompiler, ModelLoader {
 		}
 		for (int i = 0; i < signalIndex.length; i++) {
 			mapWriter.printf("%1$6d signal %2$s%n", i + Base.RTE_SIGNAL_BASE, 
-				signalIndex[i].toString(this.getDecoder()));
+				signalIndex[i].asString());
 		}
 		Bytes[] fieldIndex = new Bytes[this.fieldOrdinalMap.size()];
 		for (Map.Entry<Bytes, Integer> m : this.fieldOrdinalMap.entrySet()) {
@@ -401,7 +393,7 @@ sealed class Model permits ModelCompiler, ModelLoader {
 		}
 		for (int transducerOrdinal = 0; transducerOrdinal < transducerIndex.length; transducerOrdinal++) {
 			mapWriter.printf("%1$6d transducer %2$s%n", transducerOrdinal, 
-				transducerIndex[transducerOrdinal].toString(this.getDecoder()));
+				transducerIndex[transducerOrdinal].asString());
 			Map<Integer, Integer> fieldMap = this.transducerFieldMaps.get(transducerOrdinal);
 			Bytes[] fields = new Bytes[fieldMap.size()];
 			for (Entry<Integer, Integer> e : fieldMap.entrySet()) {
@@ -409,7 +401,7 @@ sealed class Model permits ModelCompiler, ModelLoader {
 			}
 			for (int field = 0; field < fields.length; field++) {
 				mapWriter.printf("%1$6d field ~%2$s%n", field,
-					fields[field].toString(this.getDecoder()));
+					fields[field].asString());
 			}
 		}
 		Bytes[] effectorIndex = new Bytes[this.effectorOrdinalMap.size()];
@@ -418,11 +410,11 @@ sealed class Model permits ModelCompiler, ModelLoader {
 		}
 		for (int effector = 0; effector < effectorIndex.length; effector++) {
 			mapWriter.printf("%1$6d effector %2$s", effector,
-				effectorIndex[effector].toString(this.getDecoder()));
+				effectorIndex[effector].asString());
 			if (this.proxyEffectors[effector] instanceof BaseParameterizedEffector<?, ?> proxyEffector) {
 				mapWriter.printf(" [ %1$s ]%n", proxyEffector.showParameterType());
 				for (int parameter = 0; parameter < proxyEffector.getParameterCount(); parameter++) {
-					mapWriter.printf("%1$6d parameter %2$s%n", parameter, proxyEffector.showParameterTokens(this.getDecoder(), parameter));
+					mapWriter.printf("%1$6d parameter %2$s%n", parameter, proxyEffector.showParameterTokens(parameter));
 				}
 			} else {
 				mapWriter.println();
@@ -442,14 +434,6 @@ sealed class Model permits ModelCompiler, ModelLoader {
 
 	public String getTargetClassname() {
 		return this.targetClass.getName();
-	}
-
-	protected CharsetDecoder getDecoder() {
-		return this.decoder.reset();
-	}
-
-	protected CharsetEncoder getEncoder() {
-		return this.encoder.reset();
 	}
 
 	protected boolean checkTargetEffectors(ITarget target, IEffector<?>[] boundFx) {
@@ -509,7 +493,7 @@ sealed class Model permits ModelCompiler, ModelLoader {
 		for (final Map.Entry<Bytes, Integer> entry : effectorMap.entrySet()) {
 			if (this.proxyEffectors[entry.getValue()] == null) {
 				this.rtcLogger.log(Level.SEVERE, () -> String.format("%1$s.%2$s: effector ordinal not found",
-					this.targetName, entry.getKey().toString(this.getDecoder())));
+					this.targetName, entry.getKey().asString()));
 			}
 		}
 		return effectorArguments;
@@ -537,14 +521,14 @@ sealed class Model permits ModelCompiler, ModelLoader {
 		return this.modelPath;
 	}
 
-	protected Integer getInputOrdinal(final byte[] input) throws CompilationException {
+	protected Integer getInputOrdinal(final byte[] input) throws CompilationException, CharacterCodingException {
 		if (input.length == 1) {
 			return Byte.toUnsignedInt(input[0]);
 		} else {
 			Integer ordinal = this.getSignalOrdinal(new Bytes(input));
 			if (ordinal < 0) {
 				throw new CompilationException(String.format("Invalid input token %s",
-					Bytes.decode(this.getDecoder(), input, input.length)));
+					Codec.decode(input, input.length)));
 			}
 			return ordinal;
 		}
@@ -794,16 +778,16 @@ sealed class Model permits ModelCompiler, ModelLoader {
 		return (arguments != null) ? arguments : new Argument[] {};
 	}
 
-	protected String readString() throws ModelException {
+	protected String readString() throws ModelException, CharacterCodingException {
 		byte[] bytes = this.readBytes();
-		return Bytes.decode(this.getDecoder(), bytes, bytes.length).toString();
+		return Codec.decode(bytes);
 	}
 
-	protected String[] readStringArray() throws ModelException {
+	protected String[] readStringArray() throws ModelException, CharacterCodingException {
 		final byte[][] bytesArray = this.readBytesArray();
 		final String[] stringArray = new String[bytesArray.length];
 		for (int i = 0; i < bytesArray.length; i++) {
-			stringArray[i] = Bytes.decode(this.getDecoder(), bytesArray[i], bytesArray[i].length).toString();
+			stringArray[i] = Codec.decode(bytesArray[i]);
 		}
 		return stringArray;
 	}
@@ -871,20 +855,24 @@ sealed class Model permits ModelCompiler, ModelLoader {
 		}
 	}
 
-	protected void writeBytes(final byte[] bytes) throws ModelException {
+	protected void writeBytes(final byte[] bytes, int length) throws ModelException {
 		final long position = this.getSafeFilePosition();
 		try {
 			if (bytes != null) {
-				this.io.writeInt(bytes.length);
-				this.io.write(bytes);
+				this.io.writeInt(length);
+				this.io.write(bytes, 0, length);
 			} else {
 				this.io.writeInt(-1);
 			}
 		} catch (final IOException e) {
 			throw new ModelException(String.format(
 				"Model.writeBytes() IOException at file position %2$d trying to write %1$d bytes starting at file position %3$d",
-					bytes != null ? bytes.length : 0, this.getSafeFilePosition(), position), e);
+				bytes != null ? bytes.length : 0, this.getSafeFilePosition(), position), e);
 		}
+	}
+
+	protected void writeBytes(final byte[] bytes) throws ModelException {
+		this.writeBytes(bytes, bytes.length);
 	}
 
 	protected void writeBytes(final ByteBuffer byteBuffer) throws ModelException {
@@ -1009,8 +997,8 @@ sealed class Model permits ModelCompiler, ModelLoader {
 		}
 	}
 
-	protected void writeString(final String s) throws ModelException {
-		this.writeBytes(Bytes.encode(this.getEncoder(), s).bytes());
+	protected void writeString(final String s) throws ModelException, CharacterCodingException {
+		this.writeBytes(Codec.encode(s).bytes());
 	}
 
 	protected void writeTransitionMatrix(final int[][][] matrix) throws ModelException {
@@ -1044,9 +1032,9 @@ sealed class Model permits ModelCompiler, ModelLoader {
 	}
 
 	protected void writeTransducer(Bytes transducerName, int transducerOrdinal, int[] fields, int[] inputEquivalenceIndex, int[][][] kernelMatrix, int[] effectorVectors)
-	throws ModelException {
+	throws ModelException, CharacterCodingException {
 		this.setTransducerOffset(transducerOrdinal, this.seek(-1));
-		this.writeString(transducerName.toString(this.getDecoder()));
+		this.writeString(transducerName.asString());
 		this.writeInt(transducerOrdinal);
 		this.writeIntArray(fields);
 		this.writeIntArray(inputEquivalenceIndex);

@@ -119,5 +119,6 @@ public interface ITarget {
 	 * @return an array of IEffector instances bound to the target instance
 	 * @throws TargetBindingException if things don't work out
 	 */
-	IEffector<?>[] getEffectors() throws TargetBindingException;
+	IEffector<?>[] getEffectors()
+	throws TargetBindingException;
 }

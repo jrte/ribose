@@ -1,5 +1,8 @@
 package com.characterforming.jrte.test;
 
+import java.nio.charset.CharacterCodingException;
+
+import com.characterforming.jrte.engine.Codec;
 import com.characterforming.ribose.IEffector;
 import com.characterforming.ribose.IOutput;
 import com.characterforming.ribose.ITarget;
@@ -21,11 +24,15 @@ public class TestTarget implements ITarget {
 
 	@Override
 	public IEffector<?>[] getEffectors() throws TargetBindingException {
-		return new IEffector<?>[] {
-			new IntegerValueEffector(this),
-			new RealValueEffector(this),
-			new StringValueEffector(this)
-		};
+		try {
+			return new IEffector<?>[] {
+				new IntegerValueEffector(this),
+				new RealValueEffector(this),
+				new StringValueEffector(this)
+			};
+		} catch (CharacterCodingException e) {
+			throw new TargetBindingException(e);
+		}
 	}
 
 	@Override // ITarget#getName()
@@ -34,7 +41,7 @@ public class TestTarget implements ITarget {
 	}
 
 	private class IntegerValueEffector extends BaseEffector<TestTarget> {
-		IntegerValueEffector(TestTarget target) {
+		IntegerValueEffector(TestTarget target) throws CharacterCodingException {
 			super(target, "integer");
 		}
 
@@ -42,8 +49,8 @@ public class TestTarget implements ITarget {
 		public int invoke() throws EffectorException {
 			long integer = 0;
 			try {
-				integer = Long.parseLong(super.output.asString(0));
-			} catch (NumberFormatException e) {
+				integer = Long.parseLong(Codec.decode(super.output.asBytes(0)));
+			} catch (NumberFormatException | CharacterCodingException e) {
 				return super.output.signal(fail);
 			}
 			return super.output.signal(integer == super.output.asInteger(0) ? pass : fail);
@@ -51,7 +58,7 @@ public class TestTarget implements ITarget {
 	}
 
 	private class RealValueEffector extends BaseEffector<TestTarget> {
-		RealValueEffector(TestTarget target) {
+		RealValueEffector(TestTarget target) throws CharacterCodingException {
 			super(target, "real");
 		}
 
@@ -59,8 +66,8 @@ public class TestTarget implements ITarget {
 		public int invoke() throws EffectorException {
 			double real = 0.0;
 			try {
-				real = Double.parseDouble(super.output.asString(0));
-			} catch (NumberFormatException e) {
+				real = Double.parseDouble(Codec.decode(super.output.asBytes(0)));
+			} catch (NumberFormatException | CharacterCodingException e) {
 				return super.output.signal(fail);			
 			}
 			return super.output.signal(real == super.output.asReal(0) ? pass : fail);
@@ -68,7 +75,7 @@ public class TestTarget implements ITarget {
 	}
 
 	private class StringValueEffector extends BaseEffector<TestTarget> {
-		StringValueEffector(TestTarget target) {
+		StringValueEffector(TestTarget target) throws CharacterCodingException {
 			super(target, "string");
 		}
 
@@ -79,7 +86,13 @@ public class TestTarget implements ITarget {
 
 		@Override
 		public int invoke() throws EffectorException {
-			String field = super.output.asString(0);
+			byte[] bytes = super.output.asBytes(0);
+			String field;
+			try {
+				field = Codec.decode(bytes);
+			} catch (CharacterCodingException e) {
+				field = "";
+			}
 			return super.output.signal(field.equals("pi") || field.equals("-pi") ? pass : fail);
 		}
 	}

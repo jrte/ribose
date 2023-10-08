@@ -20,7 +20,7 @@
 
 package com.characterforming.ribose.base;
 
-import java.nio.charset.CharsetDecoder;
+import java.nio.charset.CharacterCodingException;
 import java.util.List;
 
 import com.characterforming.ribose.IParameterizedEffector;
@@ -37,7 +37,7 @@ import com.characterforming.ribose.IToken;
  * <li>{@link IParameterizedEffector#allocateParameters(int)}</li>
  * <li>{@link IParameterizedEffector#compileParameter(IToken[])}</li>
  * </ul>
- * Default {@link showParameterType()} and {@link showParameterTokens(CharsetDecoder, int)}
+ * Default {@link showParameterType()} and {@link showParameterTokens(int)}
  * methods are implemented here but subclasses <i>may</i> override these if desired.
  * Otherwise, public methods not exposed in the {@link IParameterizedEffector} interface
  * are for internal use only. These methods implement the parameter compilation and binding
@@ -59,8 +59,10 @@ public abstract class BaseParameterizedEffector<T extends ITarget, P> extends Ba
 	 * 
 	 * @param target the target for the effector
 	 * @param name the effector name as referenced from ginr transducers
+	 * @throws CharacterCodingException if encoder fails
 	 */
-	protected BaseParameterizedEffector(final T target, final String name) {
+	protected BaseParameterizedEffector(final T target, final String name)
+	throws CharacterCodingException {
 		super(target, name);
 	}
 
@@ -81,11 +83,11 @@ public abstract class BaseParameterizedEffector<T extends ITarget, P> extends Ba
 	}
 
 	@Override
-	public String showParameterTokens(CharsetDecoder decoder, int parameterIndex) {
+	public String showParameterTokens(int parameterIndex) {
 		StringBuilder sb = new StringBuilder(256);
 		for (IToken token : this.tokens[parameterIndex]) {
 			sb.append(sb.length() == 0 ? "`" : " `")
-				.append(token.getLiteral().toString(decoder))
+				.append(token.getLiteral().asString())
 				.append("`");
 		}
 		return sb.toString();

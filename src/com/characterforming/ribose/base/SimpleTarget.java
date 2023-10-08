@@ -42,7 +42,8 @@ public final class SimpleTarget implements ITarget {
 	}
 
 	@Override // ITarget#getEffectors()
-	public IEffector<?>[] getEffectors() throws TargetBindingException {
+	public IEffector<?>[] getEffectors()
+	throws TargetBindingException {
 		// This is just a proxy for Transductor.getEffectors()
 		return new IEffector<?>[] { };
 	}

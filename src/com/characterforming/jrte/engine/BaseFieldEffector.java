@@ -20,6 +20,8 @@
 
 package com.characterforming.jrte.engine;
 
+import java.nio.charset.CharacterCodingException;
+
 import com.characterforming.ribose.IToken;
 import com.characterforming.ribose.base.BaseParameterizedEffector;
 import com.characterforming.ribose.base.TargetBindingException;
@@ -37,8 +39,9 @@ abstract class BaseFieldEffector extends BaseParameterizedEffector<Transductor, 
 	 * 
 	 * @param transductor The transductor target that binds the effector  
 	 * @param name the field name
+	 * @throws CharacterCodingException
 	 */
-	protected BaseFieldEffector(final Transductor transductor, final String name) {
+	protected BaseFieldEffector(final Transductor transductor, final String name) throws CharacterCodingException {
 		super(transductor, name);
 	}
 

@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.lang.reflect.InvocationTargetException;
+import java.nio.charset.CharacterCodingException;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicIntegerArray;
@@ -54,7 +55,11 @@ public final class ModelLoader extends Model implements IModel {
 	private ModelLoader(final File modelPath)
 	throws ModelException {
 		super(modelPath);
-		super.load();
+		try {
+			super.load();
+		} catch (CharacterCodingException e) {
+			throw new ModelException(e);
+		}
 		int size = super.transducerOrdinalMap.size();
 		this.transducerAccessIndex = new AtomicIntegerArray(size);
 		this.transducerObjectIndex = new AtomicReferenceArray<>(size);
@@ -88,9 +93,10 @@ public final class ModelLoader extends Model implements IModel {
 		} catch (InstantiationException | IllegalAccessException | IllegalArgumentException
 			| InvocationTargetException | NoSuchMethodException | SecurityException
 			| ClassNotFoundException e) {
+			String name = transducer.asString();
 			super.rteLogger.log(Level.SEVERE, e, () -> String.format(
 				"Failed to instantiate target '%1$s' transducer '%2$s'",
-				super.getTargetClassname(), transducer.toString(super.getDecoder())));
+				super.getTargetClassname(), name));
 			return false;
 		}
 		return this.stream(transducer, runTarget, prologue, in, out);
@@ -211,8 +217,8 @@ public final class ModelLoader extends Model implements IModel {
 
 	@Override
 	public void decompile(final String transducerName)
-	throws ModelException {
-		Transducer trex = this.loadTransducer(super.getTransducerOrdinal(Bytes.encode(encoder.reset(), transducerName)));
+	throws ModelException, CharacterCodingException {
+		Transducer trex = this.loadTransducer(super.getTransducerOrdinal(Codec.encode(transducerName)));
 		int[] effectorVectors = trex.getEffectorVector();
 		int[] inputEquivalenceIndex = trex.getInputFilter();
 		long[] transitionMatrix = trex.getTransitionMatrix();
@@ -220,8 +226,8 @@ public final class ModelLoader extends Model implements IModel {
 		Set<Map.Entry<Bytes, Integer>> effectorOrdinalMap = super.getEffectorOrdinalMap().entrySet();
 		String[] effectorNames = new String[effectorOrdinalMap.size()];
 		for (Map.Entry<Bytes, Integer> entry : effectorOrdinalMap) {
-			effectorNames[entry.getValue()] = Bytes
-				.decode(super.getDecoder(), entry.getKey().bytes(), entry.getKey().getLength()).toString();
+			effectorNames[entry.getValue()] = Codec.decode(
+				entry.getKey().bytes(), entry.getKey().getLength());
 		}
 		System.out.printf("%s%n%nInput equivalents (equivalent: input...)%n%n", transducerName);
 		for (int i = 0; i < inputEquivalentCount; i++) {
@@ -265,7 +271,7 @@ public final class ModelLoader extends Model implements IModel {
 					if (super.proxyEffectors[effectorOrdinal] instanceof BaseParameterizedEffector<?, ?> effector) {
 						int parameterOrdinal = Transducer.parameter(effect);
 						System.out.printf(" %s[", effectorNames[effectorOrdinal]);
-						System.out.printf(" %s ]", effector.showParameterTokens(super.getDecoder(), parameterOrdinal));
+						System.out.printf(" %s ]", effector.showParameterTokens(parameterOrdinal));
 					}
 				} else if (effect >= 0) {
 					if (effect > 1) {
@@ -281,7 +287,7 @@ public final class ModelLoader extends Model implements IModel {
 							if (super.proxyEffectors[effectorOrdinal] instanceof BaseParameterizedEffector<?,?> effector) {
 								int parameterOrdinal = Transducer.parameter(effectorVectors[index++]);
 								System.out.printf(" %s[", effectorNames[effectorOrdinal]);
-								System.out.printf(" %s ]", effector.showParameterTokens(this.getDecoder(), parameterOrdinal));
+								System.out.printf(" %s ]", effector.showParameterTokens(parameterOrdinal));
 							}
 						}
 					}

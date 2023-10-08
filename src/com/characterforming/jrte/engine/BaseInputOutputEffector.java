@@ -20,6 +20,8 @@
 
 package com.characterforming.jrte.engine;
 
+import java.nio.charset.CharacterCodingException;
+
 import com.characterforming.ribose.IToken;
 import com.characterforming.ribose.base.BaseParameterizedEffector;
 import com.characterforming.ribose.base.EffectorException;
@@ -34,8 +36,9 @@ abstract class BaseInputOutputEffector extends BaseParameterizedEffector<Transdu
 	 *
 	 * @param transductor The transductor target that binds the effector
 	 * @param name the field name
+	 * @throws CharacterCodingException
 	 */
-	protected BaseInputOutputEffector(Transductor transductor, String name) {
+	protected BaseInputOutputEffector(Transductor transductor, String name) throws CharacterCodingException {
 		super(transductor, name);
 	}
 
@@ -52,15 +55,16 @@ abstract class BaseInputOutputEffector extends BaseParameterizedEffector<Transdu
 	@Override // @see com.characterforming.ribose.IParameterizedEffector#compileParameter(IToken[])
 	public IToken[] compileParameter(final IToken[] parameterList) throws TargetBindingException {
 		if (parameterList.length < 1) {
-			throw new TargetBindingException(String.format("%1$s.%2$s[]: effector requires at least one parameter",
+			throw new TargetBindingException(String.format(
+				"%1$s.%2$s[]: effector requires at least one parameter",
 				super.target.getName(), super.getName()));
 		}
 		for (IToken token : parameterList) {
 			if (token.getType() != IToken.Type.LITERAL && token.getType() != IToken.Type.FIELD) {
-				throw new TargetBindingException(
-					String.format("%1$s.%2$s[]: literal or field name expected, found '%3$s'",
-						super.target.getName(), super.getName().toString(super.decoder()),
-							token.getLiteral().toString(super.decoder())));
+					throw new TargetBindingException(String.format(
+						"%1$s.%2$s[]: literal or field name expected, found '%3$s'",
+						super.target.getName(), super.getName().asString(),
+						token.asString()));
 			}
 		}
 		return parameterList;

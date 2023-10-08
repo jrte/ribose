@@ -20,8 +20,7 @@
 
 package com.characterforming.ribose;
 
-import java.nio.charset.CharsetDecoder;
-import java.nio.charset.CharsetEncoder;
+import java.nio.charset.CharacterCodingException;
 import java.util.logging.Logger;
 
 import com.characterforming.ribose.base.EffectorException;
@@ -100,8 +99,10 @@ public interface IOutput {
 	 * @param fieldName the name of the field (`~` prefix in lead byte)
 	 * @return the localized index of the field in the current transducer stack frame
 	 * @throws EffectorException if things don't work out
+	 * @throws CharacterCodingException if encoder fails
 	 */
-	int getLocalizedFieldIndex(String transducerName, String fieldName) throws EffectorException;
+	int getLocalizedFieldIndex(String transducerName, String fieldName)
+	throws EffectorException, CharacterCodingException;
 
 	/**
 	 * Get the ordinal number for the current selected field. Not valid for proxy effectors.
@@ -110,7 +111,19 @@ public interface IOutput {
 	 * @return the localized index of the selected field in the current transducer stack frame
 	 * @throws EffectorException if called on a proxy transductor
 	 */
-	int getLocalizedFieldndex() throws EffectorException;
+	int getLocalizedFieldndex()
+	throws EffectorException;
+
+	/**
+	 * Get current field value as integer value.
+	 * 
+	 * @param fieldOrdinal the field ordinal
+	 * @return the String value decoded from the field contents
+	 * @throws EffectorException if called on a proxy transductor
+	 * @throws CharacterCodingException if decoding fails
+	 */
+	String asString(int fieldOrdinal)
+	throws EffectorException, CharacterCodingException;
 
 	/**
 	 * Get current field value as integer value.
@@ -119,7 +132,8 @@ public interface IOutput {
 	 * @return the integer value decoded from the field contents
 	 * @throws EffectorException if called on a proxy transductor
 	 */
-	long asInteger(int fieldOrdinal) throws EffectorException;
+	long asInteger(int fieldOrdinal)
+	throws EffectorException;
 
 	/**
 	 * Get current field value as real value.
@@ -128,16 +142,8 @@ public interface IOutput {
 	 * @return the real value decoded from the field contents
 	 * @throws EffectorException if called on a proxy transductor
 	 */
-	double asReal(int fieldOrdinal) throws EffectorException;
-
-	/**
-	 * Get current field value as integer value.
-	 * 
-	 * @param fieldOrdinal the field ordinal
-	 * @return the string decoded from the field contents
-	 * @throws EffectorException if called on a proxy transductor
-	 */
-	String asString(int fieldOrdinal) throws EffectorException;
+	double asReal(int fieldOrdinal)
+	throws EffectorException;
 
 	/**
 	 * Get current field value as integer value.
@@ -146,7 +152,8 @@ public interface IOutput {
 	 * @return the field contents
 	 * @throws EffectorException if called on a proxy transductor
 	 */
-	byte[] asBytes(int fieldOrdinal) throws EffectorException;
+	byte[] asBytes(int fieldOrdinal)
+	throws EffectorException;
 
 	/**
 	 * Encode a signal in an {@code effector.invoke()} return value. The signal will be
@@ -169,21 +176,8 @@ public interface IOutput {
 	 * @throws EffectorException if {@code signalOrdinal} is out of range 
 	 * @see Signal#signal() 
 	 */
-	int signal(int signalOrdinal) throws EffectorException;
-
-	/**
-	 * Get and reset the decoder bound to the transductor
-	 * 
-	 * @return the transductor's decoder
-	 */
-	CharsetDecoder decoder();
-
-	/**
-	 * Get and reset the encoder bound to the transductor
-	 * 
-	 * @return the transductor's encoder
-	 */
-	CharsetEncoder encoder();
+	int signal(int signalOrdinal)
+	throws EffectorException;
 
 	/**
 	 * Get the ribose compiler Logger instance

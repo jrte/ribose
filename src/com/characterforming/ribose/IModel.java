@@ -24,7 +24,9 @@ import java.io.File;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintStream;
+import java.nio.charset.CharacterCodingException;
 
+import com.characterforming.jrte.engine.Codec;
 import com.characterforming.jrte.engine.ModelCompiler;
 import com.characterforming.jrte.engine.ModelLoader;
 import com.characterforming.ribose.base.Bytes;
@@ -46,7 +48,11 @@ import com.characterforming.ribose.base.SimpleTarget;
  * multithreaded contexts. In all other respects, ribose objects are not threadsafe.
  * Runtime {@code IModel} instances are {@link AutoCloseable} but clients must
  * call {@link #close()} for models that are instantiated outside a try-with-resources
- * block.
+ * block. Character set decoder and encoder are held in Codec object attached as a
+ * {@link ThreadLocal} to threads that require them and detached when the model is 
+ * closed <i>by the thread</i>. Threads that use ribose APIs but are not involved 
+ * with closing a model must call {@link #detach()} explicitly when they no longer
+ * require ribose APIs.
  *
  * @author Kim Briggs
  *
@@ -150,9 +156,10 @@ public interface IModel extends AutoCloseable {
 	 * 
 	 * @param transducerName the transducer name as aUnicode string
 	 * @throws ModelException if things don't work out
+	 * @throws CharacterCodingException if encoder fails
 	 */
 	void decompile(String transducerName)
-	throws ModelException;
+	throws ModelException, CharacterCodingException;
 
 	/** 
 	 * Print the model map to an output stream
@@ -172,11 +179,18 @@ public interface IModel extends AutoCloseable {
 	String getTargetClassname();
 
 	/**
-	 * Close the runtime model and file.
+	 * Close the runtime model and file and detach ThreadLocal variables.
 	 *
 	 * @throws ModelException if things don't work out
 	 */
 	@Override
 	void close()
 	throws ModelException;
+
+	/**
+	 * Detach thread local variables from the calling thread. 
+	 */
+	static void detach() {
+		Codec.detach();
+	}
 }

@@ -20,14 +20,10 @@
 
 package com.characterforming.ribose.base;
 
-import java.nio.ByteBuffer;
-import java.nio.CharBuffer;
 import java.nio.charset.CharacterCodingException;
-import java.nio.charset.CharsetDecoder;
-import java.nio.charset.CharsetEncoder;
 import java.util.Arrays;
 
-import com.characterforming.jrte.engine.Base;
+import com.characterforming.jrte.engine.Codec;
 
 /**
  * Wraps an immutable array of bytes. Ribose transductions operate in the {@code byte}
@@ -37,10 +33,11 @@ import com.characterforming.jrte.engine.Base;
  */
 public final class Bytes {
 	/** A singleton empty byte array */
-	public static final byte[] EMPTY_BYTES = new byte[] { };
+	public static final byte[] EMPTY_BYTES = new byte[] {};
+	/** A singleton Bytes instance wrapping an empty byte array */
+	public static final Bytes EMPTY = new Bytes(Bytes.EMPTY_BYTES);
 
 	private static final char[] HEX = "0123456789ABCDEF".toCharArray();
-	private static final CharBuffer DECODER_ERROR = CharBuffer.wrap(new char[] { '?', '?', '?' });
 	private final byte[] data;
 	private int hash;
 
@@ -71,58 +68,6 @@ public final class Bytes {
 	}
 
 	/**
-	 * Decode UTF-8 bytes to a String.
-	 * 
-	 * @param decoder the decoder to use
-	 * @param bytes the bytes to decode
-	 * @param length the number of bytes to decode
-	 * @return a CharBuffer containing the decoded text
-	 */
-	public static CharBuffer decode(CharsetDecoder decoder, final byte[] bytes, final int length) {
-		assert 0 <= length && length <= bytes.length;
-		int size = Math.max(Math.min(length, bytes.length), 0);
-		try {
-			return decoder.reset().decode(ByteBuffer.wrap(bytes, 0, size));
-		} catch (CharacterCodingException e) {
-			assert false;
-			System.err.printf("Bytes.decode(CharsetDecoder, byte[], int, int): %1$s",  e.getMessage());
-		}
-		return Bytes.DECODER_ERROR;
-	}
-
-	/**
-	 * Encode a String.
-	 * 
-	 * @param encoder the encoder to use
-	 * @param chars the string to encode
-	 * @return the encoded Bytes
-	 */
-	public static Bytes encode(CharsetEncoder encoder, final String chars) {
-		return Bytes.encode(encoder, CharBuffer.wrap(chars.toCharArray()));
-	}
-
-	/**
-	 * Encode a CharBuffer.
-	 * 
-	 * @param encoder the encoder to use
-	 * @param chars the CharBuffer to encode
-	 * @return the encoded Bytes
-	 */
-	public static Bytes encode(CharsetEncoder encoder, final CharBuffer chars) {
-		Bytes bytes = null;
-		try {
-			ByteBuffer buffer = encoder.reset().encode(chars);
-			byte[] b = new byte[buffer.limit()];
-			buffer.get(b, 0, b.length);
-			bytes = new Bytes(b);
-		} catch (CharacterCodingException e) {
-			assert false;
-			System.err.println("Bytes.encode(CharsetEncoder,CharBuffer): " + e.getMessage());
-		}
-		return bytes;
-	}
-	
-	/**
 	 * Get the number of contained bytes.
 	 * 
 	 * @return the number of contained bytes
@@ -132,8 +77,11 @@ public final class Bytes {
 	}
 	
 	/**
-	 * Get the contained bytes. This is a direct reference to the wrapped array. Sadly
-	 * there is no way for Java to confer immutability to the returned value.
+	 * Get the backing array for the contained bytes. This is a direct reference to the
+	 * wrapped array, which may not be completely filled; use Bytes.getLength() to determine
+	 * actual length of data. Sadly there is no way for Java to confer immutability to the
+	 * returned value, so don't mess with the contents unless you think you know what you
+	 * are going.
 	 * 
 	 * @return the contained bytes
 	 */
@@ -144,25 +92,14 @@ public final class Bytes {
 	/**
 	 * Decode contents to a String.
 	 * 
-	 * @param decoder the decoder to use
 	 * @return a Unicode string
 	 */
-	public String toString(CharsetDecoder decoder) {
+	public String asString() {
 		try {
-			return decoder.reset().decode(ByteBuffer.wrap(this.bytes())).toString();
-		} catch (Exception e) {
+			return Codec.decode(this.bytes(), this.getLength());
+		} catch (CharacterCodingException e) {
 			return this.toHexString();
 		}
-	}
-
-	/**
-	 * Decode contents to a String.
-	 * 
-	 * @return a Unicode string
-	 */
-	@Override
-	public String toString() {
-		return this.toString(Base.newCharsetDecoder());
 	}
 
 	/** 
@@ -170,12 +107,42 @@ public final class Bytes {
 	 * 
 	 * @return a hash based on the contents
 	 */
-	@Override
 	public int hashCode() {
 		if (this.hash == 0) {
 			this.hash = this.hash();
 		}
 		return this.hash;
+	}
+	
+	/**
+	 * Like toString(), but the result is a hexadecimal representation of the contents. 
+	 * 
+	 * @return the hex string
+	 */
+	public String toHexString() {
+		char[] hex = new char[4 * this.getLength()];
+		int i = 0;
+		for (int j = 0; j < this.getLength(); j++) {
+			byte b = this.data[j];
+			if (b >= 32) {
+				hex[i++] = (char)(b & 0xFF);
+			} else {
+				hex[i++] = '\\';
+				hex[i++] = 'x';
+				hex[i++] = HEX[b >>> 4];
+				hex[i++] = HEX[b & 0x0F];
+			}
+		}
+		return new String(Arrays.copyOf(hex, i));
+	}
+
+	/**
+	 * Override
+	 * 
+	 * @return decoded string
+	 */
+	public String toString() {
+		return this.asString();
 	}
 
 	/**
@@ -187,21 +154,6 @@ public final class Bytes {
 	@Override
 	public boolean equals(final Object other) {
 		return other instanceof Bytes o && Arrays.equals(o.data, this.data);
-	}
-	
-	/**
-	 * Like toString(), but the result is a hexadecimal representation of the contents. 
-	 * 
-	 * @return the hex string
-	 */
-	public String toHexString() {
-		char[] hex = new char[2 * this.getLength()];
-		for (int j = 0; j < this.getLength(); j++) {
-			int k = this.data[j] & 0xFF;
-			hex[j * 2] = HEX[k >> 4];
-			hex[j * 2 + 1] = HEX[k & 0x0F];
-		}
-		return new String(hex);
 	}
 
 	private int hash() {

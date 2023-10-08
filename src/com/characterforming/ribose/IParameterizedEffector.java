@@ -20,8 +20,6 @@
 
 package com.characterforming.ribose;
 
-import java.nio.charset.CharsetDecoder;
-
 import com.characterforming.ribose.base.BaseParameterizedEffector;
 import com.characterforming.ribose.base.EffectorException;
 import com.characterforming.ribose.base.Signal;
@@ -55,7 +53,7 @@ import com.characterforming.ribose.base.TargetBindingException;
  * effectors and decompiling transducers. Proxy efectors lose access to their
  * proxy target instance after they are passivated but retain their compiled 
  * <b>P[]</b> instances. Proxy effectors may receive calls to {@link
- * #showParameterType()} and {@link #showParameterTokens(CharsetDecoder, int)}
+ * #showParameterType()} and {@link #showParameterTokens(int)}
  * from the model decompiler; these methods are implemented in {@link
  * BaseParameterizedEffector} but may be overridden by subclasses. The 
  * {@link IEffector#invoke()} and {@link #invoke(int)} methods are never called
@@ -69,7 +67,7 @@ import com.characterforming.ribose.base.TargetBindingException;
  *   }
  * ...
  *   public SimpleDateFormat compileParameter(IToken[] parameterTokens) {
- *     String format = parameterTokens[0].getLiteral().toString(super.getDecoder());
+ *     String format = parameterTokens[0].asString();
  *     return new SimpleDateFormat(format);
  *   }
  * ...
@@ -110,7 +108,8 @@ public interface IParameterizedEffector<T extends ITarget, P> extends IEffector<
 	 * @return user-defined effectors should return 0 (RTX_SI)
 	 * @throws EffectorException if things don't work out
 	 */
-	int invoke(int parameterIndex) throws EffectorException;
+	int invoke(int parameterIndex)
+	throws EffectorException;
 
 	/**
 	 * Allocate an array (<b>P</b>[]) to hold precompiled parameter objects
@@ -129,7 +128,8 @@ public interface IParameterizedEffector<T extends ITarget, P> extends IEffector<
 	 * @return the compiled parameter value object
 	 * @throws TargetBindingException if things don't work out
 	 */
-	P compileParameter(IToken[] parameterTokens) throws TargetBindingException;
+	P compileParameter(IToken[] parameterTokens)
+	throws TargetBindingException;
 
 	/**
 	 * Return the type of the effector's parameter object, to support decompilation
@@ -146,9 +146,8 @@ public interface IParameterizedEffector<T extends ITarget, P> extends IEffector<
 	 * decompilation. This is implemented in {@link BaseParameterizedEffector}
 	 * but may be overriden by subclasses.
 	 * 
-	 * @param decoder the decoder to use
 	 * @param parameterIndex the parameter index
 	 * @return a printable string of space-delimited raw parameter tokens
 	 */
-	String showParameterTokens(CharsetDecoder decoder, int parameterIndex);
+	String showParameterTokens(int parameterIndex);
 }

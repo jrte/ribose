@@ -20,10 +20,6 @@
 
 package com.characterforming.jrte.engine;
 
-import java.nio.charset.Charset;
-import java.nio.charset.CharsetDecoder;
-import java.nio.charset.CharsetEncoder;
-import java.nio.charset.CodingErrorAction;
 import java.util.logging.FileHandler;
 import java.util.logging.Handler;
 import java.util.logging.Level;
@@ -57,7 +53,6 @@ public final class Base {
 	private static final int FILE_LOGGER_LIMIT = 1024 * 1024;
 	private static final int INPUT_BUFFER_SIZE = Integer.parseInt(System.getProperty("ribose.inbuffer.size", "65536"));
 	private static final int OUTPUT_BUFFER_SIZE = Integer.parseInt(System.getProperty("ribose.outbuffer.size", "8196"));
-	private static final Charset runtimeCharset = Charset.forName(System.getProperty("ribose.runtime.charset", "UTF-8"));
 	private static final Logger rtcLogger = Logger.getLogger("ribose-compile");
 	private static final Logger rteLogger = Logger.getLogger("ribose-runtime");
 
@@ -96,28 +91,6 @@ public final class Base {
 	public static void endLogging() {
 		Base.endLogger(Base.rtcLogger);
 		Base.endLogger(Base.rteLogger);
-	}
-
-	/**
-	 * Instantiate a new {@code CharsetDecoder}. All textual data in ribose models
-	 * are represented in encoded form (eg, UTF-8 byte arrays).
-	 *
-	 * @return a new CharsetDecoder insstance
-	 */
-	public static CharsetDecoder newCharsetDecoder() {
-		return Base.runtimeCharset.newDecoder()
-			.onUnmappableCharacter(CodingErrorAction.REPLACE)
-			.onMalformedInput(CodingErrorAction.REPLACE);
-	}
-
-	/**
-	 * Instantiate a new {@code CharsetEncoder}. All textual data in ribose models
-	 * are represented in encoded form (eg, UTF-8 byte arrays).
-	 *
-	 * @return a new CharsetEncoder instance
-	 */
-	public static CharsetEncoder newCharsetEncoder() {
-		return Base.runtimeCharset.newEncoder();
 	}
 
 	/**

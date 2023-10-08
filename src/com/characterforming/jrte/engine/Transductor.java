@@ -22,10 +22,7 @@ package com.characterforming.jrte.engine;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.nio.ByteBuffer;
 import java.nio.charset.CharacterCodingException;
-import java.nio.charset.CharsetDecoder;
-import java.nio.charset.CharsetEncoder;
 import java.util.Arrays;
 import java.util.logging.Logger;
 
@@ -118,8 +115,6 @@ public final class Transductor implements ITransductor, IOutput {
 	private int errorInput;
 	private final int signalLimit;
 	private OutputStream outputStream;
-	private final CharsetDecoder decoder;
-	private final CharsetEncoder encoder;
 	private final Logger rtcLogger;
 	private final Logger rteLogger;
 	private final ITransductor.Metrics metrics;
@@ -131,8 +126,6 @@ public final class Transductor implements ITransductor, IOutput {
 		this.model = null;
 		this.loader = null;
 		this.isProxy = true;
-		this.decoder = Base.newCharsetDecoder();
-		this.encoder = Base.newCharsetEncoder();
 		this.transducerStack = null;
 		this.selected = -1;
 		this.value = null;
@@ -153,8 +146,6 @@ public final class Transductor implements ITransductor, IOutput {
 		super();
 		this.model = model;
 		this.isProxy = false;
-		this.decoder = Base.newCharsetDecoder();
-		this.encoder = Base.newCharsetEncoder();
 		this.loader = (ModelLoader)this.model;
 		this.prologue = null;
 		this.effectors = null;
@@ -178,27 +169,31 @@ public final class Transductor implements ITransductor, IOutput {
 
 	@Override // @see com.characterforming.ribose.ITarget#getEffectors()
 	public IEffector<?>[] getEffectors() throws TargetBindingException {
-		return new IEffector<?>[] {
-				/* 0*/ new InlineEffector(this, "0"),
-				/* 1*/ new InlineEffector(this, "1"),
-				/* 2*/ new PasteEffector(this),
-				/* 3*/ new SelectEffector(this),
-				/* 4*/ new CopyEffector(this),
-				/* 5*/ new CutEffector(this),
-				/* 6*/ new ClearEffector(this),
-				/* 7*/ new CountEffector(this),
-				/* 8*/ new SignalEffector(this),
-				/* 9*/ new InEffector(this),
-				/*10*/ new OutEffector(this),
-				/*11*/ new InlineEffector(this, "mark"),
-				/*12*/ new InlineEffector(this, "reset"),
-				/*13*/ new StartEffector(this),
-				/*14*/ new PauseEffector(this),
-				/*15*/ new InlineEffector(this, "stop"),
-				/*16*/ new MsumEffector(this),
-				/*17*/ new MproductEffector(this),
-				/*18*/ new MscanEffector(this)
-		};
+		try {
+			return new IEffector<?>[] {
+					/* 0*/ new InlineEffector(this, "0"),
+					/* 1*/ new InlineEffector(this, "1"),
+					/* 2*/ new PasteEffector(this),
+					/* 3*/ new SelectEffector(this),
+					/* 4*/ new CopyEffector(this),
+					/* 5*/ new CutEffector(this),
+					/* 6*/ new ClearEffector(this),
+					/* 7*/ new CountEffector(this),
+					/* 8*/ new SignalEffector(this),
+					/* 9*/ new InEffector(this),
+					/*10*/ new OutEffector(this),
+					/*11*/ new InlineEffector(this, "mark"),
+					/*12*/ new InlineEffector(this, "reset"),
+					/*13*/ new StartEffector(this),
+					/*14*/ new PauseEffector(this),
+					/*15*/ new InlineEffector(this, "stop"),
+					/*16*/ new MsumEffector(this),
+					/*17*/ new MproductEffector(this),
+					/*18*/ new MscanEffector(this)
+			};
+		} catch (CharacterCodingException e) {
+			throw new TargetBindingException(e);
+		}
 	}
 
 	@Override // @see com.characterforming.ribose.ITarget#getName()
@@ -207,9 +202,9 @@ public final class Transductor implements ITransductor, IOutput {
 	}
 
 	@Override // @see com.characterforming.ribose.IOutput#getLocalizedFieldIndex(Bytes, Bytes)
-	public int getLocalizedFieldIndex(String transducerName, String fieldName) {
-		int transducerOrdinal = this.model.getTransducerOrdinal(Bytes.encode(this.encoder(), transducerName));
-		int fieldOrdinal = this.model.getFieldOrdinal(Bytes.encode(this.encoder(), fieldName));
+	public int getLocalizedFieldIndex(String transducerName, String fieldName) throws CharacterCodingException {
+		int transducerOrdinal = this.model.getTransducerOrdinal(Codec.encode(transducerName));
+		int fieldOrdinal = this.model.getFieldOrdinal(Codec.encode(fieldName));
 		return this.model.getLocalField(transducerOrdinal, fieldOrdinal);
 	}
 
@@ -221,30 +216,21 @@ public final class Transductor implements ITransductor, IOutput {
 			throw new EffectorException("Not valid for proxy transductor");
 	}
 
+	@Override
+	public String asString(int fieldOrdinal) throws EffectorException, CharacterCodingException {
+		if (!this.isProxy) {
+			Value v = this.transducerStack.value(fieldOrdinal);
+			return Codec.decode(v.value(), v.length());
+		} else {
+			throw new EffectorException("Not valid for proxy transductor");	
+		}
+	}
+
 	@Override // @see com.characterforming.ribose.IOutput#asBytes(int)
 	public byte[] asBytes(int fieldOrdinal) throws EffectorException {
 		if (!this.isProxy) {
 			Value v = this.transducerStack.value(fieldOrdinal);
 			return Arrays.copyOf(v.value(), v.length());
-		} else
-			throw new EffectorException("Not valid for proxy transductor");
-	}
-
-	@Override // @see com.characterforming.ribose.IOutput#asString(int)
-	public String asString(int fieldOrdinal) throws EffectorException {
-		if (!this.isProxy) {
-			Value v = this.transducerStack.value(fieldOrdinal);
-			try {
-				return this.decoder().decode(
-						ByteBuffer.wrap(v.value(), 0, v.length())).toString();
-			} catch (CharacterCodingException e) {
-				char[] chars = new char[v.length()];
-				byte[] data = v.value();
-				for (int i = 0; i < chars.length; i++) {
-					chars[i] = (char) (0xff & data[i]);
-				}
-				return new String(chars);
-			}
 		} else
 			throw new EffectorException("Not valid for proxy transductor");
 	}
@@ -319,16 +305,6 @@ public final class Transductor implements ITransductor, IOutput {
 	@Override // @see com.characterforming.ribose.IOutput#getRteLogger()
 	public Logger getRteLogger() {
 		return this.rteLogger;
-	}
-
-	@Override // @see com.characterforming.ribose.IOutput#decoder()
-	public CharsetDecoder decoder() {
-		return this.decoder.reset();
-	}
-
-	@Override // @see com.characterforming.ribose.IOutput#encoder()
-	public CharsetEncoder encoder() {
-		return this.encoder.reset();
 	}
 
 	@Override // @see com.characterforming.ribose.ITransductor#recycle()
@@ -769,7 +745,7 @@ E:	do {
 	}
 
 	private final class InlineEffector extends BaseEffector<Transductor> {
-		private InlineEffector(final Transductor transductor, final String name) {
+		private InlineEffector(final Transductor transductor, final String name) throws CharacterCodingException {
 			super(transductor, name);
 		}
 
@@ -780,7 +756,7 @@ E:	do {
 	}
 
 	private final class PasteEffector extends BaseInputOutputEffector {
-		private PasteEffector(final Transductor transductor) {
+		private PasteEffector(final Transductor transductor) throws CharacterCodingException {
 			super(transductor, "paste");
 		}
 
@@ -803,7 +779,7 @@ E:	do {
 						value.paste(bytes, bytes.length);
 					} else {
 						throw new EffectorException(String.format("Invalid token `%1$s` for effector '%2$s'", 
-							token.getName(super.decoder()), super.getName()));
+							token.asString(), super.getName()));
 					}
 				}
 			}
@@ -812,7 +788,7 @@ E:	do {
 	}
 
 	private final class SelectEffector extends BaseFieldEffector {
-		private SelectEffector(final Transductor transductor) {
+		private SelectEffector(final Transductor transductor) throws CharacterCodingException {
 			super(transductor, "select");
 		}
 
@@ -836,7 +812,7 @@ E:	do {
 	}
 
 	private final class CopyEffector extends BaseFieldEffector {
-		private CopyEffector(final Transductor transductor) {
+		private CopyEffector(final Transductor transductor) throws CharacterCodingException {
 			super(transductor, "copy");
 		}
 
@@ -856,7 +832,7 @@ E:	do {
 	}
 
 	private final class CutEffector extends BaseFieldEffector {
-		private CutEffector(final Transductor transductor) {
+		private CutEffector(final Transductor transductor) throws CharacterCodingException {
 			super(transductor, "cut");
 		}
 
@@ -876,7 +852,7 @@ E:	do {
 	}
 
 	private final class ClearEffector extends BaseFieldEffector {
-		private ClearEffector(final Transductor transductor) {
+		private ClearEffector(final Transductor transductor) throws CharacterCodingException {
 			super(transductor, "clear");
 		}
 
@@ -901,7 +877,7 @@ E:	do {
 	}
 
 	private final class SignalEffector extends BaseParameterizedEffector<Transductor, Integer> {
-		private SignalEffector(final Transductor transductor) {
+		private SignalEffector(final Transductor transductor) throws CharacterCodingException {
 			super(transductor, "signal");
 		}
 
@@ -928,13 +904,20 @@ E:	do {
 				if (token.getType() == IToken.Type.SIGNAL) {
 					int ordinal = token.getOrdinal();
 					if (ordinal < 0) {
-						throw new TargetBindingException(String.format("Null signal reference for signal effector: %s",
-							token.getName(super.decoder())));
+						String signame;
+						try {
+							byte[] sigbytes = token.getLiteral().bytes();
+							signame = Codec.decode(sigbytes);
+						} catch (CharacterCodingException e) {
+							signame = "<decodng error>";
+						}
+						throw new TargetBindingException(String.format(
+							"Unkown signal reference for signal effector: %s", signame));
 					}
 					return ordinal;
 				} else {
 					throw new TargetBindingException(String.format("Invalid signal reference `%s` for signal effector, requires type indicator ('%c') before the transducer name",
-						token.getName(super.decoder()), IToken.SIGNAL_TYPE));
+						token.asString(), IToken.SIGNAL_TYPE));
 				}
 			} else {
 				throw new TargetBindingException(String.format("Unknown IToken implementation class '%1$s'",
@@ -944,7 +927,7 @@ E:	do {
 	}
 
 	private final class InEffector extends BaseInputOutputEffector {
-		private InEffector(final Transductor transductor) {
+		private InEffector(final Transductor transductor) throws CharacterCodingException {
 			super(transductor, "in");
 			
 		}
@@ -973,7 +956,7 @@ E:	do {
 	}
 
 	private final class OutEffector extends BaseInputOutputEffector {
-		private OutEffector(final Transductor transductor) {
+		private OutEffector(final Transductor transductor) throws CharacterCodingException {
 			super(transductor, "out");
 		}
 
@@ -1007,7 +990,7 @@ E:	do {
 	}
 
 	private final class CountEffector extends BaseParameterizedEffector<Transductor, int[]> {
-		private CountEffector(final Transductor transductor) {
+		private CountEffector(final Transductor transductor) throws CharacterCodingException {
 			super(transductor, "count");
 		}
 
@@ -1046,9 +1029,8 @@ E:	do {
 				byte[] v = parameterList[0].getLiteral().bytes();
 				count = Base.decodeInt(v, v.length);
 			} else {
-				byte[] v = parameterList[0].getLiteral().bytes();
-				throw new TargetBindingException(String.format("%1$s.%2$s[]: invalid field|counter '%3$%s' for count effector",
-					super.getTarget().getName(), super.getName(), Bytes.decode(super.decoder(), v, v.length)));
+				throw new TargetBindingException(String.format("%1$s.%2$s[]: invalid field|counter for count effector",
+					super.getTarget().getName(), super.getName()));
 			}
 			if (parameterList[1].getType() == IToken.Type.SIGNAL) {
 				int signalOrdinal = parameterList[1].getOrdinal();
@@ -1056,13 +1038,13 @@ E:	do {
 				return new int[] { count, signalOrdinal };
 			} else {
 				throw new TargetBindingException(String.format("%1$s.%2$s[]: invalid signal '%3$%s' for count effector",
-					super.getTarget().getName(), super.getName(), parameterList[1].getName(this.decoder())));
+					super.getTarget().getName(), super.getName(), parameterList[1].asString()));
 			}
 		}
 	}
 
 	private final class StartEffector extends BaseParameterizedEffector<Transductor, Integer> {
-		private StartEffector(final Transductor transductor) {
+		private StartEffector(final Transductor transductor) throws CharacterCodingException {
 			super(transductor, "start");
 		}
 
@@ -1090,20 +1072,22 @@ E:	do {
 
 		@Override
 		public int invoke(final int parameterIndex) throws EffectorException {
+			int transducerOrdinal = super.getParameter(parameterIndex);
 			try {
-				transducerStack.push(loader.loadTransducer(super.getParameter(parameterIndex)));
+				transducerStack.push(loader.loadTransducer(transducerOrdinal));
 				transducerStack.peek().selected = Model.ANONYMOUS_FIELD_ORDINAL;
 			} catch (final ModelException e) {
-				byte[] bytes = model.getTransducerName(super.getParameter(parameterIndex));
-				throw new EffectorException(String.format("The start effector failed to load %1$s", 
-					Bytes.decode(super.decoder(), bytes, bytes.length)), e);
+				throw new EffectorException(String.format(
+					"The start effector failed to load transducer with ordinal number %1$d",
+					transducerOrdinal), e
+				);
 			}
 			return IEffector.RTX_START;
 		}
 	}
 
 	private final class PauseEffector extends BaseEffector<Transductor> {
-		private PauseEffector(final Transductor transductor) {
+		private PauseEffector(final Transductor transductor) throws CharacterCodingException {
 			super(transductor, "pause");
 		}
 
@@ -1114,7 +1098,7 @@ E:	do {
 	}
 
 	private final class MsumEffector extends BaseParameterizedEffector<Transductor, long[]> {
-		private MsumEffector(final Transductor transductor) {
+		private MsumEffector(final Transductor transductor) throws CharacterCodingException {
 			super(transductor, "msum");
 		}
 
@@ -1154,7 +1138,7 @@ E:	do {
  		}
 
 		@Override
-		public String showParameterTokens(CharsetDecoder decoder, int parameterIndex) {
+		public String showParameterTokens(int parameterIndex) {
 			long[] sum = super.getParameter(parameterIndex);
 			StringBuilder sb = new StringBuilder();
 			int endBit = 0, startBit = -1;
@@ -1193,7 +1177,7 @@ E:	do {
 	}
 
 	private final class MproductEffector extends BaseParameterizedEffector<Transductor, byte[]> {
-		private MproductEffector(final Transductor transductor) {
+		private MproductEffector(final Transductor transductor) throws CharacterCodingException {
 			super(transductor, "mproduct");
 		}
 
@@ -1230,7 +1214,7 @@ E:	do {
  		}
 
 		@Override
-		public String showParameterTokens(CharsetDecoder decoder, int parameterIndex) {
+		public String showParameterTokens(int parameterIndex) {
 			byte[] product = super.getParameter(parameterIndex);
 			StringBuilder sb = new StringBuilder();
 			for (int j = 0; j < product.length; j++) {
@@ -1243,7 +1227,7 @@ E:	do {
 	}
 
 	private final class MscanEffector extends BaseParameterizedEffector<Transductor, Integer> {
-		private MscanEffector(final Transductor transductor) {
+		private MscanEffector(final Transductor transductor) throws CharacterCodingException {
 			super(transductor, "mscan");
 		}
 
@@ -1278,7 +1262,7 @@ E:	do {
 		}
 
 		@Override
-		public String showParameterTokens(CharsetDecoder decoder, int parameterIndex) {
+		public String showParameterTokens(int parameterIndex) {
 			int scanbyte = super.getParameter(parameterIndex);
 			return 32 < scanbyte && 127 > scanbyte
 			?	String.format(" %c", (char)scanbyte)

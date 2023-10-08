@@ -27,13 +27,13 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.nio.charset.CharsetEncoder;
+import java.nio.charset.CharacterCodingException;
 import java.util.Arrays;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import com.characterforming.jrte.engine.Base;
-import com.characterforming.ribose.base.Bytes;
+import com.characterforming.jrte.engine.Codec;
 import com.characterforming.ribose.base.ModelException;
 import com.characterforming.ribose.base.RiboseException;
 import com.characterforming.ribose.base.Signal;
@@ -183,7 +183,8 @@ public final class Ribose {
 		System.exit(fail ? 1 : 0);
 	}
 
-	private static boolean execCompile(final String[] args) throws SecurityException {
+	private static boolean execCompile(final String[] args)
+	throws SecurityException {
 		Base.startLogging();
 		File ginrAutomataDirectory = null;
 		File riboseModelFile = null;
@@ -249,7 +250,8 @@ public final class Ribose {
 		return compiled;
 	}
 
-	private static boolean execRun(final String[] args) throws SecurityException {
+	private static boolean execRun(final String[] args)
+	throws SecurityException {
 		int argc = args.length;
 		boolean nil = argc > 0 && args[0].compareTo("--nil") == 0;
 		int arg = nil ? 1 : 0;
@@ -282,7 +284,6 @@ public final class Ribose {
 		final String inputPath = arg < argc ? args[arg++] : "-";
 		final String output = arg < argc ? args[arg++] : null;
 		final Logger rteLogger = Base.getRuntimeLogger();
-		final CharsetEncoder encoder = Base.newCharsetEncoder();
 		final File input = inputPath.charAt(0) == '-' ? null : new File(inputPath);
 		boolean run = true;
 		if (input != null && !input.exists()) {
@@ -303,8 +304,7 @@ public final class Ribose {
 			);
 		) {
 			run = ribose.stream(
-				Bytes.encode(encoder, transducerName),
-				nil ? Signal.NIL : Signal.NONE, streamIn, streamOut
+				Codec.encode(transducerName), nil ? Signal.NIL : Signal.NONE, streamIn, streamOut
 			);
 			streamOut.flush();
 		} catch (final IOException | ModelException | RiboseException e) {
@@ -341,7 +341,7 @@ public final class Ribose {
 		try (IModel model = IModel.loadRiboseModel(modelFile)) {
 			model.decompile(transducerName);
 			decompiled = true;
-		} catch (ModelException e) {
+		} catch (ModelException | CharacterCodingException e) {
 			final String format = "Failed to decompile %1$s";
 			rteLogger.log(Level.SEVERE, e, () -> String.format(format,
 				transducerName));

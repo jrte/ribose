@@ -26,6 +26,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.nio.charset.CharacterCodingException;
 import java.text.ParseException;
 import java.util.Arrays;
 import java.util.logging.Level;
@@ -79,7 +80,7 @@ final class Automaton {
 					if (commit) {
 						this.compiler.saveTransducer();
 					}
-				} catch (ModelException | ParseException e) {
+				} catch (ModelException | ParseException | CharacterCodingException e) {
 					String msg = String.format("%1$s: Exception caught assembling compiler model file; %2$s",
 						filename, e.getMessage());
 					rtcLogger.log(Level.SEVERE, msg, e);
@@ -91,7 +92,7 @@ final class Automaton {
 		return commit;
 	}
 
-	private boolean parse(byte[] dfa) throws ParseException {
+	private boolean parse(byte[] dfa) throws ParseException, CharacterCodingException {
 		this.dfain.clear(dfa);
 		this.line = 0;
 

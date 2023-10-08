@@ -21,13 +21,13 @@ package com.characterforming.jrte.test;
 
 import java.io.File;
 import java.nio.CharBuffer;
-import java.nio.charset.CharsetEncoder;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import com.characterforming.jrte.engine.Base;
+import com.characterforming.jrte.engine.Codec;
 import com.characterforming.ribose.IModel;
 import com.characterforming.ribose.ITransductor;
 import com.characterforming.ribose.ITransductor.Status;
@@ -63,13 +63,12 @@ public class TestRunner {
 		String[] tests = new String[] {
 			 "NilSpeedTest", "PasteSpeedTest", "PasteCutTest", "SelectPasteTest", "PasteCountTest", "CounterTest", "NilPauseTest", "PastePauseTest", "StackTest"
 		};
-		final CharsetEncoder encoder = Base.newCharsetEncoder();
 		try (final IModel ribose = IModel.loadRiboseModel(new File(modelPath))) {
 			final ITransductor trex = ribose.transductor(new TestTarget());
 			for (final String test : tests) {
 				long t0 = 0, t1 = 0, t2 = 0;
 				System.out.format("%20s: ", test);
-				Bytes transducer = Bytes.encode(encoder, test);
+				Bytes transducer = Codec.encode(test);
 				for (int i = 0; i < 20; i++) {
 					assert trex.status() == Status.STOPPED;
 					trex.push(abytes, abytes.length).signal(Signal.NIL);
