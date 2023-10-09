@@ -53,9 +53,9 @@ import com.characterforming.ribose.IToken;
 public abstract class BaseParameterizedEffector<T extends ITarget, P> extends BaseEffector<T> implements IParameterizedEffector<T, P> {
 
 	/** Raw and compiled effector parameters indexed and selected by parameter ordinal.*/
+protected P[] parameters = null;
 	private IToken[][] tokens = null;
-	private P[] parameters = null;
-
+	
 	/**
 	 * Constructor
 	 * 
@@ -77,6 +77,11 @@ public abstract class BaseParameterizedEffector<T extends ITarget, P> extends Ba
 	@Override // @see com.characterforming.ribose.base.IParameterizedEffector#compileParameter(IToken[])
 	public abstract P compileParameter(IToken[] parameterTokens) throws TargetBindingException;
 
+@Override
+	public P getParameter(int parameterIndex) {
+		return this.parameters[parameterIndex];
+	}
+
 	@Override
 	public String showParameterType() {
 		return this.parameters != null && this.parameters.length > 0
@@ -96,9 +101,9 @@ public abstract class BaseParameterizedEffector<T extends ITarget, P> extends Ba
 	}
 
 	/**
-	 * Get the parameters array from proxy effector
+	 * Set the parameters array from proxy effector
 	 * 
-	 * @param proxyEffector the proxy effector
+	 * @param proxyEffector the proxy effector holding the compiled parameters
 	 */
 	@SuppressWarnings("unchecked")
 	public final void setParameters(IParameterizedEffector<?,?> proxyEffector) {
@@ -145,15 +150,5 @@ public abstract class BaseParameterizedEffector<T extends ITarget, P> extends Ba
 			}
 		}
 		return fail;
-	}
-
-	/**
-	 * Get parameter at index in parameters array
-	 * 
-	 * @param parameterIndex the parameter index in the array
-	 * @return the parameter instance
-	 */
-	protected final P getParameter(int parameterIndex) {
-		return this.parameters[parameterIndex];
 	}
 }

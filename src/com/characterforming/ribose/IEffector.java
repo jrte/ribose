@@ -29,27 +29,26 @@ import com.characterforming.ribose.base.EffectorException;
  * Interface for simple effectors that present only a niladic {@link #invoke()}
  * method which is called on live effector instances in response to state transitions
  * in a running transduction. The {@link BaseEffector} superclass provides default
- * implementations for all other {@code IEffector} methods. Subclassess must implement
- * {@link #invoke()} and may override other base effector methods. They are typically
- * implemented as anonymous inner classes within a specialized {@link ITarget} 
- * mplementation classes. Conversion between Java/Unicode char and UTF-8 byte are
+ * implementations for all other {@code IEffector} methods and protected access to
+ * {@code BaseEffector.target} and {@code BaseEffector.output}. Subclassess must 
+ * implement {@link #invoke()} and may override other base effector methods. They
+ * are typically implemented as inner classes within a specialized {@link ITarget} 
+ * mplementation class. Conversion between Java/Unicode char and UTF-8 byte are
  * supported by static {@link Codec} methods backed by thread local encoder and
  * decoder bound instances. Ribose and ginr currently support only UTF-8 character
  * encodings. 
  * <br><br>
- * Proxy simple effectors, instantiated in model compilation and loding contexts,
+ * <i>Proxy</i> simple effectors, instantiated in model compilation and loding contexts,
  * receive {@link #setOutput(IOutput)} when they are bound to a proxy transductor
  * and target for parameter compilation. When parameter compilation completes they
  * receive {@link #passivate()} and lose access to their {@link ITarget} and {@link
- * IOutput} instances. 
- * <br><br>
- * Live simple effectors instantiated in runtime contexts receive {@link #setOutput(IOutput)}
- * followed by 0 or more {@link #invoke()}. Live effectors are never passivated and may
- * use {@link #getTarget()} in their {@link #invoke()} methods. Simple effectors that
- * must access transducer fields may override {@link #setOutput(IOutput)} to look up
- * localized field indexes using {@link IOutput#getLocalizedFieldIndex(String, String)}
- * and retain these for subsequent use with the {@link IOutput} data transfer methods
- * in {@link #invoke()}. 
+ * IOutput} instances. <i>Live</i> simple effectors instantiated in runtime contexts
+ * receive {@link #setOutput(IOutput)} followed by 0 or more {@link #invoke()}. Live 
+ * effectors are never passivated and may use {@link #getTarget()} in their {@link 
+ * #invoke()} methods. Simple effectors that must access transducer fields may override
+ * {@link #setOutput(IOutput)} to look up localized field indexes using {@link
+ * IOutput#getLocalizedFieldIndex(String, String)} and retain these for subsequent
+ * use with the {@link IOutput} data transfer methods in {@link #invoke()}. 
  * <br><br>
  * All {@link #invoke()} implementations return an integer <a href="#field.summary">RTX
  * </a> code, which is a bit map of special conditions. RTX bits are additive and
@@ -95,24 +94,41 @@ public interface IEffector<T extends ITarget> {
 	static final int RTX_SIGNAL = 32;
 
 	/**
-	 * This method is invoked at runtime when triggered by an input transition.
+	 * Returns the effector name. The name of the effector is the token
+	 * used to reference it in transducer patterns.
 	 *
-	 * @return user-defined effectors should return {@code IEffector.RTX_NONE}
-	 * @throws EffectorException if things don't work out
+	 * @return the effector name.
 	 */
-	int invoke()
-	throws EffectorException;
+	Bytes getName();
+
+	/**
+	 * Returns the target that expresses the effector. Effector implementations may
+	 * access {@link BaseEffector#target} directly.
+	 *
+	 * @return the target that expresses the effector
+	 */
+	T getTarget();
 
 	/**
 	 * Receive an {@link IOutput} view of the transductor that the effector target
 	 * is bound to. Effectors retain their IOutput view to look up field ordinals
 	 * for parameter compilation and to transfer data out of runnimg transductors.
+	 * Effector implementations may access {@link BaseEffector#output} directly.
 	 * 
 	 * @param output an object that provides a view of transduction runtime fields
 	 * @throws EffectorException if field names can't be resolved
 	 * @see IOutput#getLocalizedFieldIndex(String, String)
 	 */
 	void setOutput(IOutput output)
+	throws EffectorException;
+
+	/**
+	 * This method is invoked at runtime when triggered by an input transition.
+	 *
+	 * @return user-defined effectors should return {@code IEffector.RTX_NONE}
+	 * @throws EffectorException if things don't work out
+	 */
+	int invoke()
 	throws EffectorException;
 
 	/**
@@ -132,21 +148,6 @@ public interface IEffector<T extends ITarget> {
 	 * effectively zombies after parameter compilation is complete.
 	 */
 	public void passivate();
-
-	/**
-	 * Returns the target that expresses the effector.
-	 *
-	 * @return the target that expresses the effector
-	 */
-	T getTarget();
-
-	/**
-	 * Returns the effector name. The name of the effector is the token
-	 * used to reference it in transducer patterns.
-	 *
-	 * @return the effector name.
-	 */
-	Bytes getName();
 
 	/**
 	 * Test two effector instances for functional equivalence. Effector
