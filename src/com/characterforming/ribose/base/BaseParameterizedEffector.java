@@ -37,11 +37,13 @@ import com.characterforming.ribose.IToken;
  * <li>{@link IParameterizedEffector#allocateParameters(int)}</li>
  * <li>{@link IParameterizedEffector#compileParameter(IToken[])}</li>
  * </ul>
- * Default {@link showParameterType()} and {@link showParameterTokens(int)}
- * methods are implemented here but subclasses <i>may</i> override these if desired.
- * Otherwise, public methods not exposed in the {@link IParameterizedEffector} interface
- * are for internal use only. These methods implement the parameter compilation and binding
- * protocols for all parameterized effector implementations.
+ * Subclasses may access indexed compiled parameter objects in their {@link #invoke(int)}
+ * implementations using {@link #getParameter(int)}. Default {@link showParameterType()}
+ * and {@link showParameterTokens(int)} methods are implemented here but subclasses
+ * <i>may</i> override these if desired. Otherwise, public methods not exposed in the
+ * {@link IParameterizedEffector} interface are for internal use only. These methods
+ * implement the parameter compilation and binding protocols for all parameterized effector
+ * implementations.
  * 
  * @param <T> the effector target type
  * @param <P> the effector parameter type, constructible from IToken[] (eg new P(IToken[]))
@@ -50,7 +52,7 @@ import com.characterforming.ribose.IToken;
  */
 public abstract class BaseParameterizedEffector<T extends ITarget, P> extends BaseEffector<T> implements IParameterizedEffector<T, P> {
 
-	/** Effector parameters indexed and selected by parameter ordinal.*/
+	/** Raw and compiled effector parameters indexed and selected by parameter ordinal.*/
 	private IToken[][] tokens = null;
 	private P[] parameters = null;
 

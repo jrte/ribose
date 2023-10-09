@@ -367,7 +367,6 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 	private boolean compileTransducer(File inrFile) throws RiboseException {
 		int size = (int)inrFile.length();
 		byte[] bytes = null;
-		boolean fail = true;
 		try (DataInputStream f = new DataInputStream(new FileInputStream(inrFile))) {
 			this.reset(inrFile);
 			int position = 0, length = size;
@@ -381,11 +380,11 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 		} catch (FileNotFoundException e) {
 			this.addError(String.format("%1$s: File not found '%2$s'",
 				this.transducerName, inrFile.getPath()));
-			return !fail;
+			return false;
 		} catch (IOException e) {
 			this.addError(String.format("%1$s: IOException compiling '%2$s'; %3$s",
 				this.transducerName, inrFile.getPath(), e.getMessage()));
-			return !fail;
+			return false;
 		}
 		try {
 			Bytes automaton = Codec.encode("Automaton");
@@ -397,15 +396,11 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 			this.transductor.stop();
 			assert this.transductor.status().isStopped();
 			this.saveTransducer();
-			fail = false;
-		} catch (ModelException | EffectorException | DomainErrorException e) {
+		} catch (ModelException | EffectorException | DomainErrorException | CharacterCodingException e) {
 			this.addError(String.format("%1$s: Failed to compile '%2$s'; %3$s",
 				this.transducerName, inrFile.getPath(), e.getMessage()));
-		} catch (CharacterCodingException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
 		}
-		return !fail;
+		return true;
 	}
 
 	private boolean validate() {
@@ -414,7 +409,7 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 				this.addError(String.format("Error: Invalid %2$s token '%1$s' on tape 0",
 					token.asString(), token.getTypeName()));
 			} else if (token.getSymbol().bytes().length > 1
-					&& !this.tapeTokens.get(2).contains(token)) {
+				&& !this.tapeTokens.get(2).contains(token)) {
 				this.addError(String.format("Error: Unrecognized signal reference '%1$s' on tape 0",
 					token.asString()));
 			}
@@ -445,9 +440,8 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 			if (super.transducerNameIndex[ordinal] == null
 			|| !super.transducerNameIndex[ordinal].equals(e.getKey())
 			|| super.transducerOffsetIndex[ordinal] <= 0) {
-					this.addError(String.format("'%1$s': referenced but not compiled in model",
+				this.addError(String.format("'%1$s': referenced but not compiled in model",
 					e.getKey().asString()));
-
 			}
 		}
 		
@@ -467,13 +461,10 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 		int nInputs = this.kernelMatrix.length;
 		int nStates = this.kernelMatrix[0].length;
 		int nTransitions = 0;
-		for (int input = 0; input < nInputs; input++) {
-			for (int state = 0; state < nStates; state++) {
-				if (this.kernelMatrix[input][state][1] != 0) {
+		for (int input = 0; input < nInputs; input++) 
+			for (int state = 0; state < nStates; state++) 
+				if (this.kernelMatrix[input][state][1] != 0) 
 					nTransitions++;
-				}
-			}
-		}
 		final int transitionCount = nTransitions;
 		final int fieldCount = super.getFieldCount(this.transducerOrdinal);
 		double sparsity = 100 * (1 - ((double)nTransitions / (double)(nStates * nInputs)));
@@ -569,12 +560,7 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 		this.effectorVectorMap.put(new Ints(new int[] { 0 }), 0);
 		for (final Integer inrInputState : inrInputStates) {
 			for (final Transition t : this.getTransitions(inrInputState)) {
-				if (!t.isFinal) {
-					if (t.tape != 0) {
-						this.addError(String.format(ModelCompiler.AMBIGUOUS_STATE_MESSAGE,
-							this.getTransducerName(), t.from));
-						continue;
-					}
+				if (t.tape == 0 && !t.isFinal) {
 					try {
 						final int rteState = this.inputStateMap.get(t.from);
 						final int inputOrdinal = super.getInputOrdinal(t.symbol.bytes());
@@ -589,19 +575,18 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 							} else if (chain.isParameterizedEffector()) {
 								transitionMatrix[inputOrdinal][rteState][1] = Transducer.action(-1 * effectVector[0], effectVector[1]);
 							} else {
-								Ints vector = new Ints(effectVector);
-								Integer vectorOrdinal = this.effectorVectorMap.get(vector);
-								if (vectorOrdinal == null) {
-									vectorOrdinal = this.effectorVectorMap.size();
-									this.effectorVectorMap.put(vector, vectorOrdinal);
-								}
-								transitionMatrix[inputOrdinal][rteState][1] = -vectorOrdinal;
+								Integer vectorOrdinal = this.effectorVectorMap.computeIfAbsent(
+									new Ints(effectVector), absent -> this.effectorVectorMap.size());
+								transitionMatrix[inputOrdinal][rteState][1] = -1 * vectorOrdinal;
 							}
 						}
 					} catch (CompilationException e) {
 						this.addError(String.format("%1$s: %2$s",
 							this.getTransducerName(), e.getMessage()));
 					}
+				} else if (t.tape != 0) {
+					this.addError(String.format(ModelCompiler.AMBIGUOUS_STATE_MESSAGE,
+						this.getTransducerName(), t.from));
 				}
 			}
 		}
@@ -985,8 +970,8 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 				|| (effectVectors[-1 * vectorOrdinal][effectVectors[-1 * vectorOrdinal].length - vectorLength] != msumOrdinal)) {
 					int[] effect = msumEffects[cell[0]];
 					int[] vector = vectorOrdinal > 0
-						? (vectorOrdinal > 1 ? new int[] { vectorOrdinal, 0 } : new int[] { vectorOrdinal })
-						: effectVectors[-1 * vectorOrdinal];
+					? (vectorOrdinal > 1 ? new int[] { vectorOrdinal, 0 } : new int[] { vectorOrdinal })
+					: effectVectors[-1 * vectorOrdinal];
 					int[] vectorex = Arrays.copyOf(vector, vector.length + effect.length - 1);
 					System.arraycopy(effect, 0, vectorex, vector.length - 1, effect.length);
 					Ints vxkey = new Ints(vectorex);

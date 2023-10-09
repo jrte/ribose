@@ -34,7 +34,8 @@ import com.characterforming.ribose.IModel;
  * Thread local charset encoder/decoder. This is attached to a ribose thread on first use
  * and detached when the thread closes a model (directly or implicitly via autoclose)
  * or explicitly calls {@link IModel#detach()}. Static methods for encoding and decoding
- * are provided.
+ * are provided. Codecs are sticky, if any codec method is invoked after {@link #detach()}
+ * or {@link IModel#close()} a new Codec will be attached (and require detaching).
  */
 public class Codec {
 	private static final Charset CHARSET = Charset.forName(System.getProperty("ribose.runtime.charset", "UTF-8"));
@@ -56,14 +57,20 @@ public class Codec {
 	}
 
 	private static Codec set() {
-		Codec codec = new Codec();
-		Codec.LOCAL.set(codec);
+		Codec codec = Codec.LOCAL.get();
+		if (codec == null) {
+			codec = new Codec();
+			Codec.LOCAL.set(codec);
+		}
 		return codec;
 	}
 
 	private static Codec get() {
-		Codec codec = Codec.LOCAL.get() ;
-		return (codec == null) ? Codec.set() : codec;
+		Codec codec = Codec.LOCAL.get();
+		if (codec == null) {
+			codec = Codec.set();
+		}
+		return codec;
 	}
 
 	/**
@@ -74,38 +81,41 @@ public class Codec {
 	}
 
 	/**
-	 * Decode UTF-8 bytes to a String.
+	 * Decode some UTF-8 bytes to a String.
 	 * 
 	 * @param bytes the bytes to decode
-	 * @param length the number of bytes to decode
+	 * @param length the number of bytes to decode from offset 0
 	 * @return a String containing the decoded text
 	 * @throws CharacterCodingException if decoding fails
 	 */
-	public static String decode(final byte[] bytes, final int length) throws CharacterCodingException {
+	public static String decode(final byte[] bytes, final int length)
+	throws CharacterCodingException {
 		assert 0 <= length && length <= bytes.length;
 		int size = Math.max(Math.min(length, bytes.length), 0);
 		return Codec.get().decoder.reset().decode(ByteBuffer.wrap(bytes, 0, size)).toString();
 	}
 
 	/**
-	 * Decode UTF-8 bytes to a String.
+	 * Decode all UTF-8 bytes to a String.
 	 * 
 	 * @param bytes the bytes to decode
 	 * @return a String containing the decoded text
 	 * @throws CharacterCodingException if decoding fails
 	 */
-	public static String decode(final byte[] bytes) throws CharacterCodingException {
+	public static String decode(final byte[] bytes)
+	throws CharacterCodingException {
 		return Codec.decode(bytes, bytes.length);
 	}
 
 	/**
-	 * Encode a String.
+	 * Encode a String to UTF-8.
 	 * 
 	 * @param chars the string to encode
 	 * @return the encoded Bytes
 	 * @throws CharacterCodingException if encoding fails
 	 */
-	public static Bytes encode(final String chars) throws CharacterCodingException {
+	public static Bytes encode(final String chars)
+	throws CharacterCodingException {
 		ByteBuffer buffer = Codec.get().encoder.reset().encode(CharBuffer.wrap(chars.toCharArray()));
 		byte[] bytes = new byte[buffer.limit()];
 		buffer.get(bytes, 0, bytes.length);

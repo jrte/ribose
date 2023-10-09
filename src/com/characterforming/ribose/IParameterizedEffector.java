@@ -81,11 +81,12 @@ import com.characterforming.ribose.base.TargetBindingException;
  * <b>P</b>[] precompiled by the respective proxy effector when the model
  * is loaded into the runtime. Live effectors are not otherwise involved
  * in parameter compilation or decompilation and are never passivated. They
- * select their parameters by array index in their {@link #invoke(int p)}
- * methods, which normally return {@link IEffector#RTX_NONE} to indicate 
- * no special condition. They may also return a {@link Signal} encoded by
- * {@link IOutput#signal(int)}. See the javadoc comments for {@link
- * IEffector} for more information regarding effector {@code RTX} codes.
+ * select their parameters by array index by calling {@link #getParameter(int p)}
+ * in their {@link #invoke(int p)} methods, which normally return {@link
+ * IEffector#RTX_NONE} to indicate  no special condition. They may also return
+ * a {@link Signal} encoded by {@link IOutput#signal(int)}. See the javadoc
+ * comments for {@link IEffector} for more information regarding effector
+ * {@code RTX} codes.
  * <br><br>
  * All {@code IParameterizedEffector} implementations must be subclasses of
  * {@link BaseParameterizedEffector}. Other than immutability ribose places
