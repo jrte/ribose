@@ -23,8 +23,6 @@ package com.characterforming.ribose.base;
 import java.nio.charset.CharacterCodingException;
 import java.util.Arrays;
 
-import com.characterforming.jrte.engine.Codec;
-
 /**
  * Wraps an immutable array of bytes. Ribose transductions operate in the {@code byte}
  * domain, and transduction input and outputs are represented as byte arrays.

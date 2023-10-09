@@ -30,11 +30,11 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import com.characterforming.jrte.engine.Base;
-import com.characterforming.jrte.engine.Codec;
 import com.characterforming.ribose.IModel;
 import com.characterforming.ribose.ITransductor;
 import com.characterforming.ribose.ITransductor.Metrics;
 import com.characterforming.ribose.base.Bytes;
+import com.characterforming.ribose.base.Codec;
 import com.characterforming.ribose.base.Signal;
 
 public class FileRunner {

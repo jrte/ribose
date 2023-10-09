@@ -48,6 +48,7 @@ import com.characterforming.ribose.ITransductor;
 import com.characterforming.ribose.IToken.Type;
 import com.characterforming.ribose.base.BaseEffector;
 import com.characterforming.ribose.base.Bytes;
+import com.characterforming.ribose.base.Codec;
 import com.characterforming.ribose.base.CompilationException;
 import com.characterforming.ribose.base.DomainErrorException;
 import com.characterforming.ribose.base.EffectorException;

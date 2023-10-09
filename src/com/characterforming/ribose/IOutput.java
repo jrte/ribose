@@ -27,13 +27,13 @@ import com.characterforming.ribose.base.EffectorException;
 import com.characterforming.ribose.base.Signal;
 
 /**
- * Provides loggers, UTF-8 codecs and a view of fields (data extracted by the transduction)
- * to {@link IEffector} implementations. Effectors receive their {@code IOutput} instance via
+ * Provides loggers and a view of fields (data extracted by the transduction) to {@link
+ * IEffector} implementations. Effectors receive their {@code IOutput} instance via
  * {@link IEffector#setOutput(IOutput)} when they are first bound to a transductor. Transducer 
  * fields are local and bound to the defining transducer and can be accessed by stable
  * field ordinal numbers. Every transducer has an anonymous field with ordinal number 0 
- * (the anonymous name token (`~`) in patterns). Ordinal numbers for named fields
- * (referenced with a <b>~</b> field type prefix in transducer patterns, eg, {@code
+ * (the anonymous name token (`~`) in transducer patterns). Ordinal numbers for named
+ * fields (referenced with a <b>~</b> field type prefix in patterns, eg, {@code
  * out[`~data`]}) are obtained by providing defining transducer and field names to {@link
  * #getLocalizedFieldIndex(String, String)}. Effectors should obtain field ordinals in {@code
  * setOutput()} and retain then for use with the data transfer methods {@link #asInteger(int)},
@@ -105,7 +105,7 @@ public interface IOutput {
 	throws EffectorException, CharacterCodingException;
 
 	/**
-	 * Get the ordinal number for the current selected field. Not valid for proxy effectors.
+	 * Get the localized ordinal number for the current selected field. Not valid for proxy effectors.
 	 * The localized index is the offset to the field in the transducer stack frame.
 	 * 
 	 * @return the localized index of the selected field in the current transducer stack frame

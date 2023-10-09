@@ -72,7 +72,7 @@ import com.characterforming.ribose.base.TargetBindingException;
  *   }
  * ...
  *   int invoke(int index) {
- *     SimpleDateFormat formater = super.getParameter(index);
+ *     SimpleDateFormat formatter = super.getParameter(index);
  *     // get some field contents and format as date
  *     return RTX_NONE;
  *   }
@@ -97,6 +97,7 @@ import com.characterforming.ribose.base.TargetBindingException;
  * @author Kim Briggs
  * @param <T> the effector target type
  * @param <P> the effector parameter type, constructible from byte[][] (eg new P(byte[][]))
+ * @see IEffector
  * @see BaseParameterizedEffector
  */
 public interface IParameterizedEffector<T extends ITarget, P> extends IEffector<T> {

@@ -33,7 +33,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import com.characterforming.jrte.engine.Base;
-import com.characterforming.jrte.engine.Codec;
+import com.characterforming.ribose.base.Codec;
 import com.characterforming.ribose.base.ModelException;
 import com.characterforming.ribose.base.RiboseException;
 import com.characterforming.ribose.base.Signal;

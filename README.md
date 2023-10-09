@@ -227,7 +227,7 @@ null = (
 Tintervals = (interval* null*)*;
 ```
 Nullification can be applied similarly to subpatterns to effect fine-grained context-sensitive error handling. The general technique of flattening a transducer pattern and transforming it with an editor pattern while projecting the result back onto the original tapes can be applied in many other ways. Like [CRISPR](https://www.newscientist.com/definition/what-is-crispr/) in genetics, it can be used to inject new behaviors or alter existing behaviors in transducer patterns. The `null` expression above preserves the interleaving of input and effectors in the nullified `interval` pattern up to the first `nul` signal and replaces the remainder with a pattern that synchronizes at the opening of the next XML stanza. If no effectors are involved the same result can be expressed more succinctly as shown in the next example.
-## Resolving Ambiguous Inputs (Classification)
+### Resolving Ambiguous Inputs (Classification)
 It is sometimes necessary to look ahead in the input, without effect, to syntactically validate a prospective feature or resolve an ambiguous pattern before selecting a course of action. The snippet below, from the `LinuxKernelStrict` transducer in the ribose test suite, demonstrates this using the `mark` and `reset` effectors. The _`header`_ and _`capture`_ subpatterns, referenced but not shown here, effect field extraction from iptables messages in Linux kernel logs.
 ```
 #May 15 07:58:52 kb-ubuntu kernel: [ 1794.599801] DROPPED IN=eth0 OUT= MAC=01:00:5e:00:00:fb:00:13:20:c0:36:32:08:00 SRC=192.168.144.101 DST=224.0.0.251 LEN=32 TOS=0x00 PREC=0x00 TTL=1 ID=8596 OPT (94040000) PROTO=2

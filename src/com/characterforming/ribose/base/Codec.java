@@ -18,7 +18,7 @@
  * <http://www.gnu.org/licenses/#GPL>.
  */
 
-package com.characterforming.jrte.engine;
+package com.characterforming.ribose.base;
 
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
@@ -28,8 +28,14 @@ import java.nio.charset.CharsetDecoder;
 import java.nio.charset.CharsetEncoder;
 import java.nio.charset.CodingErrorAction;
 
-import com.characterforming.ribose.base.Bytes;
+import com.characterforming.ribose.IModel;
 
+/**
+ * Thread local charset encoder/decoder. This is attached to a ribose thread on first use
+ * and detached when the thread closes a model (directly or implicitly via autoclose)
+ * or explicitly calls {@link IModel#detach()}. Static methods for encoding and decoding
+ * are provided.
+ */
 public class Codec {
 	private static final Charset CHARSET = Charset.forName(System.getProperty("ribose.runtime.charset", "UTF-8"));
 	private static final ThreadLocal<Codec> LOCAL = ThreadLocal.withInitial(Codec::new);
@@ -60,6 +66,9 @@ public class Codec {
 		return (codec == null) ? Codec.set() : codec;
 	}
 
+	/**
+	 * Explicitly detach Codec from thread.
+	 */
 	public static void detach() {
 		Codec.LOCAL.remove();
 	}

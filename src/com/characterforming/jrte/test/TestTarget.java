@@ -2,11 +2,11 @@ package com.characterforming.jrte.test;
 
 import java.nio.charset.CharacterCodingException;
 
-import com.characterforming.jrte.engine.Codec;
 import com.characterforming.ribose.IEffector;
 import com.characterforming.ribose.IOutput;
 import com.characterforming.ribose.ITarget;
 import com.characterforming.ribose.base.BaseEffector;
+import com.characterforming.ribose.base.Codec;
 import com.characterforming.ribose.base.EffectorException;
 import com.characterforming.ribose.base.Signal;
 import com.characterforming.ribose.base.TargetBindingException;

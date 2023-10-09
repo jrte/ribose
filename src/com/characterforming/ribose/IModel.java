@@ -26,10 +26,10 @@ import java.io.OutputStream;
 import java.io.PrintStream;
 import java.nio.charset.CharacterCodingException;
 
-import com.characterforming.jrte.engine.Codec;
 import com.characterforming.jrte.engine.ModelCompiler;
 import com.characterforming.jrte.engine.ModelLoader;
 import com.characterforming.ribose.base.Bytes;
+import com.characterforming.ribose.base.Codec;
 import com.characterforming.ribose.base.ModelException;
 import com.characterforming.ribose.base.RiboseException;
 import com.characterforming.ribose.base.Signal;
