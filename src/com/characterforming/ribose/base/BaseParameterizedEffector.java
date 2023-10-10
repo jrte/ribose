@@ -38,7 +38,7 @@ import com.characterforming.ribose.IToken;
  * <li>{@link IParameterizedEffector#compileParameter(IToken[])}</li>
  * </ul>
  * Subclasses may access indexed compiled parameter objects in their {@link #invoke(int)}
- * implementations using {@link #getParameter(int)}. Default {@link showParameterType()}
+ * implementations directly as {@code super.parameters[int]}. Default {@link showParameterType()}
  * and {@link showParameterTokens(int)} methods are implemented here but subclasses
  * <i>may</i> override these if desired. Otherwise, public methods not exposed in the
  * {@link IParameterizedEffector} interface are for internal use only. These methods
@@ -76,11 +76,6 @@ protected P[] parameters = null;
 
 	@Override // @see com.characterforming.ribose.base.IParameterizedEffector#compileParameter(IToken[])
 	public abstract P compileParameter(IToken[] parameterTokens) throws TargetBindingException;
-
-@Override
-	public P getParameter(int parameterIndex) {
-		return this.parameters[parameterIndex];
-	}
 
 	@Override
 	public String showParameterType() {
@@ -145,7 +140,7 @@ protected P[] parameters = null;
 				fail = true;
 			} catch (Exception e) {
 				parameterErrors.add(String.format("%1$s.%2$s[]: %3$%s",
-					super.getTarget().getName(), super.getName(), e.getMessage()));
+					super.target.getName(), super.getName(), e.getMessage()));
 				fail = true;
 			}
 		}

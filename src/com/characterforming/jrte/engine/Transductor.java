@@ -768,7 +768,7 @@ E:	do {
 
 		@Override
 		public int invoke(final int parameterIndex) throws EffectorException {
-			for (IToken t : super.getParameter(parameterIndex)) {
+			for (IToken t : super.parameters[parameterIndex]) {
 				if (t instanceof Token token) { 
 					if (token.getType() == IToken.Type.FIELD) {
 						Value field = transducerStack.value(token.getOrdinal());
@@ -802,7 +802,7 @@ E:	do {
 
 		@Override
 		public int invoke(final int parameterIndex) throws EffectorException {
-			selected = super.getParameter(parameterIndex);
+			selected = super.parameters[parameterIndex];
 			value = transducerStack.value(selected);
 			assert selected != Model.ALL_FIELDS_ORDINAL;
 			if (selected != Model.ALL_FIELDS_ORDINAL) {
@@ -825,7 +825,7 @@ E:	do {
 		
 		@Override
 		public int invoke(final int parameterIndex) throws EffectorException {
-			int fieldOrdinal = super.getParameter(parameterIndex);
+			int fieldOrdinal = super.parameters[parameterIndex];
 			assert fieldOrdinal != Model.ALL_FIELDS_ORDINAL;
 			value.paste(transducerStack.value(fieldOrdinal));
 			return IEffector.RTX_NONE;
@@ -844,7 +844,7 @@ E:	do {
 
 		@Override
 		public int invoke(final int parameterIndex) throws EffectorException {
-			int fieldOrdinal = super.getParameter(parameterIndex);
+			int fieldOrdinal = super.parameters[parameterIndex];
 			assert fieldOrdinal != Model.ALL_FIELDS_ORDINAL;
 			value.paste(transducerStack.value(fieldOrdinal));
 			transducerStack.value(fieldOrdinal).clear();
@@ -865,7 +865,7 @@ E:	do {
 
 		@Override
 		public int invoke(final int parameterIndex) throws EffectorException {
-			final int nameIndex = super.getParameter(parameterIndex);
+			final int nameIndex = super.parameters[parameterIndex];
 			int index = (nameIndex >= 0) ? nameIndex : selected;
 			assert index >= -1;
 			if (index != Model.ALL_FIELDS_ORDINAL) {
@@ -889,7 +889,7 @@ E:	do {
 
 		@Override
 		public int invoke(final int parameterIndex) throws EffectorException {
-			return signal(super.getParameter(parameterIndex));
+			return signal(super.parameters[parameterIndex]);
 		}
 
 		@Override // @see com.characterforming.ribose.IParameterizedEffector#allocateParameters(int)
@@ -940,7 +940,7 @@ E:	do {
 
 		@Override
 		public int invoke(final int parameterIndex) throws EffectorException {
-			IToken[] parameters = super.getParameter(parameterIndex);
+			IToken[] parameters = super.parameters[parameterIndex];
 			byte[][] tokens = new byte[parameters.length][];
 			for (int i = 0; i < parameters.length; i++) {
 				if (parameters[i].getType() == IToken.Type.FIELD) {
@@ -969,7 +969,7 @@ E:	do {
 		@Override
 		public int invoke(final int parameterIndex) throws EffectorException {
 			if (outputStream != null) {
-				for (final IToken token : super.getParameter(parameterIndex)) {
+				for (final IToken token : super.parameters[parameterIndex]) {
 					try {
 						if (token.getType() == IToken.Type.FIELD) {
 							Value field = transducerStack.value(token.getOrdinal());
@@ -1008,7 +1008,7 @@ E:	do {
 		@Override
 		public int invoke(final int parameterIndex) throws EffectorException {
 			assert (transducer == transducerStack.peek()) || (transducer == transducerStack.get(transducerStack.tos()-1));
-			int[] parameter = super.getParameter(parameterIndex);
+			int[] parameter = super.parameters[parameterIndex];
 			transducer.countdown = parameter[0];
 			transducer.signal = parameter[1];
 			if (transducer.countdown < 0) {
@@ -1021,7 +1021,7 @@ E:	do {
 		public int[] compileParameter(final IToken[] parameterList) throws TargetBindingException {
 			if (parameterList.length != 2) {
 				throw new TargetBindingException(String.format("%1$S.%2$S: effector requires two parameters",
-					super.getTarget().getName(), super.getName()));
+					super.target.getName(), super.getName()));
 			}
 			int count = -1;
 			if (parameterList[0].getType() == IToken.Type.FIELD) {
@@ -1031,7 +1031,7 @@ E:	do {
 				count = Base.decodeInt(v, v.length);
 			} else {
 				throw new TargetBindingException(String.format("%1$s.%2$s[]: invalid field|counter for count effector",
-					super.getTarget().getName(), super.getName()));
+					super.target.getName(), super.getName()));
 			}
 			if (parameterList[1].getType() == IToken.Type.SIGNAL) {
 				int signalOrdinal = parameterList[1].getOrdinal();
@@ -1039,7 +1039,7 @@ E:	do {
 				return new int[] { count, signalOrdinal };
 			} else {
 				throw new TargetBindingException(String.format("%1$s.%2$s[]: invalid signal '%3$%s' for count effector",
-					super.getTarget().getName(), super.getName(), parameterList[1].asString()));
+					super.target.getName(), super.getName(), parameterList[1].asString()));
 			}
 		}
 	}
@@ -1073,7 +1073,7 @@ E:	do {
 
 		@Override
 		public int invoke(final int parameterIndex) throws EffectorException {
-			int transducerOrdinal = super.getParameter(parameterIndex);
+			int transducerOrdinal = super.parameters[parameterIndex];
 			try {
 				transducerStack.push(loader.loadTransducer(transducerOrdinal));
 				transducerStack.peek().selected = Model.ANONYMOUS_FIELD_ORDINAL;
@@ -1117,7 +1117,7 @@ E:	do {
 		public int invoke(final int parameterIndex) throws EffectorException {
 			if (matchMode == MATCH_NONE) {
 				matchMode = MATCH_SUM;
-				matchSum = super.getParameter(parameterIndex);
+				matchSum = super.parameters[parameterIndex];
 			} else {
 				throw new EffectorException(String.format("Illegal attempt to override match mode %d with MSUM=%d",
 					matchMode, MATCH_SUM));
@@ -1140,7 +1140,7 @@ E:	do {
 
 		@Override
 		public String showParameterTokens(int parameterIndex) {
-			long[] sum = super.getParameter(parameterIndex);
+			long[] sum = super.parameters[parameterIndex];
 			StringBuilder sb = new StringBuilder();
 			int endBit = 0, startBit = -1;
 			for (int j = 0; j < sum.length; j++) {
@@ -1191,7 +1191,7 @@ E:	do {
 		public int invoke(final int parameterIndex) throws EffectorException {
 			if (matchMode == MATCH_NONE) {
 				matchMode = MATCH_PRODUCT;
-				matchProduct = super.getParameter(parameterIndex);
+				matchProduct = super.parameters[parameterIndex];
 				matchPosition = 0;
 			} else {
 				throw new EffectorException(String.format("Illegal attempt to override match mode %d with MPRODUCT=%d",
@@ -1216,7 +1216,7 @@ E:	do {
 
 		@Override
 		public String showParameterTokens(int parameterIndex) {
-			byte[] product = super.getParameter(parameterIndex);
+			byte[] product = super.parameters[parameterIndex];
 			StringBuilder sb = new StringBuilder();
 			for (int j = 0; j < product.length; j++) {
 				sb.append(32 < product[j] && 127 > product[j]
@@ -1241,7 +1241,7 @@ E:	do {
 		public int invoke(final int parameterIndex) throws EffectorException {
 			if (matchMode == MATCH_NONE) {
 				matchMode = MATCH_SCAN;
-				matchByte = super.getParameter(parameterIndex);
+				matchByte = super.parameters[parameterIndex];
 			} else {
 				throw new EffectorException(String.format("Illegal attempt to override match mode %d with MSCAN=%d",
 					matchMode, MATCH_SCAN));
@@ -1264,7 +1264,7 @@ E:	do {
 
 		@Override
 		public String showParameterTokens(int parameterIndex) {
-			int scanbyte = super.getParameter(parameterIndex);
+			int scanbyte = super.parameters[parameterIndex];
 			return 32 < scanbyte && 127 > scanbyte
 			?	String.format(" %c", (char)scanbyte)
 			:	String.format(" #%x", scanbyte);

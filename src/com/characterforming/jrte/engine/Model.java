@@ -98,6 +98,7 @@ sealed class Model permits ModelCompiler, ModelLoader {
 	protected File modelPath;
 	
 	private ArrayList<HashMap<Argument, Integer>> effectorParametersMaps;
+	private Transductor proxyTransductor;
 
 	/** Proxy compiler model for effector parameter compilation */
 	public Model() {
@@ -173,8 +174,8 @@ sealed class Model permits ModelCompiler, ModelLoader {
 		try {
 			if (this.targetClass.getDeclaredConstructor().newInstance() instanceof ITarget proxyTarget) {
 				this.targetName = proxyTarget.getName();
-				Transductor proxyTransductor = new Transductor();
-				proxyTransductor.setModel(this);
+				this.proxyTransductor = new Transductor();
+				this.proxyTransductor.setModel(this);
 				IEffector<?>[] trexFx = proxyTransductor.getEffectors();
 				IEffector<?>[] targetFx = proxyTarget.getEffectors();
 				this.proxyEffectors = new IEffector<?>[trexFx.length + targetFx.length];
@@ -186,7 +187,6 @@ sealed class Model permits ModelCompiler, ModelLoader {
 					this.effectorOrdinalMap.put(this.proxyEffectors[effectorOrdinal].getName(), effectorOrdinal);
 					this.effectorParametersMaps.add(null);
 				}
-				assert proxyTransductor == (Transductor)this.proxyEffectors[0].getTarget();
 			} else throw new ModelException(String.format(
 					"Class '%s' from model file %s does not implement the ITarget interface.",
 						this.targetClass.getName(), this.modelPath.toPath().toString()));
@@ -344,6 +344,7 @@ sealed class Model permits ModelCompiler, ModelLoader {
 				this.proxyEffectors[effectorOrdinal].passivate();
 			}
 		}
+		this.proxyTransductor = null;
 		if (!errors.isEmpty()) {
 			for (String error : errors) {
 				this.rtcLogger.log(Level.SEVERE, error);
@@ -461,10 +462,9 @@ sealed class Model permits ModelCompiler, ModelLoader {
 	protected Argument[][] compileModelParameters(List<String> errors) throws EffectorException {
 		Argument[][] effectorArguments = new Argument[this.proxyEffectors.length][];
 		final Map<Bytes, Integer> effectorMap = this.getEffectorOrdinalMap();
-		Transductor proxyTransductor = (Transductor)this.proxyEffectors[0].getTarget();
 		for (int effectorOrdinal = 0; effectorOrdinal < this.proxyEffectors.length; effectorOrdinal++) {
 			HashMap<Argument, Integer> parametersMap = this.effectorParametersMaps.get(effectorOrdinal);
-			this.proxyEffectors[effectorOrdinal].setOutput(proxyTransductor);
+			this.proxyEffectors[effectorOrdinal].setOutput(this.proxyTransductor);
 			if (this.proxyEffectors[effectorOrdinal] instanceof BaseParameterizedEffector<?,?> parameterizedEffector) {
 				if (parametersMap != null) {
 					assert parametersMap != null: String.format("Effector parameters map is null for %1$s effector", 

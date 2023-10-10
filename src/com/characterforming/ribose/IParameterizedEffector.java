@@ -20,7 +20,6 @@
 
 package com.characterforming.ribose;
 
-import com.characterforming.ribose.base.BaseEffector;
 import com.characterforming.ribose.base.BaseParameterizedEffector;
 import com.characterforming.ribose.base.EffectorException;
 import com.characterforming.ribose.base.TargetBindingException;
@@ -81,7 +80,7 @@ import com.characterforming.ribose.base.TargetBindingException;
  *   }
  * ... // in live effector
  *   int invoke(int index) {
- *     SimpleDateFormat formatter = super.getParameter(index);
+ *     SimpleDateFormat formatter = super.parameters[index];
  *     // get some field contents and format as date
  *     return RTX_NONE;
  *   }
@@ -138,15 +137,6 @@ public interface IParameterizedEffector<T extends ITarget, P> extends IEffector<
 	 */
 	P compileParameter(IToken[] parameterTokens)
 	throws TargetBindingException;
-
-	/**
-	 * Get an indexed parameter from the parameters array. Effector implementations 
-	 * may access {@link BaseEffector#target} directly.
-	 * 
-	 * @param parameterIndex the parameter index in the array
-	 * @return the parameter instance
-	 */
-	P getParameter(int parameterIndex);
 
 	/**
 	 * Return the type of the effector's parameter object, to support decompilation

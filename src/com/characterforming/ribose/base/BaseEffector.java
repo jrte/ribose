@@ -38,6 +38,7 @@ public abstract class BaseEffector<T extends ITarget> implements IEffector<T> {
 
 	/** Effector access to the target that it is bound to */
 	protected T target;
+
 	/** Effector view of Transductor loggers, UTF-8 codecs and fields. */
 	protected IOutput output;
 
@@ -69,11 +70,6 @@ public abstract class BaseEffector<T extends ITarget> implements IEffector<T> {
 	@Override // @see com.characterforming.ribose.base.IEffector#getName()
 	public final Bytes getName() {
 		return this.name;
-	}
-
-	@Override // @see com.characterforming.ribose.IEffector#getTarget()
-	public final T getTarget() {
-		return this.target;
 	}
 
 	@Override // @see java.lang.Object#toString()

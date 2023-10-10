@@ -35,7 +35,7 @@ import com.characterforming.ribose.base.EffectorException;
  * are typically implemented as inner classes within a specialized {@link ITarget} 
  * mplementation class. Conversion between Java/Unicode char and UTF-8 byte are
  * supported by static {@link Codec} methods backed by thread local encoder and
- * decoder bound instances. Ribose and ginr currently support only UTF-8 character
+ * decoder instances. Ribose and ginr currently support only UTF-8 character
  * encodings. 
  * <br><br>
  * <i>Proxy</i> simple effectors, instantiated in model compilation and loding contexts,
@@ -44,11 +44,12 @@ import com.characterforming.ribose.base.EffectorException;
  * receive {@link #passivate()} and lose access to their {@link ITarget} and {@link
  * IOutput} instances. <i>Live</i> simple effectors instantiated in runtime contexts
  * receive {@link #setOutput(IOutput)} followed by 0 or more {@link #invoke()}. Live 
- * effectors are never passivated and may use {@link #getTarget()} in their {@link 
- * #invoke()} methods. Simple effectors that must access transducer fields may override
- * {@link #setOutput(IOutput)} to look up localized field indexes using {@link
- * IOutput#getLocalizedFieldIndex(String, String)} and retain these for subsequent
- * use with the {@link IOutput} data transfer methods in {@link #invoke()}. 
+ * effectors are never passivated and may access {@code super.target} and {@code
+ * super.output} in their {@link #invoke()} methods. Effectors access transducer
+ * fields by overriding {@link #setOutput(IOutput)} and use {@link
+ * IOutput#getLocalizedFieldIndex(String, String)} to obtain stable field indexes for
+ * subsequent use with the {@link IOutput} data transfer methods. See {@link IOutput}
+ * for more information regarding field binding in effectors.
  * <br><br>
  * All {@link #invoke()} implementations return an integer <a href="#field.summary">RTX
  * </a> code, which is a bit map of special conditions. RTX bits are additive and
@@ -100,14 +101,6 @@ public interface IEffector<T extends ITarget> {
 	 * @return the effector name.
 	 */
 	Bytes getName();
-
-	/**
-	 * Returns the target that expresses the effector. Effector implementations may
-	 * access {@link BaseEffector#target} directly.
-	 *
-	 * @return the target that expresses the effector
-	 */
-	T getTarget();
 
 	/**
 	 * Receive an {@link IOutput} view of the transductor that the effector target
