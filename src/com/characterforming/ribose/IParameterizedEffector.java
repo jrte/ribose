@@ -52,13 +52,13 @@ import com.characterforming.ribose.base.TargetBindingException;
  * {@link BaseParameterizedEffector}, which all {@code IParameterizedEffector}
  * implementations must extend:
  * <ol>
- * <li> model calls <i>subclass</i>.allocateParameters(int n)
+ * <li> model calls <i>subclassEffector</i>.allocateParameters(int n)
  * <ul><li>allocates new P[n]</ul>
- * <li> model calls <i>superclass</i>.compileParameters(IToken[][], List)
- * <ul><li>sets P[i] = <i>subclass</i>Effector.compileParameter(IToken[]) for i&lt;n</ul> 
- * <li> model calls <i>subclass</i>Effector.passivate()
- * <ul><li>if overridden, <i>subclass</i> must call <i>superclass</i>.passivate()
- * 	<ul><li>BaseEffector.target = null<li>BaseEffector.output = null</ul>
+ * <li> model calls <i>superclassEffector</i>.compileParameters(IToken[][], List)
+ * <ul><li>sets P[i] = <i>subclassEffector</i>.compileParameter(IToken[]) for i&lt;n</ul> 
+ * <li> model calls <i>subclassEffector</i>.passivate()
+ * <ul><li>if overridden, <i>subclassEffector</i> must call <i>superclassEffector</i>.passivate()
+ * 	<ul><li><i>superclassEffector</i>.target = null<li><i>superclassEffector</i>.output = null</ul>
  * </ul> 
  * </ol>
  * Proxy effectors may receive calls to {@link #showParameterType()} and {@link

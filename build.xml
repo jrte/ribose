@@ -48,6 +48,7 @@
 	<property name="regex.linuxkernel" value="([JFMASOND][a-z]+ [0-9]+ (?:[0-9]+:)+[0-9]+) ([-.:A-Za-z_0-9]*) kernel: \[[ ]*[0-9]+\.[0-9]+\] (DROPPED|ABORTED|LIMITED) IN=([-.:A-Za-z_0-9]*) OUT=([-.:A-Za-z_0-9]*)(?: MAC=([-.:A-Za-z_0-9]*))? SRC=([-.:A-Za-z_0-9]*) DST=([-.:A-Za-z_0-9]*).* PROTO=([-.:A-Za-z_0-9]*)(?:.* SPT=([-.:A-Za-z_0-9]*) DPT=([-.:A-Za-z_0-9]*))?"/>
 	<property name="ribose.inbuffer.size" value="65536"/>
 	<property name="ribose.outbuffer.size" value="65536"/>
+	<property name="jargs.ribose.compile" value="-Dribose.product.threshold=12 -Dribose.sum.threshold=128"/>
 	<property name="jargs.jit.diagnostic" value="-XX:+UnlockDiagnosticVMOptions -XX:+PrintCompilation -XX:+PrintInlining"/>
 	<property name="jargs.jit.inline" value="-XX:CompileCommandFile=etc/jit/ribose.jit"/>
 	<property name="jargs.gc.buffers" value="-Dribose.inbuffer.size=${ribose.inbuffer.size} -Dribose.outbuffer.size=${ribose.outbuffer.size}"/>
@@ -293,7 +294,7 @@
 		<delete file="build/Test.map"/>
 		<echo message="Building build/Test.model"/>
 		<exec failonerror="true" executable="bash">
-			<arg line="./ribose ${jargs} compile --target-path ${jars.dir}/${ribose.version}-test.jar --target com.characterforming.jrte.test.TestTarget ${build.automata} build/Test.model"/>
+			<arg line="./ribose ${jargs} ${jargs.ribose.compile} compile --target-path ${jars.dir}/${ribose.version}-test.jar --target com.characterforming.jrte.test.TestTarget ${build.automata} build/Test.model"/>
 		</exec>
 		<fixcrlf file="build/Test.map" eol="lf"/>
 	</target>

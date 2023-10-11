@@ -249,7 +249,7 @@ public final class Transductor implements ITransductor, IOutput {
 					n = (10 * n) + (digit - 48);
 				} else {
 					throw new NumberFormatException(String.format(
-							"Not a numeric value '%1$s'", this.toString()));
+						"Not a numeric value '%1$s'", this.toString()));
 				}
 			}
 			return sign * n;
@@ -276,7 +276,7 @@ public final class Transductor implements ITransductor, IOutput {
 					mark = true;
 				} else {
 					throw new NumberFormatException(String.format(
-							"Not a floating point value '%1$s'", this.toString()));
+						"Not a floating point value '%1$s'", this.toString()));
 				}
 			}
 			return f * n;
@@ -328,9 +328,8 @@ public final class Transductor implements ITransductor, IOutput {
 			} else {
 				return this.inputStack.isEmpty() ? Status.PAUSED : Status.RUNNABLE;
 			}
-		} else {
-			return Status.PROXY;
 		}
+		return Status.PROXY;
 	}
 
 	@Override // @see com.characterforming.ribose.ITransductor#output(OutputStream)
@@ -398,6 +397,7 @@ public final class Transductor implements ITransductor, IOutput {
 		int token = -1, state = 0, last = -1, signal = 0;
 		if (this.prologue != null) {
 			signal = this.prologue.signal();
+			this.matchMode = MATCH_NONE;
 			this.prologue = null;
 		}
 		Input input = Input.empty;
@@ -412,8 +412,10 @@ T:		do {
 				this.selected = this.transducer.selected;
 				state = this.transducer.state;
 I:			do {
+					int pos = input.position;
 					// get next input token
 					if (signal > 0) {
+						pos = input.position;
 						token = signal;
 						signal = 0;
 					} else {
@@ -424,49 +426,60 @@ I:			do {
 								break T;
 							}
 						}
-						token = 0xff & input.array[input.position++];
+						pos = input.position++;
+						token = 0xff & input.array[pos];
 					}
 					
-					// absorb self-referencing (msum,mscan) or sequential (mproduct) transitions with nil effect
-					while (this.matchMode != MATCH_NONE && token < SIGNUL) {
+					int action = NIL, mode = this.matchMode;
+S:				do {
 						switch (this.matchMode) {
+						// trap runs in (nil* paste*)* effector space
+						case MATCH_NONE:
+							do {
+								long transition = transitionMatrix[state + inputFilter[token]];
+								last = state; state = Transducer.state(transition);
+								action = Transducer.action(transition);
+								if (action == PASTE)
+									this.value.paste((byte)token);
+								else if (action != NIL)
+									break S;
+								token = input.position < input.limit
+								? 0xff & input.array[input.position++]
+								: -1;
+							} while (token >= 0);
+							break;
+						// absorb self-referencing (msum,mscan) or sequential (mproduct) transitions with nil effect
 						case MATCH_SUM:
-							token = sumTrap(input, token);
+							if (token < SIGNUL)
+								token = sumTrap(input, token);
 							break;
 						case MATCH_PRODUCT:
-							token = productTrap(input, token);
+							if (token < SIGNUL)
+								token = productTrap(input, token);
 							break;
 						case MATCH_SCAN:
-							token = scanTrap(input, token);
+							if (token < SIGNUL)
+								token = scanTrap(input, token);
 							break;
 						default:
 							assert false;
 							break;
 						}
 						if (token < 0) {
-							continue I;
-						}
-					}
-
-					// trap runs in (nil* paste*)* effector space
-					int action;
-S:				do {
-						long transition = transitionMatrix[state + inputFilter[token]];
-						last = state; state = Transducer.state(transition);
-						action = Transducer.action(transition);
-						if (action == PASTE) {
-							this.value.paste((byte)token);
-						} else if (action != NIL) {
-							break S;
-						}
-						if (input.position < input.limit) {
-							token = 0xff & input.array[input.position++];
-						} else {
+							if (input.position > pos) {
+								this.metrics.traps[mode][0] += input.position > pos ? 1 : 0;
+								this.metrics.traps[mode][1] += input.position - pos;
+							}
 							continue I;
 						}
 					} while (true);
+					if (input.position > pos) {
+						this.metrics.traps[mode][0] += input.position > pos ? 1 : 0;
+						this.metrics.traps[mode][1] += input.position - pos;
+					}
 
 					// effect action and check for transducer or input stack adjustment
+					assert this.matchMode == MATCH_NONE;
 					int aftereffects = effect(action, token, effectorVector);
 					if (aftereffects != IEffector.RTX_NONE) {
 						if (0 != (aftereffects & IEffector.RTX_INPUT)) {
@@ -624,17 +637,14 @@ E:	do {
 	}
 
 	private int sumTrap(Input input, int token) {
-		final int anchor = input.position;
 		final long[] matchMask = this.matchSum;
 		while (0 != (matchMask[token >> 6] & (1L << (token & 0x3f)))) {
 			if (input.position < input.limit) {
 				token = 0xff & input.array[input.position++];
 			} else {
-				this.metrics.sum += (input.position - anchor);
 				return -1;
 			}
 		}
-		this.metrics.sum += (input.position - anchor);
 		this.matchMode = MATCH_NONE;
 		return token;
 	}
@@ -656,28 +666,23 @@ E:	do {
 				}
 			} else {
 				this.errorInput = 0xff & match;
-				this.metrics.product += mpos;
 				this.matchMode = MATCH_NONE;
 				return SIGNUL;
 			}
 		}
-		this.metrics.product += mpos;
 		this.matchMode = MATCH_NONE;
 		return 0xff & match;
 	}
 
 	private int scanTrap(Input input, int token) {
-		final int anchor = input.position;
 		final int matchToken = this.matchByte;
 		while (token != matchToken) {
 			if (input.position < input.limit) {
 				token = 0xff & input.array[input.position++];
 			} else {
-				this.metrics.scan += (input.position - anchor);
 				return -1;
 			}
 		}
-		this.metrics.scan += (input.position - anchor);
 		this.matchMode = MATCH_NONE;
 		return token;
 	}
@@ -685,7 +690,7 @@ E:	do {
 	private String getErrorInput(int last, int state) {
 		TransducerState top = this.transducerStack.peek();
 		int eqCount = top.get().getInputEquivalentsCount();
-		state /= eqCount; last /= eqCount;
+		top.state = state; state /= eqCount; last /= eqCount;
 		StringBuilder message = new StringBuilder(256);
 		message.append(String.format("Domain error on (%1$d~%2$d) in %3$s [%4$d]->[%5$d]%n,\tTransducer stack:%n",
 			this.errorInput, this.errorInput >= 0 ? top.get().getInputFilter()[this.errorInput] : this.errorInput, 
@@ -900,7 +905,7 @@ E:	do {
 		@Override
 		public Integer compileParameter(final IToken[] parameterList) throws TargetBindingException {
 			if (parameterList.length != 1) {
-				throw new TargetBindingException("The signal effector accepts at most one parameter");
+				throw new TargetBindingException("The signal effector accepts exactly one parameter");
 			} else if (parameterList[0] instanceof Token token) {
 				if (token.getType() == IToken.Type.SIGNAL) {
 					int ordinal = token.getOrdinal();
@@ -922,7 +927,7 @@ E:	do {
 				}
 			} else {
 				throw new TargetBindingException(String.format("Unknown IToken implementation class '%1$s'",
-				parameterList[0].getClass().getTypeName()));
+					parameterList[0].getClass().getTypeName()));
 			}
 		}
 	}

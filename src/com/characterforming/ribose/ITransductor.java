@@ -191,7 +191,7 @@ public interface ITransductor extends ITarget {
 		/**
 		 * Status == PROXY
 		 * @return true if Status == PROXY
-		 */
+		 */	
 		public boolean isProxy() {
 			return this.equals(PROXY);
 		}
@@ -205,20 +205,15 @@ public interface ITransductor extends ITarget {
 		/** Number of {@code nul} signals injected */
 		public long errors;
 
-		/** Number of bytes consumed in mproduct traps */
-		public long product;
-
-		/** Number of bytes consumed in msum traps */
-		public long sum;
-
-		/** Number of bytes consumed in mscan traps */
-		public long scan;
-
 		/** Number of bytes allocated while marking */
 		public long allocated;
 
-		/** Constructor */
+		/** Trap count and number of bytes consumed in traps */
+		public long[][] traps;
+
+	/** Constructor */
 		public Metrics() {
+			this.traps = new long[4][2];
 			this.reset();
 		}
 
@@ -228,7 +223,10 @@ public interface ITransductor extends ITarget {
 		 * @return a reference to the reset metrics
 		 */
 		public Metrics reset() {
-			bytes = errors = product = sum = scan = 0;
+			for (int mode = 0; mode < this.traps.length; mode++) {
+				this.traps[mode][0] = this.traps[mode][1] = 0;
+			}
+			bytes = errors = allocated = 0;
 			return this;
 		}
 
@@ -238,12 +236,16 @@ public interface ITransductor extends ITarget {
 		 * @param accumulator the metrics to be updated
 		 */
 		public void update(Metrics accumulator) {
-			accumulator.bytes += this.bytes;
-			accumulator.errors += this.errors;
-			accumulator.product += this.product;
-			accumulator.sum += this.sum;
-			accumulator.scan += this.scan;
-			accumulator.allocated += this.allocated;
+			if (accumulator != null) {
+				accumulator.bytes += this.bytes;
+				accumulator.errors += this.errors;
+				accumulator.allocated += this.allocated;
+				for (int mode = 0; mode < this.traps.length; mode++) {
+					accumulator.traps[mode][0] += this.traps[mode][0];
+					accumulator.traps[mode][1] += this.traps[mode][1];
+				}
+			}
+			this.reset();
 		}
 	}
 
@@ -365,10 +367,10 @@ public interface ITransductor extends ITarget {
 	/**
 	 * Update metrics from the most recent {@link #run()} call. Metrics are 
 	 * preserved until the {@code run()} method is called again. This method
-	 * sums the metrics from the most recent {@link #run()} call into an
-	 * accumulating Metrics instance.
+	 * sums the transductor metrics from the most recent {@link #run()} call
+	 * into an accumulating Metrics instance and resets the transductor metrics.
 	 * 
-	 * @param metrics the metrics to be updated
+	 * @param metrics the metrics to be updated (or null to reset transductor metrics)
 	 */
 	void metrics(Metrics metrics);
 

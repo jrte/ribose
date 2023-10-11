@@ -61,7 +61,10 @@ import com.characterforming.ribose.base.TargetBindingException;
 public final class ModelCompiler extends Model implements ITarget, AutoCloseable {
 
 	private static final long VERSION = 210;
+	private static final String AUTOMATON = "Automaton";
 	private static final String AMBIGUOUS_STATE_MESSAGE = "%1$s: Ambiguous state %2$d";
+	private static final int MIN_PRODUCT_LENGTH = Integer.parseInt(System.getProperty("ribose.product.threshold", "12"));
+	private static final int MIN_SUM_SIZE = Integer.parseInt(System.getProperty("ribose.sum.threshold", "128"));
 	
 	private Bytes transducerName;
 	private int transducerOrdinal;
@@ -78,7 +81,6 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 	private int[][][] kernelMatrix;
 	private int transition;
 	
-	private static final String AUTOMATON = "Automaton";
 
 	record Transition (int from, int to, int tape, Bytes symbol, boolean isFinal) {}
 
@@ -683,7 +685,7 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 						break;
 					}
 				}
-			} else if (selfCount > 64) {
+			} else if (selfCount > ModelCompiler.MIN_SUM_SIZE) {
 				assert msumStateEffects[state] == null;
 				Argument argument = new Argument(-1, new BytesArray(new byte[][] { Arrays.copyOf(selfBytes, selfCount) }));
 				int msumParameterIndex = super.compileParameters(msumOrdinal, argument);
@@ -748,7 +750,7 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 					assert inputEquivalenceToken[exitEquivalent[toState]] >= 0;
 					assert inputEquivalenceToken[exitEquivalent[toState]] < nulSignal;
 					int nextState = this.walk(toState, walkedBytes, walkResult, exitEquivalent, inputEquivalenceToken);
-					if (walkResult[0] > 3) {
+					if (walkResult[0] > ModelCompiler.MIN_PRODUCT_LENGTH) {
 						assert this.inputEquivalenceIndex[walkedBytes[0]] == exitEquivalent[toState];
 						if (mproductStateEffects[toState] == null) {
 							byte[][] product = new byte[][] { Arrays.copyOfRange(walkedBytes, 0, walkResult[0]) };

@@ -15,6 +15,15 @@ jrte=$(realpath $(dirname $0)/../..)
 jars=$jrte/jars
 version=$(cat $jrte/version)
 path="$jars/$version.jar:$jars/$version-test.jar"
+vmargs=""
+while [[ ! "$1" =~ ^(--tsv|[0-9]+) ]]; do
+	vmargs="$vmargs $1";
+	shift
+	if (($#==0)); then
+		execHelp
+		exit 0
+	fi
+done
 format=cat
 if [[ "$1" == "--tsv" ]]; then	
 	format=strip
@@ -32,5 +41,5 @@ input=$4
 shift 4
 output="-Djrte.out.enabled=false -Dregex.out.enabled=false"
 for i in $(seq $n); do
-	${JAVA_HOME}/bin/java -Dfile.encoding=UTF-8 $output -cp "$path" com.characterforming.jrte.test.FileRunner --nil "$model" $transducer "$input" "$@"|$format
+	${JAVA_HOME}/bin/java $vmargs -Dfile.encoding=UTF-8 $output -cp "$path" com.characterforming.jrte.test.FileRunner --nil "$model" $transducer "$input" "$@"|$format
 done
