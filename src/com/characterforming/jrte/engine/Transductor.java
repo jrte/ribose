@@ -397,7 +397,6 @@ public final class Transductor implements ITransductor, IOutput {
 		int token = -1, state = 0, last = -1, signal = 0;
 		if (this.prologue != null) {
 			signal = this.prologue.signal();
-			this.matchMode = MATCH_NONE;
 			this.prologue = null;
 		}
 		Input input = Input.empty;
@@ -415,7 +414,7 @@ I:			do {
 					int pos = input.position;
 					// get next input token
 					if (signal > 0) {
-						pos = input.position;
+						this.matchMode = MATCH_NONE;
 						token = signal;
 						signal = 0;
 					} else {
@@ -425,12 +424,12 @@ I:			do {
 								token = -1;
 								break T;
 							}
+							pos = input.position;
 						}
-						pos = input.position++;
-						token = 0xff & input.array[pos];
+						token = 0xff & input.array[input.position++];
 					}
 					
-					int action = NIL, mode = this.matchMode;
+					int action = NIL;
 S:				do {
 						switch (this.matchMode) {
 						// trap runs in (nil* paste*)* effector space
@@ -441,42 +440,49 @@ S:				do {
 								action = Transducer.action(transition);
 								if (action == PASTE)
 									this.value.paste((byte)token);
-								else if (action != NIL)
+								else if (action != NIL) {
+									this.metrics.traps[MATCH_NONE][0] += 1;
+									this.metrics.traps[MATCH_NONE][1] += input.position - pos;
 									break S;
-								token = input.position < input.limit
-								? 0xff & input.array[input.position++]
-								: -1;
+								}
+								if (input.position < input.limit) 
+									token = 0xff & input.array[input.position++];
+								else
+									token = -1;
 							} while (token >= 0);
-							break;
+							this.metrics.traps[MATCH_NONE][1] += input.position - pos;
+							continue I;
 						// absorb self-referencing (msum,mscan) or sequential (mproduct) transitions with nil effect
 						case MATCH_SUM:
-							if (token < SIGNUL)
-								token = sumTrap(input, token);
+							token = sumTrap(input, token);
+							this.metrics.traps[MATCH_SUM][1] += input.position - pos;
+							if (token >= 0)
+								this.metrics.traps[MATCH_SUM][0] += 1;
+							else
+								continue I;
 							break;
 						case MATCH_PRODUCT:
-							if (token < SIGNUL)
-								token = productTrap(input, token);
+							token = productTrap(input, token);
+							this.metrics.traps[MATCH_PRODUCT][1] += input.position - pos;
+							if (token >= 0)
+								this.metrics.traps[MATCH_PRODUCT][0] += 1;
+							else
+								continue I;
 							break;
 						case MATCH_SCAN:
-							if (token < SIGNUL)
-								token = scanTrap(input, token);
+							token = scanTrap(input, token);
+							this.metrics.traps[MATCH_SCAN][1] += input.position - pos;
+							if (token >= 0)
+								this.metrics.traps[MATCH_SCAN][0] += 1;
+							else
+								continue I;
 							break;
 						default:
 							assert false;
 							break;
 						}
-						if (token < 0) {
-							if (input.position > pos) {
-								this.metrics.traps[mode][0] += input.position > pos ? 1 : 0;
-								this.metrics.traps[mode][1] += input.position - pos;
-							}
-							continue I;
-						}
+						assert this.matchMode == MATCH_NONE;
 					} while (true);
-					if (input.position > pos) {
-						this.metrics.traps[mode][0] += input.position > pos ? 1 : 0;
-						this.metrics.traps[mode][1] += input.position - pos;
-					}
 
 					// effect action and check for transducer or input stack adjustment
 					assert this.matchMode == MATCH_NONE;

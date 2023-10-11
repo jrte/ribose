@@ -141,6 +141,7 @@ public class FileRunner {
 						String sscan = String.format("(%d/%.2f%%):mscan", scan, msc);
 						System.out.println(String.format("%8.3f mb/s %7.3f nul/kb %16s %16s %20s %17s", 
 							mbps, ekb, snone, ssum, sproduct, sscan));
+						assert bytes >= 10*blen;
 					} else {
 						try (
 							final FileInputStream isr = new FileInputStream(f);
