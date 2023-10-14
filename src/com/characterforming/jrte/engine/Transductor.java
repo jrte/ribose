@@ -32,6 +32,7 @@ import com.characterforming.ribose.IParameterizedEffector;
 import com.characterforming.ribose.IModel;
 import com.characterforming.ribose.ITarget;
 import com.characterforming.ribose.IToken;
+import com.characterforming.ribose.ITransduction;
 import com.characterforming.ribose.ITransductor;
 import com.characterforming.ribose.base.BaseEffector;
 import com.characterforming.ribose.base.BaseParameterizedEffector;
@@ -40,7 +41,6 @@ import com.characterforming.ribose.base.Codec;
 import com.characterforming.ribose.base.DomainErrorException;
 import com.characterforming.ribose.base.EffectorException;
 import com.characterforming.ribose.base.ModelException;
-import com.characterforming.ribose.base.RiboseException;
 import com.characterforming.ribose.base.Signal;
 import com.characterforming.ribose.base.TargetBindingException;
 
@@ -59,7 +59,7 @@ import com.characterforming.ribose.base.TargetBindingException;
  *
  * @author Kim Briggs
  */
-public final class Transductor implements ITransductor, IOutput {
+public final class Transductor implements ITransductor, ITransduction, IOutput {
 	static final int INITIAL_STACK_SIZE = 8;
 	static final int INITIAL_FIELD_VALUE_BYTES = 256;
 	static final int INITIAL_FIELD_VALUE_BUFFERS = 256;
@@ -168,29 +168,40 @@ public final class Transductor implements ITransductor, IOutput {
 		this.metrics = new Metrics();
 	}
 
+	// set by Model on proxy transductor after constructor
+	void setModel(Model model) {
+		assert this.isProxy();
+		this.model = model;
+	}
+
+	// set by Model on proxy transductor after constructor
+	void setEffectors(IEffector<?>[] effectors) {
+		this.effectors = effectors;
+	}
+
 	@Override // @see com.characterforming.ribose.ITarget#getEffectors()
 	public IEffector<?>[] getEffectors() throws TargetBindingException {
 		try {
 			return new IEffector<?>[] {
-					/* 0*/ new InlineEffector(this, "0"),
-					/* 1*/ new InlineEffector(this, "1"),
-					/* 2*/ new PasteEffector(this),
-					/* 3*/ new SelectEffector(this),
-					/* 4*/ new CopyEffector(this),
-					/* 5*/ new CutEffector(this),
-					/* 6*/ new ClearEffector(this),
-					/* 7*/ new CountEffector(this),
-					/* 8*/ new SignalEffector(this),
-					/* 9*/ new InEffector(this),
-					/*10*/ new OutEffector(this),
-					/*11*/ new InlineEffector(this, "mark"),
-					/*12*/ new InlineEffector(this, "reset"),
-					/*13*/ new StartEffector(this),
-					/*14*/ new PauseEffector(this),
-					/*15*/ new InlineEffector(this, "stop"),
-					/*16*/ new MsumEffector(this),
-					/*17*/ new MproductEffector(this),
-					/*18*/ new MscanEffector(this)
+			/* 0*/ new InlineEffector(this, "0"),
+			/* 1*/ new InlineEffector(this, "1"),
+			/* 2*/ new PasteEffector(this),
+			/* 3*/ new SelectEffector(this),
+			/* 4*/ new CopyEffector(this),
+			/* 5*/ new CutEffector(this),
+			/* 6*/ new ClearEffector(this),
+			/* 7*/ new CountEffector(this),
+			/* 8*/ new SignalEffector(this),
+			/* 9*/ new InEffector(this),
+			/*10*/ new OutEffector(this),
+			/*11*/ new InlineEffector(this, "mark"),
+			/*12*/ new InlineEffector(this, "reset"),
+			/*13*/ new StartEffector(this),
+			/*14*/ new PauseEffector(this),
+			/*15*/ new InlineEffector(this, "stop"),
+			/*16*/ new MsumEffector(this),
+			/*17*/ new MproductEffector(this),
+			/*18*/ new MscanEffector(this)
 			};
 		} catch (CharacterCodingException e) {
 			throw new TargetBindingException(e);
@@ -288,7 +299,7 @@ public final class Transductor implements ITransductor, IOutput {
 	public int signal(int signalOrdinal) throws EffectorException {
 		if (256 > signalOrdinal || signalOrdinal >= this.model.getSignalLimit()) {
 			throw new EffectorException(String.format("Signal ordinal %1$d is out of range [256,%2$d)",
-					signalOrdinal, this.model.getSignalLimit()));
+				signalOrdinal, this.model.getSignalLimit()));
 		}
 		return (signalOrdinal << 16) | IEffector.RTX_SIGNAL;
 	}
@@ -353,7 +364,10 @@ public final class Transductor implements ITransductor, IOutput {
 	@Override // @see com.characterforming.ribose.ITransductor#signal(Signal)
 	public ITransductor signal(Signal signal) {
 		assert !isProxy();
-		this.prologue = signal;
+		assert this.inputStack.isEmpty();
+		if (this.inputStack.isEmpty()) {
+			this.prologue = signal;
+		}
 		return this;
 	}
 
@@ -366,7 +380,7 @@ public final class Transductor implements ITransductor, IOutput {
 	}
 
 	@Override // @see com.characterforming.ribose.ITransductor#stop()
-	public ITransductor stop() throws RiboseException {
+	public ITransductor stop() {
 		if (this.inputStack != null) {
 			this.inputStack.unmark();
 			while (!this.inputStack.isEmpty()) {
@@ -383,7 +397,18 @@ public final class Transductor implements ITransductor, IOutput {
 			}
 		}
 		this.matchMode = MATCH_NONE;
+		this.prologue = Signal.NONE;
 		return this;
+	}
+
+	@Override // ITransduction
+	public void reset() {
+		this.stop();
+	}
+
+	@Override // AutoCloseable
+	public void close() {
+		this.stop();
 	}
 
 	@Override	// @see com.characterforming.ribose.ITransductor#run()
@@ -411,7 +436,7 @@ T:		do {
 				this.selected = this.transducer.selected;
 				state = this.transducer.state;
 I:			do {
-					int pos = input.position;
+					int post = input.position;
 					// get next input token
 					if (signal > 0) {
 						this.matchMode = MATCH_NONE;
@@ -424,77 +449,65 @@ I:			do {
 								token = -1;
 								break T;
 							}
-							pos = input.position;
+							post = input.position;
 						}
-						token = 0xff & input.array[input.position++];
+						token = input.array[input.position++] & 0xff;
 					}
 					
 					int action = NIL;
 S:				do {
-						switch (this.matchMode) {
+						final int trap = this.matchMode;
+						switch (trap) {
 						// trap runs in (nil* paste*)* effector space
 						case MATCH_NONE:
 							do {
-								long transition = transitionMatrix[state + inputFilter[token]];
+								final long transition = transitionMatrix[state + inputFilter[token]];
 								last = state; state = Transducer.state(transition);
 								action = Transducer.action(transition);
 								if (action == PASTE)
 									this.value.paste((byte)token);
 								else if (action != NIL) {
 									this.metrics.traps[MATCH_NONE][0] += 1;
-									this.metrics.traps[MATCH_NONE][1] += input.position - pos;
+									this.metrics.traps[MATCH_NONE][1] += input.position - post;
 									break S;
 								}
-								if (input.position < input.limit) 
-									token = 0xff & input.array[input.position++];
-								else
-									token = -1;
+								token = input.position < input.limit ? input.array[input.position++] & 0xff : -1;
 							} while (token >= 0);
-							this.metrics.traps[MATCH_NONE][1] += input.position - pos;
-							continue I;
+							this.metrics.traps[MATCH_NONE][1] += input.position - post;
+							break;
 						// absorb self-referencing (msum,mscan) or sequential (mproduct) transitions with nil effect
 						case MATCH_SUM:
 							token = sumTrap(input, token);
-							this.metrics.traps[MATCH_SUM][1] += input.position - pos;
-							if (token >= 0)
-								this.metrics.traps[MATCH_SUM][0] += 1;
-							else
-								continue I;
 							break;
 						case MATCH_PRODUCT:
 							token = productTrap(input, token);
-							this.metrics.traps[MATCH_PRODUCT][1] += input.position - pos;
-							if (token >= 0)
-								this.metrics.traps[MATCH_PRODUCT][0] += 1;
-							else
-								continue I;
 							break;
 						case MATCH_SCAN:
 							token = scanTrap(input, token);
-							this.metrics.traps[MATCH_SCAN][1] += input.position - pos;
-							if (token >= 0)
-								this.metrics.traps[MATCH_SCAN][0] += 1;
-							else
-								continue I;
 							break;
 						default:
 							assert false;
 							break;
 						}
+						if (token >= 0) {
+							this.metrics.traps[trap][1] += input.position - post;
+							this.metrics.traps[trap][0] += 1;
+						} else continue I;
 						assert this.matchMode == MATCH_NONE;
 					} while (true);
 
 					// effect action and check for transducer or input stack adjustment
-					assert this.matchMode == MATCH_NONE;
-					int aftereffects = effect(action, token, effectorVector);
+					final int aftereffects = action < 0
+					? effect(action, token, effectorVector)
+					: effect(action, token);
+
 					if (aftereffects != IEffector.RTX_NONE) {
 						if (0 != (aftereffects & IEffector.RTX_INPUT)) {
 							input = this.inputStack.peek();
 						}
 						if (0 != (aftereffects & IEffector.RTX_SIGNAL)) {
 							signal = Transducer.signal(aftereffects);
-							if ((signal < SIGNUL) || (signal >= this.signalLimit)) {
-								assert false : String.format("Signal %1$d out of range [256..%2$d)", signal, this.signalLimit);
+							if (signal < SIGNUL || signal >= this.signalLimit) {
 								signal = SIGNUL;
 							}
 						}
@@ -538,107 +551,89 @@ S:				do {
 		return this;
 	}
 
-	void setModel(Model model) {
-		assert this.isProxy();
-		this.model = model;
-	}
-
-	void setEffectors(IEffector<?>[] effectors) {
-		this.effectors = effectors;
+	private int effect(int action, int token)
+	throws EffectorException, IOException {
+		if (action >= 0x10000) {
+			return this.effectors[Transducer.effector(action)] instanceof IParameterizedEffector<?, ?> e
+			? e.invoke(Transducer.parameter(action))
+			: IEffector.RTX_NONE;
+		} 
+		switch (action) {
+			case NUL:
+				if ((token != SIGNUL && token != SIGEOS)) {
+					++this.metrics.errors;
+					this.errorInput = token;
+					return this.signal(Signal.NUL.signal());
+				} else {
+					return IEffector.RTX_STOPPED;
+				}
+			case NIL:
+				assert false;
+				return IEffector.RTX_NONE;
+			case PASTE:
+				this.value.paste((byte) token);
+				return IEffector.RTX_NONE;
+			case SELECT:
+				this.selected = Model.ANONYMOUS_FIELD_ORDINAL;
+				this.value = this.transducerStack.value(this.selected);
+				return IEffector.RTX_NONE;
+			case COPY:
+				this.value.paste(this.transducerStack.value(Model.ANONYMOUS_FIELD_ORDINAL));
+				return IEffector.RTX_NONE;
+			case CUT:
+				this.value.paste(this.transducerStack.value(Model.ANONYMOUS_FIELD_ORDINAL));
+				this.transducerStack.value(Model.ANONYMOUS_FIELD_ORDINAL).clear();
+				return IEffector.RTX_NONE;
+			case CLEAR:
+				this.transducerStack.value(this.selected).clear();
+				return IEffector.RTX_NONE;
+			case COUNT:
+				if (--this.transducer.countdown <= 0) {
+					this.transducer.countdown = 0;
+					return this.signal(this.transducer.signal);
+				}
+				return IEffector.RTX_NONE;
+			case IN:
+				this.inputStack.push(this.value.value(), this.value.length());
+				return IEffector.RTX_INPUT;
+			case OUT:
+				if (this.outputStream != null) {
+					this.outputStream.write(this.value.value(), 0, this.value.length());
+				}
+				return IEffector.RTX_NONE;
+			case MARK:
+				this.inputStack.mark();
+				return IEffector.RTX_NONE;
+			case RESET:
+				return this.inputStack.reset();
+			case PAUSE:
+				return IEffector.RTX_PAUSE;
+			case STOP:
+				return this.transducerStack.pop() == null ? IEffector.RTX_STOPPED : IEffector.RTX_STOP;
+			default:
+				if (action < this.effectors.length)
+					return this.effectors[action].invoke();
+				throw new EffectorException(String.format("Effector ordinal %d is out of range (<%d)", 
+					action, this.effectors.length));
+		}
 	}
 
 	// invoke a scalar effector or vector of effectors and record side effects on transducer and input stacks
 	private int effect(int action, int token, int[] effectorVector)
 	throws IOException, EffectorException {
-		int index = 0;
-		int parameter = -1;
-		if (action >= 0x10000) {
-			parameter = Transducer.parameter(action);
-			action = Transducer.effector(action);
-			assert parameter >= 0;
-		} else if (action < 0) {
-			index = 0 - action;
-		}
+		assert action < 0;
+		int index = 0 - action;
 		int aftereffects = IEffector.RTX_NONE;
 E:	do {
-			if (index > 0) {
-				action = effectorVector[index++];
-				if (action < 0) {
-					action = 0 - action;
-					parameter = effectorVector[index++];
-				} else if (action != NUL) {
-					parameter = -1;
-				} else {
-					break E;
-				}
-			}
-			if (parameter >= 0) {
-				aftereffects |= ((IParameterizedEffector<?,?>)this.effectors[action]).invoke(parameter);
-			} else {
-				switch (action) {
-				case NUL:
-					if ((token != SIGNUL && token != SIGEOS)) {
-						++this.metrics.errors;
-						this.errorInput = token;
-						aftereffects |= this.signal(Signal.NUL.signal());
-					} else {
-						aftereffects |= IEffector.RTX_STOPPED;
-					}
-					break;
-				case NIL:
-					assert false;
-					break;
-				case PASTE:
-					this.value.paste((byte)token);
-					break;
-				case SELECT:
-					this.selected = Model.ANONYMOUS_FIELD_ORDINAL;
-					this.value = this.transducerStack.value(this.selected);
-					break;
-				case COPY:
-					this.value.paste(this.transducerStack.value(Model.ANONYMOUS_FIELD_ORDINAL));
-					break;
-				case CUT:
-					this.value.paste(this.transducerStack.value(Model.ANONYMOUS_FIELD_ORDINAL));
-					this.transducerStack.value(Model.ANONYMOUS_FIELD_ORDINAL).clear();
-					break;
-				case CLEAR:
-					this.transducerStack.value(this.selected).clear();
-					break;
-				case COUNT:
-					if (--this.transducer.countdown <= 0) {
-						this.transducer.countdown = 0;
-						aftereffects |= this.signal(this.transducer.signal);
-					}
-					break;
-				case IN:
-					this.inputStack.push(this.value.value(), this.value.length());
-					aftereffects |= IEffector.RTX_INPUT;
-					break;
-				case OUT:
-					if (this.outputStream != null) {
-						this.outputStream.write(this.value.value(), 0, this.value.length());
-					}
-					break;
-				case MARK:
-					this.inputStack.mark();
-					break;
-				case RESET:
-					aftereffects |= this.inputStack.reset();
-					break;
-				case PAUSE:
-					aftereffects |= IEffector.RTX_PAUSE;
-					break;
-				case STOP:
-					aftereffects |= this.transducerStack.pop() == null ? IEffector.RTX_STOPPED : IEffector.RTX_STOP;
-					break;
-				default:
-					aftereffects |= this.effectors[action].invoke();
-					break;
-				}
-			}
-		} while (index > 0);
-
+			action = effectorVector[index++];
+			if (action < 0 ) {
+				assert this.effectors[0 - action] instanceof IParameterizedEffector<?,?>;
+				if (this.effectors[0 - action] instanceof IParameterizedEffector<?,?> e)
+					aftereffects |= e.invoke(effectorVector[index++]);
+			} else if (action != NUL) 
+				aftereffects |= this.effect(action, token);
+			else break E;
+		} while (true);
 		return aftereffects;
 	}
 

@@ -44,16 +44,15 @@ import com.characterforming.ribose.IEffector;
 import com.characterforming.ribose.IOutput;
 import com.characterforming.ribose.IModel;
 import com.characterforming.ribose.ITarget;
+import com.characterforming.ribose.ITransduction;
 import com.characterforming.ribose.ITransductor;
 import com.characterforming.ribose.IToken.Type;
 import com.characterforming.ribose.base.BaseEffector;
 import com.characterforming.ribose.base.Bytes;
 import com.characterforming.ribose.base.Codec;
 import com.characterforming.ribose.base.CompilationException;
-import com.characterforming.ribose.base.DomainErrorException;
 import com.characterforming.ribose.base.EffectorException;
 import com.characterforming.ribose.base.ModelException;
-import com.characterforming.ribose.base.RiboseException;
 import com.characterforming.ribose.base.Signal;
 import com.characterforming.ribose.base.TargetBindingException;
 
@@ -273,14 +272,7 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 				compiler.setTransductor(compilerRuntime.transductor(compiler));
 				for (final String filename : inrAutomataDirectory.list()) {
 					if (filename.endsWith(Base.AUTOMATON_FILE_SUFFIX)) {
-						try {
-							compiler.compileTransducer(new File(inrAutomataDirectory, filename));
-						} catch (RiboseException e) {
-							String msg = String.format("%1$s: ModelException caught saving to model file; %2$s",
-								filename, e.getMessage());
-							compiler.addError(msg);
-							rtcLogger.log(Level.SEVERE, msg, e);
-						}
+						compiler.compileTransducer(new File(inrAutomataDirectory, filename));
 					}
 				}
 				Argument[][] compiledParameters = compiler.compileModelParameters(compiler.errors);
@@ -366,7 +358,7 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 		return false;
 	}
 
-	private boolean compileTransducer(File inrFile) throws RiboseException {
+	private boolean compileTransducer(File inrFile) {
 		int size = (int)inrFile.length();
 		byte[] bytes = null;
 		try (DataInputStream f = new DataInputStream(new FileInputStream(inrFile))) {
@@ -388,20 +380,20 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 				this.transducerName, inrFile.getPath(), e.getMessage()));
 			return false;
 		}
-		try {
+		try (ITransduction transduction = super.transduction(this.transductor)) {
+			transduction.reset();
 			Bytes automaton = Codec.encode("Automaton");
-			if (this.transductor.stop().push(bytes, size).signal(Signal.NIL).start(automaton).status().isRunnable()
+			if (this.transductor.signal(Signal.NIL).push(bytes, size).start(automaton).status().isRunnable()
 			&& this.transductor.run().status().isPaused()) {
 				this.transductor.signal(Signal.EOS).run();
 			}
 			assert !this.transductor.status().isRunnable();
-			this.transductor.stop();
-			assert this.transductor.status().isStopped();
 			this.saveTransducer();
-		} catch (ModelException | EffectorException | DomainErrorException | CharacterCodingException e) {
+		} catch (Exception e) {
 			this.addError(String.format("%1$s: Failed to compile '%2$s'; %3$s",
 				this.transducerName, inrFile.getPath(), e.getMessage()));
 		}
+		assert this.transductor.status().isStopped();
 		return true;
 	}
 

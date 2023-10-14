@@ -35,21 +35,26 @@ import com.characterforming.ribose.base.EffectorException;
  * are typically implemented as inner classes within a specialized {@link ITarget} 
  * mplementation class. Conversion between Java/Unicode char and UTF-8 byte are
  * supported by static {@link Codec} methods backed by thread local encoder and
- * decoder instances. Ribose and ginr currently support only UTF-8 character
- * encodings. 
+ * decoder instances. Ribose works exclusively in the byte domain internally and 
+ * the codecs are required only in peripheral contexts, for example, to decode
+ * extracted bytes to String, or encoding String transducer names to obtain a 
+ * key for looking up and loading a transducer. Ribose and ginr currently support
+ * only UTF-8 character encodings. 
  * <br><br>
  * <i>Proxy</i> simple effectors, instantiated in model compilation and loding contexts,
  * receive {@link #setOutput(IOutput)} when they are bound to a proxy transductor
  * and target for parameter compilation. When parameter compilation completes they
  * receive {@link #passivate()} and lose access to their {@link ITarget} and {@link
- * IOutput} instances. <i>Live</i> simple effectors instantiated in runtime contexts
+ * IOutput} instances. Which is to say that simple proxy effectors are not actively
+ * engaged during parameter compilation unless they override {@link #setOutput(IOutput)}
+ * or {@link passivate()}. <i>Live</i> simple effectors instantiated in runtime contexts
  * receive {@link #setOutput(IOutput)} followed by 0 or more {@link #invoke()}. Live 
  * effectors are never passivated and may access {@code super.target} and {@code
  * super.output} in their {@link #invoke()} methods. Effectors access transducer
- * fields by overriding {@link #setOutput(IOutput)} and use {@link
+ * fields by overriding {@link #setOutput(IOutput)} and using {@link
  * IOutput#getLocalizedFieldIndex(String, String)} to obtain stable field indexes for
- * subsequent use with the {@link IOutput} data transfer methods. See {@link IOutput}
- * for more information regarding field binding in effectors.
+ * subsequent use in {@link #invoke()} with the {@link IOutput} data transfer methods.
+ * See {@link IOutput} for more information regarding field binding in effectors.
  * <br><br>
  * All {@link #invoke()} implementations return an integer <a href="#field.summary">RTX
  * </a> code, which is a bit map of special conditions. RTX bits are additive and

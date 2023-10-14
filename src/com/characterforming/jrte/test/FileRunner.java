@@ -24,6 +24,7 @@ package com.characterforming.jrte.test;
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.nio.CharBuffer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
@@ -31,6 +32,7 @@ import java.util.regex.Pattern;
 
 import com.characterforming.jrte.engine.Base;
 import com.characterforming.ribose.IModel;
+import com.characterforming.ribose.ITransduction;
 import com.characterforming.ribose.ITransductor;
 import com.characterforming.ribose.ITransductor.Metrics;
 import com.characterforming.ribose.base.Bytes;
@@ -71,20 +73,21 @@ public class FileRunner {
 		}
 
 		final File f = new File(inputPath);
-		long blen = (int)f.length();
-		if (blen <= 0) {
-			System.out.println(String.format("Input file is empty: %s", inputPath));
+		long byteLength = (int)f.length();
+		assert byteLength < Integer.MAX_VALUE;
+		if (byteLength <= 0 || byteLength > Integer.MAX_VALUE) {
+			System.out.println(String.format("Input file is empty or way too big: %s", inputPath));
 			System.exit(1);
 		}
 		int exitCode = 1;
 		Base.startLogging();
 		final Logger rteLogger = Base.getRuntimeLogger();
-		byte[] bbuf = new byte[(int)blen];
-		String charInput = null;
+		byte[] byteInput = new byte[(int)byteLength];
+		CharBuffer charInput = null;
 		try (final FileInputStream isr = new FileInputStream(f)) {
-			blen = isr.read(bbuf, 0, (int)blen);
-			assert blen == bbuf.length;
-			charInput = Codec.decode(bbuf);
+			byteLength = isr.read(byteInput, 0, (int)byteLength);
+			assert byteLength == byteInput.length;
+			charInput = Codec.chars(byteInput, (int)byteLength);
 		} catch (Exception e) {
 			System.out.println("Runtime exception thrown.");
 			rteLogger.log(Level.SEVERE, "Runtime failed, exception thrown.", e);
@@ -98,31 +101,35 @@ public class FileRunner {
 					ITransductor trex = ribose.transductor(runTarget);
 					if (!jrteOutEnabled) {
 						System.out.print(String.format("%20s: ", transducerName));
+						Bytes transducerKey = Codec.encode(transducerName);
 						loops = 20;
 						Metrics metrics = new Metrics();
 						for (int i = 0; i < loops; i++) {
-							assert trex.status().isStopped();
-							if (trex.push(bbuf, (int)blen).status().isWaiting()
-							&& (!nil || (trex.signal(Signal.NIL).status().isWaiting()))
-							&& (trex.start(Codec.encode(transducerName)).status().isRunnable())) {
-								t0 = System.nanoTime();
-								do {
-									trex.run();
-									if (i >= 10) {
-										trex.metrics(metrics);
+							try (ITransduction transduction = ribose.transduction(trex)) {
+								transduction.reset();
+								assert trex.status().isStopped();
+								if (nil)
+									trex.signal(Signal.NIL);
+								trex.push(byteInput, (int)byteLength);
+								if (trex.start(transducerKey).status().isRunnable()) {
+									t0 = System.nanoTime();
+									do {
+										trex.run();
+										if (i >= 10) {
+											trex.metrics(metrics);
+										}
+									} while (trex.status().isRunnable());
+									if (trex.status().isPaused()) {
+										trex.signal(Signal.EOS).run();
 									}
-								} while (trex.status().isRunnable());
-								if (trex.status().isPaused()) {
-									trex.signal(Signal.EOS).run();
-								}
-								t1 = System.nanoTime() - t0;
-								if (i >= 10) {
-									tjrte += t1;
+									t1 = System.nanoTime() - t0;
+									if (i >= 10) {
+										tjrte += t1;
+									}
 								}
 								assert !trex.status().isRunnable();
-								trex.stop();
-								assert trex.status().isStopped();
 							}
+							assert trex.status().isStopped();
 						}
 						long bytes = metrics.traps[0][1] + metrics.traps[1][1] + metrics.traps[2][1] + metrics.traps[3][1];
 						double mbps = (tjrte > 0) ? (double)(bytes*1000000000l) / (double)(tjrte*1024*1024) : -1;
@@ -141,7 +148,7 @@ public class FileRunner {
 						String sscan = String.format("(%d/%.2f%%):mscan", scan, msc);
 						System.out.println(String.format("%8.3f mb/s %7.3f nul/kb %16s %16s %20s %17s", 
 							mbps, ekb, snone, ssum, sproduct, sscan));
-						assert bytes >= 10*blen;
+						assert bytes == 0 || bytes >= 10*byteLength;
 					} else {
 						try (
 							final FileInputStream isr = new FileInputStream(f);
@@ -187,18 +194,17 @@ public class FileRunner {
 						}
 						assert count > 0;
 					}
-					double mbps = (tregex > 0) ? (double)((loops - 10)*blen*1000) / (double)tregex : -1;
+					double mbps = (tregex > 0) ? (double)((loops - 10)*byteLength*1000) / (double)tregex : -1;
 					System.out.println(String.format("%8.3f mb/s", mbps));
 				} else {
 					int count = 0;
-					final byte[] delimiters = new byte[] {'|','\n'};
 					Matcher matcher = pattern.matcher(charInput);
 					while (matcher.find()) {
 						int k = matcher.groupCount();
 						for (int j = 1; j <= k; j++) {
 							String group = matcher.group(j);
 							System.out.write(group != null ? Codec.encode(group).bytes() : Bytes.EMPTY_BYTES);
-							System.out.write(delimiters[j < k ? 0 : 1]);
+							System.out.write(j < k ? '|' : '\n');
 						}
 						if (k > 0) {
 							count++;

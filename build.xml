@@ -48,7 +48,7 @@
 	<property name="regex.linuxkernel" value="([JFMASOND][a-z]+ [0-9]+ (?:[0-9]+:)+[0-9]+) ([-.:A-Za-z_0-9]*) kernel: \[[ ]*[0-9]+\.[0-9]+\] (DROPPED|ABORTED|LIMITED) IN=([-.:A-Za-z_0-9]*) OUT=([-.:A-Za-z_0-9]*)(?: MAC=([-.:A-Za-z_0-9]*))? SRC=([-.:A-Za-z_0-9]*) DST=([-.:A-Za-z_0-9]*).* PROTO=([-.:A-Za-z_0-9]*)(?:.* SPT=([-.:A-Za-z_0-9]*) DPT=([-.:A-Za-z_0-9]*))?"/>
 	<property name="ribose.inbuffer.size" value="65536"/>
 	<property name="ribose.outbuffer.size" value="65536"/>
-	<property name="jargs.ribose.compile" value="-Dribose.product.threshold=12 -Dribose.sum.threshold=128"/>
+	<property name="jargs.ribose.compile" value="-Dribose.product.threshold=8 -Dribose.sum.threshold=64"/>
 	<property name="jargs.jit.diagnostic" value="-XX:+UnlockDiagnosticVMOptions -XX:+PrintCompilation -XX:+PrintInlining"/>
 	<property name="jargs.jit.inline" value="-XX:CompileCommandFile=etc/jit/ribose.jit"/>
 	<property name="jargs.gc.buffers" value="-Dribose.inbuffer.size=${ribose.inbuffer.size} -Dribose.outbuffer.size=${ribose.outbuffer.size}"/>
@@ -85,7 +85,8 @@
 	<target name="clean-ribose">
 		<delete failonerror="false" verbose="true">
 			<fileset dir="${jars.dir}" includes="*"/>
-		</delete>		<delete failonerror="false" dir="${build.java.classes}/com"/>
+		</delete>
+		<delete failonerror="false" dir="${build.java.classes}/com"/>
 		<delete failonerror="false" dir="${build.compiler.model}"/>
 		<delete failonerror="false" dir="/tmp" includes="*.ginrout,*.ginrerr"/>
 	</target>
@@ -95,6 +96,9 @@
 	</target>
 
 	<target name="clean-test">
+		<delete failonerror="false" verbose="true">
+			<fileset dir="/tmp" includes="*.gc.stats"/>
+		</delete>
 		<delete failonerror="false" file="build/Test.model"/>
 		<delete failonerror="false" file="build/Test.map"/>
 		<delete failonerror="false" dir="${build.automata}" />
@@ -520,6 +524,7 @@
 	</target>
 
 	<target name="test-heap-metrics" depends="test-output-equivalence">
+		<delete file="./regression.gc" quiet="true"/>
 <!-- verbose gc log transduction G1 pause metrics (megabytes) -->
 		<echo message="G1 evacuation pause metrics (megabytes)"/>
 		<exec failonerror="true" executable="bash">

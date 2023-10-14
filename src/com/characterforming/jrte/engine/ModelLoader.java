@@ -29,6 +29,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.nio.charset.CharacterCodingException;
 import java.util.Map;
 import java.util.Set;
+import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicIntegerArray;
 import java.util.concurrent.atomic.AtomicReferenceArray;
 import java.util.logging.Level;
@@ -37,6 +38,7 @@ import com.characterforming.ribose.IEffector;
 import com.characterforming.ribose.IParameterizedEffector;
 import com.characterforming.ribose.IModel;
 import com.characterforming.ribose.ITarget;
+import com.characterforming.ribose.ITransduction;
 import com.characterforming.ribose.ITransductor;
 import com.characterforming.ribose.ITransductor.Metrics;
 import com.characterforming.ribose.base.BaseParameterizedEffector;
@@ -114,33 +116,38 @@ public final class ModelLoader extends Model implements IModel {
 			int position = read;
 			if (read > 0) {
 				ITransductor trex = transductor(target);
-				trex.output(out);
-				if (prologue != null)
-					trex.signal(prologue);
-				trex.push(bytes, read).start(transducer);
-				while (trex.status().isRunnable()) {
-					if (trex.run().status().isPaused()) {
-						bytes = trex.recycle(bytes);
-						trex.metrics(metrics);
-						assert bytes != null;
-						read = in.read(bytes);
-						if (read > 0) {
-							trex.push(bytes, read);
-							position += read;
-						} else {
-							break;
+				try (ITransduction transduction = super.transduction(trex)) {
+					transduction.reset();
+					trex.output(out);
+					if (prologue != null)
+						trex.signal(prologue);
+					trex.push(bytes, read).start(transducer);
+					while (trex.status().isRunnable()) {
+						if (trex.run().status().isPaused()) {
+							bytes = trex.recycle(bytes);
+							trex.metrics(metrics);
+							assert bytes != null;
+							read = in.read(bytes);
+							if (read > 0) {
+								trex.push(bytes, read);
+								position += read;
+							} else {
+								break;
+							}
 						}
 					}
+					if (trex.status().isPaused()) {
+						trex.signal(Signal.EOS).run();
+					}
+					assert !trex.status().isRunnable();
+				} catch (EffectorException | DomainErrorException e) {
+					super.rteLogger.log(Level.SEVERE, e, () -> String.format(
+						"Transducer '%1$s' failed for target '%2$s'",
+						transducer.toString(), targetClassname));
 				}
-				if (trex.status().isPaused()) {
-					trex.signal(Signal.EOS).run();
-				}
-				assert !trex.status().isRunnable();
-				trex.stop();
 				assert trex.status().isStopped();
 			}
-		} catch (RiboseException | ModelException | EffectorException
-			| DomainErrorException | IOException e) {
+		} catch (ModelException | IOException e) {
 			super.rteLogger.log(Level.SEVERE, e, () -> String.format(
 				"Transducer '%1$s' failed for target '%2$s'",
 				transducer.toString(), targetClassname));
@@ -219,7 +226,8 @@ public final class ModelLoader extends Model implements IModel {
 	@Override
 	public void decompile(final String transducerName)
 	throws ModelException, CharacterCodingException {
-		Transducer trex = this.loadTransducer(super.getTransducerOrdinal(Codec.encode(transducerName)));
+		int transducerOrdinal = super.getTransducerOrdinal(Codec.encode(transducerName));
+		Transducer trex = this.loadTransducer(transducerOrdinal);
 		int[] effectorVectors = trex.getEffectorVector();
 		int[] inputEquivalenceIndex = trex.getInputFilter();
 		long[] transitionMatrix = trex.getTransitionMatrix();
@@ -230,7 +238,20 @@ public final class ModelLoader extends Model implements IModel {
 			effectorNames[entry.getValue()] = Codec.decode(
 				entry.getKey().bytes(), entry.getKey().getLength());
 		}
-		System.out.printf("%s%n%nInput equivalents (equivalent: input...)%n%n", transducerName);
+		Bytes[] fieldIndex = new Bytes[this.fieldOrdinalMap.size()];
+		for (Map.Entry<Bytes, Integer> m : this.fieldOrdinalMap.entrySet()) {
+			fieldIndex[m.getValue()] = m.getKey();
+		}
+		System.out.printf("%s%n%nFields%n%n", transducerName);
+		Map<Integer, Integer> fieldMap = this.transducerFieldMaps.get(transducerOrdinal);
+		Bytes[] fields = new Bytes[fieldMap.size()];
+		for (Entry<Integer, Integer> e : fieldMap.entrySet()) {
+			fields[e.getValue()] = fieldIndex[e.getKey()];
+		}
+		for (int i = 0; i < fields.length; i++) {
+			System.out.printf("%4d: %s%n", i, fields[i]);
+		}
+		System.out.printf("%nInput equivalents (equivalent: input...)%n%n", transducerName);
 		for (int i = 0; i < inputEquivalentCount; i++) {
 			int startToken = -1;
 			System.out.printf("%4d:", i);

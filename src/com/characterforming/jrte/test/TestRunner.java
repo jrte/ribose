@@ -28,6 +28,7 @@ import java.util.regex.Pattern;
 
 import com.characterforming.jrte.engine.Base;
 import com.characterforming.ribose.IModel;
+import com.characterforming.ribose.ITransduction;
 import com.characterforming.ribose.ITransductor;
 import com.characterforming.ribose.ITransductor.Status;
 import com.characterforming.ribose.base.Bytes;
@@ -70,24 +71,26 @@ public class TestRunner {
 				System.out.format("%20s: ", test);
 				Bytes transducer = Codec.encode(test);
 				for (int i = 0; i < 20; i++) {
-					assert trex.status() == Status.STOPPED;
-					trex.push(abytes, abytes.length).signal(Signal.NIL);
-					if (trex.start(transducer).status().isRunnable()) {
-						t0 = System.nanoTime();
-						do {
-							trex.run();
-						} while (trex.status().isRunnable());
-						if (trex.status().isPaused()) {
-							trex.signal(Signal.EOS).run();
-						}
-						t1 = System.nanoTime() - t0;
-						if (i >= 10) {
-							t2 += t1;
+					try (ITransduction transduction = ribose.transduction(trex)) {
+						transduction.reset();
+						assert trex.status() == Status.STOPPED;
+						trex.signal(Signal.NIL).push(abytes, abytes.length);
+						if (trex.start(transducer).status().isRunnable()) {
+							t0 = System.nanoTime();
+							do {
+								trex.run();
+							} while (trex.status().isRunnable());
+							if (trex.status().isPaused()) {
+								trex.signal(Signal.EOS).run();
+							}
+							t1 = System.nanoTime() - t0;
+							if (i >= 10) {
+								t2 += t1;
+							}
 						}
 						assert !trex.status().isRunnable();
-						trex.stop();
-						assert trex.status().isStopped();
 					}
+					assert trex.status().isStopped();
 				}
 				double mbps = (t2 > 0) ? (double)(100000000l*1000000000l) / (double)(t2*1024*1024) : -1;
 				System.out.println(String.format("%8.3f mb/s (bytes)", mbps));

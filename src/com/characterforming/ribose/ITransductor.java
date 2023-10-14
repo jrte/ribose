@@ -27,7 +27,6 @@ import com.characterforming.ribose.base.Bytes;
 import com.characterforming.ribose.base.DomainErrorException;
 import com.characterforming.ribose.base.EffectorException;
 import com.characterforming.ribose.base.ModelException;
-import com.characterforming.ribose.base.RiboseException;
 import com.characterforming.ribose.base.Signal;
 
 /**
@@ -54,17 +53,22 @@ import com.characterforming.ribose.base.Signal;
  * transducer and input stacks before the transductor instance can be reused.
  * <br><br>
  * The {@code stop()} method should be called before starting a new transduction,
- * to ensure that the transducer and input stacks and all fields are cleared. The
- * {@code stop()} method will throw a {@code RiboseException} when it is called on
- * a proxy (instantiated for parameter compilation only) or otherwise nonfunctional
- * transductor. This condition can be checked at any time by testing {@link 
- * Status#isProxy()}.
+ * to ensure that the transducer and input stacks and all fields are cleared.
+ * Alternatively, transductions can be wrapped in an {@link AutoCloseable}
+ * {@link ITransduction} as shown below. The {@code stop()} method will throw a
+ * {@code RiboseException} when it is called on a proxy (instantiated for parameter
+ * compilation only) or otherwise nonfunctional transductor. This condition can
+ * be checked at any time by testing {@link Status#isProxy()}.
  * <br><br>
- * The example below shows how {@code ITransductor} can be instantiated
- * and used directly to exert fine-grained control over transduction processes. For
- * more generic transductions, the more granular methods {@link
- * IModel#stream(Bytes, Signal, InputStream, OutputStream)} and {@link 
- * IModel#stream(Bytes, ITarget, Signal, InputStream, OutputStream)} are available. 
+ * The example below shows how {@code ITransductor} can be instantiated and used
+ * directly to exert fine-grained control over transduction processes. Note the use
+ * of {@link ITransduction} in the {@code try-with-resources} opening. The call to
+ * {@link ITransduction#reset()} ensures that the transductor is ready to begin a
+ * new transduction. The {@link ITransduction#close()} implementation calls {@link
+ * ITransductor#stop()} to end the transduction and clear the transductor's stacks.
+ * The {@link IModel#stream(Bytes, Signal, InputStream, OutputStream)} and {@link 
+ * IModel#stream(Bytes, ITarget, Signal, InputStream, OutputStream)} are available
+ * for more granular transductions. 
  * <br>
  * <pre>
  * ITarget proxyTarget = new Target();
@@ -73,19 +77,26 @@ import com.characterforming.ribose.base.Signal;
  * ITransductor trex = runtime.transductor(liveTarget);
  * byte[] data = new byte[64 * 1024];
  * int limit = input.read(data,data.length);
- * if (trex.stop().push(data,limit).signal(Signal.nil).start(transducer).status().isRunnable()) {
- *   do {
- *     if (trex.run().status().isPaused()) {
- *       data = trex.recycle(data);
- *       limit = input.read(data,data.length);
- *       if (0 &lt; limit)
- *         trex.push(data,limit);
- *     }
- *   } while (trex.status().isRunnable());
- *   if (trex.status().isPaused())
- *     trex.signal(Signal.eos).run();
- *   trex.stop();
- * }</pre>
+ * try (ITransduction transduction = runtime.transduction(trex)) {
+ *   transduction.reset();
+ *   assert trex.status().isStopped();
+ *   if (trex.signal(Signal.nil).push(data,limit).start(transducer).status().isRunnable()) {
+ *     do {
+ *       if (trex.run().status().isPaused()) {
+ *         data = trex.recycle(data);
+ *         limit = input.read(data,data.length);
+ *         if (0 &lt; limit)
+ *           trex.push(data,limit);
+ *       }
+ *     } while (trex.status().isRunnable());
+ *     if (trex.status().isPaused())
+ *       trex.signal(Signal.eos).run();
+ *   }
+ * } catch (Exception e) {
+ *     rteLogger.log(Level.SEVERE, "Trnsduction failed", e);
+ * }
+ * assert trex.status().isStopped();
+ * </pre>
  * Domain errors (inputs with no transition defined) are handled by emitting a
  * {@code nul} signal, giving the transduction an opportunity to handle it with an
  * explicit transition on {@code nul}. Typically this involves searching without effect
@@ -293,16 +304,16 @@ public interface ITransductor extends ITarget {
 	ITransductor push(byte[] input, int limit);
 
 	/**
-	 * Set up a signal as prologue for the next {@link #run()}. The signal will be
-	 * consumed by the transducer at the top of the transduction stack on its first
-	 * transition when the transductor is next {@code run()}. This can also be used to
-	 * convey a hint to a paused transductor before resuming, In either case, the 
-	 * {@code run()} then constinues with previously stacked input.
-	 * <br>br>
-	 * All ribose transducers <i>should</i> accept an initial {@code nil} signal, 
-	 * ignoring it if not needed for initialization effects. Otherwise, any of the
-	 * core ribose {@link Signal} enumerators can be used as a prologue to send to
-	 * a resuming transducer.
+	 * Set up a signal as prologue for a transduction. The signal will be
+	 * consumed immediately on the first call to {@link #run()}, before 
+	 * consuming any input from {@link #push(byte[], int)}. The input
+	 * stack must be empty or the signal will be ignored. An assertion
+	 * error witll be thrown if assertions are enabled in the Java VM.
+	 * <br><br>
+	 * All ribose transducers <i>should</i> accept an initial {@code nil}
+	 * signal, ignoring it if not needed for initialization effects. This
+	 * removes any ambiguity about start conditions when transducers are
+	 * used to start transductions.
 	 *
 	 * @param signal the signal to set as the next {@link #run()} prologue
 	 * @return this ITransductor
@@ -380,9 +391,7 @@ public interface ITransductor extends ITarget {
 	 * ready for reuse, but preserves accumulated metrics.
 	 *
 	 * @return this ITransductor
-	 * @throws RiboseException if transductor is proxy for parameter compilation
 	 * @see #status()
 	 */
-	ITransductor stop()
-	throws RiboseException;
+	ITransductor stop();
 }

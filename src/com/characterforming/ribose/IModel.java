@@ -41,7 +41,10 @@ import com.characterforming.ribose.base.SimpleTarget;
  * The model compiler assembles ribose models from collections of ginr automata.
  * The model loader implements threadsafe instantiation of {@link ITransductor} 
  * for fine-grained transduction workflows and more granular methods for
- * transducing input streams.  
+ * transducing input streams. A single transductor instance can be reused for
+ * more that one transduction, and transductions can be wrapped in a {@code
+ * try-with-transductor} statement using {@link #transduction(ITransductor)},
+ * which returns an autocloseable {@link ITransduction} instance. 
  * <br><br>
  * Model files are compiled atomically and support multiple concurrent loaders. 
  * Each model loader serializes one-time loading of transducers on first use in
@@ -49,10 +52,11 @@ import com.characterforming.ribose.base.SimpleTarget;
  * Runtime {@code IModel} instances are {@link AutoCloseable} but clients must
  * call {@link #close()} for models that are instantiated outside a try-with-resources
  * block. Character set decoder and encoder are held in Codec object attached as a
- * {@link ThreadLocal} to threads that require them and detached when the model is 
- * closed <i>by the thread</i>. Threads that use ribose APIs but are not involved 
- * with closing a model must call {@link #detach()} explicitly when they no longer
- * require ribose APIs.
+ * {@link ThreadLocal} to threads that require them. These are attached on first use
+ *  and detached when the model is closed <i>by the thread</i>. Threads that use
+ * ribose APIs but are not involved with closing a model must call {@link #detach()}
+ * to explicitly remove the thread local {@code Codec} instance explicitly when they
+ * no longer require ribose APIs.
  *
  * @author Kim Briggs
  *
@@ -95,9 +99,11 @@ public interface IModel extends AutoCloseable {
 	}	
 
 	/**
-	 * Instantiate a new transductor and bind it to a live target instance. Use this method to obtain
-	 * fine-grained control of transduction processes. See the {@link ITransductor} documentation
-	 * for an example.
+	 * Instantiate a new transductor and bind it to a live target instance. Use
+	 * this method to obtain fine-grained control of transduction processes. USe
+	 * {@link #transduction(ITransductor)} to obtain {@link AutoCloseable}
+	 * transdactions for use in discrete {@code try-with-transductor} blocks,
+	 * See {@link ITransductor} documentation for an example.
 	 *
 	 * @param target the target instance to bind to the transductor
 	 * @return a new transductor
@@ -106,6 +112,21 @@ public interface IModel extends AutoCloseable {
 	 */
 	ITransductor transductor(ITarget target)
 	throws ModelException;
+
+	/**
+	 * Wrap a transductor in an AutoClosable transduction. This will call
+	 * {@link ITransductor#stop()} from {@link AutoCloseable#close()} to
+	 * finalize a try-with-transductor transduction. A transductor
+	 * instance may safely run consecutive transductions as long
+	 * as each transduction is closed. Each transduction should begin by
+	 * calling {@link ITransduction#reset()}, this will ensure that the
+	 * transductor is in a readty state before the transduction begins. See
+	 * {@link ITransductor} for an example. 
+	 * 
+	 * @param transductor The transductor that will run the transduction.
+	 * @return the transduction instance
+	 */
+	ITransduction transduction(ITransductor transductor);
 
 	/**
 	 * Transduce an input stream onto an output stream. The streams are read and

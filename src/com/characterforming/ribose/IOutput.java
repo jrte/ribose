@@ -31,17 +31,18 @@ import com.characterforming.ribose.base.Signal;
  * IEffector} implementations. Effectors receive their {@code IOutput} instance via
  * {@link IEffector#setOutput(IOutput)} when they are first bound to a transductor. Transducer 
  * fields are local and bound to the defining transducer and can be accessed by stable
- * field ordinal numbers. Every transducer has an anonymous field with ordinal number 0 
- * (the anonymous name token (`~`) in transducer patterns). Ordinal numbers for named
- * fields (referenced with a <b>~</b> field type prefix in patterns, eg, {@code
- * out[`~data`]}) are obtained by providing defining transducer and field names to {@link
- * #getLocalizedFieldIndex(String, String)}. Effectors should obtain field ordinals in {@code
- * setOutput()} and retain then for use with the data transfer methods {@link #asInteger(int)},
- * {@link #asReal(int)}, {@link #asBytes(int)} and {@link #asString(int)} in {@link
- * IEffector#invoke()} and {@link IParameterizedEffector#invoke(int)} as shown in the
- * example below.
+ * field ordinal numbers <i>when the transducer is running on the transductor stack</i>.
+ * Every transducer has an anonymous field with ordinal number 0 (the anonymous name
+ * token (`~`) in transducer patterns). Ordinal numbers for named fields (referenced
+ * with a <b>~</b> field type prefix in patterns, eg, {@code out[`~data`]}) are obtained
+ * by providing defining transducer and field names to {@link #getLocalizedFieldIndex(String, String)}.
+ * Effectors should obtain field ordinals in {@code setOutput()} and retain them for
+ * use with the data transfer methods {@link #asInteger(int)}, {@link #asReal(int)},
+ * {@link #asBytes(int)} and {@link #asString(int)} in {@link IEffector#invoke()}
+ * and {@link IParameterizedEffector#invoke(int)} as shown in the example below.
  * <br><pre>
  * record Header (int version, int tapes, int transitions, int states, int symbols) {}
+ * 
  * final class HeaderEffector extends BaseEffector&lt;ModelCompiler&gt; {
  *   private static final String transducerName = "Automaton");
  *   private static final String[] fieldNames = new String[] {
@@ -73,7 +74,7 @@ import com.characterforming.ribose.base.Signal;
  *     return IEffector.RTX_NONE;
  *   }
  * }</pre>
- * All effectors receive with {@code IOutput} identical instances of loggers and codecs,
+ * All effectors receive with {@code IOutput} identical instances of thread-safe loggers,
  * which are shared by the transductor and its effectors. The compiler logger is exposed
  * here for use by proxy effectors in compilation contexts and should not be used otherwise.
  * The runtime logger should be used to log events in live transduction contexts.

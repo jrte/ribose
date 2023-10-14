@@ -43,6 +43,8 @@ import com.characterforming.ribose.IEffector;
 import com.characterforming.ribose.IParameterizedEffector;
 import com.characterforming.ribose.ITarget;
 import com.characterforming.ribose.IToken;
+import com.characterforming.ribose.ITransduction;
+import com.characterforming.ribose.ITransductor;
 import com.characterforming.ribose.base.BaseEffector;
 import com.characterforming.ribose.base.BaseParameterizedEffector;
 import com.characterforming.ribose.base.Bytes;
@@ -224,6 +226,17 @@ sealed class Model permits ModelCompiler, ModelLoader {
 	 */
 	public String getModelVersion() {
 		return this.modelVersion;
+	}
+
+	public ITransduction transduction(ITransductor trex) {
+		if (trex instanceof Transductor t) {
+			return t;
+		} else {
+			this.rteLogger.log(Level.SEVERE, () -> String.format(
+				"A Transductor instance is required: %s",
+					trex.getClass().getName()));
+		}
+		return null;
 	}
 
 	/**
@@ -555,10 +568,6 @@ sealed class Model permits ModelCompiler, ModelLoader {
 		return this.transducerFieldMaps.containsKey(transducerOrdinal)
 		? this.transducerFieldMaps.get(transducerOrdinal).size()
 		: 0;
-	}
-
-	protected Map<Bytes, Integer> getFieldMap() {
-		return Collections.unmodifiableMap(this.fieldOrdinalMap);
 	}
 
 	protected int getFieldOrdinal(Bytes fieldName) {

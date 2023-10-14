@@ -81,18 +81,31 @@ public class Codec {
 	}
 
 	/**
-	 * Decode some UTF-8 bytes to a String.
+	 * Decode some UTF-8 bytes to a {@link CharBuffer}.
 	 * 
 	 * @param bytes the bytes to decode
 	 * @param length the number of bytes to decode from offset 0
-	 * @return a String containing the decoded text
+	 * @return a CharBuffer containing the decoded text
+	 * @throws CharacterCodingException if decoding fails
+	 */
+	public static CharBuffer chars(final byte[] bytes, final int length)
+	throws CharacterCodingException {
+		assert 0 <= length && length <= bytes.length;
+		int size = Math.max(Math.min(length, bytes.length), 0);
+		return Codec.get().decoder.reset().decode(ByteBuffer.wrap(bytes, 0, size));
+	}
+
+	/**
+	 * Decode some UTF-8 bytes to a {@link String}.
+	 * 
+	 * @param bytes the bytes to decode
+	 * @param length the number of bytes to decode from offset 0
+	 * @return a CharBuffer containing the decoded text
 	 * @throws CharacterCodingException if decoding fails
 	 */
 	public static String decode(final byte[] bytes, final int length)
 	throws CharacterCodingException {
-		assert 0 <= length && length <= bytes.length;
-		int size = Math.max(Math.min(length, bytes.length), 0);
-		return Codec.get().decoder.reset().decode(ByteBuffer.wrap(bytes, 0, size)).toString();
+		return Codec.chars(bytes, length).toString();
 	}
 
 	/**

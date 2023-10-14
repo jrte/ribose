@@ -2,12 +2,6 @@
 clean=0
 if [[ "$1" == "--clean" ]]; then
   clean=1
-fi
-s="$(git status --short|head -n 2|grep -Eo '[^ ]+*$'|grep -Eo '^[^.]+'|sort -u|tr -d '\n')"
-if [[ ! -z "$s" && "$s" != "regression" ]]; then
-  clean=0
-fi
-if [[ "$1" == "--clean" ]]; then
   shift
 fi
 short=0
@@ -23,30 +17,9 @@ else
   g="fffffff";
 fi
 for f in $(ls -1tr "$@"); do
-  n=$(basename "$f")
-  rm -f /tmp/$n
-  d="$(stat -c %y $f|grep -oE '[0-9]+.[0-9]+.[0-9]+ [0-9]+:[0-9]+:[0-9]+[.][0-9][0-9][0-9]')"
-  h=""
-  if ((short==0)); then
-    h="$c\t$g\t$d"
-  fi
-  p="$h$(printf "%24s:" "$n")$(printf "%8s" "reclaim")"
-  for x in $(grep -E '.G1 Evacuation Pause. [0-9]+M->[0-9]+M\([0-9]+M\)' $f | grep -Eo '[0-9]+M->[0-9]+M' | tr -dc '\n[0-9]-'); do
-    p="$p\t$(($x))"
-  done
-  echo -e "$p">>/tmp/$n
-  q="$h$(printf "%24s:" "$n")$(printf "%8s" "retain")"
-  for x in $(grep -E '.G1 Evacuation Pause. [0-9]+M->[0-9]+M\([0-9]+M\)' $f | grep -Eo '>[0-9]+M' | tr -dc '\n[0-9]'); do
-    q="$q\t$(($x))"
-  done
-  echo -e "$q">>/tmp/$n
-  t="$h$(printf "%24s:" "$n")$(printf "%8s" "total")"
-  for x in $(grep -E '.G1 Evacuation Pause. [0-9]+M->[0-9]+M\([0-9]+M\)' $f | grep -Eo '\([0-9]+M\)' | tr -dc '\n[0-9]'); do
-    t="$t\t$(($x))"
-  done
-  echo -e "$t">>/tmp/$n
-  grep -Eho " [^:]+$n:.*$" /tmp/$n
+  grep 'gc,heap' $f | grep -o '\] .*$' | grep -o ' .*$' | grep -o '[^ ].*$' | tr -s ' ' > $f.stats
   if ((clean==1)); then
-    cat /tmp/$n>>regression.gc
+    echo -e "\n---$f" >> regression.gc
+    cat $f.stats >> regression.gc
   fi
 done
