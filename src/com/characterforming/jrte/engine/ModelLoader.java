@@ -67,7 +67,7 @@ public final class ModelLoader extends Model implements IModel {
 		this.transducerAccessIndex = new AtomicIntegerArray(size);
 		this.transducerObjectIndex = new AtomicReferenceArray<>(size);
 	}
-	
+
 	/**
 	 * Bind target instance to runtime model.
 	 *
@@ -258,14 +258,14 @@ public final class ModelLoader extends Model implements IModel {
 			for (int j = 0; j < inputEquivalenceIndex.length; j++) {
 				if (inputEquivalenceIndex[j] != i) {
 					if (startToken >= 0) {
-						if (startToken < (j - 2)) {
+						if (startToken < (j - 1)) {
 							this.printStart(startToken);
 							this.printEnd(j - 1);
 						} else {
 							this.printStart(startToken);
 						}
+						startToken = -1;
 					}
-					startToken = -1;
 				} else if (startToken < 0) {
 					startToken = j;
 				}

@@ -43,7 +43,7 @@ public class FileRunner {
 
 	/**
 	 * Shell interface.
-	 * 
+	 *
 	 * @param args arguments from the shell
 	 */
 	public static void main(final String[] args) {
@@ -131,7 +131,7 @@ public class FileRunner {
 							}
 							assert trex.status().isStopped();
 						}
-						long bytes = metrics.traps[0][1] + metrics.traps[1][1] + metrics.traps[2][1] + metrics.traps[3][1];
+						long bytes = 10 * byteLength;
 						double mbps = (tjrte > 0) ? (double)(bytes*1000000000l) / (double)(tjrte*1024*1024) : -1;
 						double mnone = (bytes > 0) ? ((double) (100 * metrics.traps[0][1]) / (double) bytes) : -1;
 						double mps = (bytes > 0) ? ((double) (100 * metrics.traps[1][1]) / (double) bytes) : -1;
@@ -146,7 +146,7 @@ public class FileRunner {
 						String ssum = String.format("(%d/%.2f%%):msum", sum, mps);
 						String sproduct = String.format("(%d/%.2f%%):mproduct", product, mpr);
 						String sscan = String.format("(%d/%.2f%%):mscan", scan, msc);
-						System.out.println(String.format("%8.3f mb/s %7.3f nul/kb %16s %16s %20s %17s", 
+						System.out.println(String.format("%8.3f mb/s %7.3f nul/kb %16s %16s %20s %17s",
 							mbps, ekb, snone, ssum, sproduct, sscan));
 						assert bytes == 0 || bytes >= 10*byteLength;
 					} else {

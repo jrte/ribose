@@ -36,17 +36,17 @@ import com.characterforming.ribose.base.Signal;
 import com.characterforming.ribose.base.SimpleTarget;
 
 /**
- * The {@code IModel} interface provides static methods for compiling and loading 
+ * The {@code IModel} interface provides static methods for compiling and loading
  * ribose models into the Java runtime and encapsulates a runtime model instance.
  * The model compiler assembles ribose models from collections of ginr automata.
- * The model loader implements threadsafe instantiation of {@link ITransductor} 
+ * The model loader implements threadsafe instantiation of {@link ITransductor}
  * for fine-grained transduction workflows and more granular methods for
  * transducing input streams. A single transductor instance can be reused for
  * more that one transduction, and transductions can be wrapped in a {@code
  * try-with-transductor} statement using {@link #transduction(ITransductor)},
- * which returns an autocloseable {@link ITransduction} instance. 
+ * which returns an autocloseable {@link ITransduction} instance.
  * <br><br>
- * Model files are compiled atomically and support multiple concurrent loaders. 
+ * Model files are compiled atomically and support multiple concurrent loaders.
  * Each model loader serializes one-time loading of transducers on first use in
  * multithreaded contexts. In all other respects, ribose objects are not threadsafe.
  * Runtime {@code IModel} instances are {@link AutoCloseable} but clients must
@@ -66,9 +66,9 @@ public interface IModel extends AutoCloseable {
  * Compile a collection of ginr DFAs from an automata directory into a ribose model file
  * and bind them to an {@link ITarget} class. Ginr compiles ribose patterns (*.inr files)
  * to DFAs as the first step in building a ribose model. The ribose compiler cruches the
- * DFAs to produce ribose transducers and asembles them in a into the model file for 
+ * DFAs to produce ribose transducers and asembles them in a into the model file for
  * runtime use.
- * 
+ *
  * @param targetClassname the name of the Target implementation class will be instantiated as model target
  * @param ginrAutomataDirectory directory containing DFAs compiled by ginr to be included in the model
  * @param riboseModelFile path indicating where to create the model file
@@ -86,9 +86,14 @@ public interface IModel extends AutoCloseable {
 	}
 
 	/**
-	 * Load a ribose runtime model from persistent store and bind it to a model
-	 * target instance. A runtime model can be used to instantiate transductors.
-	 * 
+	 * Load a ribose runtime model from persistent store. A runtime model can be used
+	 * o instantiate {@link ITransductor} instances and bind them to instances of the
+	 * model {@link ITarget}. A transductor can run serial {@link ITransduction}s
+	 * whereby syntactic cues in an input stream select effectors to reduce and
+	 * ssimilate extracted data into the target. All of this is wrapped inside
+	 * the IModel {@code stream()} methods, for one-off transductions that do
+	 * not require fine-grained control.
+	 *
 	 * @param riboseModelFile path to the runtime model to load
 	 * @return a live ribose runtime model instance
 	 * @throws ModelException if the model could not be loaded
@@ -96,7 +101,7 @@ public interface IModel extends AutoCloseable {
 	public static IModel loadRiboseModel(File riboseModelFile)
 	throws ModelException {
 		return ModelLoader.loadModel(riboseModelFile);
-	}	
+	}
 
 	/**
 	 * Instantiate a new transductor and bind it to a live target instance. Use
@@ -120,9 +125,9 @@ public interface IModel extends AutoCloseable {
 	 * instance may safely run consecutive transductions as long
 	 * as each transduction is closed. Each transduction should begin by
 	 * calling {@link ITransduction#reset()}, this will ensure that the
-	 * transductor is in a readty state before the transduction begins. See
-	 * {@link ITransductor} for an example. 
-	 * 
+	 * transductor is in a ready state before the transduction begins. See
+	 * {@link ITransductor} for an example.
+	 *
 	 * @param transductor The transductor that will run the transduction.
 	 * @return the transduction instance
 	 */
@@ -160,7 +165,7 @@ public interface IModel extends AutoCloseable {
 	 * Bind a live {@link ITarget} to an transductor and transduce a byte input
 	 * stream onto it. The signal and input and output streams and I/O buffers are
 	 * treated as for {@link #stream(Bytes, Signal, InputStream, OutputStream)}.
-	 * 
+	 *
 	 * @param transducer the UTF-8 encoded name of the transducer to start
 	 * @param target the transduction target instance
 	 * @param prologue start signal to send to {@code transducer} (if not @link Signal#NONE})
@@ -172,9 +177,9 @@ public interface IModel extends AutoCloseable {
 	boolean stream(Bytes transducer, ITarget target, Signal prologue, InputStream in, OutputStream out)
 	throws RiboseException;
 
-	/** 
+	/**
 	 * Decompile a transducer to System.out
-	 * 
+	 *
 	 * @param transducerName the transducer name as aUnicode string
 	 * @throws ModelException if things don't work out
 	 * @throws CharacterCodingException if encoder fails
@@ -182,9 +187,9 @@ public interface IModel extends AutoCloseable {
 	void decompile(String transducerName)
 	throws ModelException, CharacterCodingException;
 
-	/** 
+	/**
 	 * Print the model map to an output stream
-	 * 
+	 *
 	 * @param mapWriter the output sink
 	 * @return true unless an uncaught exception is thrown
 	 * @throws ModelException if things don't work out
@@ -194,7 +199,7 @@ public interface IModel extends AutoCloseable {
 
 	/**
 	 * Get the fully qualified name of the model target.
-	 * 
+	 *
 	 * @return the fully qualified name of the model target
 	 */
 	String getTargetClassname();
@@ -209,7 +214,7 @@ public interface IModel extends AutoCloseable {
 	throws ModelException;
 
 	/**
-	 * Detach thread local variables from the calling thread. 
+	 * Detach thread local variables from the calling thread.
 	 */
 	static void detach() {
 		Codec.detach();

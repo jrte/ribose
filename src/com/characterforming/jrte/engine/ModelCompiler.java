@@ -35,7 +35,6 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Map.Entry;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -62,11 +61,14 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 	private static final long VERSION = 210;
 	private static final String AUTOMATON = "Automaton";
 	private static final String AMBIGUOUS_STATE_MESSAGE = "%1$s: Ambiguous state %2$d";
-	private static final int MIN_PRODUCT_LENGTH = Integer.parseInt(System.getProperty("ribose.product.threshold", "12"));
-	private static final int MIN_SUM_SIZE = Integer.parseInt(System.getProperty("ribose.sum.threshold", "128"));
-	
+
+	static final int MIN_PRODUCT_LENGTH = Integer.parseInt(System.getProperty("ribose.product.threshold", "10"));
+	static final int MIN_SUM_SIZE = Integer.parseInt(System.getProperty("ribose.sum.threshold", "128"));
+	static final int MIN_SCAN_SIZE = 255;
+
 	private Bytes transducerName;
-	private int transducerOrdinal;
+	int transducerOrdinal;
+	private final Assembler assembler;
 	private ITransductor transductor;
 	private HashMap<Integer, Integer> inputStateMap;
 	private HashMap<Integer, ArrayList<Transition>> stateTransitionMap;
@@ -79,7 +81,7 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 	private int[] inputEquivalenceIndex;
 	private int[][][] kernelMatrix;
 	private int transition;
-	
+
 
 	record Transition (int from, int to, int tape, Bytes symbol, boolean isFinal) {}
 
@@ -174,13 +176,15 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 
 	public ModelCompiler() {
 		super();
+		this.assembler = null;
 	}
 
 	private ModelCompiler(final File modelPath, Class<?> targetClass, TargetMode targetMode)
-	throws ModelException {
+	throws ModelException, CharacterCodingException {
 		super(modelPath, targetClass, targetMode);
 		assert super.modelPath.exists();
 		assert super.targetMode.isLive();
+		this.assembler = new Assembler(this);
 		this.transductor = null;
 		this.inputStateMap = null;
 		this.stateTransitionMap = null;
@@ -354,7 +358,7 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 		} catch (IOException e) {
 			rtcLogger.log(Level.SEVERE, e, () -> String.format("Exception caught creating model file : %1$s",
 				riboseModelFile.getPath()));
-		}		
+		}
 		return false;
 	}
 
@@ -390,8 +394,10 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 			assert !this.transductor.status().isRunnable();
 			this.saveTransducer();
 		} catch (Exception e) {
-			this.addError(String.format("%1$s: Failed to compile '%2$s'; %3$s",
-				this.transducerName, inrFile.getPath(), e.getMessage()));
+			String msg = String.format("%1$s: Failed to compile '%2$s'",
+				this.transducerName, inrFile.getPath());
+			this.rtcLogger.log(Level.SEVERE, msg, e);
+			this.addError(msg);
 		}
 		assert this.transductor.status().isStopped();
 		return true;
@@ -438,7 +444,7 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 					e.getKey().asString()));
 			}
 		}
-		
+
 		if (super.transducerOrdinalMap.isEmpty()) {
 			this.addError("Error: The model is empty");
 		}
@@ -452,12 +458,12 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 			fields[e.getValue()] = e.getKey();
 		}
 		super.writeTransducer(this.transducerName, this.transducerOrdinal, fields, this.inputEquivalenceIndex, this.kernelMatrix, this.effectorVectors);
-		int nInputs = this.kernelMatrix.length;
-		int nStates = this.kernelMatrix[0].length;
+		int nStates = this.kernelMatrix.length;
+		int nInputs = this.kernelMatrix[0].length;
 		int nTransitions = 0;
-		for (int input = 0; input < nInputs; input++) 
-			for (int state = 0; state < nStates; state++) 
-				if (this.kernelMatrix[input][state][1] != 0) 
+		for (int input = 0; input < nInputs; input++)
+			for (int state = 0; state < nStates; state++)
+				if (this.kernelMatrix[state][input][1] != 0)
 					nTransitions++;
 		final int transitionCount = nTransitions;
 		final int fieldCount = super.getFieldCount(this.transducerOrdinal);
@@ -469,7 +475,7 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 		System.out.println(info);
 	}
 
-	private String getTransducerName() {
+	String getTransducerName() {
 		return this.transducerName.asString();
 	}
 
@@ -585,7 +591,10 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 			}
 		}
 
-		this.factor(transitionMatrix);
+		Assembler.Assembly assembly = this.assembler.assemble(transitionMatrix, effectorVectorMap);
+		this.inputEquivalenceIndex = assembly.inputEquivalents();
+		this.kernelMatrix = assembly.transitions();
+		this.effectorVectors = assembly.effects();
 	}
 
 	private boolean hasErrors() {
@@ -602,437 +611,6 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 		return this.errors;
 	}
 
-	private void factor(final int[][][] transitionMatrix) throws CharacterCodingException {
-		// factor matrix modulo input equivalence
-		final HashMap<IntsArray, HashSet<Integer>> rowEquivalenceMap =
-			new HashMap<>((5 * transitionMatrix.length) >> 2);
-		for (int token = 0; token < transitionMatrix.length; token++) {
-			assert transitionMatrix[token].length == transitionMatrix[0].length;
-			final IntsArray row = new IntsArray(transitionMatrix[token]);
-			HashSet<Integer> equivalentInputOrdinals = rowEquivalenceMap.get(row);
-			if (equivalentInputOrdinals == null) {
-				equivalentInputOrdinals = new HashSet<>(16);
-				rowEquivalenceMap.put(row, equivalentInputOrdinals);
-			}
-			equivalentInputOrdinals.add(token);
-		}
-		// construct kernel matrix from input equivalents
-		this.inputEquivalenceIndex = new int[transitionMatrix.length];
-		this.kernelMatrix = new int[rowEquivalenceMap.size()][][];
-		int equivalenceIndex = 0;
-		for (final Map.Entry<IntsArray, HashSet<Integer>> entry : rowEquivalenceMap.entrySet()) {
-			final IntsArray row = entry.getKey();
-			for (final int inputOrdinal : entry.getValue()) {
-				this.inputEquivalenceIndex[inputOrdinal] = equivalenceIndex;
-			}
-			this.kernelMatrix[equivalenceIndex++] = row.getInts();
-		}
-		// instrument sum and product traps, compress kernel matrix and extract effect vectors
-		final int nInputs = equivalenceIndex;
-		final int nStates = transitionMatrix[0].length;
-		final int nulSignal = Signal.NUL.signal();
-		final int nulEquivalent = this.inputEquivalenceIndex[nulSignal];
-		final int msumOrdinal = super.getEffectorOrdinal(Codec.encode("msum"));
-		final int mproductOrdinal = super.getEffectorOrdinal(Codec.encode("mproduct"));
-		final int mscanOrdinal = super.getEffectorOrdinal(Codec.encode("mscan"));
-		final int[][] msumStateEffects = new int[nStates][];
-		final int[][] mproductStateEffects = new int[nStates][];
-		final int[][] mproductEndpoints = new int[nStates][2];
-		final int[][] mscanStateEffects = new int[nStates][];
-		Arrays.fill(msumStateEffects, null);
-		Arrays.fill(mproductStateEffects, null);
-		Arrays.fill(mscanStateEffects, null);
-	// msum instrumentation
-		byte[][] equivalentInputs = new byte[nInputs][transitionMatrix.length];
-		int[] equivalenceLengths = new int[nInputs];
-		Arrays.fill(equivalenceLengths, 0);
-		for (int token = 0; token < nulSignal; token++) {
-			int input = this.inputEquivalenceIndex[token];
-			equivalentInputs[input][equivalenceLengths[input]++] = (byte)token;
-		}
-		for (int state = 0; state < nStates; state++) {
-			int selfIndex = 0, selfCount = 0;
-			byte[] selfBytes = new byte[nulSignal];
-			Arrays.fill(selfBytes, (byte)0);
-			boolean[] allBytes = new boolean[nulSignal];
-			Arrays.fill(allBytes, false);
-			for (int input = 0; input < nInputs; input++) {
-				int[] cell = this.kernelMatrix[input][state];
-				if (cell[0] == state && cell[1] == 1) {
-					for (int index = 0; index < equivalenceLengths[input]; index++) {
-						selfBytes[selfIndex] = equivalentInputs[input][index];
-						allBytes[Byte.toUnsignedInt(selfBytes[selfIndex])] = true;
-						selfIndex++;
-					}
-					selfCount += equivalenceLengths[input];
-				}
-			}
-			if (selfCount >= 255) {
-				assert mscanStateEffects[state] == null;
-				for (int token = 0; token < nulSignal; token++) {
-					if (!allBytes[token]) {
-						Argument argument = new Argument(-1, new BytesArray(new byte[][] { { (byte) token } }));
-						int mscanParameterIndex = super.compileParameters(mscanOrdinal, argument);
-						mscanStateEffects[state] = new int[] { -1 * mscanOrdinal, mscanParameterIndex, 0 };
-						break;
-					}
-				}
-			} else if (selfCount > ModelCompiler.MIN_SUM_SIZE) {
-				assert msumStateEffects[state] == null;
-				Argument argument = new Argument(-1, new BytesArray(new byte[][] { Arrays.copyOf(selfBytes, selfCount) }));
-				int msumParameterIndex = super.compileParameters(msumOrdinal, argument);
-				msumStateEffects[state] = new int[] { -1 * msumOrdinal, msumParameterIndex, 0 };
-			}
-		}
-		// mproduct instrumentation
-		int[] inputEquivalentCardinality = new int[nInputs];
-		int[] inputEquivalenceToken = new int[nInputs];
-		Arrays.fill(inputEquivalenceToken, -1);
-		for (int token = 0; token < this.inputEquivalenceIndex.length; token++) {
-			int equivalent = this.inputEquivalenceIndex[token];
-			if (++inputEquivalentCardinality[equivalent] == 1
-			&& inputEquivalenceToken[equivalent] == -1
-			&& token < nulSignal) {
-				inputEquivalenceToken[equivalent] = token;
-			} else {
-				inputEquivalenceToken[equivalent] = -2;
-			}
-			assert (token >= nulSignal)
-			|| (inputEquivalentCardinality[equivalent] == 1) == (inputEquivalenceToken[equivalent] == token);
-			assert (token < nulSignal) || (inputEquivalenceToken[equivalent] < 0);
-		}
-		int[] exitEquivalent = new int[nStates];
-		for (int state = 0; state < nStates; state++) {
-			exitEquivalent[state] = -1;
-			for (int input = 0; input < nInputs; input++) {
-				if (input != nulEquivalent) {
-					int[] cell = this.kernelMatrix[input][state];
-					if (cell[0] != state) {
-						if (cell[1] == 1 && exitEquivalent[state] < 0
-						&& inputEquivalenceToken[input] >= 0) {
-							assert exitEquivalent[state] == -1;
-							exitEquivalent[state] = input;
-						} else {
-							exitEquivalent[state] = -1;
-							break;
-						}
-					} else if (cell[1] != 0) {
-							exitEquivalent[state] = -1;
-							break;
-					}
-				}
-			}
-			assert (exitEquivalent[state] < 0)
-			|| (this.kernelMatrix[exitEquivalent[state]][state][0] != state
-				&& this.kernelMatrix[exitEquivalent[state]][state][1] == 1);
-		}
-		assertKernelSanity();
-		boolean[] walkedStates = new boolean[nStates];
-		Arrays.fill(walkedStates, false);
-		StateStack walkStack = new StateStack(nStates);
-		byte[] walkedBytes = new byte[nStates];
-		int[] walkResult = new int[] { 0, 0, 0 };
-		walkedStates[0] = true;
-		walkStack.push(0);
-		while (walkStack.size() > 0) {
-			int fromState = walkStack.pop();
-			for (int input = 0; input < nInputs; input++) {
-				int toState = this.kernelMatrix[input][fromState][0];
-				if (exitEquivalent[toState] >= 0) {
-					assert inputEquivalenceToken[exitEquivalent[toState]] >= 0;
-					assert inputEquivalenceToken[exitEquivalent[toState]] < nulSignal;
-					int nextState = this.walk(toState, walkedBytes, walkResult, exitEquivalent, inputEquivalenceToken);
-					if (walkResult[0] > ModelCompiler.MIN_PRODUCT_LENGTH) {
-						assert this.inputEquivalenceIndex[walkedBytes[0]] == exitEquivalent[toState];
-						if (mproductStateEffects[toState] == null) {
-							byte[][] product = new byte[][] { Arrays.copyOfRange(walkedBytes, 0, walkResult[0]) };
-							int effects = super.compileParameters(mproductOrdinal, new Argument(-1, new BytesArray(product)));
-							mproductStateEffects[toState] = new int[] { -1 * mproductOrdinal, effects, 0 };
-							mproductEndpoints[toState][0] = nextState;
-							mproductEndpoints[toState][1] = walkResult[2];
-						} else {
-							assert mproductEndpoints[toState][0] == nextState;
-							assert mproductEndpoints[toState][1] == walkResult[2];
-						}
-						assert this.inputEquivalenceIndex[walkedBytes[walkResult[0] - 1]] == walkResult[2];
-						toState = nextState;
-					}
-					if (walkResult[0] > 0) {
-						int state = this.kernelMatrix[input][fromState][0];
-						for (int i = 0; i < walkResult[0] - 1; i++) {
-							assert exitEquivalent[state] >= 0;
-							assert walkedBytes[i] == inputEquivalenceToken[exitEquivalent[state]];
-							assert this.inputEquivalenceIndex[walkedBytes[i]] == exitEquivalent[state];
-							int[] cell = this.kernelMatrix[exitEquivalent[state]][state];
-							assert cell[1] == 1;
-							state = cell[0];
-						}
-						assert exitEquivalent[state] == walkResult[2];
-						assert this.inputEquivalenceIndex[walkedBytes[walkResult[0] - 1]] == exitEquivalent[state];
-						assert this.kernelMatrix[exitEquivalent[state]][state][1] == 1;
-						assert nextState == this.kernelMatrix[exitEquivalent[state]][state][0];
-					}
-				}
-				if (!walkedStates[toState]) {
-					walkedStates[toState] = true;
-					walkStack.push(toState);
-				}
-			}
-		}
-		// effect vector construction
-		assertKernelSanity();
-		int vectorCount = this.effectorVectorMap.size();
-		int[][] effectVectors = new int[vectorCount > 4 ? (vectorCount * 3) >> 1 : 5][];
-		for (Entry<Ints, Integer> entry : this.effectorVectorMap.entrySet())  {
-			int[] vector = entry.getKey().getData();
-			effectVectors[entry.getValue()] = vector;
-		}
-		effectVectors = instrumentSumVectors(msumOrdinal, effectVectors, msumStateEffects);
-		assertKernelSanity();
-		effectVectors = instrumentSumVectors(mscanOrdinal, effectVectors, mscanStateEffects);
-		assertKernelSanity();
-		effectVectors = instrumentProductVectors(mproductOrdinal, effectVectors, mproductStateEffects, mproductEndpoints);
-		assertKernelSanity();
-		int[] effectorVectorPosition = new int[this.effectorVectorMap.size()];
-		Arrays.fill(effectorVectorPosition, -1);
-		int position = 1; int size = 0;
-		for (int input = 0; input < nInputs; input++) {
-			for (int state = 0; state < nStates; state++) {
-				int effectOrdinal = this.kernelMatrix[input][state][1];
-				if (effectOrdinal < 0) {
-					size += effectVectors[-1 * effectOrdinal].length;
-				}
-			}
-		}
-		this.effectorVectors = new int[size + 1];
-		this.effectorVectors[0] = 0;
-		for (int input = 0; input < nInputs; input++) {
-			for (int state = 0; state < nStates; state++) {
-				int[] cell = this.kernelMatrix[input][state];
-				int effectOrdinal = cell[1];
-				if (effectOrdinal < 0) {
-					effectOrdinal *= -1;
-					if (effectorVectorPosition[effectOrdinal] < 0) {
-						System.arraycopy(effectVectors[effectOrdinal], 0, this.effectorVectors, position, effectVectors[effectOrdinal].length);
-						effectorVectorPosition[effectOrdinal] = position;
-						position += effectVectors[effectOrdinal].length;
-					}
-					cell[1] = -1 * effectorVectorPosition[effectOrdinal];
-				}
-			}
-		}
-		if (position < this.effectorVectors.length) {
-			this.effectorVectors = Arrays.copyOf(this.effectorVectors, position);
-		}
-		assertKernelSanity();
-		// redundant state elimination
-		for (int state = 0; state < nStates; state++) {
-			assert (mproductEndpoints[state] != null) || (mproductStateEffects[state] == null);
-			assert (exitEquivalent[state] >= 0) || (mproductStateEffects[state] == null);
-			if (mproductStateEffects[state] != null
-			&& mproductEndpoints[state][1] != exitEquivalent[state]) {
-				int[] cell = this.kernelMatrix[exitEquivalent[state]][state];
-				if (cell[1] > 0) {
-					cell[0] = state;
-					cell[1] = 0;
-				}
-			}
-		}
-		assertKernelSanity();
-		int[] stateMap = new int[nStates];
-		Arrays.fill(stateMap, -1);
-		Arrays.fill(walkedStates, false);
-		assert walkStack.size() == 0;
-		int mStates = 0;
-		walkedStates[0] = true;
-		walkStack.push(0);
-		while (walkStack.size() > 0) {
-			int state = walkStack.pop();
-			stateMap[state] = mStates++;
-			for (int input = 0; input < nInputs; input++) {
-				int nextState = this.kernelMatrix[input][state][0];
-				if (nextState != state && !walkedStates[nextState]) {
-					walkedStates[nextState] = true;
-					walkStack.push(nextState);
-				}
-			}
-		}
-		int[][][] finalMatrix = new int[rowEquivalenceMap.size()][mStates][2];
-		for (int input = 0; input < nInputs; input++) {
-			int[][] row = this.kernelMatrix[input];
-			for (int state = 0; state < nStates; state++) {
-				if (walkedStates[state]) {
-					int[] cell = finalMatrix[input][stateMap[state]];
-					cell[0] = stateMap[row[state][0]];
-					cell[1] = row[state][1];
-				}
-			}
-		}
-		this.kernelMatrix = finalMatrix;
-		assertKernelSanity();
-		// Coalesce equivalence classes
-		rowEquivalenceMap.clear();
-		for (int input = 0; input < this.kernelMatrix.length; input++) {
-			assert this.kernelMatrix[input].length == this.kernelMatrix[0].length;
-			final IntsArray row = new IntsArray(this.kernelMatrix[input]);
-			HashSet<Integer> equivalentClassOrdinals = rowEquivalenceMap.computeIfAbsent(
-				row, absent -> new HashSet<>(16));
-			if (equivalentClassOrdinals.isEmpty()) {
-				rowEquivalenceMap.put(row, equivalentClassOrdinals);
-			}
-			equivalentClassOrdinals.add(input);
-		}
-		int[] classEquivalenceIndex = new int[this.kernelMatrix.length];
-		int[][][] matrix = new int[rowEquivalenceMap.size()][][];
-		int equivalenceClassIndex = 0;
-		for (final Map.Entry<IntsArray, HashSet<Integer>> entry : rowEquivalenceMap.entrySet()) {
-			final IntsArray row = entry.getKey();
-			for (final int inputOrdinal : entry.getValue()) {
-				classEquivalenceIndex[inputOrdinal] = equivalenceClassIndex;
-			}
-			matrix[equivalenceClassIndex++] = row.getInts();
-		}
-		for (int token = 0; token < this.inputEquivalenceIndex.length; token++) {
-			this.inputEquivalenceIndex[token] = classEquivalenceIndex[this.inputEquivalenceIndex[token]];
-		}
-		this.kernelMatrix = matrix;
-	}
-
-	private void assertKernelSanity() {
-		for (int input = 0; input < this.kernelMatrix.length; input++) {
-			assert this.kernelMatrix[0].length == this.kernelMatrix[input].length;
-			for (int state = 0; state < this.kernelMatrix[input].length; state++) {
-				assert (this.kernelMatrix[input][state][1] != 0)
-				|| (this.kernelMatrix[input][state][0] == state)
-				: String.format("sanity: state[%d->%d] input[%d->%d]", 
-					state, this.kernelMatrix[input][state][0], 
-					input, this.kernelMatrix[input][state][1]);
-			}
-		}
-	}
-
-	private int walk(int fromState, byte[] walkedBytes, int[] walkResult, int[] exitEquivalent, int[] singletonEquivalenceMap) {
-		int nulEquivalent = this.inputEquivalenceIndex[Signal.NUL.signal()];
-		int[] nulTransition = this.kernelMatrix[nulEquivalent][fromState];
-		int[] matchTransition = new int[] { 
-			nulTransition[0] != fromState ? nulTransition[0] : Integer.MIN_VALUE, 
-			nulTransition[1] 
-		};
-		int walkLength = 0;
-		int walkedInput = -1;
-		int walkState = fromState;
-		Arrays.fill(walkResult, 0);
-		assert exitEquivalent[walkState] >= 0;
-		int exitInput = exitEquivalent[walkState];
-		while (exitInput >= 0 && walkLength < walkedBytes.length
-		&& this.kernelMatrix[exitInput][walkState][1] == 1) {
-			assert singletonEquivalenceMap[exitInput] >= 0
-			&& singletonEquivalenceMap[exitInput] < Signal.NUL.signal();
-			int[] errorTransition = this.kernelMatrix[nulEquivalent][walkState];
-			int errorState = matchTransition[0] != Integer.MIN_VALUE ? matchTransition[0] : walkState;
-			if (errorTransition[1] == matchTransition[1] && errorTransition[0] == errorState) {
-				walkedInput = exitInput;
-				walkedBytes[walkLength] = (byte)singletonEquivalenceMap[walkedInput];
-				walkState = this.kernelMatrix[walkedInput][walkState][0];
-				exitInput = exitEquivalent[walkState];
-				++walkLength;
-			} else {
-				break;
-			}
-		}
-		if (walkLength > 0) {
-			walkResult[0] = walkLength;
-			walkResult[1] = walkState;
-			walkResult[2] = walkedInput;
-			return walkState;
-		}
-		return fromState;
-	}
-
-	private int[][] instrumentSumVectors(int msumOrdinal, int[][] effectVectors, int[][] msumEffects) {
-		int nInputs = this.kernelMatrix.length;
-		int nStates = this.kernelMatrix[0].length;
-		for (int input = 0; input < nInputs; input++) {
-			for (int state = 0; state < nStates; state++) {
-				int[] cell = this.kernelMatrix[input][state];
-				if ((cell[0] == state) || (cell[1] == 0) || (msumEffects[cell[0]] == null)) {
-					continue;
-				}
-				int vectorLength = msumEffects[cell[0]].length;
-				int vectorOrdinal = cell[1];
-				if ((vectorOrdinal > 0)
-				|| (effectVectors[-1 * vectorOrdinal][effectVectors[-1 * vectorOrdinal].length - vectorLength] != msumOrdinal)) {
-					int[] effect = msumEffects[cell[0]];
-					int[] vector = vectorOrdinal > 0
-					? (vectorOrdinal > 1 ? new int[] { vectorOrdinal, 0 } : new int[] { vectorOrdinal })
-					: effectVectors[-1 * vectorOrdinal];
-					int[] vectorex = Arrays.copyOf(vector, vector.length + effect.length - 1);
-					System.arraycopy(effect, 0, vectorex, vector.length - 1, effect.length);
-					Ints vxkey = new Ints(vectorex);
-					if (this.effectorVectorMap.containsKey(vxkey)) {
-						vectorOrdinal = this.effectorVectorMap.get(vxkey);
-					} else {
-						vectorOrdinal = this.effectorVectorMap.size();
-						this.effectorVectorMap.put(vxkey, vectorOrdinal);
-						if (vectorOrdinal >= effectVectors.length) {
-							int[][] newv = new int[vectorOrdinal > 4 ? (vectorOrdinal * 3) >> 1 : 5][];
-							System.arraycopy(effectVectors, 0, newv, 0, effectVectors.length);
-							effectVectors = newv;
-						}
-						effectVectors[vectorOrdinal] = vectorex;
-					}
-					cell[1] = -1 * vectorOrdinal;
-				}
-			}
-		}
-		return effectVectors;
-	}
-
-	private int[][] instrumentProductVectors(int mproductOrdinal, int[][] effectVectors, int[][] mproductEffects, int[][] mproductEndpoints) {
-		int nInputs = this.kernelMatrix.length;
-		int nStates = this.kernelMatrix[0].length;
-		for (int input = 0; input < nInputs; input++) {
-			for (int state = 0; state < nStates; state++) {
-				int[] cell = this.kernelMatrix[input][state];
-				if ((cell[1] == 0) || (mproductEffects[cell[0]] == null)) {
-					continue;
-				}
-				int startState = cell[0];
-				int vectorLength = mproductEffects[startState].length;
-				int vectorOrdinal = cell[1];
-				if ((vectorOrdinal > 0)
-				|| (effectVectors[-1 * vectorOrdinal][effectVectors[-1 * vectorOrdinal].length - vectorLength] != mproductOrdinal)) {
-					int endState = mproductEndpoints[startState][0];
-					int endInput = mproductEndpoints[startState][1];
-					this.kernelMatrix[endInput][startState][0] = endState;
-					this.kernelMatrix[endInput][startState][1] = 1;
-					int[] vector = vectorOrdinal > 0
-					? (vectorOrdinal > 1 ? new int[] { vectorOrdinal, 0 } : new int[] { vectorOrdinal })
-					: effectVectors[-1 * vectorOrdinal];
-					int[] mproductEffect = mproductEffects[startState];
-					int[] vectorex = Arrays.copyOf(vector, vector.length + mproductEffect.length - 1);
-					System.arraycopy(mproductEffect, 0, vectorex, vector.length - 1, mproductEffect.length);
-					Ints vxkey = new Ints(vectorex);
-					if (this.effectorVectorMap.containsKey(vxkey)) {
-						vectorOrdinal = this.effectorVectorMap.get(vxkey);
-					} else {
-						vectorOrdinal = this.effectorVectorMap.size();
-						this.effectorVectorMap.put(vxkey, vectorOrdinal);
-						if (vectorOrdinal >= effectVectors.length) {
-							int[][] newv = new int[vectorOrdinal > 4 ? (vectorOrdinal * 3) >> 1 : 5][];
-							System.arraycopy(effectVectors, 0, newv, 0, effectVectors.length);
-							effectVectors = newv;
-						}
-						effectVectors[vectorOrdinal] = vectorex;
-					}
-					cell[1] = -1 * vectorOrdinal;
-					assert vectorOrdinal > 0;
-				}
-			}
-		}
-		return effectVectors;
-	}
-
 	private Chain chain(final Transition transition) {
 		assert transition.tape != 1 && transition.tape != 2
 		: "Invalid tape number for chain(InrTransition) : " + transition.toString();
@@ -1041,103 +619,87 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 		}
 		boolean fail = false;
 		int effectorOrdinal = -1;
-		int effectorPos = 0;
-		int[] effectorVector = new int[8];
-		int parameterPos = 0;
+		int effectorPos = 0, parameterPos = 0;
 		byte[][] parameterList = new byte[8][];
-		ArrayList<Transition> outT = this.getTransitions(transition.to);
-		while (outT != null && outT.size() == 1 && outT.get(0).tape > 0) {
+		int[] effectorVector = new int[8];
+		ArrayList<Transition> outT = null;
+		for (
+			outT = this.getTransitions(transition.to);
+			outT != null && outT.size() == 1 && outT.get(0).tape > 0;
+			outT = this.getTransitions(outT.get(0).to)
+		) {
 			final Transition t = outT.get(0);
 			switch (t.tape) {
-				case 1:
-					if ((effectorPos + 2) >= effectorVector.length) {
-						int newLength = effectorVector.length > 4 ? (effectorVector.length * 3) >> 1 : 5;
-						effectorVector = Arrays.copyOf(effectorVector, newLength);
-					}
-					if (effectorOrdinal >= 0 && parameterPos > 0) {
-						assert((effectorPos > 0) && (effectorOrdinal == effectorVector[effectorPos - 1]));
-						effectorVector[effectorPos - 1] *= -1;
-						final Argument argument = new Argument(this.transducerOrdinal, new BytesArray(Arrays.copyOf(parameterList, parameterPos)));
-						int parameterOrdinal = super.compileParameters(effectorOrdinal, argument);
-						effectorVector[effectorPos] = parameterOrdinal;
-						parameterList = new byte[8][];
-						++effectorPos;
-					}
-					Bytes effectorSymbol = t.symbol;
-					effectorOrdinal = super.getEffectorOrdinal(effectorSymbol);
-					if (effectorOrdinal >= 0) {
-						effectorVector[effectorPos] = effectorOrdinal;
-						++effectorPos;
-					} else {
-						fail = true;
-					}
-					parameterPos = 0;
-					break;
-				case 2:
-					if (effectorOrdinal >= 0) {
-						if (parameterPos >= parameterList.length) {
-							int newLength = parameterList.length > 4 ? (parameterList.length * 3) >> 1 : 5;
-							parameterList = Arrays.copyOf(parameterList, newLength);
-						}
-						parameterList[parameterPos] = t.symbol.bytes();
-						++parameterPos;
-					}
-					break;
-				default:
-					this.addError(String.format("%1$s: Invalid tape number %2$d",
-						this.getTransducerName(), t.tape));
+			case 1:
+				if ((effectorPos + 3) >= effectorVector.length) {
+					int newLength = effectorVector.length > 4 ? (effectorVector.length * 3) >> 1 : 5;
+					effectorVector = Arrays.copyOf(effectorVector, newLength);
+				}
+				if (effectorOrdinal >= 0 && parameterPos > 0) {
+					assert((effectorPos > 0) && (effectorOrdinal == effectorVector[effectorPos - 1]));
+					final Argument argument = new Argument(this.transducerOrdinal, new BytesArray(Arrays.copyOf(parameterList, parameterPos)));
+					int parameterOrdinal = super.compileParameters(effectorOrdinal, argument);
+					effectorVector[effectorPos] = parameterOrdinal;
+					effectorVector[effectorPos - 1] *= -1;
+					parameterList = new byte[8][];
+					++effectorPos;
+				}
+				Bytes effectorSymbol = t.symbol;
+				effectorOrdinal = super.getEffectorOrdinal(effectorSymbol);
+				if (effectorOrdinal >= 0) {
+					effectorVector[effectorPos++] = effectorOrdinal;
+				} else {
+					this.addError(String.format("%1$s: Unrecognized effector '%2$s'",
+						this.getTransducerName(), effectorSymbol.toString()));
 					fail = true;
-					break;
+				}
+				parameterPos = 0;
+				break;
+			case 2:
+				if (effectorOrdinal >= 0) {
+					if (parameterPos >= parameterList.length) {
+						int newLength = parameterList.length > 4 ? (parameterList.length * 3) >> 1 : 5;
+						parameterList = Arrays.copyOf(parameterList, newLength);
+					}
+					parameterList[parameterPos] = t.symbol.bytes();
+					++parameterPos;
+				}
+				break;
+			default:
+				this.addError(String.format("%1$s: Invalid tape number %2$d (tape 1 or 2 expected)",
+					this.getTransducerName(), t.tape));
+				fail = true;
+				break;
 			}
-			outT = this.getTransitions(t.to);
+		}
+		int outS = -1;
+		if (outT == null || outT.isEmpty() || outT.get(0).isFinal) {
+			outS = 0;
+		} else if (outT.get(0).tape == 0) {
+			outS = outT.get(0).from;
+		} else {
+			assert outT.size() > 1;
+			this.addError(String.format(AMBIGUOUS_STATE_MESSAGE,
+				this.getTransducerName(), outT.get(0).from));
+			fail = true;
 		}
 		if (!fail) {
-			assert effectorPos > 0 || parameterPos == 0;
+			assert effectorVector.length > (effectorPos + 2);
+			assert effectorPos == 0 || effectorOrdinal == effectorVector[effectorPos - 1];
 			assert parameterPos == 0 || effectorPos > 0;
-			int vectorLength = effectorPos + 1;
-			if (effectorPos > 0 && parameterPos > 0) {
-				++vectorLength;
-			}
-			if (vectorLength != effectorVector.length) {
-				effectorVector = Arrays.copyOf(effectorVector, vectorLength);
-			}
 			if (parameterPos > 0) {
-				assert((effectorPos > 0) && (effectorOrdinal == effectorVector[effectorPos - 1]));
-				final BytesArray parameters = new BytesArray(Arrays.copyOf(parameterList, parameterPos));
-				final Argument argument = new Argument(this.transducerOrdinal, parameters);
-				int parameterOrdinal = super.compileParameters(effectorOrdinal, argument);
-				effectorVector[effectorPos] = parameterOrdinal;
 				effectorVector[effectorPos - 1] *= -1;
-				++effectorPos;
+				effectorVector[effectorPos++] = super.compileParameters(
+					effectorOrdinal, new Argument(this.transducerOrdinal,
+						new BytesArray(Arrays.copyOf(parameterList, parameterPos))));
 			}
-			if (effectorPos > 0) {
-				effectorVector[effectorPos] = 0;
-				++effectorPos;
-			}
-			if (outT == null || outT.isEmpty() || outT.size() == 1 && outT.get(0).isFinal) {
-				return new Chain(Arrays.copyOf(effectorVector, effectorPos), 0);
-			} else if (outT.size() == 1 && outT.get(0).tape == 0) {
-				return new Chain(Arrays.copyOf(effectorVector, effectorPos), outT.get(0).from);
-			} else if (outT.get(0).isFinal || outT.get(0).tape == 0) {
-				int outS = -1;
-				for (final Transition t : outT) {
-					if (t.tape > 0) {
-						this.addError(String.format(AMBIGUOUS_STATE_MESSAGE, this.getTransducerName(), t.from));
-						fail = true;
-					} else {
-						outS = t.from;
-					}
-				}
-				if (!fail) {
-					return new Chain(Arrays.copyOf(effectorVector, effectorPos), outS);
-				}
-			} else {
-				for (final Transition t : outT) {
-					this.addError(String.format(AMBIGUOUS_STATE_MESSAGE, this.getTransducerName(), t.from));
-				}
+			effectorVector[effectorPos++] = 0;
+			assert effectorVector.length >= effectorPos;
+			if (effectorVector.length > effectorPos) {
+				effectorVector = Arrays.copyOf(effectorVector, effectorPos);
 			}
 		}
-		return null;
+		return fail? null : new Chain(effectorVector, outS);
 	}
 
 	private Integer[] getInrStates() {
@@ -1147,7 +709,7 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 		return inrStates;
 	}
 
-	private ArrayList<Transition> getTransitions(final int inrState) {
+	ArrayList<Transition> getTransitions(final int inrState) {
 		return this.stateTransitionMap.get(inrState);
 	}
 

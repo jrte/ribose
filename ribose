@@ -21,7 +21,7 @@ execCompile() {
 		fi
 	fi
 	if (($#==4)); then
-		$JAVA -ea -cp $path $vmargs com.characterforming.ribose.Ribose compile "$@" 
+		$JAVA -ea -cp $path $vmargs com.characterforming.ribose.Ribose compile "$@"
 	elif (($#>0)); then
 	 	$JAVA -ea -cp $path $vmargs com.characterforming.ribose.Ribose compile --target com.characterforming.ribose.base.SimpleTarget "$@"
 	else

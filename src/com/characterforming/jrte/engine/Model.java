@@ -98,7 +98,7 @@ sealed class Model permits ModelCompiler, ModelLoader {
 	protected boolean deleteOnClose;
 	protected RandomAccessFile io;
 	protected File modelPath;
-	
+
 	private ArrayList<HashMap<Argument, Integer>> effectorParametersMaps;
 	private Transductor proxyTransductor;
 
@@ -111,7 +111,7 @@ sealed class Model permits ModelCompiler, ModelLoader {
 		this.targetClass = this.getClass();
 		this.deleteOnClose = false;
 	}
-	
+
 	/** Live compiler model loading to compile new target model */
 	protected Model(final File modelPath, Class<?> targetClass, TargetMode targetMode) throws ModelException {
 		this.targetClass = targetClass;
@@ -241,7 +241,7 @@ sealed class Model permits ModelCompiler, ModelLoader {
 
 	/**
 	 * Commit model to persistent store
-	 * 
+	 *
 	 * @param effectorParameters the union of all effector parameters
 	 * @return true if model saved
 	 */
@@ -395,7 +395,7 @@ sealed class Model permits ModelCompiler, ModelLoader {
 			signalIndex[m.getValue() - Base.RTE_SIGNAL_BASE] = m.getKey();
 		}
 		for (int i = 0; i < signalIndex.length; i++) {
-			mapWriter.printf("%1$6d signal %2$s%n", i + Base.RTE_SIGNAL_BASE, 
+			mapWriter.printf("%1$6d signal %2$s%n", i + Base.RTE_SIGNAL_BASE,
 				signalIndex[i].asString());
 		}
 		Bytes[] fieldIndex = new Bytes[this.fieldOrdinalMap.size()];
@@ -407,7 +407,7 @@ sealed class Model permits ModelCompiler, ModelLoader {
 			transducerIndex[m.getValue()] = m.getKey();
 		}
 		for (int transducerOrdinal = 0; transducerOrdinal < transducerIndex.length; transducerOrdinal++) {
-			mapWriter.printf("%1$6d transducer %2$s%n", transducerOrdinal, 
+			mapWriter.printf("%1$6d transducer %2$s%n", transducerOrdinal,
 				transducerIndex[transducerOrdinal].asString());
 			Map<Integer, Integer> fieldMap = this.transducerFieldMaps.get(transducerOrdinal);
 			Bytes[] fields = new Bytes[fieldMap.size()];
@@ -455,7 +455,7 @@ sealed class Model permits ModelCompiler, ModelLoader {
 		boolean checked = true;
 		if (boundFx.length != this.proxyEffectors.length) {
 			this.rtcLogger.log(Level.SEVERE, () -> String.format(
-				"Proxy effector count (%1$d) does not match target %3$s effector count (%2$d)", 
+				"Proxy effector count (%1$d) does not match target %3$s effector count (%2$d)",
 					this.proxyEffectors.length, boundFx.length, target.getName()));
 			checked = false;
 		} else {
@@ -480,7 +480,7 @@ sealed class Model permits ModelCompiler, ModelLoader {
 			this.proxyEffectors[effectorOrdinal].setOutput(this.proxyTransductor);
 			if (this.proxyEffectors[effectorOrdinal] instanceof BaseParameterizedEffector<?,?> parameterizedEffector) {
 				if (parametersMap != null) {
-					assert parametersMap != null: String.format("Effector parameters map is null for %1$s effector", 
+					assert parametersMap != null: String.format("Effector parameters map is null for %1$s effector",
 						parameterizedEffector.getName());
 					Argument[] arguments = new Argument[parametersMap.size()];
 					IToken[][] tokens = new IToken[arguments.length][];
@@ -604,7 +604,7 @@ sealed class Model permits ModelCompiler, ModelLoader {
 
 	protected int addSignal(Bytes signalName) {
 		final int mapSize = this.signalOrdinalMap.size();
-		return this.signalOrdinalMap.computeIfAbsent(signalName, 
+		return this.signalOrdinalMap.computeIfAbsent(signalName,
 			absent -> Base.RTE_SIGNAL_BASE + mapSize);
 	}
 
@@ -649,7 +649,7 @@ sealed class Model permits ModelCompiler, ModelLoader {
 			return this.io.readInt();
 		} catch (final IOException e) {
 			throw new ModelException(String.format(
-				"Model.readInt() IOException reading int at file position %1$d", 
+				"Model.readInt() IOException reading int at file position %1$d",
 					this.getSafeFilePosition()), e);
 		}
 	}
@@ -659,7 +659,7 @@ sealed class Model permits ModelCompiler, ModelLoader {
 			return this.io.readLong();
 		} catch (final IOException e) {
 			throw new ModelException(String.format(
-				"Model.readLong() IOException reading long at file position %1$d", 
+				"Model.readLong() IOException reading long at file position %1$d",
 					this.getSafeFilePosition()), e);
 		}
 	}
@@ -697,7 +697,7 @@ sealed class Model permits ModelCompiler, ModelLoader {
 		}
 		if (read >= 0 && read != bytes.length) {
 			throw new ModelException(String.format(
-				"Model.readBytes expected %1$d bytes at file position %2$d but read only %3$d", 
+				"Model.readBytes expected %1$d bytes at file position %2$d but read only %3$d",
 					bytes.length,	position, read));
 		}
 		return bytes;
@@ -1014,23 +1014,23 @@ sealed class Model permits ModelCompiler, ModelLoader {
 	protected void writeTransitionMatrix(final int[][][] matrix) throws ModelException {
 		final long position = this.getSafeFilePosition();
 		try {
-			final int nInputs = matrix.length;
-			final int nStates = nInputs > 0 ? matrix[0].length : 0;
+			final int nStates = matrix.length;
+			final int nInputs = nStates > 0 ? matrix[0].length : 0;
 			this.io.writeInt(nStates);
 			this.io.writeInt(nInputs);
 			for (int state = 0; state < nStates; state++) {
 				int transitions = 0;
 				for (int input = 0; input < nInputs; input++) {
-					if (matrix[input][state][1] != 0) {
+					if (matrix[state][input][1] != 0) {
 						transitions++;
 					}
 				}
 				this.io.writeInt(transitions);
 				for (int input = 0; input < nInputs; input++) {
-					if (matrix[input][state][1] != 0) {
+					if (matrix[state][input][1] != 0) {
 						this.io.writeInt(input);
-						this.io.writeInt(matrix[input][state][0]);
-						this.io.writeInt(matrix[input][state][1]);
+						this.io.writeInt(matrix[state][input][0]);
+						this.io.writeInt(matrix[state][input][1]);
 					}
 				}
 			}

@@ -97,7 +97,7 @@ public final class Transductor implements ITransductor, ITransduction, IOutput {
 	private static final int MATCH_SUM = 1;
 	private static final int MATCH_PRODUCT = 2;
 	private static final int MATCH_SCAN = 3;
-	
+
 	private Model model;
 	private final boolean isProxy;
 	private final ModelLoader loader;
@@ -121,7 +121,7 @@ public final class Transductor implements ITransductor, ITransduction, IOutput {
 	private final ITransductor.Metrics metrics;
 
 	/**
-	 * Proxy constructor 
+	 * Proxy constructor
 	 */
 	Transductor() {
 		this.model = null;
@@ -234,7 +234,7 @@ public final class Transductor implements ITransductor, ITransduction, IOutput {
 			Value v = this.transducerStack.value(fieldOrdinal);
 			return Codec.decode(v.value(), v.length());
 		} else {
-			throw new EffectorException("Not valid for proxy transductor");	
+			throw new EffectorException("Not valid for proxy transductor");
 		}
 	}
 
@@ -436,9 +436,11 @@ T:		do {
 				this.selected = this.transducer.selected;
 				state = this.transducer.state;
 I:			do {
-					int post = input.position;
 					// get next input token
 					if (signal > 0) {
+						assert this.matchMode == MATCH_NONE || signal == SIGEOS
+						: String.format("mode=%d; signal=%d; expected mode=%d",
+							this.matchMode, signal, MATCH_NONE);
 						this.matchMode = MATCH_NONE;
 						token = signal;
 						signal = 0;
@@ -449,15 +451,13 @@ I:			do {
 								token = -1;
 								break T;
 							}
-							post = input.position;
 						}
 						token = input.array[input.position++] & 0xff;
 					}
-					
+
 					int action = NIL;
 S:				do {
-						final int trap = this.matchMode;
-						switch (trap) {
+						switch (this.matchMode) {
 						// trap runs in (nil* paste*)* effector space
 						case MATCH_NONE:
 							do {
@@ -466,14 +466,13 @@ S:				do {
 								action = Transducer.action(transition);
 								if (action == PASTE)
 									this.value.paste((byte)token);
-								else if (action != NIL) {
-									this.metrics.traps[MATCH_NONE][0] += 1;
-									this.metrics.traps[MATCH_NONE][1] += input.position - post;
+								else if (action != NIL)
 									break S;
-								}
-								token = input.position < input.limit ? input.array[input.position++] & 0xff : -1;
+								if (input.position < input.limit)
+									token = input.array[input.position++] & 0xff;
+								else
+									continue I;
 							} while (token >= 0);
-							this.metrics.traps[MATCH_NONE][1] += input.position - post;
 							break;
 						// absorb self-referencing (msum,mscan) or sequential (mproduct) transitions with nil effect
 						case MATCH_SUM:
@@ -489,37 +488,39 @@ S:				do {
 							assert false;
 							break;
 						}
-						if (token >= 0) {
-							this.metrics.traps[trap][1] += input.position - post;
-							this.metrics.traps[trap][0] += 1;
-						} else continue I;
-						assert this.matchMode == MATCH_NONE;
+						if (token < 0)
+							continue I;
 					} while (true);
 
 					// effect action and check for transducer or input stack adjustment
-					final int aftereffects = action < 0
-					? effect(action, token, effectorVector)
-					: effect(action, token);
+					int aftereffects = IEffector.RTX_NONE;
+					if (action >= 0x10000)
+						aftereffects = ((IParameterizedEffector<?, ?>)
+							this.effectors[Transducer.effector(action)]).invoke(Transducer.parameter(action));
+					else if (action >= 0)
+						aftereffects = effect(action, token);
+					else
+						aftereffects = effect(action, token, effectorVector);
 
 					if (aftereffects != IEffector.RTX_NONE) {
-						if (0 != (aftereffects & IEffector.RTX_INPUT)) {
+						if (0 != (aftereffects & IEffector.RTX_INPUT))
 							input = this.inputStack.peek();
-						}
 						if (0 != (aftereffects & IEffector.RTX_SIGNAL)) {
 							signal = Transducer.signal(aftereffects);
-							if (signal < SIGNUL || signal >= this.signalLimit) {
+							if (signal < SIGNUL || signal >= this.signalLimit)
 								signal = SIGNUL;
-							}
 						}
 						int stackeffect = aftereffects & (IEffector.RTX_START | IEffector.RTX_STOP);
 						if (stackeffect == IEffector.RTX_START) {
-							assert this.transducerStack.tos() > 0 && this.transducer == this.transducerStack.get(this.transducerStack.tos() - 1);
+							assert this.transducerStack.tos() > 0
+							&& this.transducer == this.transducerStack.get(this.transducerStack.tos() - 1);
 							this.transducer.selected = this.selected;
 							this.transducer.state = state;
-						}
-						if (0 != (aftereffects & (IEffector.RTX_PAUSE | IEffector.RTX_STOPPED))) {
+						} else if (stackeffect != 0)
+							this.matchMode = MATCH_NONE;
+						if (0 != (aftereffects & (IEffector.RTX_PAUSE | IEffector.RTX_STOPPED)))
 							break T;
-						} else if (stackeffect != 0) {
+						else if (stackeffect != 0) {
 							break I;
 						}
 					}
@@ -553,11 +554,6 @@ S:				do {
 
 	private int effect(int action, int token)
 	throws EffectorException, IOException {
-		if (action >= 0x10000) {
-			return this.effectors[Transducer.effector(action)] instanceof IParameterizedEffector<?, ?> e
-			? e.invoke(Transducer.parameter(action))
-			: IEffector.RTX_NONE;
-		} 
 		switch (action) {
 			case NUL:
 				if ((token != SIGNUL && token != SIGEOS)) {
@@ -609,11 +605,11 @@ S:				do {
 			case PAUSE:
 				return IEffector.RTX_PAUSE;
 			case STOP:
-				return this.transducerStack.pop() == null ? IEffector.RTX_STOPPED : IEffector.RTX_STOP;
+								return this.transducerStack.pop() == null ? IEffector.RTX_STOPPED : IEffector.RTX_STOP;
 			default:
 				if (action < this.effectors.length)
 					return this.effectors[action].invoke();
-				throw new EffectorException(String.format("Effector ordinal %d is out of range (<%d)", 
+				throw new EffectorException(String.format("Effector ordinal %d is out of range (<%d)",
 					action, this.effectors.length));
 		}
 	}
@@ -627,10 +623,10 @@ S:				do {
 E:	do {
 			action = effectorVector[index++];
 			if (action < 0 ) {
-				assert this.effectors[0 - action] instanceof IParameterizedEffector<?,?>;
 				if (this.effectors[0 - action] instanceof IParameterizedEffector<?,?> e)
 					aftereffects |= e.invoke(effectorVector[index++]);
-			} else if (action != NUL) 
+				else assert false;
+			} else if (action != NUL)
 				aftereffects |= this.effect(action, token);
 			else break E;
 		} while (true);
@@ -639,13 +635,17 @@ E:	do {
 
 	private int sumTrap(Input input, int token) {
 		final long[] matchMask = this.matchSum;
+		final int post = input.position;
 		while (0 != (matchMask[token >> 6] & (1L << (token & 0x3f)))) {
-			if (input.position < input.limit) {
+			if (input.position < input.limit)
 				token = 0xff & input.array[input.position++];
-			} else {
+			else {
+				this.metrics.traps[MATCH_PRODUCT][1] += (input.position - post);
 				return -1;
 			}
 		}
+		this.metrics.traps[MATCH_SUM][0] += 1;
+		this.metrics.traps[MATCH_SUM][1] += (input.position - post);
 		this.matchMode = MATCH_NONE;
 		return token;
 	}
@@ -653,37 +653,46 @@ E:	do {
 	private int productTrap(Input input, int token) {
 		final byte[] product = this.matchProduct;
 		byte match = (byte)(0xff & token);
+		final int post = input.position;
 		int mpos = this.matchPosition;
 		assert mpos <= product.length;
 		while (mpos < product.length) {
 			if (match == product[mpos++]) {
-				if (mpos == product.length) {
+				if (mpos == product.length)
 					break;
-				} else if (input.position < input.limit) {
+				else if (input.position < input.limit)
 					match = input.array[input.position++];
-				} else {
+				else {
+					this.metrics.traps[MATCH_PRODUCT][1] += (input.position - post);
 					this.matchPosition = mpos;
 					return -1;
 				}
 			} else {
+				this.metrics.traps[MATCH_PRODUCT][0] += 1;
+				this.metrics.traps[MATCH_PRODUCT][1] += (input.position - post);
 				this.errorInput = 0xff & match;
 				this.matchMode = MATCH_NONE;
 				return SIGNUL;
 			}
 		}
+		this.metrics.traps[MATCH_PRODUCT][0] += 1;
+		this.metrics.traps[MATCH_PRODUCT][1] += (input.position - post) + 1;
 		this.matchMode = MATCH_NONE;
 		return 0xff & match;
 	}
 
 	private int scanTrap(Input input, int token) {
 		final int matchToken = this.matchByte;
-		while (token != matchToken) {
-			if (input.position < input.limit) {
+		final int post = input.position;
+		while (token != matchToken)
+			if (input.position < input.limit)
 				token = 0xff & input.array[input.position++];
-			} else {
+			else {
+				this.metrics.traps[MATCH_SCAN][1] += (input.position - post);
 				return -1;
 			}
-		}
+		this.metrics.traps[MATCH_SCAN][0] += 1;
+		this.metrics.traps[MATCH_SCAN][1] += (input.position - post);
 		this.matchMode = MATCH_NONE;
 		return token;
 	}
@@ -694,7 +703,7 @@ E:	do {
 		top.state = state; state /= eqCount; last /= eqCount;
 		StringBuilder message = new StringBuilder(256);
 		message.append(String.format("Domain error on (%1$d~%2$d) in %3$s [%4$d]->[%5$d]%n,\tTransducer stack:%n",
-			this.errorInput, this.errorInput >= 0 ? top.get().getInputFilter()[this.errorInput] : this.errorInput, 
+			this.errorInput, this.errorInput >= 0 ? top.get().getInputFilter()[this.errorInput] : this.errorInput,
 			top.get().getName(), last, state));
 		for (int i = this.transducerStack.tos(); i >= 0; i--) {
 			TransducerState t = this.transducerStack.get(i);
@@ -775,7 +784,7 @@ E:	do {
 		@Override
 		public int invoke(final int parameterIndex) throws EffectorException {
 			for (IToken t : super.parameters[parameterIndex]) {
-				if (t instanceof Token token) { 
+				if (t instanceof Token token) {
 					if (token.getType() == IToken.Type.FIELD) {
 						Value field = transducerStack.value(token.getOrdinal());
 						if (field != null) {
@@ -785,7 +794,7 @@ E:	do {
 						byte[] bytes = token.getLiteral().bytes();
 						value.paste(bytes, bytes.length);
 					} else {
-						throw new EffectorException(String.format("Invalid token `%1$s` for effector '%2$s'", 
+						throw new EffectorException(String.format("Invalid token `%1$s` for effector '%2$s'",
 							token.asString(), super.getName()));
 					}
 				}
@@ -809,7 +818,6 @@ E:	do {
 		@Override
 		public int invoke(final int parameterIndex) throws EffectorException {
 			selected = super.parameters[parameterIndex];
-			value = transducerStack.value(selected);
 			assert selected != Model.ALL_FIELDS_ORDINAL;
 			if (selected != Model.ALL_FIELDS_ORDINAL) {
 				value = transducerStack.value(selected);
@@ -828,7 +836,7 @@ E:	do {
 			assert false;
 			return IEffector.RTX_NONE;
 		}
-		
+
 		@Override
 		public int invoke(final int parameterIndex) throws EffectorException {
 			int fieldOrdinal = super.parameters[parameterIndex];
@@ -902,7 +910,7 @@ E:	do {
 		public Integer[] allocateParameters(int parameterCount) {
 			return new Integer[parameterCount];
 		}
-	
+
 		@Override
 		public Integer compileParameter(final IToken[] parameterList) throws TargetBindingException {
 			if (parameterList.length != 1) {
@@ -936,7 +944,7 @@ E:	do {
 	private final class InEffector extends BaseInputOutputEffector {
 		private InEffector(final Transductor transductor) throws CharacterCodingException {
 			super(transductor, "in");
-			
+
 		}
 
 		@Override
@@ -1010,7 +1018,7 @@ E:	do {
 		public int[][] allocateParameters(int parameterCount) {
 			return new int[parameterCount][];
 		}
-	
+
 		@Override
 		public int invoke(final int parameterIndex) throws EffectorException {
 			assert (transducer == transducerStack.peek()) || (transducer == transducerStack.get(transducerStack.tos()-1));
@@ -1064,7 +1072,7 @@ E:	do {
 		public Integer[] allocateParameters(int parameterCount) {
 			return new Integer[parameterCount];
 		}
-	
+
 		@Override
 		public Integer compileParameter(final IToken[] parameterTokens) throws TargetBindingException {
 			if (parameterTokens.length != 1) {
@@ -1118,7 +1126,7 @@ E:	do {
 		public long[][] allocateParameters(int parameterCount) {
 			return new long[parameterCount][];
 		}
-	
+
 		@Override
 		public int invoke(final int parameterIndex) throws EffectorException {
 			if (matchMode == MATCH_NONE) {
@@ -1138,7 +1146,7 @@ E:	do {
 			}
 			long[] byteMap = new long[] {0, 0, 0, 0};
 			for (byte b : parameterList[0].getLiteral().bytes()) {
-				final int i = Byte.toUnsignedInt(b);
+				int i = b & 0xff;
 				byteMap[i >> 6] |= 1L << (i & 0x3f);
 			}
 			return byteMap;
@@ -1210,7 +1218,7 @@ E:	do {
 		public byte[][] allocateParameters(int parameterCount) {
 			return new byte[parameterCount][];
 		}
-	
+
 		@Override
 		public byte[] compileParameter(final IToken[] parameterList) throws TargetBindingException {
 			if (parameterList.length != 1) {
@@ -1259,7 +1267,7 @@ E:	do {
 		public Integer[] allocateParameters(int parameterCount) {
 			return new Integer[parameterCount];
 		}
-	
+
 		@Override
 		public Integer compileParameter(final IToken[] parameterList) throws TargetBindingException {
 			if (parameterList.length != 1) {

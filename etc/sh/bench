@@ -20,26 +20,26 @@ while [[ ! "$1" =~ ^(--tsv|[0-9]+) ]]; do
 	vmargs="$vmargs $1";
 	shift
 	if (($#==0)); then
-		execHelp
+		echo "Usage: bench [--tsv] <iteration-count> <model-path> <transducer> <input-path>"
+		echo "Use --tsv for tab-delimited output per etc/benchmarks/ribose.ods"
 		exit 0
 	fi
 done
 format=cat
-if [[ "$1" == "--tsv" ]]; then	
+if [[ "$1" == "--tsv" ]]; then
 	format=strip
 	shift
 fi
 if (($#<4)); then
-	echo "Usage: bench [--tsv] <iteration-count> <model-path> <transducer> <input-path>"
+	echo "Usage: bench [--tsv] <iteration-count> <model-path> <input-path> <transducer>..."
 	echo "Use --tsv for tab-delimited output per etc/benchmarks/ribose.ods"
 	exit 1
-fi 
+fi
 n=$1
 model=$2
-transducer=$3
-input=$4
-shift 4
+input=$3
+shift 3
 output="-Djrte.out.enabled=false -Dregex.out.enabled=false"
-for i in $(seq $n); do
-	${JAVA_HOME}/bin/java $vmargs -Dfile.encoding=UTF-8 $output -cp "$path" com.characterforming.jrte.test.FileRunner --nil "$model" $transducer "$input" "$@"|$format
-done
+for t in $@; do for i in $(seq $n); do
+	${JAVA_HOME}/bin/java $vmargs -Dfile.encoding=UTF-8 $output -cp "$path" com.characterforming.jrte.test.FileRunner --nil "$model" $t "$input"|$format
+done; done

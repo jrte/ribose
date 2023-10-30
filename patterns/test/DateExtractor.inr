@@ -1,15 +1,30 @@
 white = space | comma | tab | nl;
 delimiter = '/' | '-' | '.' | '\\';
-yyyy = ((digit-'0') (digit:3)) @@ PasteAny;
-md = ('0'? (digit-'0') | '1' ('0'|'1'|'2')) @@ PasteAny;
-dd = ('1' (digit-('0'|'1'|'2')) | '2' digit | '3' ('0'|'1')) @@ PasteAny;
 
 d0 = (delimiter, select[`~d0`] cut select);
 d1 = (delimiter, select[`~d1`] cut select);
 d2 = select[`~d2`] cut select;
 
-qy = `!_dmy`;
-yq = `!_ydm`;
+yyy = ((digit-'0') (digit:2)) @@ PasteAny;
+yyyy = ((digit-'0') (digit:3)) @@ PasteAny;
+mdy = yyy (digit, paste signal[`!_mdy`]);
+dmy = yyy (digit, paste signal[`!_dmy`]);
+
+dd = ('1' (digit-('0'|'1'|'2')) | '2' digit | '3' ('0'|'1')) @@ PasteAny;
+ymd = (
+	(
+		('1', paste) ((digit - ('0'|'1'|'2')), paste)
+	|	('2', paste) (digit, paste)
+	|	('3', paste) (('0'|'1'), paste)
+	)
+	(byte, signal[`!_ymd`])
+);
+
+md = ('0'? (digit-'0') | '1' ('0'|'1'|'2')) @@ PasteAny;
+ydm = (
+	(('0', paste) ((digit-'0'), paste) | ('1', paste) (('0'|'1'|'2'), paste))
+	(byte, signal[`!_ydm`])
+);
 
 numericDate = (
 	( digit+ '/' digit+ '/' digit+
@@ -17,45 +32,46 @@ numericDate = (
 	| digit+ '.' digit+ '.' digit+
 	| digit+ '\\' digit+ '\\' digit+
 	)
-	white
 @@
-	( md d0	dd d1 yyyy (white, d2 signal[`!_mdy`])
-	|	dd d0	md d1 yyyy (white, d2 signal[`!_dmy`])
-	|	md d0	md d1 yyyy (white, d2 signal[qy])
-	|	yyyy d0	md d1 dd (white, d2 signal[`!_ymd`])
-	|	yyyy d0	dd d1 md (white, d2 signal[`!_ydm`])
-	|	yyyy d0	md d1 md (white, d2 signal[yq])
+	( md d0	dd d1 mdy
+	|	dd d0	md d1 dmy
+	|	md d0	md d1 dmy
+	|	yyyy d0	md d1 ymd
+	|	yyyy d0	dd d1 ydm
+	|	yyyy d0	md d1 ydm
 	)
 );
 
 day = (dd | md) {'st','nd','rd','th'}?;
 
 month = (
-	(	({'J','j'} 'an', select[`~?`] paste[`#01`] select) 'uary'?
-	|	({'F','f'} 'eb', select[`~?`] paste[`#02`] select) 'ruary'?
-	|	({'M','m'} 'ar', select[`~?`] paste[`#03`] select) 'ch'?
-	|	({'A','a'} 'pr', select[`~?`] paste[`#04`] select) 'il'?
-	|	({'M','m'} 'ay', select[`~?`] paste[`#05`] select)
-	|	({'J','j'} 'un', select[`~?`] paste[`#06`] select) 'e'?
-	|	({'J','j'} 'ul', select[`~?`] paste[`#07`] select) 'y'?
-	|	({'A','a'} 'ug', select[`~?`] paste[`#08`] select) 'ust'?
-	|	({'S','s'} 'ep', select[`~?`] paste[`#09`] select) 'tember'?
-	|	({'O','o'} 'ct', select[`~?`] paste[`#10`] select) 'ober'?
-	|	({'N','n'} 'ov', select[`~?`] paste[`#11`] select) 'ember'?
-	|	({'D','d'} 'ec', select[`~?`] paste[`#12`] select) 'ember'?
+	(	({'J','j'} 'an', select[`~?`] paste[`01`] select) 'uary'?
+	|	({'F','f'} 'eb', select[`~?`] paste[`02`] select) 'ruary'?
+	|	({'M','m'} 'ar', select[`~?`] paste[`03`] select) 'ch'?
+	|	({'A','a'} 'pr', select[`~?`] paste[`04`] select) 'il'?
+	|	({'M','m'} 'ay', select[`~?`] paste[`05`] select)
+	|	({'J','j'} 'un', select[`~?`] paste[`06`] select) 'e'?
+	|	({'J','j'} 'ul', select[`~?`] paste[`07`] select) 'y'?
+	|	({'A','a'} 'ug', select[`~?`] paste[`08`] select) 'ust'?
+	|	({'S','s'} 'ep', select[`~?`] paste[`09`] select) 'tember'?
+	|	({'O','o'} 'ct', select[`~?`] paste[`10`] select) 'ober'?
+	|	({'N','n'} 'ov', select[`~?`] paste[`11`] select) 'ember'?
+	|	({'D','d'} 'ec', select[`~?`] paste[`12`] select) 'ember'?
 	)
 );
 
-m0 = ((((month$2:alph) - `~?`)$(0,0))* (`~?`, `~d0`)*)*;
-m1 = ((((month$2:alph) - `~?`)$(0,0))* (`~?`, `~d1`)*)*;
+qd0 = ((((month$2:alph) - `~?`)$(0,0))* (`~?`, `~d0`)*)*;
+qd1 = ((((month$2:alph) - `~?`)$(0,0))* (`~?`, `~d1`)*)*;
 
 alphanumericDate = (
-		day (white, select[`~d0`] cut) white* 'of'? white*
-		(month @ m1) white+
-		yyyy (white, select[`~d2`] cut select signal[`!_dmy`])
-	| (month @ m0) white+
-		day (white, select[`~d1`] cut select) white*
-		yyyy (white, select[`~d2`] cut select signal[`!_mdy`])
+		day (white, select[`~d0`] cut) white+
+		(month @ qd1) white+
+		yyy (digit, paste)
+		(byte, signal[`!_dmy`])
+	| (month @ qd0) white+
+		day (white, select[`~d1`] cut select) white+
+		yyy (digit, paste)
+		(byte, signal[`!_mdy`])
 );
 
 date = (numericDate | alphanumericDate);
@@ -68,67 +84,34 @@ conjoint = (a0 & a1) | (a0 & a2) | (a1 & a2);
 
 '*** DateExtractor tape alphabets must be disjoint' conjoint:enum;
 
-SignalOrNul = {
-	({nul, _mdy}, _mdy),
-	({nul, _dmy}, _dmy),
-	({nul, _ymd}, _ymd),
-	({nul, _ydm}, _ydm),
-	({nul,  eol},  eol)
-};
+prefix = (date$0:pref) & a0;
+noise = byte - prefix;
 
-nullify = (AnyOrNul* SignalOrNul*)* @ date;
-prefix = utf8 & (date$0:pref);
 null = (
 	(
-		(nullify$(0 1 2))
-	@	((a0$(0,0))* (a1$(0,,0))* (a2$(0,,,0))*)*
-		(nul, nul, clear[`~*`] select)
-		(nul* a0* a1* a2*)*
+		((AnyOrNul* @ date)$(0 1 2))
+	@	((a0$(0,0)) ((a1$(0,,0)) (a2$(0,,,0))*)*)*
+		(nul, nul, signal[`!nil`]) (nul* a0* a1* a2*)*
 	)
 );
-noise = (utf8 - (date$0:pref)) - white;
 
-dates = (
+DateExtractor = (
 	(
-		white* noise*
+		(nil, clear[`~*`] select) noise*
 		(
 			(numericDate | alphanumericDate)
-			( (`_mdy`, out[`~d2` SLASH `~d0` SLASH `~d1` SPACE] clear[`~*`] select)
-			| (`_dmy`, out[`~d2` SLASH `~d1` SLASH `~d0` SPACE] clear[`~*`] select)
-			| (`_ymd`, out[`~d0` SLASH `~d1` SLASH `~d2` SPACE] clear[`~*`] select)
-			| (`_ydm`, out[`~d0` SLASH `~d2` SLASH `~d1` SPACE] clear[`~*`] select)
+			(
+				(`_dmy`, d2 out[`~d2` solidus `~d1` solidus `~d0` space] signal[`!nil`])
+			| (`_mdy`, d2 out[`~d2` solidus `~d0` solidus `~d1` space] signal[`!nil`])
+			| (`_ymd`, d2 out[`~d0` solidus `~d1` solidus `~d2` space] signal[`!nil`])
+			| (`_ydm`, d2 out[`~d0` solidus `~d2` solidus `~d1` space] signal[`!nil`])
 			)
 		|	null
-		)*
+		)
 	)*
-	(eos, out[NL])
-);
-
-map = {
-	(NL, `\n`),
-	(SLASH, `/`),
-	(SPACE, ` `),
-	(`#0`, `0`),
-	(`#01`, `01`),
-	(`#02`, `02`),
-	(`#03`, `03`),
-	(`#04`, `04`),
-	(`#05`, `05`),
-	(`#06`, `06`),
-	(`#07`, `07`),
-	(`#08`, `08`),
-	(`#09`, `09`),
-	(`#10`, `10`),
-	(`#11`, `11`),
-	(`#12`, `12`)
-};
-
-identity = ((dates$2:alph) - (map$0))$(0,0);
-
-DateExtractor = (nil, clear[`~*`] select)? (
-	dates @ (identity* map*)*
+	(eos, out[nl])
 ):dfamin;
 
-DateExtractor$(0,1 2):prsseq `build/automata/DateExtractor.pr`;
 DateExtractor:save `build/automata/DateExtractor.dfa`;
+DateExtractor$(0,1 2):prsseq `build/automata/DateExtractor.pr`;
 

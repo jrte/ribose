@@ -39,7 +39,7 @@
 	<property name="build.testenv" value="build/testenv"/>
 	<property name="build.java.classes" value="${build.java}/classes"/>
 	<property name="build.compiler.model" value="build/compiler"/>
-	<property name="build.automata" value="build/automata"/>
+	<property name="build.compiler.automata" value="build/automata"/>
 	<property name="ribose.patterns" value="patterns/ribose"/>
 	<property name="test.patterns" value="patterns/test"/>
 	<property name="test.input.dir" value="${build.testenv}/inputs"/>
@@ -48,13 +48,15 @@
 	<property name="regex.linuxkernel" value="([JFMASOND][a-z]+ [0-9]+ (?:[0-9]+:)+[0-9]+) ([-.:A-Za-z_0-9]*) kernel: \[[ ]*[0-9]+\.[0-9]+\] (DROPPED|ABORTED|LIMITED) IN=([-.:A-Za-z_0-9]*) OUT=([-.:A-Za-z_0-9]*)(?: MAC=([-.:A-Za-z_0-9]*))? SRC=([-.:A-Za-z_0-9]*) DST=([-.:A-Za-z_0-9]*).* PROTO=([-.:A-Za-z_0-9]*)(?:.* SPT=([-.:A-Za-z_0-9]*) DPT=([-.:A-Za-z_0-9]*))?"/>
 	<property name="ribose.inbuffer.size" value="65536"/>
 	<property name="ribose.outbuffer.size" value="65536"/>
-	<property name="jargs.ribose.compile" value="-Dribose.product.threshold=8 -Dribose.sum.threshold=64"/>
+	<property name="ribose.sum.threshold" value="128 (default)"/>
+	<property name="ribose.product.threshold" value="10 (default)"/>
+	<property name="jargs.ribose.compile" value=""/>
 	<property name="jargs.jit.diagnostic" value="-XX:+UnlockDiagnosticVMOptions -XX:+PrintCompilation -XX:+PrintInlining"/>
 	<property name="jargs.jit.inline" value="-XX:CompileCommandFile=etc/jit/ribose.jit"/>
 	<property name="jargs.gc.buffers" value="-Dribose.inbuffer.size=${ribose.inbuffer.size} -Dribose.outbuffer.size=${ribose.outbuffer.size}"/>
 	<property name="jargs.gc.test" value="-Xms2m ${jargs.gc.buffers} -Xlog:gc*:file=${build.testenv}"/>
 	<!--property name="jargs" value="-ea ${jargs.jit.inline}"/-->
-	<property name="jargs" value="-ea"/>
+	<property name="jargs" value="-ea -Djava.util.logging.config.file=./logging.properties -XX:+ShowCodeDetailsInExceptionMessages"/>
 	<condition property="linux">
 		<os family="unix" />
 	</condition>
@@ -81,7 +83,7 @@
   	<delete failonerror="false" dir="build"/>
 		<delete failonerror="false" dir="." includes="ribose-*.log*"/>
 	</target>
-	
+
 	<target name="clean-ribose">
 		<delete failonerror="false" verbose="true">
 			<fileset dir="${jars.dir}" includes="*"/>
@@ -101,12 +103,12 @@
 		</delete>
 		<delete failonerror="false" file="build/Test.model"/>
 		<delete failonerror="false" file="build/Test.map"/>
-		<delete failonerror="false" dir="${build.automata}" />
+		<delete failonerror="false" dir="${build.compiler.automata}" />
 		<delete failonerror="false" dir="${build.testenv}"/>
 		<delete failonerror="false" dir="/tmp" includes="*.gc"/>
 	</target>
 
-	<target name="init" depends="init-ribose,init-test">
+	<target name="init-ci" depends="clean">
 		<exec outputproperty="git.which" executable="bash">
 			<arg line="-c 'which git'"/>
 		</exec>
@@ -145,10 +147,10 @@
 	</target>
 
 	<target name="init-test">
-		<mkdir dir="${build.automata}"/>
+		<mkdir dir="${build.compiler.automata}"/>
 	</target>
 
-	<target name="properties" depends="init">
+	<target name="properties">
 		<echoproperties/>
 	</target>
 
@@ -156,10 +158,10 @@
 
 	<target name="package" depends="clean,ribose,package-test,compile-test-model,javadoc"/>
 
-	<target name="ribose" depends="init-ribose,package-java,build-compiler-model"
+	<target name="ribose" depends="package-java,build-compiler-model"
 		description="Clean build for java and patterns"/>
 
-	<target name="ci-test" depends="clean,ribose,package-test,compile-test-model,test,test-output-equivalence,env"
+	<target name="ci-test" depends="init-ci,ribose,package-test,compile-test-model,test,test-output-equivalence,env"
 		description="Full build with CI tests for java and patterns">
 		<echo message="Ribose compiler log ..."/>
 		<concat> <fileset dir="." includes="ribose-compile-0.log"/></concat>
@@ -167,7 +169,7 @@
 		<concat> <fileset dir="." includes="ribose-runtime-0.log"/></concat>
 	</target>
 
-	<target name="check-compile-java" depends="init">
+	<target name="check-compile-java" depends="init-ribose">
 		<depend srcdir="${java.source.dir}" destdir="${build.java.classes}" closure="yes">
 			<exclude name="**/Test/*.java"/>
 		</depend>
@@ -236,7 +238,7 @@
 		<echo/>
 		<echo message="Building ${build.compiler.model}/TCompile.model"/>
 		<exec failonerror="true" executable="bash">
-			<arg line="./ribose ${jargs} compile --target com.characterforming.jrte.engine.ModelCompiler ${build.compiler.model} ${build.compiler.model}/TCompile.model"/>
+			<arg line="./ribose ${jargs.ribose.compile} compile --target com.characterforming.jrte.engine.ModelCompiler ${build.compiler.model} ${build.compiler.model}/TCompile.model"/>
 		</exec>
 		<fixcrlf file="${build.compiler.model}/TCompile.map" eol="lf"/>
 		<copy todir="${build.java.classes}/com/characterforming/jrte/engine" verbose="true" overwrite="true" force="true">
@@ -246,7 +248,7 @@
 		<touch><fileset dir="${build.compiler.model}" includes="TCompile.model,TCompile.map"/></touch>
 	</target>
 
-	<target name="check-test-patterns" depends="ribose">
+	<target name="check-test-patterns" depends="ribose,init-test">
 		<uptodate targetfile="build/Test.model" property="test.patterns.uptodate">
 			<srcfiles dir="patterns" includes="alpha.inr,after.inr"/>
 			<srcfiles dir="${test.patterns}" includes="*.inr"/>
@@ -263,7 +265,7 @@
 
 	<target name="check-compile-test-model" depends="compile-test-patterns">
 		<uptodate targetfile="build/Test.model" property="patterns.packaged">
-			<srcfiles dir="${build.automata}" includes="**/*.dfa"/>
+			<srcfiles dir="${build.compiler.automata}" includes="**/*.dfa"/>
 			<srcfiles file="${jars.dir}/${ribose.version}.jar"/>
 		</uptodate>
 	</target>
@@ -296,9 +298,9 @@
 	<target name="compile-test-model" depends="package-test,check-compile-test-model" unless="patterns.packaged">
 		<delete file="build/Test.model"/>
 		<delete file="build/Test.map"/>
-		<echo message="Building build/Test.model"/>
+		<echo message="Building build/Test.model using thresholds msum = ${ribose.sum.threshold}, mproduct = ${ribose.product.threshold}"/>
 		<exec failonerror="true" executable="bash">
-			<arg line="./ribose ${jargs} ${jargs.ribose.compile} compile --target-path ${jars.dir}/${ribose.version}-test.jar --target com.characterforming.jrte.test.TestTarget ${build.automata} build/Test.model"/>
+			<arg line="./ribose ${jargs} ${jargs.ribose.compile} compile --target-path ${jars.dir}/${ribose.version}-test.jar --target com.characterforming.jrte.test.TestTarget ${build.compiler.automata} build/Test.model"/>
 		</exec>
 		<fixcrlf file="build/Test.map" eol="lf"/>
 	</target>
@@ -314,6 +316,7 @@
 	</target>
 
 	<target name="test-env" depends="ribose,init-test,compile-test-model,package-test">
+		<mkdir dir="${build.compiler.automata}"/>
 		<mkdir dir="${test.input.dir}"/>
 		<unzip src="${test.patterns}/inputs.zip" dest="${test.input.dir}">
 			<patternset>
