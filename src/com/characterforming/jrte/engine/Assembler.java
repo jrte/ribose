@@ -119,15 +119,18 @@ final class Assembler {
 						} else if (nextState.isSumState()) {
 							transition[1] = this.injectSumEffector(nextState.idempotentBytes,
 								fst.matrix(), state, eq);
-						} else if (nextState.isProductState()
-						&& this.walk(nextState, walkedStates, fst, walkResult).get(0) >= ModelCompiler.MIN_PRODUCT_LENGTH) {
-							assert nextState.idempotentCount >= 255;
-							transition[1] = this.injectProductEffector(this.product(walkResult), walkResult.get(1),
-								fst.matrix(), state, eq);
+						} else if (nextState.isProductState()) {
+							this.walk(nextState, walkedStates, fst, walkResult);
+							if (walkResult.get(0) >= ModelCompiler.MIN_PRODUCT_LENGTH) {
+								assert nextState.idempotentCount >= 255;
+								transition[0] = walkResult.get(1);
+								transition[1] = this.injectProductEffector(walkResult,
+									fst.matrix(),state, eq);
+							}
 						}
+						if (transition[1] < 0)
+							markedEffects[-1 * transition[1]] = true;
 					}
-					if (transition[1] < 0)
-						markedEffects[-1 * transition[1]] = true;
 				}
 			}
 
@@ -221,10 +224,9 @@ final class Assembler {
 			assert transitionMatrix[token].length == transitionMatrix[0].length;
 			final IntsArray transitions = new IntsArray(transitionMatrix[token]);
 			HashSet<Integer> equivalentInputOrdinals = equivalenceSets.computeIfAbsent(
-					transitions, absent -> new HashSet<>(10));
-			if (equivalentInputOrdinals.isEmpty()) {
+				transitions, absent -> new HashSet<>(10));
+			if (equivalentInputOrdinals.isEmpty())
 				equivalenceSets.put(transitions, equivalentInputOrdinals);
-			}
 			equivalentInputOrdinals.add(token);
 		}
 
@@ -245,7 +247,7 @@ final class Assembler {
 		for (int state = 0; state < nStates; state++) {
 			for (int eq = 0; eq < nInputs; eq++)
 				matrix[state][eq] = transitionMatrix[equiv[eq].iterator().next().intValue()][state];
-			states[state] = new State(state, matrix[state],
+					states[state] = new State(state, matrix[state],
 					equiv, this.compiler.getSignalLimit());
 		}
 
@@ -259,11 +261,12 @@ final class Assembler {
 		int marked = 0;
 		while (!stack.isEmpty()) {
 			int state = stack.pop();
-			markedStates[state] = true;
-			for (int[] transition : matrix[state])
-				if (!markedStates[transition[0]])
+			if (!markedStates[state]) {
+				markedStates[state] = true;
+				for (int[] transition : matrix[state])
 					stack.push(transition[0]);
-			++marked;
+				++marked;
+			}
 		}
 		return marked;
 	}
@@ -278,15 +281,14 @@ final class Assembler {
 				Transducer.parameter(action),
 				-1 * effector, parameter, 0 };
 		} else if (action > NUL) {
-			key = new int[] {
-				action, -1 * effector, parameter, 0 };
+			key = new int[] { action, -1 * effector, parameter, 0 };
 		} else if (action < NUL) {
 			key = this.effectVectors.get(-1 * action);
 			key = Arrays.copyOf(key, key.length + 2);
 			key[key.length - 3] = -1 * effector;
 			key[key.length - 2] = parameter;
 			key[key.length - 1] = 0;
-		} else key = null;
+		}
 		if (key != null) {
 			action = -1 * this.effectVectorMap.computeIfAbsent(
 				new Ints(key), absent -> this.effectVectorMap.size());
@@ -296,32 +298,33 @@ final class Assembler {
 		return action;
 	}
 
-	private int injectScanEffector(int idempotentByte, int[][][] matrix, State state, int eq) {
-		assert idempotentByte >= 0 && idempotentByte < 256;
-		byte scanByte = (byte)(idempotentByte & 0xff);
-		Argument argument = new Argument(-1,
-			new BytesArray(new byte[][] { { scanByte } }));
+	private int injectScanEffector(int token, int[][][] matrix, State state, int eq) {
+		byte[] scan = new byte[] { Token.escape(), (byte) (token & 0xff) };
+		Argument argument = new Argument(-1, new BytesArray(new byte[][] { scan }));
 		return this.injectEffector(matrix[state.ordinal][eq][1], mscanOrdinal,
 			this.compiler.compileParameters(mscanOrdinal, argument));
 	}
 
-	private int injectSumEffector(long[] idempotentBitmap, int[][][] matrix, State state, int eq) {
-		int selfCount = 0;
-		byte[] selfBytes = new byte[256];
-		for (int word = 0; word < idempotentBitmap.length; word++)
+	private int injectSumEffector(long[] bitmap, int[][][] matrix, State state, int eq) {
+		int n = 0;
+		byte[] sum = new byte[256];
+		sum[n++] = Token.escape();
+		for (int word = 0; word < bitmap.length; word++)
 			for (int bit = 0; bit < 64; bit++)
-				if (0 != ((1L << bit) & idempotentBitmap[word]))
-					selfBytes[selfCount++] = (byte)(64 * word + bit);
-		Argument argument = new Argument(-1,
-			new BytesArray(new byte[][] { Arrays.copyOf(selfBytes, selfCount) }));
+				if (0 != ((1L << bit) & bitmap[word]))
+					sum[n++] = (byte) (64 * word + bit);
+		sum = Arrays.copyOf(sum, n);
+		Argument argument = new Argument(-1, new BytesArray(new byte[][] { sum }));
 		return this.injectEffector(matrix[state.ordinal][eq][1], msumOrdinal,
 			this.compiler.compileParameters(msumOrdinal, argument));
 	}
 
-	private int injectProductEffector(byte[] product, int endpoint, int[][][] matrix, State state, int eq) {
-		Argument argument = new Argument(-1,
-			new BytesArray(new byte[][] { Arrays.copyOf(product, product.length) }));
-		matrix[state.ordinal][eq][0] = endpoint;
+	private int injectProductEffector(ArrayList<Integer> walkResult, int[][][] matrix, State state, int eq) {
+		byte[] product = new byte[walkResult.size() - 2];
+		product[0] = Token.escape();
+		for (int i = 1; i < product.length; i++)
+			product[i] = (byte) (walkResult.get(i + 1).intValue() & 0xff);
+		Argument argument = new Argument(-1, new BytesArray(new byte[][] { product }));
 		return this.injectEffector(matrix[state.ordinal][eq][1], mproductOrdinal,
 			this.compiler.compileParameters(mproductOrdinal, argument));
 	}
@@ -331,8 +334,19 @@ final class Assembler {
 		walkResult.add(0); walkResult.add(-1);
 		ArrayList<Integer> walkStates = new ArrayList<>(16);
 		Arrays.fill(walkedStates, false);
+		int[] transition = nextState.transitions[fst.inputEquivalenceIndex[Signal.NUL.signal()]];
+		int[] tx = new int[] { transition[0] != nextState.ordinal ? transition[0] : -1, transition[1] };
+		int[] ty = new int[] { Integer.MIN_VALUE, Integer.MIN_VALUE };
 		while (nextState.isProductState() && !walkedStates[nextState.ordinal]) {
 			assert nextState.outboundByte == (nextState.outboundByte & 0xff);
+			transition = nextState.transitions[fst.inputEquivalenceIndex[Signal.NUL.signal()]];
+			ty[0] = transition[0] != nextState.ordinal ? transition[0] : -1;
+			ty[1] = transition[1];
+			if ((tx[0] != ty[0]) || (tx[1] != ty[1])) {
+				while (walkResult.size() > 2)
+					walkResult.remove(2);
+				return walkResult;
+			}
 			walkResult.add(nextState.outboundByte);
 			walkedStates[nextState.ordinal] = true;
 			walkStates.add(nextState.ordinal);
@@ -344,13 +358,6 @@ final class Assembler {
 			walkResult.set(1, walkStates.get(walkStates.size() - 2));
 		}
 		return walkResult;
-	}
-
-	private byte[] product(ArrayList<Integer> walkResult) {
-		byte[] p = new byte[walkResult.size() - 3];
-		for (int i = 0; i < p.length; i++)
-			p[i] = (byte)(walkResult.get(i + 2).intValue() & 0xff);
-		return p;
 	}
 
 	@SuppressWarnings("unchecked")

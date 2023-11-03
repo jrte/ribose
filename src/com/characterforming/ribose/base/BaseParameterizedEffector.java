@@ -1,18 +1,18 @@
 /***
  * Ribose is a recursive transduction engine for Java
- * 
+ *
  * Copyright (C) 2011,2022 Kim Briggs
- * 
+ *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program (LICENSE-gpl-3.0). If not, see
  * <http://www.gnu.org/licenses/#GPL>.
@@ -28,7 +28,7 @@ import com.characterforming.ribose.ITarget;
 import com.characterforming.ribose.IToken;
 
 /**
- * Base {@link IParameterizedEffector} implementation class extends {@link BaseEffector} 
+ * Base {@link IParameterizedEffector} implementation class extends {@link BaseEffector}
  * to support specialized effectors. All {@link IParameterizedEffector} implementations
  * <i>must</i> extend {@link BaseParameterizedEffector} and <i>must</i> implement:
  * <ul>
@@ -44,7 +44,7 @@ import com.characterforming.ribose.IToken;
  * {@link IParameterizedEffector} interface are for internal use only. These methods
  * implement the parameter compilation and binding protocols for all parameterized effector
  * implementations.
- * 
+ *
  * @param <T> the effector target type
  * @param <P> the effector parameter type, constructible from IToken[] (eg new P(IToken[]))
  * @author Kim Briggs
@@ -55,10 +55,10 @@ public abstract class BaseParameterizedEffector<T extends ITarget, P> extends Ba
 	/** Raw and compiled effector parameters indexed and selected by parameter ordinal.*/
 protected P[] parameters = null;
 	private IToken[][] tokens = null;
-	
+
 	/**
 	 * Constructor
-	 * 
+	 *
 	 * @param target the target for the effector
 	 * @param name the effector name as referenced from ginr transducers
 	 * @throws CharacterCodingException if encoder fails
@@ -89,7 +89,7 @@ protected P[] parameters = null;
 		StringBuilder sb = new StringBuilder(256);
 		for (IToken token : this.tokens[parameterIndex]) {
 			sb.append(sb.length() == 0 ? "`" : " `")
-				.append(token.getLiteral().asString())
+				.append(token.getSymbol().asString())
 				.append("`");
 		}
 		return sb.toString();
@@ -97,7 +97,7 @@ protected P[] parameters = null;
 
 	/**
 	 * Set the parameters array from proxy effector
-	 * 
+	 *
 	 * @param proxyEffector the proxy effector holding the compiled parameters
 	 */
 	@SuppressWarnings("unchecked")
@@ -111,7 +111,7 @@ protected P[] parameters = null;
 	/**
 	 * Get the number of parameters for this effector (after parameter compilation
 	 * is complete)
-	 * 
+	 *
 	 * @return the parameter count
 	 * @see compileParameters(IToken[][], List<String>)
 	 */
@@ -123,7 +123,7 @@ protected P[] parameters = null;
 	 * Allocate and populate the {@code parameters} array with precompiled
 	 * parameter ({@code P}) instances, compiled from a list of parameter
 	 * token arrays. This method is for internal use only.
-	 * 
+	 *
 	 * @param parameterTokens an array of IToken[] (raw effector parameter tokens)
 	 * @param parameterErrors a list of error messages if one ore more parameters fail to compile
 	 * @return false if any errors were reported

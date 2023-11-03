@@ -48,9 +48,10 @@
 	<property name="regex.linuxkernel" value="([JFMASOND][a-z]+ [0-9]+ (?:[0-9]+:)+[0-9]+) ([-.:A-Za-z_0-9]*) kernel: \[[ ]*[0-9]+\.[0-9]+\] (DROPPED|ABORTED|LIMITED) IN=([-.:A-Za-z_0-9]*) OUT=([-.:A-Za-z_0-9]*)(?: MAC=([-.:A-Za-z_0-9]*))? SRC=([-.:A-Za-z_0-9]*) DST=([-.:A-Za-z_0-9]*).* PROTO=([-.:A-Za-z_0-9]*)(?:.* SPT=([-.:A-Za-z_0-9]*) DPT=([-.:A-Za-z_0-9]*))?"/>
 	<property name="ribose.inbuffer.size" value="65536"/>
 	<property name="ribose.outbuffer.size" value="65536"/>
-	<property name="ribose.sum.threshold" value="128 (default)"/>
-	<property name="ribose.product.threshold" value="10 (default)"/>
-	<property name="jargs.ribose.compile" value=""/>
+	<property name="ribose.sum.threshold" value="128"/>
+	<property name="ribose.product.threshold" value="10"/>
+	<property name="jargs.ribose.compile" value="-ea -Dribose.product.threshold=${ribose.product.threshold} -Dribose.sum.threshold=${ribose.sum.threshold}"/>
+	<!--property name="jargs.ribose.compile" value="-ea"/-->
 	<property name="jargs.jit.diagnostic" value="-XX:+UnlockDiagnosticVMOptions -XX:+PrintCompilation -XX:+PrintInlining"/>
 	<property name="jargs.jit.inline" value="-XX:CompileCommandFile=etc/jit/ribose.jit"/>
 	<property name="jargs.gc.buffers" value="-Dribose.inbuffer.size=${ribose.inbuffer.size} -Dribose.outbuffer.size=${ribose.outbuffer.size}"/>

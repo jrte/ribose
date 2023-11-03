@@ -8,6 +8,7 @@ regression.*
 **/.fuse_hidden*
 **/.~*
 **/*.bak
+.bin
 .data/
 .doc/
 .tmp/

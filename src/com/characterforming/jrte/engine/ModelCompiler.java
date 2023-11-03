@@ -45,7 +45,6 @@ import com.characterforming.ribose.IModel;
 import com.characterforming.ribose.ITarget;
 import com.characterforming.ribose.ITransduction;
 import com.characterforming.ribose.ITransductor;
-import com.characterforming.ribose.IToken.Type;
 import com.characterforming.ribose.base.BaseEffector;
 import com.characterforming.ribose.base.Bytes;
 import com.characterforming.ribose.base.Codec;
@@ -62,8 +61,8 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 	private static final String AUTOMATON = "Automaton";
 	private static final String AMBIGUOUS_STATE_MESSAGE = "%1$s: Ambiguous state %2$d";
 
-	static final int MIN_PRODUCT_LENGTH = Integer.parseInt(System.getProperty("ribose.product.threshold", "10"));
-	static final int MIN_SUM_SIZE = Integer.parseInt(System.getProperty("ribose.sum.threshold", "128"));
+	static final int MIN_PRODUCT_LENGTH = Integer.parseInt(System.getProperty("ribose.product.threshold", "-1"));
+	static final int MIN_SUM_SIZE = Integer.parseInt(System.getProperty("ribose.sum.threshold", "-1"));
 	static final int MIN_SCAN_SIZE = 255;
 
 	private Bytes transducerName;
@@ -405,7 +404,7 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 
 	private boolean validate() {
 		for (Token token : this.tapeTokens.get(0)) {
-			if (token.getType() != Type.LITERAL && token.getType() != Type.SIGNAL) {
+			if (!token.isLiteral() && !token.isSignal()) {
 				this.addError(String.format("Error: Invalid %2$s token '%1$s' on tape 0",
 					token.asString(), token.getTypeName()));
 			} else if (token.getSymbol().bytes().length > 1
@@ -415,7 +414,7 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 			}
 		}
 		for (Token token : this.tapeTokens.get(1)) {
-			if (token.getType() != Type.LITERAL) {
+			if (!token.isLiteral()) {
 				this.addError(String.format("Error: Invalid %2$s token '%1$s' on tape 1",
 					token.asString(), token.getTypeName()));
 			} else if (this.getEffectorOrdinal(token.getSymbol()) < 0) {
@@ -424,11 +423,11 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 			}
 		}
 		for (Token token : this.tapeTokens.get(2)) {
-			if (token.getType() == Type.TRANSDUCER
+			if (token.isTransducer()
 				&& super.getTransducerOrdinal(token.getSymbol()) < 0) {
 				this.addError(String.format("Error: Unrecognized transducer token '%1$s' on tape 1",
 					token.asString()));
-			} else if (token.getType() == Type.SIGNAL
+			} else if (token.isSignal()
 				&& super.getSignalOrdinal(token.getSymbol()) > Signal.EOS.signal()
 				&& !this.tapeTokens.get(0).contains(token)) {
 				this.addError(String.format("Error: Signal token '%1$s' on tape 2 is never referenced on tape 0",
@@ -510,18 +509,17 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 				if (transition.tape == 1 || transition.symbol.getLength() > 1) {
 					Token token = new Token(transition.symbol.bytes(), -1, transducerOrdinal);
 					Bytes symbol = token.getSymbol();
-					Type type = token.getType();
-					if (transition.tape == 0 && type == Type.LITERAL && transition.symbol.getLength() > 1) {
-						super.addSignal(symbol);
-						this.tapeTokens.get(0).add(new Token(token.getReference(Type.SIGNAL, symbol.bytes())));
+					if (transition.tape == 0 && token.isLiteral() && transition.symbol.getLength() > 1) {
+						this.tapeTokens.get(0).add(new Token(Token.reference(Token.Type.SIGNAL, symbol.bytes()),
+							super.addSignal(symbol), transducerOrdinal));
 					} else if (transition.tape == 1) {
 						this.tapeTokens.get(1).add(token);
-					} else if (transition.tape == 2 && type != Type.LITERAL) {
-						if (type == Type.FIELD) {
+					} else if (transition.tape == 2 && !token.isLiteral()) {
+						if (token.isField()) {
 							token.setOrdinal(super.addLocalField(this.transducerOrdinal, super.addField(symbol)));
-						} else if (type == Type.TRANSDUCER) {
+						} else if (token.isTransducer()) {
 							token.setOrdinal(super.addTransducer(symbol));
-						} else if (type == Type.SIGNAL) {
+						} else if (token.isSignal()) {
 							token.setOrdinal(super.addSignal(symbol));
 						}
 						this.tapeTokens.get(2).add(token);

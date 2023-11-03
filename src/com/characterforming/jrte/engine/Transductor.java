@@ -785,13 +785,13 @@ E:	do {
 		public int invoke(final int parameterIndex) throws EffectorException {
 			for (IToken t : super.parameters[parameterIndex]) {
 				if (t instanceof Token token) {
-					if (token.getType() == IToken.Type.FIELD) {
+					if (token.isField()) {
 						Value field = transducerStack.value(token.getOrdinal());
 						if (field != null) {
 							value.paste(field);
 						}
-					} else if (token.getType() == IToken.Type.LITERAL) {
-						byte[] bytes = token.getLiteral().bytes();
+					} else if (token.isLiteral()) {
+						byte[] bytes = token.getSymbol().bytes();
 						value.paste(bytes, bytes.length);
 					} else {
 						throw new EffectorException(String.format("Invalid token `%1$s` for effector '%2$s'",
@@ -916,23 +916,25 @@ E:	do {
 			if (parameterList.length != 1) {
 				throw new TargetBindingException("The signal effector accepts exactly one parameter");
 			} else if (parameterList[0] instanceof Token token) {
-				if (token.getType() == IToken.Type.SIGNAL) {
+				if (token.isSignal()) {
 					int ordinal = token.getOrdinal();
 					if (ordinal < 0) {
 						String signame;
 						try {
-							byte[] sigbytes = token.getLiteral().bytes();
+							byte[] sigbytes = token.getSymbol().bytes();
 							signame = Codec.decode(sigbytes);
 						} catch (CharacterCodingException e) {
 							signame = "<decodng error>";
 						}
 						throw new TargetBindingException(String.format(
-							"Unkown signal reference for signal effector: %s", signame));
+							"Unkown signal reference for signal effector: %s",
+							signame));
 					}
 					return ordinal;
 				} else {
-					throw new TargetBindingException(String.format("Invalid signal reference `%s` for signal effector, requires type indicator ('%c') before the transducer name",
-						token.asString(), IToken.SIGNAL_TYPE));
+					throw new TargetBindingException(String.format(
+						"Invalid signal reference `%s` for signal effector, requires type indicator ('!') before the transducer name",
+						token.asString()));
 				}
 			} else {
 				throw new TargetBindingException(String.format("Unknown IToken implementation class '%1$s'",
@@ -957,12 +959,12 @@ E:	do {
 			IToken[] parameters = super.parameters[parameterIndex];
 			byte[][] tokens = new byte[parameters.length][];
 			for (int i = 0; i < parameters.length; i++) {
-				if (parameters[i].getType() == IToken.Type.FIELD) {
+				if (parameters[i].isField()) {
 					Value field = transducerStack.value(parameters[i].getOrdinal());
 					tokens[i] = (field != null) ? field.value() : Bytes.EMPTY_BYTES;
 				} else {
-					assert parameters[i].getType() == IToken.Type.LITERAL;
-					tokens[i] = parameters[i].getLiteral().bytes();
+					assert parameters[i].isLiteral();
+					tokens[i] = parameters[i].getSymbol().bytes();
 				}
 			}
 			inputStack.put(tokens);
@@ -985,14 +987,14 @@ E:	do {
 			if (outputStream != null) {
 				for (final IToken token : super.parameters[parameterIndex]) {
 					try {
-						if (token.getType() == IToken.Type.FIELD) {
+						if (token.isField()) {
 							Value field = transducerStack.value(token.getOrdinal());
 							if (field != null) {
 								outputStream.write(field.value(), 0, field.length());
 							}
 						} else {
-							assert token.getType() == IToken.Type.LITERAL;
-							byte[] data = token.getLiteral().bytes();
+							assert token.isLiteral();
+							byte[] data = token.getSymbol().bytes();
 							outputStream.write(data, 0, data.length);
 						}
 					} catch (IOException e) {
@@ -1038,16 +1040,16 @@ E:	do {
 					super.target.getName(), super.getName()));
 			}
 			int count = -1;
-			if (parameterList[0].getType() == IToken.Type.FIELD) {
+			if (parameterList[0].isField()) {
 				count = -1 - parameterList[0].getOrdinal();
-			} else if (parameterList[0].getType() == IToken.Type.LITERAL) {
-				byte[] v = parameterList[0].getLiteral().bytes();
+			} else if (parameterList[0].isLiteral()) {
+				byte[] v = parameterList[0].getSymbol().bytes();
 				count = Base.decodeInt(v, v.length);
 			} else {
 				throw new TargetBindingException(String.format("%1$s.%2$s[]: invalid field|counter for count effector",
 					super.target.getName(), super.getName()));
 			}
-			if (parameterList[1].getType() == IToken.Type.SIGNAL) {
+			if (parameterList[1].isSignal()) {
 				int signalOrdinal = parameterList[1].getOrdinal();
 				assert signalOrdinal >= SIGNUL;
 				return new int[] { count, signalOrdinal };
@@ -1077,10 +1079,10 @@ E:	do {
 		public Integer compileParameter(final IToken[] parameterTokens) throws TargetBindingException {
 			if (parameterTokens.length != 1) {
 				throw new TargetBindingException("The start effector accepts only one parameter");
-			} else if (parameterTokens[0].getType() != IToken.Type.TRANSDUCER) {
+			} else if (!parameterTokens[0].isTransducer()) {
 				throw new TargetBindingException(String.format(
-					"Invalid transducer reference `%s` for start effector, requires type indicator ('%c') before the transducer name",
-					parameterTokens[0].toString(), IToken.TRANSDUCER_TYPE));
+					"Invalid transducer reference `%s` for start effector, requires type indicator ('@') before the transducer name",
+					parameterTokens[0].toString()));
 			}
 				return parameterTokens[0].getOrdinal();
 		}
@@ -1145,7 +1147,7 @@ E:	do {
 				throw new TargetBindingException("The msum effector accepts at most one parameter (a byte array of length >1)");
 			}
 			long[] byteMap = new long[] {0, 0, 0, 0};
-			for (byte b : parameterList[0].getLiteral().bytes()) {
+			for (byte b : parameterList[0].getSymbol().bytes()) {
 				int i = b & 0xff;
 				byteMap[i >> 6] |= 1L << (i & 0x3f);
 			}
@@ -1224,8 +1226,8 @@ E:	do {
 			if (parameterList.length != 1) {
 				throw new TargetBindingException("The mproduct effector accepts at most one parameter (a byte array of length >1)");
 			}
-			byte[] tokens = parameterList[0].getLiteral().bytes();
-			return Arrays.copyOf(tokens, tokens.length);
+			byte[] product = parameterList[0].getSymbol().bytes();
+			return Arrays.copyOf(product, product.length);
  		}
 
 		@Override
@@ -1273,7 +1275,7 @@ E:	do {
 			if (parameterList.length != 1) {
 				throw new TargetBindingException("The mscan effector accepts at most one parameter (a byte array of length 1)");
 			}
- 			return 0xff & parameterList[0].getLiteral().bytes()[0];
+ 			return 0xff & parameterList[0].getSymbol().bytes()[0];
 		}
 
 		@Override

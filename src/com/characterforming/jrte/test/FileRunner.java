@@ -133,21 +133,18 @@ public class FileRunner {
 						}
 						long bytes = 10 * byteLength;
 						double mbps = (tjrte > 0) ? (double)(bytes*1000000000l) / (double)(tjrte*1024*1024) : -1;
-						double mnone = (bytes > 0) ? ((double) (100 * metrics.traps[0][1]) / (double) bytes) : -1;
 						double mps = (bytes > 0) ? ((double) (100 * metrics.traps[1][1]) / (double) bytes) : -1;
 						double mpr = (bytes > 0) ? ((double)(100 * metrics.traps[2][1]) / (double)bytes) : -1;
 						double msc = (bytes > 0) ? ((double)(100 * metrics.traps[3][1]) / (double)bytes) : -1;
 						double ekb = (bytes > 0) ? ((double)(1024 * metrics.errors) / (double)bytes) : -1;
-						long none = metrics.traps[0][0] > 0 ? metrics.traps[0][1] / metrics.traps[0][0] : 0;
 						long sum = metrics.traps[1][0] > 0 ? metrics.traps[1][1] / metrics.traps[1][0] : 0;
 						long product = metrics.traps[2][0] > 0 ? metrics.traps[2][1] / metrics.traps[2][0] : 0;
 						long scan = metrics.traps[3][0] > 0 ? metrics.traps[3][1] / metrics.traps[3][0] : 0;
-						String snone= String.format("(%d/%.2f%%):none", none, mnone);
 						String ssum = String.format("(%d/%.2f%%):msum", sum, mps);
 						String sproduct = String.format("(%d/%.2f%%):mproduct", product, mpr);
 						String sscan = String.format("(%d/%.2f%%):mscan", scan, msc);
-						System.out.println(String.format("%8.3f mb/s %7.3f nul/kb %16s %16s %20s %17s",
-							mbps, ekb, snone, ssum, sproduct, sscan));
+						System.out.println(String.format("%8.3f mb/s %7.3f nul/kb %16s %20s %17s",
+							mbps, ekb, ssum, sproduct, sscan));
 						assert bytes == 0 || bytes >= 10*byteLength;
 					} else {
 						try (

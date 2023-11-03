@@ -9,7 +9,7 @@ ValuesTest = (
 		|	(dot, paste) (digit, paste)* (space|nl, real paste out clear)
 		| ((black - {digit,dash,dot}), paste) (black, paste) (space|nl, string paste out clear)
 		)
-		((pass, out[`!!pass; `]) | (fail, out[`!!fail; `]))
+		((pass, out[`\xF8!pass; `]) | (fail, out[`\xF8!fail; `]))
 	)*
 ):dfamin;
 
