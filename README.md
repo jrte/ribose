@@ -91,7 +91,7 @@ In computing ecosystems regular patterns and their equivalent automata, like mic
 Consider ribonucleic acid (RNA), a strip of sugar (ribose) molecules strung together, each bound to one of four nitrogenous bases (A|T|G|C), encoding genetic information. Any ordered contiguous group of three bases constitutes a *codon*, and 61 of the 64 codons are mapped deterministically onto the 21 amino acids used in protein synthesis (the other three are control codons). This mapping is effected by a remarkable molecular machine, the *ribosome*, which ratchets messenger RNA (mRNA) through an aperture to align the codons for translation and build a protein molecule, one amino acid at a time (click on the image below to see a real-time animation of this process). Over aeons, nature has programmed myriad mRNA scripts and compiled them into DNA libraries to be distributed among the living. So this trick of using sequential information from one domain (eg, mRNA->codons) to drive a process in another domain (amino acids->protein) is not new.
 
 <p align="center">
-  <a href="https://www.youtube.com/watch?v=TfYf_rPWUdY"><img src="https://github.com/jrte/ribose/raw/master/etc./markdown/bicycle-gears.png"></a>
+  <a href="https://www.youtube.com/watch?v=TfYf_rPWUdY"><img src="https://github.com/jrte/ribose/raw/master/etc/markdown/bicycle-gears.png"></a>
 </p>
 
 For a more recent example, consider a **C** function compiled to a sequence of machine instructions with an entry point (call) and maybe one or more exit points (return). This can be decomposed into a set of vectors of non-branching instructions, each terminating with a branch (or return) instruction. These vectors are ratcheted through the control unit of a CPU and each sequential instruction is decoded and executed to effect specific local changes in the state of the machine. Branching instructions evaluate machine state to select the next vector for execution. All of this is effected by a von Neumann CPU, chasing an instruction pointer. As long as the stack pointer is fixed on the frame containing the function the instruction pointer will trace a regular pattern within the bounds of the compiled function. This regularity would be obvious in the source code for the function as implemented in a procedural programming language like **C**, where the interplay of concatenation (';'), union (if/else/switch) and repetition (while/do/for) is apparent. It may not be so obvious in source code written in other, eg functional, programming languages, but it all gets compiled down to machine code to run on von Neumann CPUs, on the ground or in the cloud.
@@ -121,14 +121,14 @@ Architects who want a perfect zen koan to break their minds on should contemplat
 Best of all, semiring algebra is stable and free from bugs and vulnerabilities. Ginr is mature and stable, although it needs much more testing in diverse symbolic domains, and its author should receive some well-deserved recognition and kudos. Ribose is a hobby horse, created only to lend some support to my claims about pattern-oriented design and development.
 
 <p align="center">
-  <a href="https://en.wikipedia.org/wiki/Ribose"><img src="https://github.com/jrte/ribose/raw/master/etc./markdown/ribose.png"></a>
+  <a href="https://en.wikipedia.org/wiki/Ribose"><img src="https://github.com/jrte/ribose/raw/master/etc/markdown/ribose.png"></a>
 </p>
 
 Good luck with all that.
 # Disclaimer
 Ribose is presented for demonstration only and is not regularly maintained. You may use it to compile and run the included examples, or create your own transducers to play with. Or clone and refine it and make it available to the rest of the world. Transcode it to **C** and wrap it in a Python thing. Do what you will, it's open source.
 
-Binary executable copies of `ginr` (for Linux) and `ginr.exe` (for Windows) are included in `etc./ginr` for personal use (with the author's permission); ginr guidance is [reposted in the sidebar](https://github.com/jrte/ribose/wiki/Ginr) in the ribose wiki. You are encouraged to clone or download and build ginr directly from the [ginr repo](https://github.com/ntozubod/ginr).
+Binary executable copies of `ginr` (for Linux) and `ginr.exe` (for Windows) are included in `etc/ginr` for personal use (with the author's permission); ginr guidance is [reposted in the sidebar](https://github.com/jrte/ribose/wiki/Ginr) in the ribose wiki. You are encouraged to clone or download and build ginr directly from the [ginr repo](https://github.com/ntozubod/ginr).
 
 Ribose has been developed and tested with OpenJDK 11 and 17 in Ubuntu 18 and Windows 10. It should build on any unix-ish platform, including `git bash`, `Msys2\mingw` or Windows Subsystem for Linux (WSL) for Windows, with `ant`, `java`, `bash`, `cat`, `wc`, `grep` in the executable search path. The `JAVA_HOME` and `ANT_HOME` environment variables must be set properly, eg `export JAVA_HOME=$(readlink ~/jdk-17.0.7)`.
 
