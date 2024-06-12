@@ -51,9 +51,9 @@ public class TestTarget implements ITarget {
 			try {
 				integer = Long.parseLong(Codec.decode(super.output.asBytes(0)));
 			} catch (NumberFormatException | CharacterCodingException e) {
-				return super.output.signal(fail);
+				return IEffector.signal(fail);
 			}
-			return super.output.signal(integer == super.output.asInteger(0) ? pass : fail);
+			return IEffector.signal(integer == super.output.asInteger(0) ? pass : fail);
 		}
 	}
 
@@ -68,9 +68,9 @@ public class TestTarget implements ITarget {
 			try {
 				real = Double.parseDouble(Codec.decode(super.output.asBytes(0)));
 			} catch (NumberFormatException | CharacterCodingException e) {
-				return super.output.signal(fail);			
+				return IEffector.signal(fail);
 			}
-			return super.output.signal(real == super.output.asReal(0) ? pass : fail);
+			return IEffector.signal(real == super.output.asReal(0) ? pass : fail);
 		}
 	}
 
@@ -93,7 +93,7 @@ public class TestTarget implements ITarget {
 			} catch (CharacterCodingException e) {
 				field = "";
 			}
-			return super.output.signal(field.equals("pi") || field.equals("-pi") ? pass : fail);
+			return IEffector.signal(field.equals("pi") || field.equals("-pi") ? pass : fail);
 		}
 	}
 }

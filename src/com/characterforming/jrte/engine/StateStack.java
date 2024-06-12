@@ -33,18 +33,14 @@ final class StateStack {
 
   void push(int state) {
     for (int i = 0; i <= this.tos; i++) {
-      if (this.stack[i] == state) {
+      if (this.stack[i] == state)
         return;
-      }
     }
     this.stack[++this.tos] = state;
   }
 
   int pop() {
-    if (this.tos >= 0) {
-      return this.stack[this.tos--];
-    }
-    return -1;
+    return this.tos >= 0 ? this.stack[this.tos--] : -1;
   }
 
   public boolean isEmpty() {

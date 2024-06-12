@@ -1,18 +1,18 @@
 /***
  * Ribose is a recursive transduction engine for Java
- * 
+ *
  * Copyright (C) 2011,2022 Kim Briggs
- * 
+ *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program (LICENSE-gpl-3.0). If not, see
  * <http://www.gnu.org/licenses/#GPL>.
@@ -45,14 +45,14 @@ final class InputStack {
 	private int bom, tom;
 	private long bytesPushed;
 	private long bytesAllocated;
-	
+
 	final class MarkStack extends LinkedList<Input> {
 		private static final long serialVersionUID = 1L;
 	}
 	final class FreeStack extends LinkedList<byte[]> {
 		private static final long serialVersionUID = 1L;
 	}
-	
+
 	InputStack(final int initialSize) {
 		this.logger = Base.getRuntimeLogger();
 		this.stack = Input.stack(initialSize);
@@ -65,18 +65,17 @@ final class InputStack {
 		this.bytesPushed = 0;
 		this.tos = -1;
 	}
-	
+
 	/**
-	 * Push data onto the stack 
-	 * 
+	 * Push data onto the stack
+	 *
 	 * @param data The data to push for immediate transduction
 	 */
 	Input push(byte[] data, int limit) {
 		assert data.length >= limit;
 		Input top = this.stackcheck();
-		if (this.tos == 0) {
+		if (this.tos == 0)
 			this.bytesPushed += limit;
-		}
 		top.array = data;
 		top.length = data.length;
 		top.limit = limit;
@@ -86,8 +85,8 @@ final class InputStack {
 	}
 
 	/**
-	 * Push a marked frame onto the stack 
-	 * 
+	 * Push a marked frame onto the stack
+	 *
 	 * @param frame The marked frame
 	 */
 	Input push(Input frame) {
@@ -97,21 +96,19 @@ final class InputStack {
 		return top;
 	}
 
-	/** 
+	/**
 	 * Insert data into frames in fifo order at top of stack
-	 * 
+	 *
 	 * @param input array of input data
 	 */
 	public void put(byte[][] data) {
-		int i = data.length;
-		while (--i >= 0) {
+		for (int i = data.length - 1; i >= 0; --i)
 			this.push(data[i], data[i].length);
-		}
 	}
 
 	/**
 	 * Get the item on the top of the stack
-	 * 
+	 *
 	 * @return The item on the top of the stack, or null if empty
 	 */
 	Input peek() {
@@ -120,7 +117,7 @@ final class InputStack {
 
 	/**
 	 * Pop the stack
-	 * 
+	 *
 	 * @return The item on top of the stack after the pop
 	 */
 	Input pop() {
@@ -154,29 +151,27 @@ final class InputStack {
 		return Input.empty;
 	}
 
-	/**	
+	/**
 	 * Get the Nth item from the stack counting up from bottom if +ve index
-	 * or down from top if index -ve. 
-	 * 
+	 * or down from top if index -ve.
+	 *
 	 * @param index The index of the item to get, relative to bottom or top of stack
 	 * @return The Nth item from the stack counting frm bottom (+) or top (-)
 	 */
 	Input get(int index) {
 		if (this.tos >= 0) {
-			if (index < 0) {
+			if (index < 0)
 				index = this.tos + index;
-			}
-			if (index >= 0 && index <= this.tos) {
+			if (index >= 0 && index <= this.tos)
 				return this.stack[index];
-			}
 		}
 		return Input.empty;
 	}
 
 	/**
 	 * Create a mark point. This will be retained until {@code reset()}
-	 * or {@code unmark()} is called. 
-	 * 
+	 * or {@code unmark()} is called.
+	 *
 	 * @throws EffectorException if previous mark is resetting
 	 */
 	void mark() throws EffectorException {
@@ -186,14 +181,11 @@ final class InputStack {
 				this.stack[0].mark = this.stack[0].position;
 				this.bom = this.tom;
 			}
-		} else {
-			throw new EffectorException(
-				"mark invoked while previous mark is resetting (prohibited)");
-		}
+		} else throw new EffectorException("mark invoked while previous mark is resetting (prohibited)");
 	}
-	
-	/** 
-	 * Clear the mark state and null out all data references in the mark stack. 
+
+	/**
+	 * Clear the mark state and null out all data references in the mark stack.
 	 */
 	void unmark() {
 		if (this.markHigh > this.markLimit) {
@@ -206,16 +198,15 @@ final class InputStack {
 		this.stack[0].mark = -1;
 		this.bom = this.tom = 0;
 		this.markState = InputStack.CLEAR;
-		for (Input input : this.markList) {
+		for (Input input : this.markList)
 			input.clear();
-		}
 	}
-	
-	/** 
-	 * Reset position in marked frame to a mark point. The reset will be 
+
+	/**
+	 * Reset position in marked frame to a mark point. The reset will be
 	 * effected if/when the bottom stack frame containing the primary input
-	 * is/becomes top frame. 
-	 * 
+	 * is/becomes top frame.
+	 *
 	 * @return {@link IEffector#RTX_INPUT} if reset effected immediately
 	 * @throws EffectorException if no mark set
 	 */
@@ -228,9 +219,8 @@ final class InputStack {
 				bos.position = bos.mark;
 				bos.mark = -1;
 				this.markState = InputStack.CLEAR;
-				if (this.tos == 0) {
+				if (this.tos == 0)
 					return IEffector.RTX_INPUT;
-				}
 			} else {
 				assert bos.mark == -1;
 				assert this.bom != this.tom;
@@ -242,10 +232,7 @@ final class InputStack {
 					return IEffector.RTX_INPUT;
 				}
 			}
-		} else {
-			throw new EffectorException(
-				"reset invoked with no mark set");
-		}
+		} else throw new EffectorException("reset invoked with no mark set");
 		return IEffector.RTX_NONE;
 	}
 
@@ -257,9 +244,8 @@ final class InputStack {
 	 */
 	byte[] recycle(byte[] bytes) {
 		assert this.tos < 0;
-		if (!resident(bytes)) {
+		if (!resident(bytes))
 			return bytes;
-		}
 		final boolean empty = this.bom == this.tom;
 		final int end = empty ? this.markList.length : this.nextMarked(this.bom);
 		for (int i = empty ? 0 : this.nextMarked(this.tom); i != end; i = empty ? i + 1 : this.nextMarked(i)) {
@@ -268,18 +254,17 @@ final class InputStack {
 					bytes = this.markList[i].array;
 					this.markList[i].clear();
 					return bytes;
-				} else {
+				} else
 					this.markList[i].clear();
-				}
 			}
 		}
 		this.bytesAllocated += bytes.length;
 		return new byte[bytes.length];
 	}
-	
+
 	/**
 	 * Get the number of items on the stack
-	 * 
+	 *
 	 * @return the number of items on the stack
 	 */
 	int size() {
@@ -288,16 +273,16 @@ final class InputStack {
 
 	/**
 	 * Test for empty stack
-	 * 
+	 *
 	 * @return True if the stack is empty
 	 */
 	boolean isEmpty() {
 		return this.tos < 0;
 	}
-	
+
 	/**
 	 * Get the index of the top of stack
-	 * 
+	 *
 	 * @return the index of the top of stack
 	 */
 	int tos() {
@@ -307,7 +292,7 @@ final class InputStack {
   /**
 	 * Get and reset the number of allocated in {@link #recycle()}
 	 * since the last call to this method.
-	 * 
+	 *
 	 * @return The number of bytes allocated since count last reset
 	 */
 	long getBytesAllocated() {
@@ -319,7 +304,7 @@ final class InputStack {
   /**
 	 * Get and reset the number of bytes of primary input read since
 	 * the last call to the method.
-	 * 
+	 *
 	 * @return The number of bytes read since count last reset
 	 */
 	long getBytesRead() {
@@ -332,13 +317,12 @@ final class InputStack {
 		this.tos += 1;
 		if (this.tos >= this.stack.length) {
 			this.stack = Arrays.copyOf(this.stack, (this.tos * 5) >> 2);
-			for (int pos = this.tos; pos < this.stack.length; pos++) {
+			for (int pos = this.tos; pos < this.stack.length; pos++)
 				this.stack[pos] = new Input();
-			}
 		}
 		return this.peek();
 	}
-	
+
 	private Input markcheck() {
 		this.tom = this.nextMarked(this.tom);
 		if (this.tom == this.bom) {
@@ -347,29 +331,27 @@ final class InputStack {
 				marked[pos] = this.markList[this.bom];
 				this.bom = this.nextMarked(this.bom);
 			}
-			for (int pos = this.markList.length; pos < marked.length; pos++) {
+			for (int pos = this.markList.length; pos < marked.length; pos++)
 				marked[pos] = new Input();
-			}
 			this.tom = this.markHigh = this.markList.length;
 			this.markList = marked;
 			this.bom = 0;
 		}
 		return this.markList[this.tom];
 	}
-	
+
 	private boolean resident(byte[] bytes) {
 		if (bytes != null) {
 			assert this.tos < 0;
 			final int end = this.nextMarked(this.tom);
 			for (int i = this.nextMarked(this.bom); i != end; i = this.nextMarked(i)) {
-				if (bytes == this.markList[i].array) {
+				if (bytes == this.markList[i].array)
 					return true;
-				}
 			}
 		}
 		return false;
 	}
-	
+
 	private Input addMarked(Input input) {
 		if (!input.equals(this.markList[this.tom])) {
 			this.markcheck().copy(input);
@@ -378,18 +360,17 @@ final class InputStack {
 		}
 		return input;
 	}
-	
+
 	private Input getMarked() {
 		if (this.bom != this.tom) {
 			this.bom = this.nextMarked(this.bom);
-			if (this.bom == this.tom) {
+			if (this.bom == this.tom)
 				this.markState = InputStack.CLEAR;
-			}
 			return this.markList[this.bom];
 		}
 		return null;
 	}
-	
+
 	private int nextMarked(int index) {
 		return ++index < this.markList.length ? index : 0;
 	}

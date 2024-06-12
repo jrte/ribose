@@ -1,18 +1,18 @@
 /***
  * Ribose is a recursive transduction engine for Java
- * 
+ *
  * Copyright (C) 2011,2022 Kim Briggs
- * 
+ *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program (LICENSE-gpl-3.0). If not, see
  * <http://www.gnu.org/licenses/#GPL>.
@@ -20,13 +20,14 @@
 
 package com.characterforming.ribose.base;
 
+import java.nio.CharBuffer;
 import java.nio.charset.CharacterCodingException;
 import java.util.Arrays;
 
 /**
  * Wraps an immutable array of bytes. Ribose transductions operate in the {@code byte}
  * domain, and transduction input and outputs are represented as byte arrays.
- * 
+ *
  * @author Kim Briggs
  */
 public final class Bytes {
@@ -41,17 +42,17 @@ public final class Bytes {
 
 	/**
 	 * Constructor wraps an array of bytes
-	 * 
+	 *
 	 * @param bytes the data to wrap
 	 */
 	public Bytes(final byte[] bytes) {
 		this.data = bytes;
 		this.hash = 0;
 	}
-	
+
 	/**
 	 * Constructor copies and wraps a segment of an array of bytes
-	 * 
+	 *
 	 * @param from the source array
 	 * @param offset the position in the source array to copy from
 	 * @param length the number of bytes to copy
@@ -67,20 +68,20 @@ public final class Bytes {
 
 	/**
 	 * Get the number of contained bytes.
-	 * 
+	 *
 	 * @return the number of contained bytes
 	 */
 	public int getLength() {
 		return data.length;
 	}
-	
+
 	/**
 	 * Get the backing array for the contained bytes. This is a direct reference to the
 	 * wrapped array, which may not be completely filled; use Bytes.getLength() to determine
 	 * actual length of data. Sadly there is no way for Java to confer immutability to the
 	 * returned value, so don't mess with the contents unless you think you know what you
 	 * are going.
-	 * 
+	 *
 	 * @return the contained bytes
 	 */
 	public byte[] bytes() {
@@ -89,7 +90,7 @@ public final class Bytes {
 
 	/**
 	 * Decode contents to a String.
-	 * 
+	 *
 	 * @return a Unicode string
 	 */
 	public String asString() {
@@ -100,9 +101,9 @@ public final class Bytes {
 		}
 	}
 
-	/** 
-	 * Lazy hash code evaluation. 
-	 * 
+	/**
+	 * Lazy hash code evaluation.
+	 *
 	 * @return a hash based on the contents
 	 */
 	public int hashCode() {
@@ -111,10 +112,11 @@ public final class Bytes {
 		}
 		return this.hash;
 	}
-	
+
 	/**
-	 * Like toString(), but the result is a hexadecimal representation of the contents. 
-	 * 
+	 * Like toString(), but bytes not in the printable ASCII range [32..127) are represented
+	 * in hexadecimal escape sequences {@code \xHH}.
+	 *
 	 * @return the hex string
 	 */
 	public String toHexString() {
@@ -123,7 +125,7 @@ public final class Bytes {
 		for (int j = 0; j < this.getLength(); j++) {
 			byte b = this.data[j];
 			if (b >= 32) {
-				hex[i++] = (char)(b & 0xFF);
+				hex[i++] = (char)b;
 			} else {
 				hex[i++] = '\\';
 				hex[i++] = 'x';
@@ -131,12 +133,12 @@ public final class Bytes {
 				hex[i++] = HEX[b & 0x0F];
 			}
 		}
-		return new String(Arrays.copyOf(hex, i));
+		return CharBuffer.wrap(hex, 0, i).toString();
 	}
 
 	/**
 	 * Override
-	 * 
+	 *
 	 * @return decoded string
 	 */
 	public String toString() {
@@ -145,8 +147,8 @@ public final class Bytes {
 
 	/**
 	 * Test for equality of contents.
-	 * 
-	 * @param other the other {@code Bytes} instance 
+	 *
+	 * @param other the other {@code Bytes} instance
 	 * @return true if contents are identical
 	 */
 	@Override

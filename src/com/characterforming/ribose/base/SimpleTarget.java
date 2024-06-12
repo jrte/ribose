@@ -23,15 +23,24 @@ package com.characterforming.ribose.base;
 
 import com.characterforming.ribose.IEffector;
 import com.characterforming.ribose.ITarget;
+import com.characterforming.ribose.ITransductor;
 
 /**
  * This simple {@link ITarget} implementation presents the core ribose
- * effectors implemented in the the ribose runtime transductor. It provides
+ * effectors described in the {@link ITransductor} interface documentation
+ * and implemented in the the ribose runtime transductor. It provides
  * no intrinsic effectors and is intended to support construction of simple
  * models that contain only streaming transducers, which dispose of all
  * output through the core {@code out[..]} effector and require no
- * specialized effectors. Transductions involving simple models have no
- * dependencies on external jars.
+ * specialized effectors. Transductions involving such models interact only
+ * with core Java classes.
+ * <br><br>
+ * This class is {@code final}; specialized {@link ITarget} implementations
+ * are required for transductions that interact with external classes. All
+ * targets implicitly inherit the {@link ITransductor} effectors, so any
+ * class can easily be extended to realize a {@code ITarget} simply by
+ * cutting and pasting the overridden methods from this class, listing
+ * additional effectors in {@link ITarget#getEffectors()}.
  *
  * @author Kim Briggs
  */

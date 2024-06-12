@@ -26,7 +26,7 @@
 	<property name="jargs.gc.ribose" value=""/>
 -->
 
-<project name="ribose-build" default="package" basedir="." xmlns:if="ant:if" xmlns:unless="ant:unless">
+<project name="ribose-build" default="ci-test" basedir="." xmlns:if="ant:if" xmlns:unless="ant:unless">
   <property environment="env"/>
 	<loadfile property="ribose.version" srcFile="./version"/>
 	<property name="ribose" location="./ribose"/>
@@ -162,7 +162,7 @@
 	<target name="ribose" depends="package-java,build-compiler-model"
 		description="Clean build for java and patterns"/>
 
-	<target name="ci-test" depends="init-ci,ribose,package-test,compile-test-model,test,test-output-equivalence,env"
+	<target name="ci-test" depends="init-ci,ribose,package-test,compile-test-model,test,env"
 		description="Full build with CI tests for java and patterns">
 		<echo message="Ribose compiler log ..."/>
 		<concat> <fileset dir="." includes="ribose-compile-0.log"/></concat>
@@ -556,7 +556,7 @@
 		</exec>
 	</target>
 
-	<target name="test" depends="ribose,test-env,test-basic,test-testrunner,test-filerunner"/>
+	<target name="test" depends="ribose,test-basic,test-testrunner,test-filerunner,test-output-equivalence"/>
 
 	<target name="env" if="linux">
 		<echo message="os (/proc/version)"/>

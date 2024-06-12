@@ -24,12 +24,11 @@ import java.nio.charset.CharacterCodingException;
 import java.util.logging.Logger;
 
 import com.characterforming.ribose.base.EffectorException;
-import com.characterforming.ribose.base.Signal;
 
 /**
  * Provides loggers and a view of fields (data extracted by the transduction) to {@link
  * IEffector} implementations. Effectors receive their {@code IOutput} instance via
- * {@link IEffector#setOutput(IOutput)} when they are first bound to a transductor. Transducer 
+ * {@link IEffector#setOutput(IOutput)} when they are first bound to a transductor. Transducer
  * fields are local and bound to the defining transducer and can be accessed by stable
  * field ordinal numbers <i>when the transducer is running on the transductor stack</i>.
  * Every transducer has an anonymous field with ordinal number 0 (the anonymous name
@@ -42,7 +41,7 @@ import com.characterforming.ribose.base.Signal;
  * and {@link IParameterizedEffector#invoke(int)} as shown in the example below.
  * <br><pre>
  * record Header (int version, int tapes, int transitions, int states, int symbols) {}
- * 
+ *
  * final class HeaderEffector extends BaseEffector&lt;ModelCompiler&gt; {
  *   private static final String transducerName = "Automaton");
  *   private static final String[] fieldNames = new String[] {
@@ -86,7 +85,7 @@ public interface IOutput {
 	 * Determine whether the output instance is a bound to proxy transductor. In that case
 	 * attempts to access transduction runtime field data or the currently selected field
 	 * will throw {@link EffectorException}.
-	 * 
+	 *
 	 * @return true if output bound to a proxy transductor
 	 */
 	boolean isProxy();
@@ -108,7 +107,7 @@ public interface IOutput {
 	/**
 	 * Get the localized ordinal number for the current selected field. Not valid for proxy effectors.
 	 * The localized index is the offset to the field in the transducer stack frame.
-	 * 
+	 *
 	 * @return the localized index of the selected field in the current transducer stack frame
 	 * @throws EffectorException if called on a proxy transductor
 	 */
@@ -117,7 +116,7 @@ public interface IOutput {
 
 	/**
 	 * Get current field value as integer value.
-	 * 
+	 *
 	 * @param fieldOrdinal the field ordinal
 	 * @return the String value decoded from the field contents
 	 * @throws EffectorException if called on a proxy transductor
@@ -128,7 +127,7 @@ public interface IOutput {
 
 	/**
 	 * Get current field value as integer value.
-	 * 
+	 *
 	 * @param fieldOrdinal the field ordinal
 	 * @return the integer value decoded from the field contents
 	 * @throws EffectorException if called on a proxy transductor
@@ -138,7 +137,7 @@ public interface IOutput {
 
 	/**
 	 * Get current field value as real value.
-	 * 
+	 *
 	 * @param fieldOrdinal the field ordinal
 	 * @return the real value decoded from the field contents
 	 * @throws EffectorException if called on a proxy transductor
@@ -148,36 +147,12 @@ public interface IOutput {
 
 	/**
 	 * Get current field value as integer value.
-	 * 
+	 *
 	 * @param fieldOrdinal the field ordinal
 	 * @return the field contents
 	 * @throws EffectorException if called on a proxy transductor
 	 */
 	byte[] asBytes(int fieldOrdinal)
-	throws EffectorException;
-
-	/**
-	 * Encode a signal in an {@code effector.invoke()} return value. The signal will be
-	 * consumed in the next transition of the running transductor. At most one effector
-	 * can return an encoded signal in any effect vector triggered by a state transition.
-	 * If &gt;1 effectors return encoded signals the signal decoded after the transition
-	 * will be the bitwise OR of the signal ordinals. In that case the decoded signal
-	 * ordinal will either be out of range (an exception will result) or it will be in
-	 * range and incorrect but applied as is (producing an unpredictable outcome).
-	 * <br><br>
-	 * Signal ordinals in a ribose model are mapped to the end of the byte ordinal range
-	 * {@code [0..255]}. The range of signal ordinals is {@code [256..256+N]} for a model
-	 * with <b>N</b> additional signals. Signal names and ordinals are listed in the
-	 * model map produced with every compiled ribose model. For built-in {@link Signal}
-	 * the {@code Signal.ordinal()} method reflects the Java enumerator ordinal; use 
-	 * {@link Signal#signal()} to obtain the model signal ordinal.
-	 * 
-	 * @param signalOrdinal the signal ordinal to encode ( {@code 256 ≤ value < 256+#signals} )
-	 * @return an encoding of the signal, to return from effector {@code invoke()} 
-	 * @throws EffectorException if {@code signalOrdinal} is out of range 
-	 * @see Signal#signal() 
-	 */
-	int signal(int signalOrdinal)
 	throws EffectorException;
 
 	/**

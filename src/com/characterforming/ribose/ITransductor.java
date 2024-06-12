@@ -66,9 +66,9 @@ import com.characterforming.ribose.base.Signal;
  * {@link ITransduction#reset()} ensures that the transductor is ready to begin a
  * new transduction. The {@link ITransduction#close()} implementation calls {@link
  * ITransductor#stop()} to end the transduction and clear the transductor's stacks.
- * The {@link IModel#stream(Bytes, Signal, InputStream, OutputStream)} and {@link 
+ * The {@link IModel#stream(Bytes, Signal, InputStream, OutputStream)} and {@link
  * IModel#stream(Bytes, ITarget, Signal, InputStream, OutputStream)} are available
- * for more granular transductions. 
+ * for more granular transductions.
  * <br>
  * <pre>
  * ITarget proxyTarget = new Target();
@@ -109,8 +109,8 @@ import com.characterforming.ribose.base.Signal;
  * <br><br>
  * The {@code signal[`!signal`]} effector injects a signal for immediate transduction on
  * the next transition. Effectors may inject a signal by returning from {@link IEffector#invoke()}
- * or {@link IParameterizedEffector#invoke(int)} a signal ordinal encoded with 
- * {@link IOutput#signal(int)}. This can be used to effect backflow of information 
+ * or {@link IParameterizedEffector#invoke(int)} a signal ordinal encoded with
+ * {@link IEffector#signal(int)}. This can be used to effect backflow of information
  * from the target to the transductor; for example,
  * <br><pre>(nl, isThatSo[`!true` `!false`]) ((true, yep) | (false, nope))</pre>
  * At most one encoded signal can be injected per transition (this is not checked in the
@@ -202,7 +202,7 @@ public interface ITransductor extends ITarget {
 		/**
 		 * Status == PROXY
 		 * @return true if Status == PROXY
-		 */	
+		 */
 		public boolean isProxy() {
 			return this.equals(PROXY);
 		}
@@ -230,7 +230,7 @@ public interface ITransductor extends ITarget {
 
 		/**
 		 * Reset all metrics
-		 * 
+		 *
 		 * @return a reference to the reset metrics
 		 */
 		public Metrics reset() {
@@ -243,7 +243,7 @@ public interface ITransductor extends ITarget {
 
 		/**
 		 * Add transient metrics to accumulator metrics
-		 * 
+		 *
 		 * @param accumulator the metrics to be updated
 		 */
 		public void update(Metrics accumulator) {
@@ -305,7 +305,7 @@ public interface ITransductor extends ITarget {
 
 	/**
 	 * Set up a signal as prologue for a transduction. The signal will be
-	 * consumed immediately on the first call to {@link #run()}, before 
+	 * consumed immediately on the first call to {@link #run()}, before
 	 * consuming any input from {@link #push(byte[], int)}. The input
 	 * stack must be empty or the signal will be ignored. An assertion
 	 * error witll be thrown if assertions are enabled in the Java VM.
@@ -338,7 +338,7 @@ public interface ITransductor extends ITarget {
 	 * This method should be called repeatedly until {@code status().isRunnable()}
 	 * returns {@code false}. Normally, the transduction status when {@code run()}
 	 * returns is {@link Status#PAUSED} (input stack empty, {@code push()} more
-	 * input to resume) or {@link Status#WAITING} (transducer stack empty, 
+	 * input to resume) or {@link Status#WAITING} (transducer stack empty,
 	 * {@code start()} another transducer to resume), unless the {@code pause}
 	 * effector forces return with {@link Status#RUNNABLE}. The latter case may
 	 * arise if the transduction needs to synchronize with the process driving
@@ -376,11 +376,11 @@ public interface ITransductor extends ITarget {
 	byte[] recycle(byte[] bytes);
 
 	/**
-	 * Update metrics from the most recent {@link #run()} call. Metrics are 
+	 * Update metrics from the most recent {@link #run()} call. Metrics are
 	 * preserved until the {@code run()} method is called again. This method
 	 * sums the transductor metrics from the most recent {@link #run()} call
 	 * into an accumulating Metrics instance and resets the transductor metrics.
-	 * 
+	 *
 	 * @param metrics the metrics to be updated (or null to reset transductor metrics)
 	 */
 	void metrics(Metrics metrics);

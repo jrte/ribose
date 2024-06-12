@@ -83,7 +83,39 @@ public final class ModelLoader extends Model implements IModel {
 	@Override // @see com.characterforming.ribose.IModel#transductor(ITarget)
 	public ITransductor transductor(ITarget target)
 	throws ModelException {
-		return this.bindTransductor(target);
+		if (!super.targetClass.isAssignableFrom(target.getClass()))
+			throw new ModelException(
+				String.format("Cannot bind instance of target class '%1$s', can only bind to model target class '%2$s'",
+					target.getClass().getName(), super.targetClass.getName()));
+		if (super.targetMode.isProxy())
+			throw new ModelException(String.format("Cannot use model target instance as runtime target: $%s",
+				super.targetClass.getName()));
+		Transductor trex = new Transductor(this);
+		IEffector<?>[] trexFx = trex.getEffectors();
+		IEffector<?>[] targetFx = target.getEffectors();
+		IEffector<?>[] boundFx = new IEffector<?>[trexFx.length + targetFx.length];
+		System.arraycopy(trexFx, 0, boundFx, 0, trexFx.length);
+		System.arraycopy(targetFx, 0, boundFx, trexFx.length, targetFx.length);
+		if (checkTargetEffectors(trex, boundFx)) {
+			assert boundFx.length == super.proxyEffectors.length;
+			for (int i = 0; i < super.proxyEffectors.length; i++) {
+				try {
+					boundFx[i].setOutput(trex);
+				} catch (EffectorException e) {
+					throw new ModelException(e);
+				}
+				if (super.proxyEffectors[i] instanceof IParameterizedEffector<?, ?> proxyEffector) {
+					if (boundFx[i] instanceof BaseParameterizedEffector<?, ?> boundEffector)
+						boundEffector.setParameters(proxyEffector);
+					else
+						throw new ModelException(String.format(
+							"Target effector '%s' implementation must extend BaseParameterizedEffector<?, ?>", proxyEffector.getClass().getName()));
+				}
+			}
+			trex.setEffectors(boundFx);
+			return trex;
+		}
+		throw new ModelException("Target effectors do not match model effectors");
 	}
 
 	@Override // @see com.characterforming.ribose.IModel#stream(Bytes, Signal, InputStream, OutputStream)
@@ -131,14 +163,12 @@ public final class ModelLoader extends Model implements IModel {
 							if (read > 0) {
 								trex.push(bytes, read);
 								position += read;
-							} else {
+							} else
 								break;
-							}
 						}
 					}
-					if (trex.status().isPaused()) {
+					if (trex.status().isPaused())
 						trex.signal(Signal.EOS).run();
-					}
 					assert !trex.status().isRunnable();
 				} catch (EffectorException | DomainErrorException e) {
 					super.rteLogger.log(Level.SEVERE, e, () -> String.format(
@@ -172,55 +202,12 @@ public final class ModelLoader extends Model implements IModel {
 			final Transducer oldt = this.transducerObjectIndex.compareAndExchange(transducerOrdinal, null, newt);
 			final int access = this.transducerAccessIndex.compareAndExchange(transducerOrdinal, 1, 2);
 			assert null == oldt && 1 == access;
-		} else {
+		} else
 			while (1 == this.transducerAccessIndex.compareAndExchange(transducerOrdinal, 1, 1))
 				Thread.onSpinWait();
-		}
 		final Transducer t = this.transducerObjectIndex.get(transducerOrdinal);
 		assert t != null && 2 == this.transducerAccessIndex.get(transducerOrdinal);
 		return t;
-	}
-
-	private Transductor bindTransductor(ITarget target)
-	throws ModelException {
-		if (!super.targetClass.isAssignableFrom(target.getClass())) {
-			throw new ModelException(
-				String.format("Cannot bind instance of target class '%1$s', can only bind to model target class '%2$s'",
-					target.getClass().getName(), super.targetClass.getName()));
-		}
-		if (super.targetMode.isProxy()) {
-			throw new ModelException(String.format("Cannot use model target instance as runtime target: $%s",
-				super.targetClass.getName()));
-		}
-		Transductor trex = new Transductor(this);
-		IEffector<?>[] trexFx = trex.getEffectors();
-		IEffector<?>[] targetFx = target.getEffectors();
-		IEffector<?>[] boundFx = new IEffector<?>[trexFx.length + targetFx.length];
-		System.arraycopy(trexFx, 0, boundFx, 0, trexFx.length);
-		System.arraycopy(targetFx, 0, boundFx, trexFx.length, targetFx.length);
-		if (!checkTargetEffectors(trex, boundFx)) {
-			throw new ModelException("Target effectors do not match model effectors");
-		}
-		try {
-			this.bindParameters(trex, boundFx);
-		} catch (EffectorException e) {
-			throw new ModelException("Target effectors do not match model effectors", e);
-		}
-		return trex;
-	}
-
-	private IEffector<?>[] bindParameters(Transductor trex, IEffector<?>[] runtimeEffectors)
-	throws EffectorException {
-		assert runtimeEffectors.length == super.proxyEffectors.length;
-		for (int i = 0; i < super.proxyEffectors.length; i++) {
-			runtimeEffectors[i].setOutput(trex);
-			if (super.proxyEffectors[i] instanceof IParameterizedEffector<?, ?> proxyEffector
-			&& runtimeEffectors[i] instanceof BaseParameterizedEffector<?, ?> boundEffector) {
-				boundEffector.setParameters(proxyEffector);
-			}
-		}
-		trex.setEffectors(runtimeEffectors);
-		return runtimeEffectors;
 	}
 
 	@Override
@@ -228,29 +215,25 @@ public final class ModelLoader extends Model implements IModel {
 	throws ModelException, CharacterCodingException {
 		int transducerOrdinal = super.getTransducerOrdinal(Codec.encode(transducerName));
 		Transducer trex = this.loadTransducer(transducerOrdinal);
-		int[] effectorVectors = trex.getEffectorVector();
-		int[] inputEquivalenceIndex = trex.getInputFilter();
-		long[] transitionMatrix = trex.getTransitionMatrix();
+		int[] effectorVectors = trex.effectorVector();
+		int[] inputEquivalenceIndex = trex.inputFilter();
+		long[] transitionMatrix = trex.transitionMatrix();
 		int inputEquivalentCount = trex.getInputEquivalentsCount();
 		Set<Map.Entry<Bytes, Integer>> effectorOrdinalMap = super.getEffectorOrdinalMap().entrySet();
 		String[] effectorNames = new String[effectorOrdinalMap.size()];
-		for (Map.Entry<Bytes, Integer> entry : effectorOrdinalMap) {
+		for (Map.Entry<Bytes, Integer> entry : effectorOrdinalMap)
 			effectorNames[entry.getValue()] = Codec.decode(
 				entry.getKey().bytes(), entry.getKey().getLength());
-		}
 		Bytes[] fieldIndex = new Bytes[this.fieldOrdinalMap.size()];
-		for (Map.Entry<Bytes, Integer> m : this.fieldOrdinalMap.entrySet()) {
+		for (Map.Entry<Bytes, Integer> m : this.fieldOrdinalMap.entrySet())
 			fieldIndex[m.getValue()] = m.getKey();
-		}
 		System.out.printf("%s%n%nFields%n%n", transducerName);
 		Map<Integer, Integer> fieldMap = this.transducerFieldMaps.get(transducerOrdinal);
 		Bytes[] fields = new Bytes[fieldMap.size()];
-		for (Entry<Integer, Integer> e : fieldMap.entrySet()) {
+		for (Entry<Integer, Integer> e : fieldMap.entrySet())
 			fields[e.getValue()] = fieldIndex[e.getKey()];
-		}
-		for (int i = 0; i < fields.length; i++) {
+		for (int i = 0; i < fields.length; i++)
 			System.out.printf("%4d: %s%n", i, fields[i]);
-		}
 		System.out.printf("%nInput equivalents (equivalent: input...)%n%n", transducerName);
 		for (int i = 0; i < inputEquivalentCount; i++) {
 			int startToken = -1;
@@ -261,21 +244,18 @@ public final class ModelLoader extends Model implements IModel {
 						if (startToken < (j - 1)) {
 							this.printStart(startToken);
 							this.printEnd(j - 1);
-						} else {
+						} else
 							this.printStart(startToken);
-						}
 						startToken = -1;
 					}
-				} else if (startToken < 0) {
+				} else if (startToken < 0)
 					startToken = j;
-				}
 			}
 			if (startToken >= 0) {
 				int endToken = inputEquivalenceIndex.length - 1;
 				this.printStart(startToken);
-				if (startToken < endToken) {
+				if (startToken < endToken)
 					this.printEnd(endToken);
-				}
 			}
 			System.out.printf("%n");
 		}
@@ -296,15 +276,14 @@ public final class ModelLoader extends Model implements IModel {
 						System.out.printf(" %s ]", effector.showParameterTokens(parameterOrdinal));
 					}
 				} else if (effect >= 0) {
-					if (effect > 1) {
+					if (effect > 1)
 						System.out.printf(" %s", effectorNames[effect]);
-					}
 				} else {
 					int index = (-1 * effect);
 					while (effectorVectors[index] != 0) {
-						if (effectorVectors[index] > 0) {
+						if (effectorVectors[index] > 0)
 							System.out.printf(" %s", effectorNames[effectorVectors[index++]]);
-						} else {
+						else {
 							int effectorOrdinal = -1 * effectorVectors[index++];
 							if (super.proxyEffectors[effectorOrdinal] instanceof BaseParameterizedEffector<?,?> effector) {
 								int parameterOrdinal = Transducer.parameter(effectorVectors[index++]);
@@ -320,18 +299,16 @@ public final class ModelLoader extends Model implements IModel {
 	}
 
 	private void printStart(int startByte) {
-		if (startByte > 32 && startByte < 127) {
+		if (startByte > 32 && startByte < 127)
 			System.out.printf(" %c", (char) startByte);
-		} else {
+		else
 			System.out.printf(" #%x", startByte);
-		}
 	}
 
 	private void printEnd(int endByte) {
-		if (endByte > 32 && endByte < 127) {
+		if (endByte > 32 && endByte < 127)
 			System.out.printf("-%c", (char) endByte);
-		} else {
+		else
 			System.out.printf("-#%x", endByte);
-		}
 	}
 }

@@ -1,13 +1,17 @@
 package com.characterforming.jrte.engine;
 
+import java.nio.charset.CharacterCodingException;
 import java.util.Arrays;
+
+import com.characterforming.ribose.base.Bytes;
+import com.characterforming.ribose.base.Codec;
 
 class Value {
 	private byte[] val;
 	private int len;
 
 	Value(int size) {
-		this.val = new byte[Math.max(size, 16)];
+		this.val = new byte[Math.max(size, 256)];
 		this.len = 0;
 	}
 
@@ -36,5 +40,15 @@ class Value {
 
 	void paste(Value value) {
 		this.paste(value.val, value.length());
+	}
+
+	@Override
+	public String toString() {
+		try {
+			return Codec.decode(this.val, this.len);
+		} catch (CharacterCodingException e) {
+			Bytes bytes = new Bytes(this.val, 0, this.len);
+			return bytes.toHexString();
+		}
 	}
 }

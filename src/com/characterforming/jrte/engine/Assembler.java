@@ -38,31 +38,65 @@ final class Assembler {
 
 	record Assembly(int[] inputEquivalents, int[][][] transitions, int[] effects) {
 		@Override
-		public int hashCode() { return 0; }
+		public int hashCode() {
+			return Arrays.hashCode(inputEquivalents) ^ Arrays.hashCode(transitions) ^ Arrays.hashCode(effects);
+		}
 
 		@Override
-		public boolean equals(Object other) { return false; }
+		public boolean equals(Object other) {
+			return other instanceof Assembly a
+			&& Arrays.equals(inputEquivalents, a.inputEquivalents)
+			&& Arrays.equals(transitions, a.transitions)
+			&& Arrays.equals(effects, a.effects);
+		}
 
 		@Override
-		public String toString() { return ""; }
+		public String toString() {
+			return String.format("Assembly@%d: %d input equivalents; %d states; %d effects",
+				hashCode(), inputEquivalents.length, transitions.length, effects.length);
+		}
 	}
 
-	record Fst(int[] inputEquivalenceIndex, HashSet<Integer>[] inputEquivalenceSets, State[] states, int[][][] matrix) {
+	private record Fst(int[] inputEqIndex, HashSet<Integer>[] inputEqSets, State[] states, int[][][] matrix) {
 		@Override
-		public int hashCode() { return 0; }
+		public int hashCode() {
+			throw new UnsupportedOperationException();
+		}
 
 		@Override
-		public boolean equals(Object other) { return false; }
+		public boolean equals(Object other) {
+			throw new UnsupportedOperationException();
+		}
 
 		@Override
-		public String toString() { return ""; }
+		public String toString() {
+			return String.format("Fst: %d inputs; %d equivalents; %d states",
+					inputEqIndex.length, inputEqSets.length, states.length);
+		}
+	}
+
+	private record Product(int endstate, ArrayList<Integer> product) {
+		@Override
+		public int hashCode() {
+			throw new UnsupportedOperationException();
+		}
+
+		@Override
+		public boolean equals(Object other) {
+			throw new UnsupportedOperationException();
+		}
+
+		@Override
+		public String toString() {
+			return String.format("Product: %d length; %d endstate", product.size(), endstate);
+		}
 	}
 
 	private final ModelCompiler compiler;
+	private final boolean setTraps;
 	private final int msumOrdinal;
 	private final int mproductOrdinal;
 	private final int mscanOrdinal;
-	private boolean instrument;
 	private HashSet<Integer>[] inputEquivalenceSets;
 	private HashMap<Ints, Integer> effectVectorMap;
 	private ArrayList<int[]> effectVectors;
@@ -73,7 +107,7 @@ final class Assembler {
 		this.msumOrdinal = this.compiler.getEffectorOrdinal(Codec.encode("msum"));
 		this.mproductOrdinal = this.compiler.getEffectorOrdinal(Codec.encode("mproduct"));
 		this.mscanOrdinal = this.compiler.getEffectorOrdinal(Codec.encode("mscan"));
-		this.instrument = ModelCompiler.MIN_SUM_SIZE >= 0 && ModelCompiler.MIN_PRODUCT_LENGTH >= 0;
+		this.setTraps = ModelCompiler.MIN_SUM_SIZE >= 0 && ModelCompiler.MIN_PRODUCT_LENGTH >= 0;
 		this.reset();
 	}
 
@@ -88,8 +122,8 @@ final class Assembler {
 
 		// compute byte|signal input equivalence classes and index
 		Fst fst = this.reduceEquivalentInputs(transitionMatrix);
-		this.inputEquivalenceSets = fst.inputEquivalenceSets();
-		int nInputs = fst.inputEquivalenceSets.length;
+		this.inputEquivalenceSets = fst.inputEqSets();
+		int nInputs = fst.inputEqSets.length;
 		int nStates = fst.states().length;
 
 		// construct incoming effect vector enumeration
@@ -99,14 +133,12 @@ final class Assembler {
 		for (Entry<Ints, Integer> entry : effectorVectorMap.entrySet())
 			this.effectVectors.set(entry.getValue(), entry.getKey().getData());
 		final boolean[] markedEffects = new boolean[nStates * nInputs];
-		Arrays.fill(markedEffects, !this.instrument);
+		Arrays.fill(markedEffects, !this.setTraps);
 		this.effectVectorMap = effectorVectorMap;
 		markedEffects[0] = true;
 
-//	inject msum & mscan effectors
-		if (this.instrument) {
-			final boolean[] walkedStates = new boolean[nStates];
-			ArrayList<Integer> walkResult = new ArrayList<>(32);
+		//	inject msum & mscan effectors
+		if (this.setTraps) {
 			for (State state : fst.states()) {
 				for (int eq = 0; eq < nInputs; eq++) {
 					int[] transition = fst.matrix()[state.ordinal][eq];
@@ -120,12 +152,12 @@ final class Assembler {
 							transition[1] = this.injectSumEffector(nextState.idempotentBytes,
 								fst.matrix(), state, eq);
 						} else if (nextState.isProductState()) {
-							this.walk(nextState, walkedStates, fst, walkResult);
-							if (walkResult.get(0) >= ModelCompiler.MIN_PRODUCT_LENGTH) {
+							Product product = this.product(nextState, fst);
+							if (product != null) {
 								assert nextState.idempotentCount >= 255;
-								transition[0] = walkResult.get(1);
-								transition[1] = this.injectProductEffector(walkResult,
-									fst.matrix(),state, eq);
+								transition[0] = product.endstate();
+								transition[1] = this.injectProductEffector(product,
+									fst.matrix(), state, eq);
 							}
 						}
 						if (transition[1] < 0)
@@ -138,6 +170,7 @@ final class Assembler {
 			int[] retainedStateMap = new int[nStates];
 			Arrays.fill(retainedStateMap, -1);
 			boolean[] markedStates = new boolean[nStates];
+			Arrays.fill(markedStates, false);
 			final int marked = this.mark(fst.matrix(), markedStates);
 			int retainedState = -1;
 			for (int state = 0; state < fst.matrix().length; state++)
@@ -176,44 +209,36 @@ final class Assembler {
 		assert effectVectorArray.length > 0 && effectVectorArray[0] == NUL;
 		assert effectVectorArray[effectVectorArray.length - 1] == NUL;
 
-		// rewrite effect vector ordinals in kernel matrix with offsets
+		// rewrite effect vector ordinals with offsets in kernel matrix
 		for (int state = 0; state < nStates; state++)
 			for (int eq = 0; eq < nInputs; eq++)
 				if (fst.matrix()[state][eq][1] < 0) {
 					assert -1 * fst.matrix()[state][eq][1] < vectorOffsetMap.length
-					: String.format("state:%d; eq:%d; action:%d; length:%d",
+						: String.format("state:%d; eq:%d; action:%d; length:%d",
 							state, eq, fst.matrix()[state][eq][1], vectorOffsetMap.length);
 					fst.matrix()[state][eq][1] =
 						-1 * vectorOffsetMap[-1 * fst.matrix()[state][eq][1]];
 				}
 
-		// reduce kernel matrix and input equivalence modulo input product vectorization
-		int[] finalEquivalents = null;
-		int[][][] finalMatrix = null;
-		if (this.instrument) {
-			int[][][] transposedMatrix = new int[nInputs][nStates][2];
-			for (int eq = 0; eq < nInputs; eq++)
-				for (int state = 0; state < nStates; state++)
-					transposedMatrix[eq][state] = fst.matrix()[state][eq];
-			Fst finalFst = this.reduceEquivalentInputs(transposedMatrix);
-			HashSet<Integer>[] equivalentInputs = this.allocateHashSetArray(finalFst.inputEquivalenceSets().length);
-			finalEquivalents = new int[this.compiler.getSignalLimit()];
-			for (int eq = 0; eq < finalFst.inputEquivalenceSets().length; eq++) {
-				equivalentInputs[eq] = new HashSet<>();
-				for (int e : finalFst.inputEquivalenceSets()[eq])
-					equivalentInputs[eq].addAll(this.inputEquivalenceSets[e]);
-				for (int token : equivalentInputs[eq])
-					finalEquivalents[token] = eq;
-			}
-			finalMatrix = new int[nStates][nInputs][2];
-			for (int state = 0; state < nStates; state++)
-				finalMatrix[state] = Arrays.copyOf(finalFst.matrix()[state], finalFst.matrix()[state].length);
-		} else {
-			finalEquivalents = fst.inputEquivalenceIndex();
-			finalMatrix = fst.matrix();
-		}
+		// if not instrumenting traps return the unintrumewnted fst
+		if (!this.setTraps)
+			return new Assembly(fst.inputEqIndex(), fst.matrix(), effectVectorArray);
 
-		return new Assembly(finalEquivalents, finalMatrix, effectVectorArray);
+		// otherwise reduce kernel matrix and input equivalence modulo input product vectorization
+		final int[][][] transposedMatrix = new int[nInputs][nStates][2];
+		for (int eq = 0; eq < nInputs; eq++)
+			for (int state = 0; state < nStates; state++)
+				transposedMatrix[eq][state] = fst.matrix()[state][eq];
+		Fst finalFst = this.reduceEquivalentInputs(transposedMatrix);
+		final int[] finalEquivalents = new int[this.compiler.getSignalLimit()];
+		for (int eq = 0; eq < finalFst.inputEqSets().length; eq++) {
+			HashSet<Integer> inputs = new HashSet<>();
+			for (int e : finalFst.inputEqSets()[eq])
+				inputs.addAll(this.inputEquivalenceSets[e]);
+			for (int token : inputs)
+				finalEquivalents[token] = eq;
+		}
+		return new Assembly(finalEquivalents, finalFst.matrix(), effectVectorArray);
 	}
 
 	private Fst reduceEquivalentInputs(int[][][] transitionMatrix) {
@@ -233,7 +258,7 @@ final class Assembler {
 		// group equivalent inputs
 		int equivalenceIndex = 0;
 		final int nInputs = equivalenceSets.size();
-		HashSet<Integer>[] equiv = this.allocateHashSetArray(nInputs);
+		final HashSet<Integer>[] equiv = this.allocateHashSetArray(nInputs);
 		for (HashSet<Integer> equivalents : equivalenceSets.values()) {
 			for (int token : equivalents)
 				index[token] = equivalenceIndex;
@@ -242,53 +267,34 @@ final class Assembler {
 
 		// construct transposed states x input groups transition matrix
 		final int nStates = transitionMatrix[0].length;
-		int[][][] matrix = new int[nStates][nInputs][2];
-		State[] states = new State[nStates];
+		final int[][][] matrix = new int[nStates][nInputs][2];
+		final State[] states = new State[nStates];
 		for (int state = 0; state < nStates; state++) {
 			for (int eq = 0; eq < nInputs; eq++)
 				matrix[state][eq] = transitionMatrix[equiv[eq].iterator().next().intValue()][state];
-					states[state] = new State(state, matrix[state],
-					equiv, this.compiler.getSignalLimit());
+			states[state] = new State(state, matrix[state], equiv, this.compiler.getSignalLimit());
 		}
 
 		return new Fst(index, equiv, states, matrix);
-	}
-
-	private int mark(int[][][] matrix, boolean[] markedStates) {
-		Arrays.fill(markedStates, false);
-		StateStack stack = new StateStack(matrix.length);
-		stack.push(0);
-		int marked = 0;
-		while (!stack.isEmpty()) {
-			int state = stack.pop();
-			if (!markedStates[state]) {
-				markedStates[state] = true;
-				for (int[] transition : matrix[state])
-					stack.push(transition[0]);
-				++marked;
-			}
-		}
-		return marked;
 	}
 
 	private int injectEffector(int action, int effector, int parameter) {
 		if (action == NIL)
 			return Transducer.action(effector, parameter);
 		int[] key = null;
-		if (action > 0x10000) {
+		if (action > 0x10000)
 			key = new int[] {
 				-1 * Transducer.action(action),
 				Transducer.parameter(action),
 				-1 * effector, parameter, 0 };
-		} else if (action > NUL) {
-			key = new int[] { action, -1 * effector, parameter, 0 };
-		} else if (action < NUL) {
+		else if (action < NUL) {
 			key = this.effectVectors.get(-1 * action);
 			key = Arrays.copyOf(key, key.length + 2);
 			key[key.length - 3] = -1 * effector;
 			key[key.length - 2] = parameter;
 			key[key.length - 1] = 0;
-		}
+		} else if (action > NUL)
+			key = new int[] { action, -1 * effector, parameter, 0 };
 		if (key != null) {
 			action = -1 * this.effectVectorMap.computeIfAbsent(
 				new Ints(key), absent -> this.effectVectorMap.size());
@@ -319,45 +325,57 @@ final class Assembler {
 			this.compiler.compileParameters(msumOrdinal, argument));
 	}
 
-	private int injectProductEffector(ArrayList<Integer> walkResult, int[][][] matrix, State state, int eq) {
-		byte[] product = new byte[walkResult.size() - 2];
+	private int injectProductEffector(Product walkResult, int[][][] matrix, State state, int eq) {
+		byte[] product = new byte[walkResult.product.size()];
 		product[0] = Token.escape();
 		for (int i = 1; i < product.length; i++)
-			product[i] = (byte) (walkResult.get(i + 1).intValue() & 0xff);
+			product[i] = (byte) (walkResult.product().get(i - 1).intValue() & 0xff);
 		Argument argument = new Argument(-1, new BytesArray(new byte[][] { product }));
 		return this.injectEffector(matrix[state.ordinal][eq][1], mproductOrdinal,
 			this.compiler.compileParameters(mproductOrdinal, argument));
 	}
 
-	private ArrayList<Integer> walk(State nextState, boolean[] walkedStates, Fst fst, ArrayList<Integer> walkResult) {
-		walkResult.clear();
-		walkResult.add(0); walkResult.add(-1);
-		ArrayList<Integer> walkStates = new ArrayList<>(16);
-		Arrays.fill(walkedStates, false);
-		int[] transition = nextState.transitions[fst.inputEquivalenceIndex[Signal.NUL.signal()]];
+	private Product product(State nextState, Fst fst) {
+		ArrayList<Integer> walkedBytes = new ArrayList<>(32);
+		ArrayList<Integer> walkedStates = new ArrayList<>(32);
+		boolean[] markedStates = new boolean[fst.states().length];
+		Arrays.fill(markedStates, false);
+		int[] transition = nextState.transitions[fst.inputEqIndex[Signal.NUL.signal()]];
 		int[] tx = new int[] { transition[0] != nextState.ordinal ? transition[0] : -1, transition[1] };
 		int[] ty = new int[] { Integer.MIN_VALUE, Integer.MIN_VALUE };
-		while (nextState.isProductState() && !walkedStates[nextState.ordinal]) {
+		while (nextState.isProductState() && !markedStates[nextState.ordinal]) {
 			assert nextState.outboundByte == (nextState.outboundByte & 0xff);
-			transition = nextState.transitions[fst.inputEquivalenceIndex[Signal.NUL.signal()]];
+			transition = nextState.transitions[fst.inputEqIndex[Signal.NUL.signal()]];
 			ty[0] = transition[0] != nextState.ordinal ? transition[0] : -1;
 			ty[1] = transition[1];
-			if ((tx[0] != ty[0]) || (tx[1] != ty[1])) {
-				while (walkResult.size() > 2)
-					walkResult.remove(2);
-				return walkResult;
-			}
-			walkResult.add(nextState.outboundByte);
-			walkedStates[nextState.ordinal] = true;
-			walkStates.add(nextState.ordinal);
-			int eq = fst.inputEquivalenceIndex()[nextState.outboundByte];
+			if ((tx[0] != ty[0]) || (tx[1] != ty[1]))
+				break;
+			walkedStates.add(nextState.ordinal);
+			markedStates[nextState.ordinal] = true;
+			walkedBytes.add(nextState.outboundByte);
+			int eq = fst.inputEqIndex()[nextState.outboundByte];
 			nextState = fst.states[fst.matrix[nextState.ordinal][eq][0]];
 		}
-		if (walkStates.size() > 1) {
-			walkResult.set(0, walkResult.size() - 2);
-			walkResult.set(1, walkStates.get(walkStates.size() - 2));
+		return walkedBytes.size() >= ModelCompiler.MIN_PRODUCT_LENGTH
+		? new Product(walkedStates.get(walkedStates.size() - 2), walkedBytes)
+		: null;
+	}
+
+	private int mark(int[][][] matrix, boolean[] markedStates) {
+		Arrays.fill(markedStates, false);
+		final StateStack stack = new StateStack(matrix.length);
+		stack.push(0);
+		int marked = 0;
+		while (!stack.isEmpty()) {
+			int state = stack.pop();
+			if (!markedStates[state]) {
+				markedStates[state] = true;
+				for (int[] transition : matrix[state])
+					stack.push(transition[0]);
+				++marked;
+			}
 		}
-		return walkResult;
+		return marked;
 	}
 
 	@SuppressWarnings("unchecked")

@@ -139,7 +139,7 @@ protected P[] parameters = null;
 				parameterErrors.add(e.getMessage());
 				fail = true;
 			} catch (Exception e) {
-				parameterErrors.add(String.format("%1$s.%2$s[]: %3$%s",
+				parameterErrors.add(String.format("%1$s.%2$s[]: %3$s",
 					super.target.getName(), super.getName(), e.getMessage()));
 				fail = true;
 			}

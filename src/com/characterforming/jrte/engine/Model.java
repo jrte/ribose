@@ -130,12 +130,11 @@ sealed class Model permits ModelCompiler, ModelLoader {
 		this.fieldOrdinalMap.put(new Bytes(Model.ANONYMOUS_FIELD_NAME), Model.ANONYMOUS_FIELD_ORDINAL);
 		this.fieldOrdinalMap.put(new Bytes(Model.ALL_FIELDS_NAME), Model.ALL_FIELDS_ORDINAL);
 		this.initializeProxyEffectors();
-		for (Signal signal : Signal.values()) {
+		for (Signal signal : Signal.values())
 			if (!signal.isNone()) {
 				assert this.getSignalLimit() == signal.signal();
 				this.signalOrdinalMap.put(signal.symbol(), signal.signal());
 			}
-		}
 		try {
 			this.io = new RandomAccessFile(this.modelPath, "rw");
 			this.writeLong(0);
@@ -189,7 +188,8 @@ sealed class Model permits ModelCompiler, ModelLoader {
 					this.effectorOrdinalMap.put(this.proxyEffectors[effectorOrdinal].getName(), effectorOrdinal);
 					this.effectorParametersMaps.add(null);
 				}
-			} else throw new ModelException(String.format(
+			} else
+				throw new ModelException(String.format(
 					"Class '%s' from model file %s does not implement the ITarget interface.",
 						this.targetClass.getName(), this.modelPath.toPath().toString()));
 		} catch (InstantiationException | IllegalAccessException | IllegalArgumentException
@@ -201,9 +201,8 @@ sealed class Model permits ModelCompiler, ModelLoader {
 
 	protected void close() {
 		try {
-			if (this.io != null) {
+			if (this.io != null)
 				this.io.close();
-			}
 		} catch (IOException e) {
 			this.rtcLogger.log(Level.SEVERE, e, () -> String.format("Unable to close model file %1$s",
 				this.modelPath.getPath()));
@@ -212,10 +211,9 @@ sealed class Model permits ModelCompiler, ModelLoader {
 			Codec.detach();
 			assert !this.deleteOnClose || this.targetMode.isLive();
 			if (this.deleteOnClose && this.targetMode.isLive()
-			&& this.modelPath.exists() && !this.modelPath.delete()) {
+			&& this.modelPath.exists() && !this.modelPath.delete())
 				this.rtcLogger.log(Level.WARNING, () -> String.format("Unable to delete model file %1$s",
 					this.modelPath.getPath()));
-			}
 		}
 	}
 
@@ -229,13 +227,12 @@ sealed class Model permits ModelCompiler, ModelLoader {
 	}
 
 	public ITransduction transduction(ITransductor trex) {
-		if (trex instanceof Transductor t) {
+		if (trex instanceof Transductor t)
 			return t;
-		} else {
+		else
 			this.rteLogger.log(Level.SEVERE, () -> String.format(
 				"A Transductor instance is required: %s",
 					trex.getClass().getName()));
-		}
 		return null;
 	}
 
@@ -261,9 +258,8 @@ sealed class Model permits ModelCompiler, ModelLoader {
 					this.writeLong(this.transducerOffsetIndex[transducerOrdinal]);
 					HashMap<Integer, Integer> localFieldMap = this.transducerFieldMaps.get(transducerOrdinal);
 					int[] localFields = new int[localFieldMap.size()];
-					for (Entry<Integer, Integer> e : localFieldMap.entrySet()) {
+					for (Entry<Integer, Integer> e : localFieldMap.entrySet())
 						localFields[e.getValue()] = e.getKey();
-					}
 					this.writeIntArray(localFields);
 				}
 				for (int effectorOrdinal = 0; effectorOrdinal < this.effectorOrdinalMap.size(); effectorOrdinal++) {
@@ -271,9 +267,8 @@ sealed class Model permits ModelCompiler, ModelLoader {
 					if (arguments != null && arguments.length > 0) {
 						assert this.proxyEffectors[effectorOrdinal] instanceof IParameterizedEffector<?, ?>;
 						this.writeArguments(arguments);
-					} else {
+					} else
 						this.writeInt(-1);
-					}
 				}
 				this.seek(0);
 				this.writeLong(indexPosition);
@@ -287,9 +282,8 @@ sealed class Model permits ModelCompiler, ModelLoader {
 				System.out.println(stats);
 				System.out.flush();
 			}
-			if (this.transducerOrdinalMap.size() == 0) {
+			if (this.transducerOrdinalMap.size() == 0)
 				this.rtcLogger.log(Level.SEVERE, "No transducers compiled to {0}", this.modelPath.getPath());
-			}
 		} catch (IOException | ModelException e) {
 			this.rtcLogger.log(Level.SEVERE, e, () -> String.format("Failed to save model '%1$s'",
 				this.modelPath.getPath()));
@@ -297,10 +291,9 @@ sealed class Model permits ModelCompiler, ModelLoader {
 			if (this.deleteOnClose) {
 				this.rtcLogger.log(Level.SEVERE, () -> String.format("Compilation failed for model '%1$s'",
 					this.modelPath.getPath()));
-				if (mapFile.exists() && !mapFile.delete()) {
+				if (mapFile.exists() && !mapFile.delete())
 					this.rtcLogger.log(Level.WARNING, () -> String.format("Unable to delete model '%1$s'",
 						mapFile.getPath()));
-				}
 			}
 		}
 		return !this.deleteOnClose;
@@ -310,17 +303,15 @@ sealed class Model permits ModelCompiler, ModelLoader {
 		this.seek(0);
 		long indexPosition = this.readLong();
 		final String loadedVersion = this.readString();
-		if (!loadedVersion.equals(Base.RTE_VERSION)) {
+		if (!loadedVersion.equals(Base.RTE_VERSION))
 			throw new ModelException(String.format(
 				"Current this version '%1$s' does not match version string '%2$s' from this file '%3$s'",
 					Base.RTE_VERSION, loadedVersion, this.modelPath.getPath()));
-		}
 		final String targetClassname = this.readString();
-		if (!targetClassname.equals(this.targetClass.getName())) {
+		if (!targetClassname.equals(this.targetClass.getName()))
 			throw new ModelException(String.format(
 				"Can't load this for target class '%1$s'; '%2$s' is target class for this file '%3$s'",
 					this.targetName, targetClassname, this.modelPath.getPath()));
-		}
 		this.modelVersion = loadedVersion;
 		this.seek(indexPosition);
 		this.signalOrdinalMap = this.readOrdinalMap(Base.RTE_SIGNAL_BASE);
@@ -347,24 +338,20 @@ sealed class Model permits ModelCompiler, ModelLoader {
 		for (int effectorOrdinal = 0; effectorOrdinal < this.effectorOrdinalMap.size(); effectorOrdinal++) {
 			Argument[] effectorArguments = this.readArguments();
 			IToken[][] parameterTokens = new IToken[effectorArguments.length][];
-			for (int i = 0; i < effectorArguments.length; i++) {
+			for (int i = 0; i < effectorArguments.length; i++)
 				parameterTokens[i] = Token.getParameterTokens(this, effectorArguments[i]);
-			}
-			if (this.proxyEffectors[effectorOrdinal] instanceof BaseParameterizedEffector<?, ?> effector) {
+			if (this.proxyEffectors[effectorOrdinal] instanceof BaseParameterizedEffector<?, ?> effector)
 				effector.compileParameters(parameterTokens, errors);
-			}
-			if (this.targetMode.isLive()) {
+			if (this.targetMode.isLive())
 				this.proxyEffectors[effectorOrdinal].passivate();
-			}
 		}
 		this.proxyTransductor = null;
 		if (!errors.isEmpty()) {
-			for (String error : errors) {
+			for (String error : errors)
 				this.rtcLogger.log(Level.SEVERE, error);
-			}
 			throw new ModelException(String.format(
 				"Failed to load '%1$s', effector parameter precompilation failed.",
-				modelPath.getAbsolutePath()));
+					modelPath.getAbsolutePath()));
 		}
 		assert this.targetMode.isLive();
 		return this;
@@ -391,49 +378,40 @@ sealed class Model permits ModelCompiler, ModelLoader {
 		mapWriter.println(String.format("version %1$s", this.modelVersion));
 		mapWriter.println(String.format("target %1$s", this.targetClass.getName()));
 		Bytes[] signalIndex = new Bytes[this.signalOrdinalMap.size()];
-		for (Map.Entry<Bytes, Integer> m : this.signalOrdinalMap.entrySet()) {
+		for (Map.Entry<Bytes, Integer> m : this.signalOrdinalMap.entrySet())
 			signalIndex[m.getValue() - Base.RTE_SIGNAL_BASE] = m.getKey();
-		}
-		for (int i = 0; i < signalIndex.length; i++) {
+		for (int i = 0; i < signalIndex.length; i++)
 			mapWriter.printf("%1$6d signal %2$s%n", i + Base.RTE_SIGNAL_BASE,
 				signalIndex[i].asString());
-		}
 		Bytes[] fieldIndex = new Bytes[this.fieldOrdinalMap.size()];
-		for (Map.Entry<Bytes, Integer> m : this.fieldOrdinalMap.entrySet()) {
+		for (Map.Entry<Bytes, Integer> m : this.fieldOrdinalMap.entrySet())
 			fieldIndex[m.getValue()] = m.getKey();
-		}
 		Bytes[] transducerIndex = new Bytes[this.transducerOrdinalMap.size()];
-		for (Map.Entry<Bytes, Integer> m : this.transducerOrdinalMap.entrySet()) {
+		for (Map.Entry<Bytes, Integer> m : this.transducerOrdinalMap.entrySet())
 			transducerIndex[m.getValue()] = m.getKey();
-		}
 		for (int transducerOrdinal = 0; transducerOrdinal < transducerIndex.length; transducerOrdinal++) {
 			mapWriter.printf("%1$6d transducer %2$s%n", transducerOrdinal,
 				transducerIndex[transducerOrdinal].asString());
 			Map<Integer, Integer> fieldMap = this.transducerFieldMaps.get(transducerOrdinal);
 			Bytes[] fields = new Bytes[fieldMap.size()];
-			for (Entry<Integer, Integer> e : fieldMap.entrySet()) {
+			for (Entry<Integer, Integer> e : fieldMap.entrySet())
 				fields[e.getValue()] = fieldIndex[e.getKey()];
-			}
-			for (int field = 0; field < fields.length; field++) {
+			for (int field = 0; field < fields.length; field++)
 				mapWriter.printf("%1$6d field ~%2$s%n", field,
 					fields[field].asString());
-			}
 		}
 		Bytes[] effectorIndex = new Bytes[this.effectorOrdinalMap.size()];
-		for (Map.Entry<Bytes, Integer> m : this.effectorOrdinalMap.entrySet()) {
+		for (Map.Entry<Bytes, Integer> m : this.effectorOrdinalMap.entrySet())
 			effectorIndex[m.getValue()] = m.getKey();
-		}
 		for (int effector = 0; effector < effectorIndex.length; effector++) {
 			mapWriter.printf("%1$6d effector %2$s", effector,
 				effectorIndex[effector].asString());
 			if (this.proxyEffectors[effector] instanceof BaseParameterizedEffector<?, ?> proxyEffector) {
 				mapWriter.printf(" [ %1$s ]%n", proxyEffector.showParameterType());
-				for (int parameter = 0; parameter < proxyEffector.getParameterCount(); parameter++) {
+				for (int parameter = 0; parameter < proxyEffector.getParameterCount(); parameter++)
 					mapWriter.printf("%1$6d parameter %2$s%n", parameter, proxyEffector.showParameterTokens(parameter));
-				}
-			} else {
+			} else
 				mapWriter.println();
-			}
 		}
 		mapWriter.flush();
 		return true;
@@ -458,8 +436,8 @@ sealed class Model permits ModelCompiler, ModelLoader {
 				"Proxy effector count (%1$d) does not match target %3$s effector count (%2$d)",
 					this.proxyEffectors.length, boundFx.length, target.getName()));
 			checked = false;
-		} else {
-			for (int i = 0; checked && i < boundFx.length; i++) {
+		} else
+			for (int i = 0; checked && i < boundFx.length; i++)
 				if (!boundFx[i].equivalent(this.proxyEffectors[i])) {
 					final int index = i;
 					this.rtcLogger.log(Level.SEVERE, () -> String.format(
@@ -467,8 +445,6 @@ sealed class Model permits ModelCompiler, ModelLoader {
 							this.proxyEffectors[index].getName(), boundFx[index].getName(), target.getName()));
 					checked = false;
 				}
-			}
-		}
 		return checked;
 	}
 
@@ -491,35 +467,27 @@ sealed class Model permits ModelCompiler, ModelLoader {
 					}
 					parameterizedEffector.compileParameters(tokens, errors);
 					effectorArguments[effectorOrdinal] = arguments;
-				} else {
+				} else
 					effectorArguments[effectorOrdinal] = new Argument[0];
-				}
 			} else if (this.proxyEffectors[effectorOrdinal] instanceof BaseEffector<?> effector) {
-				if (parametersMap != null && parametersMap.size() > 0) {
+				if (parametersMap != null && parametersMap.size() > 0)
 					errors.add(String.format("%1$s.%2$s: effector does not accept parameters",
-					this.targetName, effector.getName()));
-				}
+						this.targetName, effector.getName()));
 				effectorArguments[effectorOrdinal] = new Argument[0];
-			} else {
+			} else
 				assert false;
-			}
 		}
-		for (final Map.Entry<Bytes, Integer> entry : effectorMap.entrySet()) {
-			if (this.proxyEffectors[entry.getValue()] == null) {
+		for (final Map.Entry<Bytes, Integer> entry : effectorMap.entrySet())
+			if (this.proxyEffectors[entry.getValue()] == null)
 				this.rtcLogger.log(Level.SEVERE, () -> String.format("%1$s.%2$s: effector ordinal not found",
 					this.targetName, entry.getKey().asString()));
-			}
-		}
 		return effectorArguments;
 	}
 
 	protected int compileParameters(final int effectorOrdinal, final Argument parameterBytes) {
-		HashMap<Argument, Integer> parametersMap = this.effectorParametersMaps.get(effectorOrdinal);
-		if (parametersMap == null) {
-			parametersMap = new HashMap<>(10);
-			this.effectorParametersMaps.set(effectorOrdinal, parametersMap);
-		}
-		final HashMap<Argument, Integer> effectiveMap = parametersMap;
+		if (this.effectorParametersMaps.get(effectorOrdinal) == null)
+			this.effectorParametersMaps.set(effectorOrdinal, new HashMap<>(10));
+		final HashMap<Argument, Integer> effectiveMap = this.effectorParametersMaps.get(effectorOrdinal);
 		return effectiveMap.computeIfAbsent(parameterBytes, absent -> effectiveMap.size());
 	}
 
@@ -536,14 +504,13 @@ sealed class Model permits ModelCompiler, ModelLoader {
 	}
 
 	protected Integer getInputOrdinal(final byte[] input) throws CompilationException, CharacterCodingException {
-		if (input.length == 1) {
+		if (input.length == 1)
 			return Byte.toUnsignedInt(input[0]);
-		} else {
+		else {
 			Integer ordinal = this.getSignalOrdinal(new Bytes(input));
-			if (ordinal < 0) {
+			if (ordinal < 0)
 				throw new CompilationException(String.format("Invalid input token %s",
 					Codec.decode(input, input.length)));
-			}
 			return ordinal;
 		}
 	}
@@ -665,42 +632,39 @@ sealed class Model permits ModelCompiler, ModelLoader {
 	}
 
 	protected int[] readIntArray() throws ModelException {
-		int[] ints = {};
-		long position = this.getSafeFilePosition();
+		final long position = this.getSafeFilePosition();
 		try {
-			ints = new int[this.io.readInt()];
-			for (int i = 0; i < ints.length; i++) {
+			int[] ints = new int[this.io.readInt()];
+			for (int i = 0; i < ints.length; i++)
 				ints[i] = this.io.readInt();
-			}
+			return ints;
 		} catch (final IOException e) {
 			throw new ModelException(String.format(
-				"Model.readIntsArray() IOException at file position %3$d reading int[%1$d] array starting at file position %2$d",
-					ints.length, position, this.getSafeFilePosition()), e);
+				"Model.readIntsArray() IOException at file position %2$d reading int[] array starting at file position %1$d",
+					position, this.getSafeFilePosition()), e);
 		}
-		return ints;
 	}
 
 	protected byte[] readBytes() throws ModelException {
+		final long position = this.getSafeFilePosition();
 		byte[] bytes = {};
-		long position = this.getSafeFilePosition();
 		int read = -1;
 		try {
 			int length = this.io.readInt();
 			if (length >= 0) {
 				bytes = new byte[length];
 				read = this.io.read(bytes);
+				if (read != bytes.length)
+					throw new ModelException(String.format(
+						"Model.readBytes expected %1$d bytes at file position %2$d but read only %3$d",
+							bytes.length,	position, read));
 			}
+			return bytes;
 		} catch (final IOException e) {
 			throw new ModelException(String.format(
 				"Model.readBytes() IOException at file position %3$d reading %1$d bytes at file position %2$d",
 					bytes.length, position, this.getSafeFilePosition()), e);
 		}
-		if (read >= 0 && read != bytes.length) {
-			throw new ModelException(String.format(
-				"Model.readBytes expected %1$d bytes at file position %2$d but read only %3$d",
-					bytes.length,	position, read));
-		}
-		return bytes;
 	}
 
 	protected byte[][] readBytesArray() throws ModelException {
@@ -710,45 +674,42 @@ sealed class Model permits ModelCompiler, ModelLoader {
 			int length = this.io.readInt();
 			if (length >= 0) {
 				bytesArray = new byte[length][];
-				for (int i = 0; i < bytesArray.length; i++) {
+				for (int i = 0; i < bytesArray.length; i++)
 					bytesArray[i] = this.readBytes();
-				}
 			}
+			return bytesArray;
 		} catch (final IOException e) {
 			throw new ModelException(String.format(
 				"Model.readBytesArray() IOException at file position %1$s reading bytes array starting at file position %2$d",
 					this.getSafeFilePosition(), position), e);
 		}
-		return bytesArray;
 	}
 
 	protected HashMap<Bytes, Integer> readOrdinalMap(int offset) throws ModelException {
 		byte[][] bytesArray = this.readBytesArray();
 		HashMap<Bytes, Integer> map = new HashMap<>((Math.max(48, bytesArray.length) * 5) >> 2);
 		int limit = offset + bytesArray.length;
-		for (int ordinal = offset; ordinal < limit; ordinal++) {
+		for (int ordinal = offset; ordinal < limit; ordinal++)
 			map.put(new Bytes(bytesArray[ordinal - offset]), ordinal);
-		}
 		return map;
 	}
 
 	protected byte[][][] readBytesArrays() throws ModelException {
-		byte[][][] bytesArrays = null;
 		long position = this.getSafeFilePosition();
 		try {
 			int length = this.io.readInt();
 			if (length >= 0) {
-				bytesArrays = new byte[length][][];
-				for (int i = 0; i < bytesArrays.length; i++) {
+				byte[][][] bytesArrays = new byte[length][][];
+				for (int i = 0; i < bytesArrays.length; i++)
 					bytesArrays[i] = this.readBytesArray();
-				}
+				return bytesArrays;
 			}
 		} catch (final IOException e) {
 			throw new ModelException(String.format(
 				"Model.readBytesArrays() IOException at file position %1$d reading bytes array starting at file position %2$d",
 					this.getSafeFilePosition(), position), e);
 		}
-		return (bytesArrays != null) ? bytesArrays : new byte[][][] {};
+		return new byte[][][] {};
 	}
 
 	protected Argument readArgument() throws ModelException {
@@ -756,17 +717,16 @@ sealed class Model permits ModelCompiler, ModelLoader {
 		long position = this.getSafeFilePosition();
 		try {
 			int transducerOrdinal = this.io.readInt();
-			if (transducerOrdinal > Integer.MIN_VALUE) {
+			if (transducerOrdinal > Integer.MIN_VALUE)
 				argument = new Argument(transducerOrdinal, new BytesArray(this.readBytesArray()));
-			} else {
+			else
 				argument = new Argument(-1, new BytesArray(new byte[][] {}));
-			}
+			return argument;
 		} catch (final IOException e) {
 			throw new ModelException(String.format(
 				"Model.readBytesArray() IOException at file position %1$s reading bytes array starting at file position %2$d",
 					this.getSafeFilePosition(), position), e);
 		}
-		return argument;
 	}
 
 	protected Argument[] readArguments() throws ModelException {
@@ -776,29 +736,27 @@ sealed class Model permits ModelCompiler, ModelLoader {
 			int length = this.io.readInt();
 			if (length >= 0) {
 				arguments = new Argument[length];
-				for (int i = 0; i < length; i++) {
+				for (int i = 0; i < length; i++)
 					arguments[i] = this.readArgument();
-				}
+				return arguments;
 			}
 		} catch (final IOException e) {
 			throw new ModelException(String.format(
 				"Model.readArguments() IOException at file position %1$d reading Argument array starting at file position %2$d",
 					this.getSafeFilePosition(), position), e);
 		}
-		return (arguments != null) ? arguments : new Argument[] {};
+		return new Argument[] {};
 	}
 
 	protected String readString() throws ModelException, CharacterCodingException {
-		byte[] bytes = this.readBytes();
-		return Codec.decode(bytes);
+		return Codec.decode(this.readBytes());
 	}
 
 	protected String[] readStringArray() throws ModelException, CharacterCodingException {
 		final byte[][] bytesArray = this.readBytesArray();
 		final String[] stringArray = new String[bytesArray.length];
-		for (int i = 0; i < bytesArray.length; i++) {
+		for (int i = 0; i < bytesArray.length; i++)
 			stringArray[i] = Codec.decode(bytesArray[i]);
-		}
 		return stringArray;
 	}
 
@@ -814,9 +772,8 @@ sealed class Model permits ModelCompiler, ModelLoader {
 			for (int state = 0; state < nStates; state++) {
 				final int base = state * nInputs, toState = base;
 				final long nul = Transducer.transition(toState, Signal.NUL.ordinal());
-				for (int input = 0; input < nInputs; input++) {
+				for (int input = 0; input < nInputs; input++)
 					matrix[base + input] = nul;
-				}
 			}
 			// fill in defined transitions
 			for (int state = 0; state < nStates; state++) {
@@ -829,12 +786,12 @@ sealed class Model permits ModelCompiler, ModelLoader {
 					matrix[base + input] = Transducer.transition(toState, effect);
 				}
 			}
+			return matrix;
 		} catch (final IOException e) {
 			throw new ModelException(String.format(
 				"Model.readTransitionMatrix() IOException at file position %2$d reading transition matrix starting at file position %1$d",
 					position, this.getSafeFilePosition()), e);
 		}
-		return matrix;
 	}
 
 	protected Transducer readTransducer(int transducerOrdinal) throws ModelException {
@@ -871,13 +828,12 @@ sealed class Model permits ModelCompiler, ModelLoader {
 			if (bytes != null) {
 				this.io.writeInt(length);
 				this.io.write(bytes, 0, length);
-			} else {
+			} else
 				this.io.writeInt(-1);
-			}
 		} catch (final IOException e) {
 			throw new ModelException(String.format(
 				"Model.writeBytes() IOException at file position %2$d trying to write %1$d bytes starting at file position %3$d",
-				bytes != null ? bytes.length : 0, this.getSafeFilePosition(), position), e);
+					bytes != null ? bytes.length : 0, this.getSafeFilePosition(), position), e);
 		}
 	}
 
@@ -898,12 +854,10 @@ sealed class Model permits ModelCompiler, ModelLoader {
 		try {
 			if (bytesArray != null) {
 				this.io.writeInt(bytesArray.length);
-				for (final byte[] element : bytesArray) {
+				for (final byte[] element : bytesArray)
 					this.writeBytes(element);
-				}
-			} else {
+			} else
 				this.io.writeInt(-1);
-			}
 		} catch (final IOException e) {
 			throw new ModelException(String.format(
 				"Model.writeBytesArray() IOException at file position %1$d writing byte[][] array starting at file position %2$d",
@@ -916,12 +870,10 @@ sealed class Model permits ModelCompiler, ModelLoader {
 		try {
 			if (bytesArrays != null) {
 				this.io.writeInt(bytesArrays.length);
-				for (final byte[][] bytesArray : bytesArrays) {
+				for (final byte[][] bytesArray : bytesArrays)
 					this.writeBytesArray(bytesArray);
-				}
-			} else {
+			} else
 				this.io.writeInt(-1);
-			}
 		} catch (final IOException e) {
 			throw new ModelException(String.format(
 				"Model.writeBytesArrays() IOException at file position %1$d writing byte[][][] array starting at file position %2$d",
@@ -935,9 +887,8 @@ sealed class Model permits ModelCompiler, ModelLoader {
 			if (argument != null) {
 				this.io.writeInt(argument.transducerOrdinal);
 				this.writeBytesArray(argument.tokens.getBytes());
-			} else {
+			} else
 				this.io.writeInt(Integer.MIN_VALUE);
-			}
 		} catch (final IOException e) {
 			throw new ModelException(String.format(
 				"Model.writeArgument() IOException at file position %1$d writing Argument starting at file position %2$d",
@@ -950,12 +901,10 @@ sealed class Model permits ModelCompiler, ModelLoader {
 		try {
 			if (arguments != null) {
 				this.writeInt(arguments.length);
-				for (Argument argument : arguments) {
+				for (Argument argument : arguments)
 					this.writeArgument(argument);
-				}
-			} else {
+			} else
 				this.io.writeInt(0);
-			}
 		} catch (final IOException e) {
 			throw new ModelException(String.format(
 				"Model.writeArguments() IOException at file position %1$d writing Arguments starting at file position %2$d",
@@ -965,9 +914,8 @@ sealed class Model permits ModelCompiler, ModelLoader {
 
 	protected void writeOrdinalMap(final Map<Bytes, Integer> map, int offset) throws ModelException {
 		byte[][] names = new byte[map.size()][];
-		for (Entry<Bytes, Integer> entry : map.entrySet()) {
+		for (Entry<Bytes, Integer> entry : map.entrySet())
 			names[entry.getValue() - offset] = entry.getKey().bytes();
-		}
 		this.writeBytesArray(names);
 	}
 
@@ -997,9 +945,8 @@ sealed class Model permits ModelCompiler, ModelLoader {
 		final long position = this.getSafeFilePosition();
 		try {
 			this.io.writeInt(ints.length);
-			for (final int j : ints) {
+			for (final int j : ints)
 				this.writeInt(j);
-			}
 		} catch (final IOException e) {
 			throw new ModelException(String.format(
 				"Model.writeIntArray() IOException at file position %1$d writing int array starting at file position %2$d",
@@ -1020,19 +967,16 @@ sealed class Model permits ModelCompiler, ModelLoader {
 			this.io.writeInt(nInputs);
 			for (int state = 0; state < nStates; state++) {
 				int transitions = 0;
-				for (int input = 0; input < nInputs; input++) {
-					if (matrix[state][input][1] != 0) {
+				for (int input = 0; input < nInputs; input++)
+					if (matrix[state][input][1] != 0)
 						transitions++;
-					}
-				}
 				this.io.writeInt(transitions);
-				for (int input = 0; input < nInputs; input++) {
+				for (int input = 0; input < nInputs; input++)
 					if (matrix[state][input][1] != 0) {
 						this.io.writeInt(input);
 						this.io.writeInt(matrix[state][input][0]);
 						this.io.writeInt(matrix[state][input][1]);
 					}
-				}
 			}
 		} catch (final IOException e) {
 			throw new ModelException(String.format(
@@ -1052,4 +996,3 @@ sealed class Model permits ModelCompiler, ModelLoader {
 		this.writeIntArray(effectorVectors);
 	}
 }
-//String name, int ordinal, int[] fields, int[] inputFilter, long[] transitionMatrix, int[] effectorVector

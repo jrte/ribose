@@ -1,18 +1,18 @@
 /***
  * Ribose is a recursive transduction engine for Java
- * 
+ *
  * Copyright (C) 2011,2022 Kim Briggs
- * 
+ *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program (LICENSE-gpl-3.0). If not, see
  * <http://www.gnu.org/licenses/#GPL>.
@@ -47,11 +47,9 @@ final class Transducer {
 		this.transitionMatrix = transitionMatrix;
 		this.effectorVector = effectorVector;
 		int max = -1;
-		for (int eq : this.inputFilter) {
-			if (eq > max) {
+		for (int eq : this.inputFilter)
+			if (eq > max)
 				max = eq;
-			}
-		}
 		this.inputEquivalents = max + 1;
 	}
 
@@ -85,7 +83,7 @@ final class Transducer {
 		return action & 0xffff;
 	}
 
-	// decode signal from RTX_SIGNAL code from an effector 
+	// decode signal from RTX_SIGNAL code from an effector
 	static int signal(int rtxSignal) {
 		return rtxSignal >>> 16;
 	}
@@ -98,15 +96,15 @@ final class Transducer {
 		return this.name;
 	}
 
-	long[] getTransitionMatrix() {
+	long[] transitionMatrix() {
 		return this.transitionMatrix;
 	}
 
-	int[] getInputFilter() {
+	int[] inputFilter() {
 		return this.inputFilter;
 	}
 
-	int[] getEffectorVector() {
+	int[] effectorVector() {
 		return this.effectorVector;
 	}
 
@@ -117,7 +115,7 @@ final class Transducer {
 	int getFieldCount() {
 		return this.fields.length;
 	}
-	
+
 	int getInputEquivalentsCount() {
 		return this.inputEquivalents;
 	}

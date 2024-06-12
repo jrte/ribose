@@ -35,7 +35,7 @@ import java.util.logging.Logger;
 import com.characterforming.ribose.base.Bytes;
 import com.characterforming.ribose.base.ModelException;
 
-/** Constructs Transducer assemblies for ModelCompiler from ginr FSTs */
+/** Assembles bootstrap transducer used by ModelCompiler to assemble transducers for ribose models from ginr FSTs */
 final class Automaton {
 	private final ModelCompiler compiler;
 	private final Logger rtcLogger;
@@ -77,9 +77,8 @@ final class Automaton {
 				try {
 					this.compiler.reset(inrFile);
 					commit = this.parse(bytes);
-					if (commit) {
+					if (commit)
 						this.compiler.saveTransducer();
-					}
 				} catch (ModelException | ParseException | CharacterCodingException e) {
 					String msg = String.format("%1$s: Exception caught assembling compiler model file; %2$s",
 						filename, e.getMessage());
@@ -116,17 +115,15 @@ final class Automaton {
 	}
 
 	private Bytes symbol(int length) throws ParseException {
-		Bytes symbol = new Bytes(
-			Arrays.copyOfRange(this.dfain.array, this.dfain.position, this.dfain.position + length)
-		);
+		Bytes symbol = new Bytes(Arrays.copyOfRange(
+			this.dfain.array, this.dfain.position, this.dfain.position + length));
 		this.dfain.position += length;
 		byte d = this.dfain.array[this.dfain.position++];
-		if (d == '\n') {
-			return symbol;
-		}
-		throw new ParseException(String.format(
-			"Malformed transition symbol; expected newline but received '%1$c' on line %2$d",
+		if (d != '\n')
+			throw new ParseException(String.format(
+				"Malformed transition symbol; expected newline but received '%1$c' on line %2$d",
 				d, this.line), this.dfain.position - 1);
+		return symbol;
 	}
 
 	private int number() throws ParseException {
@@ -135,15 +132,13 @@ final class Automaton {
 		if (sign < 0) ++this.dfain.position;
 		while (this.dfain.position < this.dfain.length) {
 			d = this.dfain.array[this.dfain.position++];
-			if (d >= '0' && d <= '9') {
+			if (d >= '0' && d <= '9')
 				n = (10 * n) + (d - '0');
-			} else {
+			else
 				break;
-			}
 		}
-		if (d == '\t' || d == '\n') {
+		if (d == '\t' || d == '\n')
 			return sign * n;
-		}
 		throw new ParseException(String.format(
 			"Malformed transition; expected tab or newline but received'%1$c' on line %2$d",
 				d, this.line), this.dfain.position);

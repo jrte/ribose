@@ -54,8 +54,8 @@ import com.characterforming.ribose.base.SimpleTarget;
  * block. Character set decoder and encoder are held in Codec object attached as a
  * {@link ThreadLocal} to threads that require them. These are attached on first use
  *  and detached when the model is closed <i>by the thread</i>. Threads that use
- * ribose APIs but are not involved with closing a model must call {@link #detach()}
- * to explicitly remove the thread local {@code Codec} instance explicitly when they
+ * ribose APIs but are not involved with closing a model must explicitly call
+ * {@link #detach()} to remove the thread local {@code Codec} instance when they
  * no longer require ribose APIs.
  *
  * @author Kim Briggs
@@ -65,8 +65,8 @@ public interface IModel extends AutoCloseable {
 /**
  * Compile a collection of ginr DFAs from an automata directory into a ribose model file
  * and bind them to an {@link ITarget} class. Ginr compiles ribose patterns (*.inr files)
- * to DFAs as the first step in building a ribose model. The ribose compiler cruches the
- * DFAs to produce ribose transducers and asembles them in a into the model file for
+ * to DFAs as the first step in building a ribose model. The ribose compiler processes the
+ * DFAs to produce ribose transducers and assembles them in a into the model file for
  * runtime use.
  *
  * @param targetClassname the name of the Target implementation class will be instantiated as model target
@@ -87,7 +87,7 @@ public interface IModel extends AutoCloseable {
 
 	/**
 	 * Load a ribose runtime model from persistent store. A runtime model can be used
-	 * o instantiate {@link ITransductor} instances and bind them to instances of the
+	 * to instantiate {@link ITransductor} instances and bind them to instances of the
 	 * model {@link ITarget}. A transductor can run serial {@link ITransduction}s
 	 * whereby syntactic cues in an input stream select effectors to reduce and
 	 * ssimilate extracted data into the target. All of this is wrapped inside
@@ -105,7 +105,7 @@ public interface IModel extends AutoCloseable {
 
 	/**
 	 * Instantiate a new transductor and bind it to a live target instance. Use
-	 * this method to obtain fine-grained control of transduction processes. USe
+	 * this method to obtain fine-grained control of transduction processes. Use
 	 * {@link #transduction(ITransductor)} to obtain {@link AutoCloseable}
 	 * transdactions for use in discrete {@code try-with-transductor} blocks,
 	 * See {@link ITransductor} documentation for an example.
