@@ -224,14 +224,11 @@ public final class ModelLoader extends Model implements IModel {
 		for (Map.Entry<Bytes, Integer> entry : effectorOrdinalMap)
 			effectorNames[entry.getValue()] = Codec.decode(
 				entry.getKey().bytes(), entry.getKey().getLength());
-		Bytes[] fieldIndex = new Bytes[this.fieldOrdinalMap.size()];
-		for (Map.Entry<Bytes, Integer> m : this.fieldOrdinalMap.entrySet())
-			fieldIndex[m.getValue()] = m.getKey();
 		System.out.printf("%s%n%nFields%n%n", transducerName);
-		Map<Integer, Integer> fieldMap = this.transducerFieldMaps.get(transducerOrdinal);
+		Map<Bytes, Integer> fieldMap = this.transducerFieldMaps.get(transducerOrdinal);
 		Bytes[] fields = new Bytes[fieldMap.size()];
-		for (Entry<Integer, Integer> e : fieldMap.entrySet())
-			fields[e.getValue()] = fieldIndex[e.getKey()];
+		for (Entry<Bytes, Integer> e : fieldMap.entrySet())
+			fields[e.getValue()] = e.getKey();
 		for (int i = 0; i < fields.length; i++)
 			System.out.printf("%4d: %s%n", i, fields[i]);
 		System.out.printf("%nInput equivalents (equivalent: input...)%n%n", transducerName);

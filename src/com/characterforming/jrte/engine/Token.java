@@ -303,12 +303,9 @@ public final class Token implements IToken {
 			Token token = new Token(argument.tokens().getBytes(i));
 			if (token.type == Token.Type.FIELD) {
 				int transducerOrdinal = argument.transducerOrdinal();
-				int fieldOrdinal = model.getFieldOrdinal(token.symbol);
-				HashMap<Integer, Integer> localFieldMap = model.transducerFieldMaps.get(transducerOrdinal);
-				int localFieldIndex = localFieldMap.computeIfAbsent(fieldOrdinal, absent -> localFieldMap.size());
-				tokens[i] = new Token(bytes[i], localFieldIndex);
-				assert transducerOrdinal >= 0 && fieldOrdinal >= 0
-				&& (localFieldMap.isEmpty() || localFieldIndex >= 0);
+				HashMap<Bytes, Integer> localFieldMap = model.transducerFieldMaps.get(transducerOrdinal);
+				int fieldOrdinal = localFieldMap.computeIfAbsent(token.symbol, absent -> localFieldMap.size());
+				tokens[i] = new Token(bytes[i], fieldOrdinal);
 			} else if (token.type == Token.Type.TRANSDUCER)
 				tokens[i] = new Token(bytes[i], model.getTransducerOrdinal(token.symbol));
 			else if (token.type == Token.Type.SIGNAL)

@@ -216,8 +216,7 @@ public final class Transductor implements ITransductor, ITransduction, IOutput {
 	@Override // @see com.characterforming.ribose.IOutput#getLocalizedFieldIndex(Bytes, Bytes)
 	public int getLocalizedFieldIndex(String transducerName, String fieldName) throws CharacterCodingException {
 		int transducerOrdinal = this.model.getTransducerOrdinal(Codec.encode(transducerName));
-		int fieldOrdinal = this.model.getFieldOrdinal(Codec.encode(fieldName));
-		return this.model.getLocalField(transducerOrdinal, fieldOrdinal);
+		return this.model.getLocalField(transducerOrdinal, Codec.encode(fieldName));
 	}
 
 	@Override // @see com.characterforming.ribose.IOutput#getLocalizedFieldIndex()

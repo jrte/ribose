@@ -87,10 +87,9 @@ sealed class Model permits ModelCompiler, ModelLoader {
 	protected final Logger rtcLogger;
 	protected final Logger rteLogger;
 	protected HashMap<Bytes, Integer> signalOrdinalMap;
-	protected HashMap<Bytes, Integer> fieldOrdinalMap;
 	protected HashMap<Bytes, Integer> effectorOrdinalMap;
 	protected HashMap<Bytes, Integer> transducerOrdinalMap;
-	protected HashMap<Integer, HashMap<Integer, Integer>> transducerFieldMaps;
+	protected HashMap<Integer, HashMap<Bytes, Integer>> transducerFieldMaps;
 	protected IEffector<?>[] proxyEffectors;
 	protected long[] transducerOffsetIndex;
 	protected Bytes[] transducerNameIndex;
@@ -121,14 +120,11 @@ sealed class Model permits ModelCompiler, ModelLoader {
 		this.modelVersion = Base.RTE_VERSION;
 		this.modelPath = modelPath;
 		this.deleteOnClose = true;
-		this.fieldOrdinalMap = new HashMap<>(256);
 		this.signalOrdinalMap = new HashMap<>(256);
 		this.transducerOrdinalMap = new HashMap<>(256);
 		this.transducerOffsetIndex = new long[256];
 		this.transducerNameIndex = new Bytes[256];
 		this.transducerFieldMaps = new HashMap<>(256);
-		this.fieldOrdinalMap.put(new Bytes(Model.ANONYMOUS_FIELD_NAME), Model.ANONYMOUS_FIELD_ORDINAL);
-		this.fieldOrdinalMap.put(new Bytes(Model.ALL_FIELDS_NAME), Model.ALL_FIELDS_ORDINAL);
 		this.initializeProxyEffectors();
 		for (Signal signal : Signal.values())
 			if (!signal.isNone()) {
@@ -250,17 +246,12 @@ sealed class Model permits ModelCompiler, ModelLoader {
 			if (this.transducerOrdinalMap.size() > 0) {
 				this.writeOrdinalMap(signalOrdinalMap, Base.RTE_SIGNAL_BASE);
 				this.writeOrdinalMap(effectorOrdinalMap, 0);
-				this.writeOrdinalMap(this.fieldOrdinalMap, 0);
 				this.writeOrdinalMap(transducerOrdinalMap, 0);
 				int transducerCount = this.transducerOrdinalMap.size();
 				for (int transducerOrdinal = 0; transducerOrdinal < transducerCount; transducerOrdinal++) {
 					this.writeBytes(this.transducerNameIndex[transducerOrdinal].bytes());
 					this.writeLong(this.transducerOffsetIndex[transducerOrdinal]);
-					HashMap<Integer, Integer> localFieldMap = this.transducerFieldMaps.get(transducerOrdinal);
-					int[] localFields = new int[localFieldMap.size()];
-					for (Entry<Integer, Integer> e : localFieldMap.entrySet())
-						localFields[e.getValue()] = e.getKey();
-					this.writeIntArray(localFields);
+					this.writeOrdinalMap(this.transducerFieldMaps.get(transducerOrdinal), 0);
 				}
 				for (int effectorOrdinal = 0; effectorOrdinal < this.effectorOrdinalMap.size(); effectorOrdinal++) {
 					Argument[] arguments = effectorParameters[effectorOrdinal];
@@ -274,9 +265,9 @@ sealed class Model permits ModelCompiler, ModelLoader {
 				this.writeLong(indexPosition);
 				this.map(mapFile);
 				String stats = String.format(
-					"%1$s: target class %2$s%n%3$d transducers; %4$d effectors; %5$d fields; %6$d signal ordinals%n",
+					"%1$s: target class %2$s%n%3$d transducers; %4$d effectors; %5$d signal ordinals%n",
 					this.modelPath.getPath(), this.targetClass.getName(), transducerCount,
-					this.effectorOrdinalMap.size(), this.getFieldCount(), this.getSignalCount());
+					this.effectorOrdinalMap.size(), this.getSignalCount());
 				this.rtcLogger.log(Level.INFO, () -> stats);
 				this.deleteOnClose = false;
 				System.out.println(stats);
@@ -316,7 +307,6 @@ sealed class Model permits ModelCompiler, ModelLoader {
 		this.seek(indexPosition);
 		this.signalOrdinalMap = this.readOrdinalMap(Base.RTE_SIGNAL_BASE);
 		this.effectorOrdinalMap = this.readOrdinalMap(0);
-		this.fieldOrdinalMap = this.readOrdinalMap(0);
 		this.transducerOrdinalMap = this.readOrdinalMap(0);
 		int transducerCount = this.transducerOrdinalMap.size();
 		this.transducerNameIndex = new Bytes[transducerCount];
@@ -324,13 +314,7 @@ sealed class Model permits ModelCompiler, ModelLoader {
 		for (int transducerOrdinal = 0; transducerOrdinal < transducerCount; transducerOrdinal++) {
 			this.transducerNameIndex[transducerOrdinal] = new Bytes(this.readBytes());
 			this.transducerOffsetIndex[transducerOrdinal] = this.readLong();
-			int[] fields = this.readIntArray();
-			HashMap<Integer, Integer> localFieldMap = new HashMap<>(fields.length);
-			for (int i = 0; i < fields.length; i++) {
-				localFieldMap.computeIfAbsent(fields[i], absent -> localFieldMap.size());
-				assert i == localFieldMap.getOrDefault(fields[i], -1);
-			}
-			this.transducerFieldMaps.put(transducerOrdinal, localFieldMap);
+			this.transducerFieldMaps.put(transducerOrdinal, this.readOrdinalMap(0));
 			assert this.transducerOrdinalMap.get(this.transducerNameIndex[transducerOrdinal]) == transducerOrdinal;
 		}
 		this.initializeProxyEffectors();
@@ -383,19 +367,16 @@ sealed class Model permits ModelCompiler, ModelLoader {
 		for (int i = 0; i < signalIndex.length; i++)
 			mapWriter.printf("%1$6d signal %2$s%n", i + Base.RTE_SIGNAL_BASE,
 				signalIndex[i].asString());
-		Bytes[] fieldIndex = new Bytes[this.fieldOrdinalMap.size()];
-		for (Map.Entry<Bytes, Integer> m : this.fieldOrdinalMap.entrySet())
-			fieldIndex[m.getValue()] = m.getKey();
 		Bytes[] transducerIndex = new Bytes[this.transducerOrdinalMap.size()];
 		for (Map.Entry<Bytes, Integer> m : this.transducerOrdinalMap.entrySet())
 			transducerIndex[m.getValue()] = m.getKey();
 		for (int transducerOrdinal = 0; transducerOrdinal < transducerIndex.length; transducerOrdinal++) {
 			mapWriter.printf("%1$6d transducer %2$s%n", transducerOrdinal,
 				transducerIndex[transducerOrdinal].asString());
-			Map<Integer, Integer> fieldMap = this.transducerFieldMaps.get(transducerOrdinal);
+			Map<Bytes, Integer> fieldMap = this.transducerFieldMaps.get(transducerOrdinal);
 			Bytes[] fields = new Bytes[fieldMap.size()];
-			for (Entry<Integer, Integer> e : fieldMap.entrySet())
-				fields[e.getValue()] = fieldIndex[e.getKey()];
+			for (Entry<Bytes, Integer> e : fieldMap.entrySet())
+				fields[e.getValue()] = e.getKey();
 			for (int field = 0; field < fields.length; field++)
 				mapWriter.printf("%1$6d field ~%2$s%n", field,
 					fields[field].asString());
@@ -504,15 +485,15 @@ sealed class Model permits ModelCompiler, ModelLoader {
 	}
 
 	protected Integer getInputOrdinal(final byte[] input) throws CompilationException, CharacterCodingException {
-		if (input.length == 1)
-			return Byte.toUnsignedInt(input[0]);
-		else {
+		if (input.length > 1) {
 			Integer ordinal = this.getSignalOrdinal(new Bytes(input));
-			if (ordinal < 0)
-				throw new CompilationException(String.format("Invalid input token %s",
-					Codec.decode(input, input.length)));
-			return ordinal;
+			if (ordinal >= 0)
+				return ordinal;
+		} else if (input.length > 0) {
+			return Byte.toUnsignedInt(input[0]);
 		}
+		throw new CompilationException(String.format("Invalid input token '%s'",
+			Codec.decode(input, input.length)));
 	}
 
 	protected int getSignalCount() {
@@ -527,46 +508,21 @@ sealed class Model permits ModelCompiler, ModelLoader {
 		return this.signalOrdinalMap.get(name);
 	}
 
-	protected int getFieldCount() {
-		return this.fieldOrdinalMap.size();
-	}
-
 	protected int getFieldCount(int transducerOrdinal) {
 		return this.transducerFieldMaps.containsKey(transducerOrdinal)
 		? this.transducerFieldMaps.get(transducerOrdinal).size()
 		: 0;
 	}
 
-	protected int getFieldOrdinal(Bytes fieldName) {
-		return this.fieldOrdinalMap.getOrDefault(fieldName, -1);
+	protected int addField(int transducerOrdinal, Bytes fieldName) {
+		HashMap<Bytes, Integer> fieldMap = this.transducerFieldMaps.getOrDefault(transducerOrdinal, null);
+		final int mapSize = fieldMap.size();
+		return fieldMap.computeIfAbsent(fieldName, absent-> mapSize);
 	}
 
-	protected int addField(Bytes fieldName) {
-		final int mapSize = this.fieldOrdinalMap.size();
-		return this.fieldOrdinalMap.computeIfAbsent(fieldName, absent-> mapSize);
-	}
-
-	protected HashMap<Integer, Integer> newLocalField(int transducerOrdinal) {
-		HashMap<Integer, Integer> localFieldMap = this.transducerFieldMaps.computeIfAbsent(
-		transducerOrdinal, absent -> new HashMap<>(256));
-		if (localFieldMap.isEmpty()) {
-			localFieldMap.put(this.fieldOrdinalMap.get(Model.ANONYMOUS_FIELD_BYTES),
-				Model.ANONYMOUS_FIELD_ORDINAL);
-			localFieldMap.put(this.fieldOrdinalMap.get(Model.ALL_FIELDS_BYTES),
-				Model.ALL_FIELDS_ORDINAL);
-		}
-		return localFieldMap;
-	}
-
-	protected int addLocalField(int transducerOrdinal, int fieldOrdinal) {
-		HashMap<Integer, Integer> localFieldMap = this.newLocalField(transducerOrdinal);
-		assert localFieldMap.get(Model.ANONYMOUS_FIELD_ORDINAL) == Model.ANONYMOUS_FIELD_ORDINAL;
-		assert localFieldMap.get(Model.ALL_FIELDS_ORDINAL) == Model.ALL_FIELDS_ORDINAL;
-		return localFieldMap.computeIfAbsent(fieldOrdinal, absent -> localFieldMap.size());
-	}
-
-	protected int getLocalField(int transducerOrdinal, int fieldOrdinal) {
-		return this.newLocalField(transducerOrdinal).getOrDefault(fieldOrdinal, -1);
+	protected int getLocalField(int transducerOrdinal, Bytes fieldName) {
+		HashMap<Bytes, Integer> fieldMap = this.transducerFieldMaps.getOrDefault(transducerOrdinal, null);
+		return fieldMap != null ? fieldMap.getOrDefault(fieldName, -2) : -1;
 	}
 
 	protected int addSignal(Bytes signalName) {
@@ -580,21 +536,25 @@ sealed class Model permits ModelCompiler, ModelLoader {
 		|| this.transducerNameIndex[this.transducerOrdinalMap.get(transducerName)].equals(transducerName)
 		|| this.transducerOffsetIndex[this.transducerOrdinalMap.get(transducerName)] < 0;
 		final int count = this.transducerOrdinalMap.size();
-		Integer ordinal = this.transducerOrdinalMap.computeIfAbsent(transducerName, absent -> count);
-		if (ordinal >= count) {
-			assert !this.transducerFieldMaps.containsKey(ordinal);
-			assert transducerNameIndex[ordinal] == null;
-			assert this.transducerOffsetIndex[ordinal] == 0;
-			if (ordinal >= this.transducerNameIndex.length) {
-				int length = ordinal + (Math.max(ordinal, 16) >> 1);
+		Integer transducerOrdinal = this.transducerOrdinalMap.computeIfAbsent(transducerName, absent -> count);
+		if (transducerOrdinal >= count) {
+			assert !this.transducerFieldMaps.containsKey(transducerOrdinal);
+			assert transducerNameIndex[transducerOrdinal] == null;
+			assert this.transducerOffsetIndex[transducerOrdinal] == 0;
+			if (transducerOrdinal >= this.transducerNameIndex.length) {
+				int length = transducerOrdinal + (Math.max(transducerOrdinal, 16) >> 1);
 				this.transducerNameIndex = Arrays.copyOf(this.transducerNameIndex, length);
 				this.transducerOffsetIndex = Arrays.copyOf(this.transducerOffsetIndex, length);
 			}
-			this.newLocalField(ordinal);
-			this.transducerNameIndex[ordinal] = transducerName;
-			this.transducerOffsetIndex[ordinal] = -1;
+			this.transducerNameIndex[transducerOrdinal] = transducerName;
+			this.transducerOffsetIndex[transducerOrdinal] = -1;
+			HashMap<Bytes, Integer> localFieldMap = this.transducerFieldMaps.computeIfAbsent(
+				transducerOrdinal, absent -> new HashMap<>(256));
+			assert localFieldMap.isEmpty();
+			localFieldMap.put(Model.ANONYMOUS_FIELD_BYTES, Model.ANONYMOUS_FIELD_ORDINAL);
+			localFieldMap.put(Model.ALL_FIELDS_BYTES, Model.ALL_FIELDS_ORDINAL);
 		}
-		return ordinal;
+		return transducerOrdinal;
 	}
 
 	protected int getTransducerOrdinal(Bytes transducerName) {
@@ -800,7 +760,7 @@ sealed class Model permits ModelCompiler, ModelLoader {
 			Transducer transducer = new Transducer(
 				this.readString(),
 				this.readInt(),
-				this.readIntArray(),
+				this.transducerFieldMaps.get(transducerOrdinal),
 				this.readIntArray(),
 				this.readTransitionMatrix(),
 				this.readIntArray()
@@ -985,12 +945,11 @@ sealed class Model permits ModelCompiler, ModelLoader {
 		}
 	}
 
-	protected void writeTransducer(Bytes transducerName, int transducerOrdinal, int[] fields, int[] inputEquivalenceIndex, int[][][] kernelMatrix, int[] effectorVectors)
+	protected void writeTransducer(Bytes transducerName, int transducerOrdinal, int[] inputEquivalenceIndex, int[][][] kernelMatrix, int[] effectorVectors)
 	throws ModelException, CharacterCodingException {
 		this.setTransducerOffset(transducerOrdinal, this.seek(-1));
 		this.writeString(transducerName.asString());
 		this.writeInt(transducerOrdinal);
-		this.writeIntArray(fields);
 		this.writeIntArray(inputEquivalenceIndex);
 		this.writeTransitionMatrix(kernelMatrix);
 		this.writeIntArray(effectorVectors);

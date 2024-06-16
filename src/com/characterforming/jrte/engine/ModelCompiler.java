@@ -429,11 +429,7 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 	}
 
 	void saveTransducer() throws ModelException, CharacterCodingException {
-		HashMap<Integer, Integer> localFieldMap = super.transducerFieldMaps.get(this.transducerOrdinal);
-		int[] fields = new int[localFieldMap.size()];
-		for (Entry<Integer, Integer> e : localFieldMap.entrySet())
-			fields[e.getValue()] = e.getKey();
-		super.writeTransducer(this.transducerName, this.transducerOrdinal, fields, this.inputEquivalenceIndex, this.kernelMatrix, this.effectorVectors);
+		super.writeTransducer(this.transducerName, this.transducerOrdinal, this.inputEquivalenceIndex, this.kernelMatrix, this.effectorVectors);
 		int nStates = this.kernelMatrix.length;
 		int nInputs = this.kernelMatrix[0].length;
 		int nTransitions = 0;
@@ -490,7 +486,7 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 						this.tapeTokens.get(1).add(token);
 					else if (transition.tape == 2 && !token.isLiteral()) {
 						if (token.isField())
-							token.setOrdinal(super.addLocalField(this.transducerOrdinal, super.addField(symbol)));
+							token.setOrdinal(super.addField(this.transducerOrdinal, symbol));
 						else if (token.isTransducer())
 							token.setOrdinal(super.addTransducer(symbol));
 						else if (token.isSignal())
