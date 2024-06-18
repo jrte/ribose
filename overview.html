@@ -25,7 +25,7 @@ if the intention is to paste entire sequences of UTF-8 bytes.
 In the Java runtime, compiled ribose models are presented through the {@code IModel} and
 {@code ITransductor} interfaces. A transductor provides a Java thread with a transducer stack,
 an input stack and a {@code run()} method that drives input through the transducer stack to
-{@code IEffector<T extends ITarget>} effectors expressed by an {@code ITarget} instance. 
+{@code IEffector<T extends ITarget>} effectors expressed by an {@code ITarget} instance.
 The transductor invokes the target effectors in response to syntactic cues in the input,
 and the effectors act on the target to get stuff done. Transduction ends when the input or
 transducer stack dries up, but the transductor persists and can be reused for subsequent
@@ -33,7 +33,7 @@ transductions.
 <br><br><b><i>Ribose Transducer Patterns</i></b><br><br>
 So, to begin, you will need to prepare some ribose transducer patterns, compile them to
 FSTs, and save the FSTs to a directory to be compiled into a ribose model file. You will
-likely want to prepare a ginr source file, or prologue, that defines <a 
+likely want to prepare a ginr source file, or prologue, that defines <a
 href="https://github.com/jrte/ribose/blob/master/patterns/alpha.inr" target="_blank">
 common character classes</a> and other patterns that are generally used throughout your
 other transducer patterns. For example, the ribose prologue {@code alpha.inr} defines
@@ -59,10 +59,10 @@ The {@code TCompile} model contains only one transducer, which can be decompiled
 by the model decompiler:
 <br><pre>./ribose decompile build/TCompile.model Automaton</pre>
 More examples of ginr patterns for ribose transducers can be found in the {@code
-patterns/test} directory, with some discussion in the <a 
+patterns/test} directory, with some discussion in the <a
 href="https://github.com/jrte/ribose#more-examples" target="_blank">ribose wiki</a>.
 These test patterns are compiled into {@code build/Test.model} for CI testing, with
-test inputs extracted from {@code patterns/test/inputs.zip}. The test model target 
+test inputs extracted from {@code patterns/test/inputs.zip}. The test model target
 class is contained in {@code jars/ribose-0.0.2-test.jar}, which needs to be specified
 (not necessary for the ModelCompiler and SimpleTarget target classes as they are
 contained in the ribose jar file). To build the test model from the test patterns
@@ -88,6 +88,14 @@ target="_blank">Fibonacci</a> transducer:
 
 -: ./ribose decompile $targetpath build/Test.model Fibonacci
 
+Fields
+
+0:
+1: *
+2: q
+3: r
+4: p
+
 Input equivalents (equivalent: input...)
 
 0: #101
@@ -105,37 +113,45 @@ State transitions (from equivalent -> to effect...)
 2 1 -> 0 paste out signal[ `!nil` ]
 2 4 -> 2 select[ `~r` ] cut[ `~p` ] select[ `~p` ] copy[ `~q` ] select[ `~q` ] cut[ `~r` ]</pre>
 <br><b><i>Transduction Targets and Effectors</i></b><br><br>
-To continue with the biologic metaphor, a transduction target presents itself to
-the transductor like a cell with receptors that effect specific changes inside the
-cell when they recognize specific shapes on the outside. Receptors typically don't
-interact with each other they just do their very specific thing, but there are
-lots of different shapes floating around so it all works out for the cell. Same
-with transduction targets. The transductor knows nothing about target semantics, it
-just presents input to transducers that engage very specific target effectors as
-they recognize specific input patterns. Stuff happens in the target, maybe. That's
-all the transductor knows about the target.
-<br><br>
 Every ribose model is associated with a specific transduction target class that
 expresses a collection of effectors. A transduction target class is any class that
 has a public default constructor and implements the {@code ITarget} interface, which
-exposes two methods: {@code String getName()} and {@code IEffector<?>[]
-getEffectors()}. The name can be whatever you like, and the target can express
-as many effectors as required. Effectors must extend {@code IEffector<T extends
-ITarget>} or {@code IParameterizedEffector<T extends ITarget,P> extends IEffector<T>>}
-and are usually implemented as private inner classes of the target class, which
-allows them to access the private members of the target. Targets can be fat like 
-{@code ModelCompiler} or they may be mere facades like {@code SimpleTarget} that
-hold a secret something that only their effectors know. Whatever works best for 
-your situation.
+exposes two methods: {@code String getName()} and {@code IEffector<?>[] getEffectors()}.
+The name can be whatever you like, and the target can express as many effectors as
+required. All interactions between transductor and target are directed by the involved
+transducers and mediated by the target effectors. Targets can be fat like {@code
+ModelCompiler} or thin like {@code SimpleTarget}, which is just a facade for the
+ribose transductor as target. Whatever works best for your situation. The transductor
+knows nothing about target semantics, it just presents input to transducers that
+engage very specific target effectors as they recognize specific input patterns.
+Stuff happens in the target, maybe. That's all the transductor knows about the target.
+<br><br>
+Effectors are typically implemented as private inner classes of the target class,
+which allows them to access the private members of the target. They all receive a
+reference to the target instance and an {@code IOutput} instance that supports
+conversion of transducer fields to Java primitive values or {@code byte[]} or
+{@code char[]} arrays. There are three types of effectors: simple effector,
+parameterized effector and receptor effector. Simple effectors extend {@code
+IEffector<T extends ITarget>}, which expresses a niladic {@code invoke()} method
+that is called when the effector fires in running transduction. Parameterized
+effectors extend {@code IParameterizedEffector<T extends ITarget, P> extends
+IEffector<T>>} and contain an array {@code P[]} of parametric objects compiled
+from lists effector tokens. Parameterized effectors inherit {@code IEffector.invoke()}
+and add a monadic {@code invoke(int)} method, where the {@code int} argument selects
+a specific {@code P} instance to use. Receptor effectors are specialized parameterized
+effectors that extend {@code BaseReceptorEffector<T extends ITarget> extends
+BaseParameterizedEffector<T, Receiver[]>}. Receptor effectors express public fields
+that receive data decoded from transducer fields.
 <br><br>
 The transductor is itself a target expressing a suite of core effectors that are
 sufficient for transducers that transform input and write raw bytes to an output
-stream. For UTF-8 input these transforms are effected without decoding or encoding
-of input or output. These core effectors, which are listed in the {@code 
-ITransductor} documentation, are injected into every target and are available for use
-in any ribose transducer. A {@code SimpleTarget} target implementation that expresses
-only the {@code ITransductor} effectors is provided. Ribose models that are bound
-to {@code SimpleTarget} are called <i>simple</i> models.
+stream. For UTF-8 input these transforms are effected without decoding or widening
+input; only UTF-8 bytes extracted to transducer fields are decoded. These core
+effectors, which are listed in the {@code ITransductor} documentation, are injected
+into every target and are available for use in any ribose transducer. A {@code
+SimpleTarget} target implementation that expresses only the {@code ITransductor}
+effectors is provided. Ribose models that are bound to {@code SimpleTarget} are
+called <i>simple</i> models.
 <br><br>
 Specialized targets can define additional, domain-specific, effectors. Composite
 targets, comprised of >1 {@code ITarget} instances, can be presented for transductor
@@ -147,9 +163,9 @@ to as <i>fancy</i> models.
 <br><br><b><i>Building and Using Ribose Models</i></b><br><br>
 The {@code Ribose} class provides a {@code main()} method that enables models to be
 compiled, run and decompiled, as described in the {@code Ribose} class documentation.
-It can be executed via the java command line or the provided {@code ribose} shell 
+It can be executed via the java command line or the provided {@code ribose} shell
 script. The runtime features are encapsulated in the {@code IModel} interface. For further
-information please refer to the package and interface documentation contained herein. 
+information please refer to the package and interface documentation contained herein.
 See the {@link com.characterforming.ribose} package for ribose interfaces and the runnable
 {@link com.characterforming.ribose.Ribose} class. The {@link com.characterforming.ribose.base}
 package includes ribose base classes for extension and use in other domains.

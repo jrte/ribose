@@ -24,21 +24,23 @@ import java.nio.charset.CharacterCodingException;
 import java.util.logging.Logger;
 
 import com.characterforming.ribose.base.EffectorException;
+import com.characterforming.ribose.base.BaseReceptorEffector;
 
 /**
- * Provides loggers and a view of fields (data extracted by the transduction) to {@link
- * IEffector} implementations. Effectors receive their {@code IOutput} instance via
- * {@link IEffector#setOutput(IOutput)} when they are first bound to a transductor. Transducer
- * fields are local and bound to the defining transducer and can be accessed by stable
- * field ordinal numbers <i>when the transducer is running on the transductor stack</i>.
- * Every transducer has an anonymous field with ordinal number 0 (the anonymous name
- * token (`~`) in transducer patterns). Ordinal numbers for named fields (referenced
- * with a <b>~</b> field type prefix in patterns, eg, {@code out[`~data`]}) are obtained
- * by providing defining transducer and field names to {@link #getLocalizedFieldIndex(String, String)}.
- * Effectors should obtain field ordinals in {@code setOutput()} and retain them for
- * use with the data transfer methods {@link #asInteger(int)}, {@link #asReal(int)},
- * {@link #asBytes(int)} and {@link #asString(int)} in {@link IEffector#invoke()}
- * and {@link IParameterizedEffector#invoke(int)} as shown in the example below.
+ * Provides {@link IEffector} implementations with loggers and data transfer methods
+ * for extracting transducer fields to java primitives. Effectors receive their {@code
+ * IOutput} instance via {@link IEffector#setOutput(IOutput)} when they are first bound
+ * to a transductor. Transducer fields are local and bound to the defining transducer
+ * and can be accessed by stable field ordinal numbers <i>when the transducer is topmost
+ * on the transductor stack</i>. Every transducer has an anonymous field with ordinal
+ * number 0 (the anonymous name token (`~`) in transducer patterns). Ordinal numbers
+ * for named fields (referenced with a <b>~</b> field type prefix in patterns, eg,
+ * {@code out[`~data`]}) are obtained by providing defining transducer and field names
+ * to {@link #getTransducerFieldndex(String, String)}. Effectors should obtain field
+ * ordinals in {@code setOutput()} and retain them for use with the data transfer methods
+ * ({@link #asInteger(int, int)}, etc) in {@link IEffector#invoke()} and {@link
+ * IParameterizedEffector#invoke(int)} as shown in the example below (this example is
+ * implemented more succinctly as a receptor effector -- see below).
  * <br><pre>
  * record Header (int version, int tapes, int transitions, int states, int symbols) {}
  *
@@ -58,18 +60,18 @@ import com.characterforming.ribose.base.EffectorException;
  *   public void setOutput(IOutput output) throws EffectorException {
  *     super.setOutput(output);
  *     for (int i = 0; i &lt; this.fields.length; i++) {
- *       this.fields[i] = super.output.getLocalizedFieldOrdinal(transducerName, fieldNames[i]);
+ *       this.fields[i] = super.output.getTransducerFieldOrdinal(transducerName, fieldNames[i]);
  *     }
  *   }
 
  *   &#64;Override // called from transducer running on top of live transductor's stack
  *   public int invoke() throws EffectorException {
  *     ModelCompiler.this.putHeader(new Header(
- *       (int)super.output.asInteger(fields[0]),
- *       (int)super.output.asInteger(fields[1]),
- *       (int)super.output.asInteger(fields[2]),
- *       (int)super.output.asInteger(fields[3]),
- *       (int)super.output.asInteger(fields[4])));
+ *       (int)super.output.asInteger(fields[0], -1),
+ *       (int)super.output.asInteger(fields[1], -1),
+ *       (int)super.output.asInteger(fields[2], -1),
+ *       (int)super.output.asInteger(fields[3], -1),
+ *       (int)super.output.asInteger(fields[4], -1)));
  *     return IEffector.RTX_NONE;
  *   }
  * }</pre>
@@ -77,6 +79,12 @@ import com.characterforming.ribose.base.EffectorException;
  * which are shared by the transductor and its effectors. The compiler logger is exposed
  * here for use by proxy effectors in compilation contexts and should not be used otherwise.
  * The runtime logger should be used to log events in live transduction contexts.
+ * <br><br>
+ * Effectors that subclass {@link BaseReceptorEffector} do not need to call {@code IOutput}
+ * data transfer methods directly as the base class converts and injects transducer field data
+ * directly into receiver fields declared in the subclass. These receptor effectors receive
+ * as effector parameters a list of transducer fields to transfer into effector fields with
+ * a matching name. See the {@link BaseReceptorEffector} documentation for an example.
  *
  * @author Kim Briggs
  */
@@ -101,7 +109,7 @@ public interface IOutput {
 	 * @throws EffectorException if things don't work out
 	 * @throws CharacterCodingException if encoder fails
 	 */
-	int getLocalizedFieldIndex(String transducerName, String fieldName)
+	int getTransducerFieldndex(String transducerName, String fieldName)
 	throws EffectorException, CharacterCodingException;
 
 	/**
@@ -111,48 +119,128 @@ public interface IOutput {
 	 * @return the localized index of the selected field in the current transducer stack frame
 	 * @throws EffectorException if called on a proxy transductor
 	 */
-	int getLocalizedFieldndex()
+	int getTransducerFieldndex()
 	throws EffectorException;
 
 	/**
-	 * Get current field value as integer value.
+	 * Get current field value as string value.
 	 *
 	 * @param fieldOrdinal the field ordinal
+	 * @param defaultValue the default value to return if the transducer field is empty
 	 * @return the String value decoded from the field contents
 	 * @throws EffectorException if called on a proxy transductor
-	 * @throws CharacterCodingException if decoding fails
 	 */
-	String asString(int fieldOrdinal)
-	throws EffectorException, CharacterCodingException;
+	String asString(int fieldOrdinal, String defaultValue)
+	throws EffectorException;
+
+	/**
+	 * Get current field value as char[] array value.
+	 *
+	 * @param fieldOrdinal the field ordinal
+	 * @param defaultValue the default value to return if the transducer field is empty
+	 * @return the char[] array value decoded from the field contents
+	 * @throws EffectorException if called on a proxy transductor
+	 */
+	char[] asChars(int fieldOrdinal, char[] defaultValue)
+	throws EffectorException;
+
+	/**
+	 * Get current field value as byte[] array value.
+	 *
+	 * @param fieldOrdinal the field ordinal
+	 * @param defaultValue the default value to return if the transducer field is empty
+	 * @return the byte[] array value decoded from the field contents
+	 * @throws EffectorException if called on a proxy transductor
+	 */
+	byte[] asBytes(int fieldOrdinal, byte[] defaultValue)
+	throws EffectorException;
+
+	/**
+	 * Get current field value as char value.
+	 *
+	 * @param fieldOrdinal the field ordinal
+	 * @param defaultValue the default value to return if the transducer field is empty
+	 * @return the char value decoded from the field contents
+	 * @throws EffectorException if called on a proxy transductor or decoded length != 1
+	 */
+	char asChar(int fieldOrdinal, char defaultValue)
+	throws EffectorException;
+
+	/**
+	* Get current field value as boolean value.
+	*
+	* @param fieldOrdinal the field ordinal
+	* @param defaultValue the default value to return if the transducer field is empty
+	* @return the boolean value decoded from the field contents
+	* @throws EffectorException if called on a proxy transductor or field contents not in {yes, no, true, false}
+	*/
+	boolean asBoolean(int fieldOrdinal, boolean defaultValue)
+	throws EffectorException;
+
+	/**
+	 * Get current field value as byte value.
+	 *
+	 * @param fieldOrdinal the field ordinal
+	 * @param defaultValue the default value to return if the transducer field is empty
+	 * @return the byte value decoded from the field contents
+	 * @throws EffectorException if called on a proxy transductor or value out of range
+	 */
+	byte asByte(int fieldOrdinal, byte defaultValue)
+	throws EffectorException;
+
+	/**
+	 * Get current field value as short value.
+	 *
+	 * @param fieldOrdinal the field ordinal
+	 * @param defaultValue the default value to return if the transducer field is empty
+	 * @return the short value decoded from the field contents
+	 * @throws EffectorException if called on a proxy transductor or value out of range
+	 */
+	short asShort(int fieldOrdinal, short defaultValue)
+	throws EffectorException;
 
 	/**
 	 * Get current field value as integer value.
 	 *
 	 * @param fieldOrdinal the field ordinal
+	 * @param defaultValue the default value to return if the transducer field is empty
 	 * @return the integer value decoded from the field contents
-	 * @throws EffectorException if called on a proxy transductor
+	 * @throws EffectorException if called on a proxy transductor or value out of range
 	 */
-	long asInteger(int fieldOrdinal)
+	int asInteger(int fieldOrdinal, int defaultValue)
 	throws EffectorException;
 
 	/**
-	 * Get current field value as real value.
+	 * Get current field value as long value.
 	 *
 	 * @param fieldOrdinal the field ordinal
-	 * @return the real value decoded from the field contents
-	 * @throws EffectorException if called on a proxy transductor
+	 * @param defaultValue the default value to return if the transducer field is empty
+	 * @return the long value decoded from the field contents
+	 * @throws EffectorException if called on a proxy transductor or value out of range
 	 */
-	double asReal(int fieldOrdinal)
+	long asLong(int fieldOrdinal, long defaultValue)
 	throws EffectorException;
 
 	/**
-	 * Get current field value as integer value.
+	 * Get current field value as double value.
 	 *
 	 * @param fieldOrdinal the field ordinal
-	 * @return the field contents
-	 * @throws EffectorException if called on a proxy transductor
+	 * @param defaultValue the default value to return if the transducer field is empty
+	 * @return the double value decoded from the field contents
+	 * @throws EffectorException if called on a proxy transductor or value out of range
 	 */
-	byte[] asBytes(int fieldOrdinal)
+	double asDouble(int fieldOrdinal, double defaultValue)
+	throws EffectorException;
+
+	/**
+	 * Get current field value as float value.
+	 *
+	 * @param fieldOrdinal the field ordinal
+	 * @param defaultValue the default value to return if the transducer field is empty
+	 * @return the float value decoded from the field contents
+	 * @throws EffectorException if called on a proxy transductor or value out of range
+	 */
+	float asFloat(int fieldOrdinal, float defaultValue)
 	throws EffectorException;
 
 	/**

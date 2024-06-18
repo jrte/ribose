@@ -53,7 +53,7 @@ import com.characterforming.ribose.IToken;
 public abstract class BaseParameterizedEffector<T extends ITarget, P> extends BaseEffector<T> implements IParameterizedEffector<T, P> {
 
 	/** Raw and compiled effector parameters indexed and selected by parameter ordinal.*/
-protected P[] parameters = null;
+	protected P[] parameters = null;
 	private IToken[][] tokens = null;
 
 	/**

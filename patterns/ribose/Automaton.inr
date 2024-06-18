@@ -11,14 +11,14 @@ Automaton = nil? (
 	(tab, Field@(X,`~transitions`)) Number
 	(tab, Field@(X,`~states`)) Number
 	(tab, Field@(X,`~symbols`)) Number
-	(Eol, header (Field@(X,`~from`)))
+	(Eol, header[`~version` `~tapes` `~transitions` `~states` `~symbols`] (Field@(X,`~from`)))
 	(
 		Number
 		(tab, Field@(X,`~to`)) Number
 		(tab, Field@(X,`~tape`)) Sign? Number
 		(tab, Field@(X,`~length`)) Number
 		(tab, (Field@(X,`~symbol`)) count[`~length` `!eol`]) Symbol
-		(Eol, transition (Field@(X,`~from`)))
+		(Eol, transition[`~from` `~to` `~tape` `~length` `~symbol`] (Field@(X,`~from`)))
 	)*
 	(eos, automaton stop)
 ):dfamin;

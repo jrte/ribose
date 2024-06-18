@@ -40,12 +40,12 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import com.characterforming.ribose.IEffector;
-import com.characterforming.ribose.IOutput;
 import com.characterforming.ribose.IModel;
 import com.characterforming.ribose.ITarget;
 import com.characterforming.ribose.ITransduction;
 import com.characterforming.ribose.ITransductor;
 import com.characterforming.ribose.base.BaseEffector;
+import com.characterforming.ribose.base.BaseReceptorEffector;
 import com.characterforming.ribose.base.Bytes;
 import com.characterforming.ribose.base.Codec;
 import com.characterforming.ribose.base.CompilationException;
@@ -58,7 +58,6 @@ import com.characterforming.ribose.base.TargetBindingException;
 public final class ModelCompiler extends Model implements ITarget, AutoCloseable {
 
 	private static final long VERSION = 210;
-	private static final String AUTOMATON = "Automaton";
 	private static final String AMBIGUOUS_STATE_MESSAGE = "%1$s: Ambiguous state %2$d";
 
 	static final int MIN_PRODUCT_LENGTH = Integer.parseInt(System.getProperty("ribose.product.threshold", "-1"));
@@ -86,72 +85,41 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 
 	record Header (int version, int tapes, int transitions, int states, int symbols) {}
 
-	final class HeaderEffector extends BaseEffector<ModelCompiler> {
-		private static final String[] fields = new String[] {
-			"version", "tapes", "transitions", "states", "symbols"
-		};
-		private final int[] fieldOrdinals;
+	final class HeaderEffector extends BaseReceptorEffector<ModelCompiler> {
+		// Receiver fields with default values used if transductor fields are empty
+		public int version = -1, tapes = -1, transitions = -1, states = -1, symbols = -1;
 
 		HeaderEffector(ModelCompiler compiler) throws CharacterCodingException {
 			super(compiler, "header");
-			this.fieldOrdinals = new int[fields.length];
+			super.setEffector(this);
 		}
 
 		@Override
-		public void setOutput(IOutput output) throws EffectorException {
-			super.setOutput(output);
-			try {
-				for (int i = 0; i < fields.length; i++)
-					this.fieldOrdinals[i] = super.output.getLocalizedFieldIndex(ModelCompiler.AUTOMATON, fields[i]);
-			} catch (CharacterCodingException e) {
-				throw new EffectorException(e);
-			}
-		}
-
-		@Override
-		public int invoke() throws EffectorException {
-			ModelCompiler.this.putHeader(new Header(
-				(int)super.output.asInteger(this.fieldOrdinals[0]),
-				(int)super.output.asInteger(this.fieldOrdinals[1]),
-				(int)super.output.asInteger(this.fieldOrdinals[2]),
-				(int)super.output.asInteger(this.fieldOrdinals[3]),
-				(int)super.output.asInteger(this.fieldOrdinals[4])));
-			return IEffector.RTX_NONE;
+		public int invoke(int parameterIndex) throws EffectorException {
+			int rtx = super.invoke(parameterIndex);
+			super.getTarget().putHeader(new Header(
+				this.version, this.tapes, this.transitions, this.states, this.symbols));
+			return rtx;
 		}
 	}
 
-	final class TransitionEffector extends BaseEffector<ModelCompiler> {
-		private static final String[] fields = new String[] {
-			"from", "to", "tape", "symbol"
-		};
-		private final int[] fieldOrdinals;
+	final class TransitionEffector extends BaseReceptorEffector<ModelCompiler> {
+		// Receiver fields with default values used if transductor fields are empty
+		public int from = -1, to = -1, tape = -1, length = -1;
+		public byte[] symbol = Bytes.EMPTY_BYTES;
 
 		TransitionEffector(ModelCompiler compiler) throws CharacterCodingException {
 			super(compiler, "transition");
-			this.fieldOrdinals = new int[fields.length];
+			super.setEffector(this);
 		}
 
 		@Override
-		public void setOutput(IOutput output) throws EffectorException {
-			super.setOutput(output);
-			try {
-				for (int i = 0; i < fields.length; i++)
-					this.fieldOrdinals[i] = super.output.getLocalizedFieldIndex(ModelCompiler.AUTOMATON, fields[i]);
-			} catch (CharacterCodingException e) {
-				throw new EffectorException(e);
-			}
-		}
-
-		@Override
-		public int invoke() throws EffectorException {
-			int from = (int)super.output.asInteger(this.fieldOrdinals[0]);
-			int to = (int)super.output.asInteger(this.fieldOrdinals[1]);
-			int tape = (int)super.output.asInteger(this.fieldOrdinals[2]);
-			Bytes symbol = new Bytes(super.output.asBytes(this.fieldOrdinals[3]));
-			boolean isFinal = to == 1 && tape == 0 && symbol.getLength() == 0;
+		public int invoke(int parameterIndex) throws EffectorException {
+			int rtx = super.invoke(parameterIndex);
+			boolean isFinal = this.to == 1 && this.tape == 0 && this.symbol.length == 0;
 			ModelCompiler.this.putTransition(new Transition(
-				from, to, tape, symbol, isFinal));
-			return IEffector.RTX_NONE;
+				this.from, this.to, this.tape, new Bytes(this.symbol), isFinal));
+			return rtx;
 		}
 	}
 

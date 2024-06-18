@@ -21,6 +21,7 @@
 package com.characterforming.jrte.engine;
 
 import java.util.HashMap;
+import java.util.Map.Entry;
 
 import com.characterforming.ribose.base.Bytes;
 
@@ -30,7 +31,7 @@ import com.characterforming.ribose.base.Bytes;
 final class Transducer {
 	private final int ordinal;
 	private final String name;
-	private final HashMap<Bytes, Integer> fields;
+	private final Bytes[] fieldNames;
 	private final int[] inputFilter;
 	private final long[] transitionMatrix;
 	private final int[] effectorVector;
@@ -39,14 +40,16 @@ final class Transducer {
 	Transducer(
 		String name,
 		int ordinal,
-		HashMap<Bytes, Integer> fields,
+		HashMap<Bytes, Integer> fieldMap,
 		int[] inputFilter,
 		long[] transitionMatrix,
 		int[] effectorVector
 	) {
 		this.name = name;
 		this.ordinal = ordinal;
-		this.fields = fields;
+		this.fieldNames = new Bytes[fieldMap.size()];
+		for (Entry<Bytes, Integer> e : fieldMap.entrySet())
+			this.fieldNames[e.getValue()] = e.getKey();
 		this.inputFilter = inputFilter;
 		this.transitionMatrix = transitionMatrix;
 		this.effectorVector = effectorVector;
@@ -112,8 +115,14 @@ final class Transducer {
 		return this.effectorVector;
 	}
 
+	Bytes getFieldName(int fieldOrdinal) {
+		if (fieldOrdinal >= 0 && fieldOrdinal < this.fieldNames.length)
+			return this.fieldNames[fieldOrdinal];
+		return null;
+	}
+
 	int getFieldCount() {
-		return this.fields.size();
+		return this.fieldNames.length;
 	}
 
 	int getInputEquivalentsCount() {

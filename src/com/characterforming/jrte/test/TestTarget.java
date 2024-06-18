@@ -6,6 +6,7 @@ import com.characterforming.ribose.IEffector;
 import com.characterforming.ribose.IOutput;
 import com.characterforming.ribose.ITarget;
 import com.characterforming.ribose.base.BaseEffector;
+import com.characterforming.ribose.base.Bytes;
 import com.characterforming.ribose.base.Codec;
 import com.characterforming.ribose.base.EffectorException;
 import com.characterforming.ribose.base.Signal;
@@ -49,11 +50,11 @@ public class TestTarget implements ITarget {
 		public int invoke() throws EffectorException {
 			long integer = 0;
 			try {
-				integer = Long.parseLong(Codec.decode(super.output.asBytes(0)));
+				integer = Long.parseLong(Codec.decode(super.output.asBytes(0, Bytes.EMPTY_BYTES)));
 			} catch (NumberFormatException | CharacterCodingException e) {
 				return IEffector.signal(fail);
 			}
-			return IEffector.signal(integer == super.output.asInteger(0) ? pass : fail);
+			return IEffector.signal(integer == super.output.asInteger(0, Integer.MIN_VALUE) ? pass : fail);
 		}
 	}
 
@@ -66,11 +67,11 @@ public class TestTarget implements ITarget {
 		public int invoke() throws EffectorException {
 			double real = 0.0;
 			try {
-				real = Double.parseDouble(Codec.decode(super.output.asBytes(0)));
+				real = Double.parseDouble(Codec.decode(super.output.asBytes(0, Bytes.EMPTY_BYTES)));
 			} catch (NumberFormatException | CharacterCodingException e) {
 				return IEffector.signal(fail);
 			}
-			return IEffector.signal(real == super.output.asReal(0) ? pass : fail);
+			return IEffector.signal(real == super.output.asDouble(0, Double.MIN_VALUE) ? pass : fail);
 		}
 	}
 
@@ -86,13 +87,7 @@ public class TestTarget implements ITarget {
 
 		@Override
 		public int invoke() throws EffectorException {
-			byte[] bytes = super.output.asBytes(0);
-			String field;
-			try {
-				field = Codec.decode(bytes);
-			} catch (CharacterCodingException e) {
-				field = "";
-			}
+			String field = super.output.asString(0, "");
 			return IEffector.signal(field.equals("pi") || field.equals("-pi") ? pass : fail);
 		}
 	}

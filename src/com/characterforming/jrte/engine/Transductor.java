@@ -22,6 +22,7 @@ package com.characterforming.jrte.engine;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.CharBuffer;
 import java.nio.charset.CharacterCodingException;
 import java.util.Arrays;
 import java.util.logging.Logger;
@@ -103,7 +104,7 @@ public final class Transductor implements ITransductor, ITransduction, IOutput {
 	private final ModelLoader loader;
 	private TransducerState transducerStackFrame;
 	private IEffector<?>[] effectors;
-	private Value value;
+	private Value selection;
 	private Signal prologue;
 	private int selected;
 	private final TransducerStack transducerStack;
@@ -129,7 +130,7 @@ public final class Transductor implements ITransductor, ITransduction, IOutput {
 		this.isProxy = true;
 		this.transducerStack = null;
 		this.selected = -1;
-		this.value = null;
+		this.selection = null;
 		this.inputStack = null;
 		this.signalLimit = -1;
 		this.rtcLogger = Base.getCompileLogger();
@@ -152,7 +153,7 @@ public final class Transductor implements ITransductor, ITransduction, IOutput {
 		this.effectors = null;
 		this.transducerStackFrame = null;
 		this.selected = -1;
-		this.value = null;
+		this.selection = null;
 		this.inputStack = new InputStack(INITIAL_STACK_SIZE);
 		this.transducerStack = new TransducerStack(INITIAL_STACK_SIZE);
 		this.outputStream = System.getProperty("jrte.out.enabled", "true").equals("true") ? System.out : null;
@@ -213,78 +214,203 @@ public final class Transductor implements ITransductor, ITransduction, IOutput {
 		return this.getClass().getSimpleName();
 	}
 
-	@Override // @see com.characterforming.ribose.IOutput#getLocalizedFieldIndex(Bytes, Bytes)
-	public int getLocalizedFieldIndex(String transducerName, String fieldName) throws CharacterCodingException {
+	@Override // @see com.characterforming.ribose.IOutput#getTransducerFieldndex(Bytes, Bytes)
+	public int getTransducerFieldndex(String transducerName, String fieldName) throws CharacterCodingException {
 		int transducerOrdinal = this.model.getTransducerOrdinal(Codec.encode(transducerName));
 		return this.model.getLocalField(transducerOrdinal, Codec.encode(fieldName));
 	}
 
-	@Override // @see com.characterforming.ribose.IOutput#getLocalizedFieldIndex()
-	public int getLocalizedFieldndex() throws EffectorException {
+	@Override // @see com.characterforming.ribose.IOutput#getTransducerFieldndex()
+	public int getTransducerFieldndex() throws EffectorException {
 		if (!this.isProxy)
 			return this.selected;
 		else
 			throw new EffectorException("Not valid for proxy transductor");
 	}
 
-	@Override
-	public String asString(int fieldOrdinal) throws EffectorException, CharacterCodingException {
+	@Override // @see com.characterforming.ribose.IOutput#asString(int, String)
+	public String asString(int fieldOrdinal, String defaultValue) throws EffectorException {
 		if (!this.isProxy) {
-			Value v = this.transducerStack.value(fieldOrdinal);
-			return Codec.decode(v.value(), v.length());
-		} else
-			throw new EffectorException("Not valid for proxy transductor");
-	}
-
-	@Override // @see com.characterforming.ribose.IOutput#asBytes(int)
-	public byte[] asBytes(int fieldOrdinal) throws EffectorException {
-		if (!this.isProxy) {
-			Value v = this.transducerStack.value(fieldOrdinal);
-			return Arrays.copyOf(v.value(), v.length());
-		} else
-			throw new EffectorException("Not valid for proxy transductor");
-	}
-
-	@Override // @see com.characterforming.ribose.IOutput#asInteger()
-	public long asInteger(int fieldOrdinal) throws EffectorException {
-		if (!this.isProxy) {
-			Value v = this.transducerStack.value(fieldOrdinal);
-			byte[] data = v.value();
-			long n = 0, sign = data[0] == '-' ? -1 : 1;
-			for (int i = sign > 0 ? 0 : 1; i < v.length(); i++)
-				if (Character.getType(data[i]) == Character.DECIMAL_DIGIT_NUMBER)
-					n = (10 * n) + (data[i] - 48);
-				else
-					throw new NumberFormatException(String.format(
-						"Not a numeric value '%1$s'", v.toString()));
-			return sign * n;
-		} else
-			throw new EffectorException("Not valid for proxy transductor");
-	}
-
-	@Override // @see com.characterforming.ribose.IOutput#asReal()
-	public double asReal(int fieldOrdinal) throws EffectorException {
-		if (!this.isProxy) {
-			Value v = this.transducerStack.value(fieldOrdinal);
-			byte[] data = v.value();
-			double f = data[0] == '-' ? -1.0 : 1.0;
-			boolean mark = false;
-			long n = 0;
-			for (int i = f < 0.0 ? 1 : 0; i < v.length(); i++) {
-				byte digit = data[i];
-				if (digit == '.')
-					mark = true;
-				else if (Character.getType(digit) == Character.DECIMAL_DIGIT_NUMBER) {
-					n = (10 * n) + (digit - 48);
-					if (mark)
-						f /= 10.0;
-				} else
-					throw new NumberFormatException(String.format(
-						"Not a floating point value '%1$s'", this.toString()));
+			try {
+				Value v = this.transducerStack.value(fieldOrdinal);
+				return v.length() > 0 ? Codec.decode(v.data(), v.length()) : defaultValue;
+			} catch (CharacterCodingException e) {
+				Transducer t = this.transducerStack.get(this.transducerStack.tos()).transducer;
+				throw new EffectorException(String.format(
+					"Field %1$s in %2$s is not a recognizable encoded character sequence",
+						t.getFieldName(fieldOrdinal), t.getName()), e);
 			}
-			return f * n;
 		} else
 			throw new EffectorException("Not valid for proxy transductor");
+	}
+
+	@Override // @see com.characterforming.ribose.IOutput#asChar(int, char)
+	public char asChar(int fieldOrdinal, char defaultValue) throws EffectorException {
+		if (!this.isProxy) {
+			Transducer t = this.transducerStack.get(this.transducerStack.tos()).transducer;
+				Value v = this.transducerStack.value(fieldOrdinal);
+				if (v.length() > 0)
+					try {
+						CharBuffer b = Codec.chars(v.data(), v.length());
+						if (b.length() == 1)
+							return b.get();
+						throw new EffectorException(String.format(
+							"Field %1$s in %2$s decodes to >1 characters, single char expected",
+								t.getFieldName(fieldOrdinal), t.getName()));
+					} catch (CharacterCodingException e) {
+						throw new EffectorException(String.format(
+							"Field %1$s in %2$s is not a recognizable encoded character sequence",
+								t.getFieldName(fieldOrdinal), t.getName()), e);
+					}
+				else
+					return defaultValue;
+		} else
+			throw new EffectorException("Not valid for proxy transductor");
+	}
+
+	@Override // @see com.characterforming.ribose.IOutput#asChars(int, char[])
+	public char[] asChars(int fieldOrdinal, char[] defaultValue) throws EffectorException {
+		if (!this.isProxy) {
+			try {
+				Value v = this.transducerStack.value(fieldOrdinal);
+				return v.length() > 0 ? Codec.chars(v.data(), v.length()).array() : defaultValue;
+			} catch (CharacterCodingException e) {
+				Transducer t = this.transducerStack.get(this.transducerStack.tos()).transducer;
+				throw new EffectorException(String.format(
+					"Field %1$s in %2$s is not a recognizable encoded character sequence",
+						t.getFieldName(fieldOrdinal), t.getName()), e);
+			}
+		} else
+			throw new EffectorException("Not valid for proxy transductor");
+	}
+
+	@Override // @see com.characterforming.ribose.IOutput#asBytes(int, byte[])
+	public byte[] asBytes(int fieldOrdinal, byte[] defaultValue) throws EffectorException {
+		if (!this.isProxy) {
+			Value v = this.transducerStack.value(fieldOrdinal);
+			return v.length() > 0 ? Arrays.copyOf(v.data(), v.length()) : defaultValue;
+		} else
+			throw new EffectorException("Not valid for proxy transductor");
+	}
+
+	@Override // @see com.characterforming.ribose.IOutput#asBoolean(int, boolean)
+	public boolean asBoolean(int fieldOrdinal, boolean defaultValue) throws EffectorException {
+		if (!this.isProxy) {
+			Transducer t = this.transducerStack.get(this.transducerStack.tos()).transducer;
+			try {
+				Value v = this.transducerStack.value(fieldOrdinal);
+				if (v.length() > 0) {
+					String s = Codec.decode(v.data(), v.length());
+					if (s.equalsIgnoreCase("yes") || s.equalsIgnoreCase("true"))
+						return true;
+					else if (s.equalsIgnoreCase("no") || s.equalsIgnoreCase("false"))
+						return false;
+					throw new EffectorException(String.format(
+						"Field %1$s in %2$s: '%3$s' can not be rendered as boolean",
+							t.getFieldName(fieldOrdinal), t.getName(), s));
+				} else
+					return defaultValue;
+			} catch (CharacterCodingException e) {
+				throw new EffectorException(String.format(
+					"Field %1$s in %2$s is not a recognizable encoded character sequence",
+						t.getFieldName(fieldOrdinal), t.getName()), e);
+			}
+		} else
+			throw new EffectorException("Not valid for proxy transductor");
+	}
+
+	@Override // @see com.characterforming.ribose.IOutput#asLong(int, long)
+	public long asLong(int fieldOrdinal, long defaultValue) throws EffectorException {
+		if (!this.isProxy) {
+			Transducer t = this.transducerStack.get(this.transducerStack.tos()).transducer;
+			Value v = this.transducerStack.value(fieldOrdinal);
+			if (v.length() > 0) {
+				String data = "";
+				try {
+					data = Codec.decode(v.data(), v.length());
+					return Long.parseLong(data);
+				} catch (NumberFormatException e) {
+					throw new EffectorException(String.format(
+						"Field %1$s in %2$s: '%3$s' is not recognizable as an integer",
+							t.getFieldName(fieldOrdinal), t.getName(), data), e);
+				} catch (CharacterCodingException e) {
+					throw new EffectorException(String.format(
+						"Field %1$s in %2$s is not a recognizable encoded character sequence",
+							t.getFieldName(fieldOrdinal), t.getName()), e);
+				}
+			} else
+				return defaultValue;
+		} else
+			throw new EffectorException("Not valid for proxy transductor");
+	}
+
+	@Override // @see com.characterforming.ribose.IOutput#asInteger(int, int)
+	public int asInteger(int fieldOrdinal, int defaultValue) throws EffectorException {
+		long longValue = this.asLong(fieldOrdinal, defaultValue);
+		if (Integer.MIN_VALUE <= longValue && longValue <= Integer.MAX_VALUE)
+			return (int)longValue;
+		Transducer t = this.transducerStack.get(this.transducerStack.tos()).transducer;
+		throw new EffectorException(String.format(
+			"Field %1$s in %2$s: '%3$d' is out of range for short",
+				t.getFieldName(fieldOrdinal), t.getName(), longValue));
+	}
+
+	@Override // @see com.characterforming.ribose.IOutput#asShort(int. short)
+	public short asShort(int fieldOrdinal, short defaultValue) throws EffectorException {
+		long longValue = this.asLong(fieldOrdinal, defaultValue);
+		if (Short.MIN_VALUE <= longValue && longValue <= Short.MAX_VALUE)
+			return (short)longValue;
+		Transducer t = this.transducerStack.get(this.transducerStack.tos()).transducer;
+		throw new EffectorException(String.format(
+			"Field %1$s in %2$s: '%3$d' is out of range for short",
+				t.getFieldName(fieldOrdinal), t.getName(), longValue));
+	}
+
+	@Override // @see com.characterforming.ribose.IOutput#asByte(int, byte)
+	public byte asByte(int fieldOrdinal, byte defaultValue) throws EffectorException {
+		long longValue = this.asLong(fieldOrdinal, defaultValue);
+		if (Byte.MIN_VALUE <= longValue && longValue <= Byte.MAX_VALUE)
+			return (byte)longValue;
+		Transducer t = this.transducerStack.get(this.transducerStack.tos()).transducer;
+		throw new EffectorException(String.format(
+			"Field %1$s in %2$s: '%3$d' is out of range for byte",
+				t.getFieldName(fieldOrdinal), t.getName(), longValue));
+	}
+
+	@Override // @see com.characterforming.ribose.IOutput#asDouble(int, double)
+	public double asDouble(int fieldOrdinal, double defaultValue) throws EffectorException {
+		if (!this.isProxy) {
+			Transducer t = this.transducerStack.get(this.transducerStack.tos()).transducer;
+			Value v = this.transducerStack.value(fieldOrdinal);
+			if (v.length() > 0) {
+				String data = "";
+				try {
+					data = Codec.decode(v.data(), v.length());
+					return Double.parseDouble(data);
+				} catch (NumberFormatException e) {
+					throw new EffectorException(String.format(
+						"Field %1$s in %2$s: '%3$s' is not a recognizable float or double",
+							t.getFieldName(fieldOrdinal), t.getName(), data), e);
+				} catch (CharacterCodingException e) {
+					throw new EffectorException(String.format(
+						"Field %1$s in %2$s is not a recognizable encoded character sequence",
+							t.getFieldName(fieldOrdinal), t.getName()), e);
+				}
+			} else
+				return defaultValue;
+		} else
+			throw new EffectorException("Not valid for proxy transductor");
+	}
+
+	@Override // @see com.characterforming.ribose.IOutput#asFloat(int, float)
+	public float asFloat(int fieldOrdinal, float defaultValue) throws EffectorException {
+		double doubleValue = this.asDouble(fieldOrdinal, defaultValue);
+		if (Float.MIN_VALUE <= doubleValue && doubleValue <= Float.MAX_VALUE)
+			return (float)doubleValue;
+		Transducer transducer = this.transducerStack.get(this.transducerStack.tos()).transducer;
+		throw new EffectorException(String.format(
+			"Field %1$s in %2$s: '%3$.6f' is out of range for float",
+				doubleValue, transducer.getFieldName(fieldOrdinal), transducer.getName()));
 	}
 
 	@Override // @see com.characterforming.ribose.IOutput#isProxy()
@@ -406,7 +532,7 @@ T:		do {
 				// start a pushed transducer, or resume caller after pushed transducer is popped
 				this.transducerStackFrame = this.transducerStack.peek();
 				this.selected = this.transducerStackFrame.selected;
-				this.value = this.transducerStack.value(this.selected);
+				this.selection = this.transducerStack.value(this.selected);
 				Transducer transducer = this.transducerStackFrame.transducer;
 				final int[] inputFilter = transducer.inputFilter();
 				final long[] transitionMatrix = transducer.transitionMatrix();
@@ -441,7 +567,7 @@ S:				do {
 								last = state; state = Transducer.state(transition);
 								action = Transducer.action(transition);
 								if (action == PASTE)
-									this.value.paste((byte)token);
+									this.selection.paste((byte)token);
 								else if (action != NIL)
 									break S;
 								token = input.position < input.limit ? input.array[input.position++] & 0xff : -1;
@@ -537,17 +663,17 @@ S:				do {
 				assert false;
 				return IEffector.RTX_NONE;
 			case PASTE:
-				this.value.paste((byte) token);
+				this.selection.paste((byte) token);
 				return IEffector.RTX_NONE;
 			case SELECT:
 				this.selected = Model.ANONYMOUS_FIELD_ORDINAL;
-				this.value = this.transducerStack.value(this.selected);
+				this.selection = this.transducerStack.value(this.selected);
 				return IEffector.RTX_NONE;
 			case COPY:
-				this.value.paste(this.transducerStack.value(Model.ANONYMOUS_FIELD_ORDINAL));
+				this.selection.paste(this.transducerStack.value(Model.ANONYMOUS_FIELD_ORDINAL));
 				return IEffector.RTX_NONE;
 			case CUT:
-				this.value.paste(this.transducerStack.value(Model.ANONYMOUS_FIELD_ORDINAL));
+				this.selection.paste(this.transducerStack.value(Model.ANONYMOUS_FIELD_ORDINAL));
 				this.transducerStack.value(Model.ANONYMOUS_FIELD_ORDINAL).clear();
 				return IEffector.RTX_NONE;
 			case CLEAR:
@@ -560,11 +686,11 @@ S:				do {
 				}
 				return IEffector.RTX_NONE;
 			case IN:
-				this.inputStack.push(this.value.value(), this.value.length());
+				this.inputStack.push(this.selection.data(), this.selection.length());
 				return IEffector.RTX_INPUT;
 			case OUT:
 				if (this.outputStream != null)
-					this.outputStream.write(this.value.value(), 0, this.value.length());
+					this.outputStream.write(this.selection.data(), 0, this.selection.length());
 				return IEffector.RTX_NONE;
 			case MARK:
 				this.inputStack.mark();
@@ -750,10 +876,10 @@ E:	do {
 					if (token.isField()) {
 						Value field = transducerStack.value(token.getOrdinal());
 						if (field != null)
-							value.paste(field);
+							selection.paste(field);
 					} else if (token.isLiteral()) {
 						byte[] bytes = token.getSymbol().bytes();
-						value.paste(bytes, bytes.length);
+						selection.paste(bytes, bytes.length);
 					} else
 						throw new EffectorException(String.format("Invalid token `%1$s` for effector '%2$s'",
 							token.asString(), super.getName()));
@@ -771,7 +897,7 @@ E:	do {
 		@Override
 		public int invoke() throws EffectorException {
 			selected = Model.ANONYMOUS_FIELD_ORDINAL;
-			value = transducerStack.value(selected);
+			selection = transducerStack.value(selected);
 			return IEffector.RTX_NONE;
 		}
 
@@ -780,7 +906,7 @@ E:	do {
 			selected = super.parameters[parameterIndex];
 			assert selected != Model.ALL_FIELDS_ORDINAL;
 			if (selected != Model.ALL_FIELDS_ORDINAL)
-				value = transducerStack.value(selected);
+				selection = transducerStack.value(selected);
 			return IEffector.RTX_NONE;
 		}
 	}
@@ -800,7 +926,7 @@ E:	do {
 		public int invoke(final int parameterIndex) throws EffectorException {
 			int fieldOrdinal = super.parameters[parameterIndex];
 			assert fieldOrdinal != Model.ALL_FIELDS_ORDINAL;
-			value.paste(transducerStack.value(fieldOrdinal));
+			selection.paste(transducerStack.value(fieldOrdinal));
 			return IEffector.RTX_NONE;
 		}
 	}
@@ -819,7 +945,7 @@ E:	do {
 		public int invoke(final int parameterIndex) throws EffectorException {
 			int fieldOrdinal = super.parameters[parameterIndex];
 			assert fieldOrdinal != Model.ALL_FIELDS_ORDINAL;
-			value.paste(transducerStack.value(fieldOrdinal));
+			selection.paste(transducerStack.value(fieldOrdinal));
 			transducerStack.value(fieldOrdinal).clear();
 			return IEffector.RTX_NONE;
 		}
@@ -919,7 +1045,7 @@ E:	do {
 			for (int i = 0; i < parameters.length; i++) {
 				if (parameters[i].isField()) {
 					Value field = transducerStack.value(parameters[i].getOrdinal());
-					tokens[i] = (field != null) ? field.value() : Bytes.EMPTY_BYTES;
+					tokens[i] = (field != null) ? field.data() : Bytes.EMPTY_BYTES;
 				} else {
 					assert parameters[i].isLiteral();
 					tokens[i] = parameters[i].getSymbol().bytes();
@@ -948,7 +1074,7 @@ E:	do {
 						if (token.isField()) {
 							Value field = transducerStack.value(token.getOrdinal());
 							if (field != null)
-								outputStream.write(field.value(), 0, field.length());
+								outputStream.write(field.data(), 0, field.length());
 						} else {
 							assert token.isLiteral();
 							byte[] data = token.getSymbol().bytes();
@@ -985,7 +1111,7 @@ E:	do {
 			transducerStackFrame.countdown = parameter[0];
 			transducerStackFrame.signal = parameter[1];
 			if (transducerStackFrame.countdown < 0)
-				transducerStackFrame.countdown = (int)asInteger(-1 - transducerStackFrame.countdown);
+				transducerStackFrame.countdown = asInteger(-1 - transducerStackFrame.countdown, 0);
 			return transducerStackFrame.countdown <= 0 ? IEffector.signal(transducerStackFrame.signal) : IEffector.RTX_NONE;
 		}
 

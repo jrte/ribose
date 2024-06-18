@@ -44,7 +44,7 @@ import com.characterforming.ribose.base.EffectorException;
  * #invoke()}. Live effectors are never passivated and may access {@code super.target}
  * and {@code super.output} in their {@link #invoke()} methods. Effectors access transducer
  * fields by overriding {@link #setOutput(IOutput)} and using {@link
- * IOutput#getLocalizedFieldIndex(String, String)} to obtain stable field indexes for
+ * IOutput#getTransducerFieldndex(String, String)} to obtain stable field indexes for
  * subsequent use in {@link #invoke()} with the {@link IOutput} data transfer methods.
  * See {@link IOutput} for more information regarding field binding in effectors.
  * <br><br>
@@ -121,7 +121,7 @@ public interface IEffector<T extends ITarget> {
 	 *
 	 * @param output an object that provides a view of transduction runtime fields
 	 * @throws EffectorException if field names can't be resolved
-	 * @see IOutput#getLocalizedFieldIndex(String, String)
+	 * @see IOutput#getTransducerFieldndex(String, String)
 	 */
 	void setOutput(IOutput output)
 	throws EffectorException;
