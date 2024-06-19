@@ -20,23 +20,23 @@
  * solely on the transductor effectors and express output through the {@code
  * out[..]} effector. Domain specific {@link ITarget} implementations may extend
  * the range of the transductor target with specialized {@link IEffector} and
- * {@link IParameterizedEffector} implementations. All effectors receive a reference
+ * {@link IParametricEffector} implementations. All effectors receive a reference
  * to their respective target and an {@link IOutput} view that provides access
  * to extracted field output as raw bytes, common Java primitive, or Unicode text.
  * <br><br>
- * {@link IEffector} and {@link IParameterizedEffector} classes are typically
+ * {@link IEffector} and {@link IParametricEffector} classes are typically
  * implemented as private inner classes of the target class. Every target class
  * must present a default constructor that instantiates a <i>proxy</i> instance
  * for effector parameter compilation. Parameters are compiled once when the
  * model is compiled, to validate the supplied parameters, and once again every
  * time the model is loaded for runtime use. Parameters are represented as lists of
  * backquoted Unicode {@code `tokens`} in ribose patterns and presented as arrays
- * of UTF-8 {@code bytes} to parameterized effectors to compile. A parameterized
+ * of UTF-8 {@code bytes} to parametric effectors to compile. A parametric
  * effector {@code E<T,P>} compiles from each token array an instance of {@code P}.
  * The runtime model retains the proxy target and supplies compiled parameters to live
  * effectors when a live target is bound to a transductor. These bindings (model:proxy
  * target, model:live target) persisti for the lifetime of the transductor. See
- * {@link ITarget}, {@link IEffector} and {@link IParameterizedEffector} for more
+ * {@link ITarget}, {@link IEffector} and {@link IParametricEffector} for more
  * information regarding these classes in model compilation and runtime contexts.
  * <br><br>
  * A ribose model is <i>simple</i> if the model target class defines no specialized

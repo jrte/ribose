@@ -40,13 +40,13 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import com.characterforming.ribose.IEffector;
-import com.characterforming.ribose.IParameterizedEffector;
+import com.characterforming.ribose.IParametricEffector;
 import com.characterforming.ribose.ITarget;
 import com.characterforming.ribose.IToken;
 import com.characterforming.ribose.ITransduction;
 import com.characterforming.ribose.ITransductor;
 import com.characterforming.ribose.base.BaseEffector;
-import com.characterforming.ribose.base.BaseParameterizedEffector;
+import com.characterforming.ribose.base.BaseParametricEffector;
 import com.characterforming.ribose.base.Bytes;
 import com.characterforming.ribose.base.Codec;
 import com.characterforming.ribose.base.CompilationException;
@@ -256,7 +256,7 @@ sealed class Model permits ModelCompiler, ModelLoader {
 				for (int effectorOrdinal = 0; effectorOrdinal < this.effectorOrdinalMap.size(); effectorOrdinal++) {
 					Argument[] arguments = effectorParameters[effectorOrdinal];
 					if (arguments != null && arguments.length > 0) {
-						assert this.proxyEffectors[effectorOrdinal] instanceof IParameterizedEffector<?, ?>;
+						assert this.proxyEffectors[effectorOrdinal] instanceof IParametricEffector<?, ?>;
 						this.writeArguments(arguments);
 					} else
 						this.writeInt(-1);
@@ -324,7 +324,7 @@ sealed class Model permits ModelCompiler, ModelLoader {
 			IToken[][] parameterTokens = new IToken[effectorArguments.length][];
 			for (int i = 0; i < effectorArguments.length; i++)
 				parameterTokens[i] = Token.getParameterTokens(this, effectorArguments[i]);
-			if (this.proxyEffectors[effectorOrdinal] instanceof BaseParameterizedEffector<?, ?> effector)
+			if (this.proxyEffectors[effectorOrdinal] instanceof BaseParametricEffector<?, ?> effector)
 				effector.compileParameters(parameterTokens, errors);
 			if (this.targetMode.isLive())
 				this.proxyEffectors[effectorOrdinal].passivate();
@@ -387,7 +387,7 @@ sealed class Model permits ModelCompiler, ModelLoader {
 		for (int effector = 0; effector < effectorIndex.length; effector++) {
 			mapWriter.printf("%1$6d effector %2$s", effector,
 				effectorIndex[effector].asString());
-			if (this.proxyEffectors[effector] instanceof BaseParameterizedEffector<?, ?> proxyEffector) {
+			if (this.proxyEffectors[effector] instanceof BaseParametricEffector<?, ?> proxyEffector) {
 				mapWriter.printf(" [ %1$s ]%n", proxyEffector.showParameterType());
 				for (int parameter = 0; parameter < proxyEffector.getParameterCount(); parameter++)
 					mapWriter.printf("%1$6d parameter %2$s%n", parameter, proxyEffector.showParameterTokens(parameter));
@@ -435,10 +435,10 @@ sealed class Model permits ModelCompiler, ModelLoader {
 		for (int effectorOrdinal = 0; effectorOrdinal < this.proxyEffectors.length; effectorOrdinal++) {
 			HashMap<Argument, Integer> parametersMap = this.effectorParametersMaps.get(effectorOrdinal);
 			this.proxyEffectors[effectorOrdinal].setOutput(this.proxyTransductor);
-			if (this.proxyEffectors[effectorOrdinal] instanceof BaseParameterizedEffector<?,?> parameterizedEffector) {
+			if (this.proxyEffectors[effectorOrdinal] instanceof BaseParametricEffector<?,?> parametricEffector) {
 				if (parametersMap != null) {
 					assert parametersMap != null: String.format("Effector parameters map is null for %1$s effector",
-						parameterizedEffector.getName());
+						parametricEffector.getName());
 					Argument[] arguments = new Argument[parametersMap.size()];
 					IToken[][] tokens = new IToken[arguments.length][];
 					for (Map.Entry<Argument, Integer> e : parametersMap.entrySet()) {
@@ -446,7 +446,7 @@ sealed class Model permits ModelCompiler, ModelLoader {
 						tokens[ordinal] = Token.getParameterTokens(this, argument);
 						arguments[ordinal] = argument;
 					}
-					parameterizedEffector.compileParameters(tokens, errors);
+					parametricEffector.compileParameters(tokens, errors);
 					effectorArguments[effectorOrdinal] = arguments;
 				} else
 					effectorArguments[effectorOrdinal] = new Argument[0];

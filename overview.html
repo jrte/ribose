@@ -13,7 +13,7 @@ target="_blank">user guide</a> is published, with a sidebar index, on the ribose
 <br><br>
 Ginr automata for ribose are 3-tape finite state transducers (FSTs) compiled
 from 3-dimensional regular patterns that express the source syntax on the input tape and
-unambiguously map it onto parameterized effectors, expressed by a target, that extract and
+unambiguously map it onto parametric effectors, expressed by a target, that extract and
 assimilate input data into the target domain.  Ginr encodes Unicode literal characters and
 tokens, eg 'Σ', 'Π', `ΣΠ`, as multibyte UTF-8 sequences and the encoded form is used
 throughout ribose. This is largely transparent to end users, but care must be taken when
@@ -131,16 +131,16 @@ which allows them to access the private members of the target. They all receive 
 reference to the target instance and an {@code IOutput} instance that supports
 conversion of transducer fields to Java primitive values or {@code byte[]} or
 {@code char[]} arrays. There are three types of effectors: simple effector,
-parameterized effector and receptor effector. Simple effectors extend {@code
+parametric effector and receptor effector. Simple effectors extend {@code
 IEffector<T extends ITarget>}, which expresses a niladic {@code invoke()} method
-that is called when the effector fires in running transduction. Parameterized
-effectors extend {@code IParameterizedEffector<T extends ITarget, P> extends
+that is called when the effector fires in running transduction. Parametric
+effectors extend {@code IParametricEffector<T extends ITarget, P> extends
 IEffector<T>>} and contain an array {@code P[]} of parametric objects compiled
-from lists effector tokens. Parameterized effectors inherit {@code IEffector.invoke()}
+from lists effector tokens. Parametric effectors inherit {@code IEffector.invoke()}
 and add a monadic {@code invoke(int)} method, where the {@code int} argument selects
-a specific {@code P} instance to use. Receptor effectors are specialized parameterized
+a specific {@code P} instance to use. Receptor effectors are specialized parametric
 effectors that extend {@code BaseReceptorEffector<T extends ITarget> extends
-BaseParameterizedEffector<T, Receiver[]>}. Receptor effectors express public fields
+BaseParametricEffector<T, Receiver[]>}. Receptor effectors express public fields
 that receive data decoded from transducer fields.
 <br><br>
 The transductor is itself a target expressing a suite of core effectors that are

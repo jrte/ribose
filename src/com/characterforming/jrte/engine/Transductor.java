@@ -29,14 +29,14 @@ import java.util.logging.Logger;
 
 import com.characterforming.ribose.IEffector;
 import com.characterforming.ribose.IOutput;
-import com.characterforming.ribose.IParameterizedEffector;
+import com.characterforming.ribose.IParametricEffector;
 import com.characterforming.ribose.IModel;
 import com.characterforming.ribose.ITarget;
 import com.characterforming.ribose.IToken;
 import com.characterforming.ribose.ITransduction;
 import com.characterforming.ribose.ITransductor;
 import com.characterforming.ribose.base.BaseEffector;
-import com.characterforming.ribose.base.BaseParameterizedEffector;
+import com.characterforming.ribose.base.BaseParametricEffector;
 import com.characterforming.ribose.base.Bytes;
 import com.characterforming.ribose.base.Codec;
 import com.characterforming.ribose.base.DomainErrorException;
@@ -47,7 +47,7 @@ import com.characterforming.ribose.base.TargetBindingException;
 
 /**
  * Runtime transductor instances are instantiated using {@link IModel#transductor(ITarget)}
- * presenting a collection of {@link IEffector} and {@link IParameterizedEffector}
+ * presenting a collection of {@link IEffector} and {@link IParametricEffector}
  * instances. Client applications drive transduction using the Transductor.run() method,
  * which processes the input stack until one of the following conditions is satisfied:
  * <br><br>
@@ -594,7 +594,7 @@ S:				do {
 					// effect action and check for transducer or input stack adjustment
 					int aftereffects = IEffector.RTX_NONE;
 					if (action >= 0x10000) {
-						if ( this.effectors[Transducer.effector(action)] instanceof IParameterizedEffector<?, ?> e)
+						if ( this.effectors[Transducer.effector(action)] instanceof IParametricEffector<?, ?> e)
 							aftereffects = e.invoke(Transducer.parameter(action));
 						else assert false;
 					} else if (action >= 0)
@@ -718,7 +718,7 @@ S:				do {
 E:	do {
 			action = effectorVector[index++];
 			if (action < 0 ) {
-				if (this.effectors[0 - action] instanceof IParameterizedEffector<?,?> e)
+				if (this.effectors[0 - action] instanceof IParametricEffector<?,?> e)
 					aftereffects |= e.invoke(effectorVector[index++]);
 				else assert false;
 			} else if (action != NUL) {
@@ -975,7 +975,7 @@ E:	do {
 		}
 	}
 
-	private final class SignalEffector extends BaseParameterizedEffector<Transductor, Integer> {
+	private final class SignalEffector extends BaseParametricEffector<Transductor, Integer> {
 		private SignalEffector(final Transductor transductor) throws CharacterCodingException {
 			super(transductor, "signal");
 		}
@@ -990,7 +990,7 @@ E:	do {
 			return IEffector.signal(super.parameters[parameterIndex]);
 		}
 
-		@Override // @see com.characterforming.ribose.IParameterizedEffector#allocateParameters(int)
+		@Override // @see com.characterforming.ribose.IParametricEffector#allocateParameters(int)
 		public Integer[] allocateParameters(int parameterCount) {
 			return new Integer[parameterCount];
 		}
@@ -1089,7 +1089,7 @@ E:	do {
 		}
 	}
 
-	private final class CountEffector extends BaseParameterizedEffector<Transductor, int[]> {
+	private final class CountEffector extends BaseParametricEffector<Transductor, int[]> {
 		private CountEffector(final Transductor transductor) throws CharacterCodingException {
 			super(transductor, "count");
 		}
@@ -1099,7 +1099,7 @@ E:	do {
 			throw new EffectorException(String.format("Cannot invoke inline effector '%1$s'", super.getName()));
 		}
 
-		@Override // @see com.characterforming.ribose.IParameterizedEffector#allocateParameters(int)
+		@Override // @see com.characterforming.ribose.IParametricEffector#allocateParameters(int)
 		public int[][] allocateParameters(int parameterCount) {
 			return new int[parameterCount][];
 		}
@@ -1139,7 +1139,7 @@ E:	do {
 		}
 	}
 
-	private final class StartEffector extends BaseParameterizedEffector<Transductor, Integer> {
+	private final class StartEffector extends BaseParametricEffector<Transductor, Integer> {
 		private StartEffector(final Transductor transductor) throws CharacterCodingException {
 			super(transductor, "start");
 		}
@@ -1149,7 +1149,7 @@ E:	do {
 			throw new EffectorException("The start effector requires a parameter");
 		}
 
-		@Override // @see com.characterforming.ribose.IParameterizedEffector#allocateParameters(int)
+		@Override // @see com.characterforming.ribose.IParametricEffector#allocateParameters(int)
 		public Integer[] allocateParameters(int parameterCount) {
 			return new Integer[parameterCount];
 		}
@@ -1192,7 +1192,7 @@ E:	do {
 		}
 	}
 
-	private final class MsumEffector extends BaseParameterizedEffector<Transductor, long[]> {
+	private final class MsumEffector extends BaseParametricEffector<Transductor, long[]> {
 		private MsumEffector(final Transductor transductor) throws CharacterCodingException {
 			super(transductor, "msum");
 		}
@@ -1202,7 +1202,7 @@ E:	do {
 			return IEffector.RTX_NONE;
 		}
 
-		@Override // @see com.characterforming.ribose.IParameterizedEffector#allocateParameters(int)
+		@Override // @see com.characterforming.ribose.IParametricEffector#allocateParameters(int)
 		public long[][] allocateParameters(int parameterCount) {
 			return new long[parameterCount][];
 		}
@@ -1259,7 +1259,7 @@ E:	do {
 		}
 	}
 
-	private final class MproductEffector extends BaseParameterizedEffector<Transductor, byte[]> {
+	private final class MproductEffector extends BaseParametricEffector<Transductor, byte[]> {
 		private MproductEffector(final Transductor transductor) throws CharacterCodingException {
 			super(transductor, "mproduct");
 		}
@@ -1282,7 +1282,7 @@ E:	do {
 			return IEffector.RTX_NONE;
 		}
 
-		@Override // @see com.characterforming.ribose.IParameterizedEffector#allocateParameters(int)
+		@Override // @see com.characterforming.ribose.IParametricEffector#allocateParameters(int)
 		public byte[][] allocateParameters(int parameterCount) {
 			return new byte[parameterCount][];
 		}
@@ -1308,7 +1308,7 @@ E:	do {
 		}
 	}
 
-	private final class MscanEffector extends BaseParameterizedEffector<Transductor, Integer> {
+	private final class MscanEffector extends BaseParametricEffector<Transductor, Integer> {
 		private MscanEffector(final Transductor transductor) throws CharacterCodingException {
 			super(transductor, "mscan");
 		}
@@ -1329,7 +1329,7 @@ E:	do {
 			return IEffector.RTX_NONE;
 		}
 
-		@Override // @see com.characterforming.ribose.IParameterizedEffector#allocateParameters(int)
+		@Override // @see com.characterforming.ribose.IParametricEffector#allocateParameters(int)
 		public Integer[] allocateParameters(int parameterCount) {
 			return new Integer[parameterCount];
 		}

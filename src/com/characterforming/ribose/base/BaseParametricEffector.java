@@ -23,34 +23,34 @@ package com.characterforming.ribose.base;
 import java.nio.charset.CharacterCodingException;
 import java.util.List;
 
-import com.characterforming.ribose.IParameterizedEffector;
+import com.characterforming.ribose.IParametricEffector;
 import com.characterforming.ribose.ITarget;
 import com.characterforming.ribose.IToken;
 
 /**
- * Base {@link IParameterizedEffector} implementation class extends {@link BaseEffector}
- * to support specialized effectors. All {@link IParameterizedEffector} implementations
- * <i>must</i> extend {@link BaseParameterizedEffector} and <i>must</i> implement:
+ * Base {@link IParametricEffector} implementation class extends {@link BaseEffector}
+ * to support specialized effectors. All {@link IParametricEffector} implementations
+ * <i>must</i> extend {@link BaseParametricEffector} and <i>must</i> implement:
  * <ul>
- * <li>{@link IParameterizedEffector#invoke()}</li>
- * <li>{@link IParameterizedEffector#invoke(int)}</li>
- * <li>{@link IParameterizedEffector#allocateParameters(int)}</li>
- * <li>{@link IParameterizedEffector#compileParameter(IToken[])}</li>
+ * <li>{@link IParametricEffector#invoke()}</li>
+ * <li>{@link IParametricEffector#invoke(int)}</li>
+ * <li>{@link IParametricEffector#allocateParameters(int)}</li>
+ * <li>{@link IParametricEffector#compileParameter(IToken[])}</li>
  * </ul>
  * Subclasses may access indexed compiled parameter objects in their {@link #invoke(int)}
  * implementations directly as {@code super.parameters[int]}. Default {@link showParameterType()}
  * and {@link showParameterTokens(int)} methods are implemented here but subclasses
  * <i>may</i> override these if desired. Otherwise, public methods not exposed in the
- * {@link IParameterizedEffector} interface are for internal use only. These methods
- * implement the parameter compilation and binding protocols for all parameterized effector
+ * {@link IParametricEffector} interface are for internal use only. These methods
+ * implement the parameter compilation and binding protocols for all parametric effector
  * implementations.
  *
  * @param <T> the effector target type
  * @param <P> the effector parameter type, constructible from IToken[] (eg new P(IToken[]))
  * @author Kim Briggs
- * @see IParameterizedEffector
+ * @see IParametricEffector
  */
-public abstract class BaseParameterizedEffector<T extends ITarget, P> extends BaseEffector<T> implements IParameterizedEffector<T, P> {
+public abstract class BaseParametricEffector<T extends ITarget, P> extends BaseEffector<T> implements IParametricEffector<T, P> {
 
 	/** Raw and compiled effector parameters indexed and selected by parameter ordinal.*/
 	protected P[] parameters = null;
@@ -63,18 +63,18 @@ public abstract class BaseParameterizedEffector<T extends ITarget, P> extends Ba
 	 * @param name the effector name as referenced from ginr transducers
 	 * @throws CharacterCodingException if encoder fails
 	 */
-	protected BaseParameterizedEffector(final T target, final String name)
+	protected BaseParametricEffector(final T target, final String name)
 	throws CharacterCodingException {
 		super(target, name);
 	}
 
-	@Override // @see com.characterforming.ribose.base.IParameterizedEffector#nvoke(int)
+	@Override // @see com.characterforming.ribose.base.IParametricEffector#nvoke(int)
 	public abstract int invoke(int parameterIndex) throws EffectorException;
 
-	@Override // @see com.characterforming.ribose.base.IParameterizedEffector#allocateParameters(int)
+	@Override // @see com.characterforming.ribose.base.IParametricEffector#allocateParameters(int)
 	public abstract P[] allocateParameters(int parameterCount);
 
-	@Override // @see com.characterforming.ribose.base.IParameterizedEffector#compileParameter(IToken[])
+	@Override // @see com.characterforming.ribose.base.IParametricEffector#compileParameter(IToken[])
 	public abstract P compileParameter(IToken[] parameterTokens) throws TargetBindingException;
 
 	@Override
@@ -101,9 +101,9 @@ public abstract class BaseParameterizedEffector<T extends ITarget, P> extends Ba
 	 * @param proxyEffector the proxy effector holding the compiled parameters
 	 */
 	@SuppressWarnings("unchecked")
-	public final void setParameters(IParameterizedEffector<?,?> proxyEffector) {
-		assert proxyEffector instanceof BaseParameterizedEffector<?,?>;
-		if (proxyEffector instanceof BaseParameterizedEffector<?,?> proxy) {
+	public final void setParameters(IParametricEffector<?,?> proxyEffector) {
+		assert proxyEffector instanceof BaseParametricEffector<?,?>;
+		if (proxyEffector instanceof BaseParametricEffector<?,?> proxy) {
 			this.parameters = (P[])proxy.parameters;
 		}
 	}

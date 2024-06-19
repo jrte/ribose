@@ -39,7 +39,7 @@ import com.characterforming.ribose.base.BaseReceptorEffector;
  * to {@link #getTransducerFieldndex(String, String)}. Effectors should obtain field
  * ordinals in {@code setOutput()} and retain them for use with the data transfer methods
  * ({@link #asInteger(int, int)}, etc) in {@link IEffector#invoke()} and {@link
- * IParameterizedEffector#invoke(int)} as shown in the example below (this example is
+ * IParametricEffector#invoke(int)} as shown in the example below (this example is
  * implemented more succinctly as a receptor effector -- see below).
  * <br><pre>
  * record Header (int version, int tapes, int transitions, int states, int symbols) {}

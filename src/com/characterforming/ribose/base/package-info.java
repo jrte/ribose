@@ -24,7 +24,7 @@
  * Ribose operates on byte[] and {@link Signal} inputs. Input may include UTF-8
  * encoded text and/or binary data. The {@link Bytes} wrapper class and {@link Base}
  * utility class are used extensively throughout the ribose compiler and runtime.
- * The base classes {@link BaseEffector} and {@link  BaseParameterizedEffector}
+ * The base classes {@link BaseEffector} and {@link  BaseParametricEffector}
  * provide cross-cutting support to all effector subclasses. The {@link SimpleTarget}
  * provides a target that exposes the built-in {@link ITransductor} effectors and
  * can be used to construct simple models that do not require specialized effectors.

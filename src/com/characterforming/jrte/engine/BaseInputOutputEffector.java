@@ -23,14 +23,14 @@ package com.characterforming.jrte.engine;
 import java.nio.charset.CharacterCodingException;
 
 import com.characterforming.ribose.IToken;
-import com.characterforming.ribose.base.BaseParameterizedEffector;
+import com.characterforming.ribose.base.BaseParametricEffector;
 import com.characterforming.ribose.base.EffectorException;
 import com.characterforming.ribose.base.TargetBindingException;
 
 /**
  * @author Kim Briggs
  */
-abstract class BaseInputOutputEffector extends BaseParameterizedEffector<Transductor, IToken[]> {
+abstract class BaseInputOutputEffector extends BaseParametricEffector<Transductor, IToken[]> {
 	/**
 	 * Constructor
 	 *
@@ -42,17 +42,17 @@ abstract class BaseInputOutputEffector extends BaseParameterizedEffector<Transdu
 		super(transductor, name);
 	}
 
-	@Override // @see com.characterforming.ribose.IParameterizedEffector#invoke()
+	@Override // @see com.characterforming.ribose.IParametricEffector#invoke()
 	public int invoke() throws EffectorException {
 		throw new EffectorException(String.format("The %1$s effector requires at least one parameter", super.getName()));
 	}
 
-	@Override // @see com.characterforming.ribose.IParameterizedEffector#allocateParameters(int)
+	@Override // @see com.characterforming.ribose.IParametricEffector#allocateParameters(int)
 	public IToken[][] allocateParameters(int parameterCount) {
 		return new IToken[parameterCount][];
 	}
 
-	@Override // @see com.characterforming.ribose.IParameterizedEffector#compileParameter(IToken[])
+	@Override // @see com.characterforming.ribose.IParametricEffector#compileParameter(IToken[])
 	public IToken[] compileParameter(final IToken[] parameterList) throws TargetBindingException {
 		if (parameterList.length < 1) {
 			throw new TargetBindingException(String.format(

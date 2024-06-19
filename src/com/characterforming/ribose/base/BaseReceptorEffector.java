@@ -38,13 +38,16 @@ import com.characterforming.ribose.IToken;
  * {@link BaseEffector#invoke()} method provides the parameterless {@code invoke()}
  * method; subclasses may override this with their own {@code invoke()} implementation.
  * <br><br>
- * A receptor effector can have only one parameterized form, which lists the transducer
+ * A receptor effector can have only one parametric form, which lists the transducer
  * fields to be received. It can be called from any transducer that expresses the same
  * fields, but the same fields must be supplied in each case. Subclass receiver fields
  * must be {@code public} and may be of any primitive Java type or a {@code byte[]} or
- * {@code char[]} array. Each call to {@link #invoke(int)} overwrites the receiver
- * fields in the effector with the converted value from the respective transducer fields,
- * or with the default value if a transducer field is empty.
+ * {@code char[]} array. When the receptor effector is invoked it calls {@link
+ * BaseReceptorEffector#invoke(int)}, which overwrites the receiver fields in the
+ * effector with the converted value from the respective transducer fields, or with
+ * the default value if a transducer field is empty. The effector immediately dispatches
+ * the receiver field values into the target. The receiver field values are then stale
+ * and should not be used outside the scope of the effector's {@code #invoke()} method.
  * <br><br>
  * The subclass effector must call {@link setEffector(BaseReceptorEffector)} from
  * its constructor after calling the constructor for this base class.
@@ -77,7 +80,7 @@ import com.characterforming.ribose.IToken;
  *
  * @author Kim Briggs
  */
-public abstract class BaseReceptorEffector<T extends ITarget> extends BaseParameterizedEffector<T, Receiver[]> {
+public abstract class BaseReceptorEffector<T extends ITarget> extends BaseParametricEffector<T, Receiver[]> {
 
 	private BaseReceptorEffector<T> effector;
 
@@ -103,7 +106,7 @@ public abstract class BaseReceptorEffector<T extends ITarget> extends BaseParame
 		this.effector = effector;
 	}
 
-	@Override // @see com.characterforming.ribose.IParameterizedEffector#invoke(int)
+	@Override // @see com.characterforming.ribose.IParametricEffector#invoke(int)
 	public int invoke(int parameter) throws EffectorException {
 		assert parameter == 0;
 		for (Receiver r : super.parameters[0]) {
@@ -156,12 +159,12 @@ public abstract class BaseReceptorEffector<T extends ITarget> extends BaseParame
 		return IEffector.RTX_NONE;
 	}
 
-	@Override // @see com.characterforming.ribose.IParameterizedEffector#allocateParameters(int)
+	@Override // @see com.characterforming.ribose.IParametricEffector#allocateParameters(int)
 	public Receiver[][] allocateParameters(int parameterCount) {
 		return new Receiver[parameterCount][];
 	}
 
-	@Override // IParameterizedEffector#compileParameter(IToken[])
+	@Override // IParametricEffector#compileParameter(IToken[])
 	public Receiver[] compileParameter(final IToken[] parameterList) throws TargetBindingException {
 		if (super.parameters.length != 1)
 			throw new TargetBindingException(String.format(

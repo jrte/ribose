@@ -77,7 +77,7 @@ import com.characterforming.ribose.base.EffectorException;
  * Ribose and ginr currently support only UTF-8 character encodings.
  *
  * @param <T> The effector target type
- * @see IParameterizedEffector
+ * @see IParametricEffector
  * @see BaseEffector
  * @author Kim Briggs
  */

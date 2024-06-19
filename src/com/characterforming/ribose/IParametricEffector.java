@@ -20,19 +20,19 @@
 
 package com.characterforming.ribose;
 
-import com.characterforming.ribose.base.BaseParameterizedEffector;
+import com.characterforming.ribose.base.BaseParametricEffector;
 import com.characterforming.ribose.base.EffectorException;
 import com.characterforming.ribose.base.TargetBindingException;
 
 /**
- * Interface for parameterized effectors extends {@link IEffector} with a monadic
+ * Interface for parametric effectors extends {@link IEffector} with a monadic
  * {@link #invoke(int p)} method that selects a <b>P</b> instance from an enumerated
  * set of immutable parameter instances. Implementation classes must extend
- * {@link BaseParameterizedEffector}, which implements the parameter compilation,
- * binding and access protocols and exposes {@code BaseParameterizedEffector.P[]}
+ * {@link BaseParametricEffector}, which implements the parameter compilation,
+ * binding and access protocols and exposes {@code BaseParametricEffector.P[]}
  * as a protected field for direct subclass access to compiled parameters.
  * <br><br>
- * Each {@link IParameterizedEffector} implementation is a template for an indexed
+ * Each {@link IParametricEffector} implementation is a template for an indexed
  * collection of {@link IEffector}. In ribose models, they are specialized by the
  * union of parameter lists bound to their effectors in transducer patterns. In
  * ribose transducer patterns effector parameters are represented as lists of one
@@ -43,13 +43,13 @@ import com.characterforming.ribose.base.TargetBindingException;
  * transducer (`@transducer`) or signal (`!signal`) references. Tokens are
  * presented in the {@link IToken} interface.
  * <br><br>
- * Parameterized effectors compile their parameters when a model is created and
+ * Parametric effectors compile their parameters when a model is created and
  * again whenever it is loaded for runtime use. Each parameter is compiled from
  * an array of {@link IToken} ({@code IToken[] -> P}) to an immutable instance of
  * <b>P</b>. Parameter compilation is performed using <i>proxy</i> target,
  * transductor and effector instances, which are never involved in live
  * transductions. A simple parameter compilation protocol is implemented in
- * {@link BaseParameterizedEffector}, which all {@code IParameterizedEffector}
+ * {@link BaseParametricEffector}, which all {@code IParametricEffector}
  * implementations must extend:
  * <ol>
  * <li> model calls <i>subclassEffector</i>.allocateParameters(int n)
@@ -63,13 +63,13 @@ import com.characterforming.ribose.base.TargetBindingException;
  * </ol>
  * Proxy effectors may receive calls to {@link #showParameterType()} and {@link
  * #showParameterTokens(int)} from the model decompiler; these methods are implemented
- * in {@link BaseParameterizedEffector} but may be overridden by subclasses. The
+ * in {@link BaseParametricEffector} but may be overridden by subclasses. The
  * {@link IEffector#invoke()} and {@link #invoke(int)} methods are never called for
  * proxy effectors.
  * <br><br>
  * For example:
  * <br><pre>
- * private final class DateEffector extends BaseParameterizedEffector&lt;Target, SimpleDateFormat&gt; {
+ * private final class DateEffector extends BaseParametricEffector&lt;Target, SimpleDateFormat&gt; {
  *   public SimpleDateFormat[] allocateParameters(int size) {
  *     super.parameters = new SimpleDateFormat[size];
  *   }
@@ -87,14 +87,14 @@ import com.characterforming.ribose.base.TargetBindingException;
  * }</pre>
  * In live contexts the precompiled parameters are retained in the live model
  * and are available for referential sharing across live transductors bound to the
- * model. <i>Live</i> parameterized effectors receive a reference to the precompiled
- * parameters {@code P[]} via {@link BaseParameterizedEffector#setParameters(IParameterizedEffector)}
+ * model. <i>Live</i> parametric effectors receive a reference to the precompiled
+ * parameters {@code P[]} via {@link BaseParametricEffector#setParameters(IParametricEffector)}
  * when they become bound to a transductor. Live effectors are never passivated and
  * may receive a series of {@link #invoke()} and {@link #invoke(int p)} methods,
  * which return an {@code RTX} code as for {@link IEffector}.
  * <br><br>
- * All {@code IParameterizedEffector} implementations must be subclasses of
- * {@link BaseParameterizedEffector}. Other than immutability ribose places
+ * All {@code IParametricEffector} implementations must be subclasses of
+ * {@link BaseParametricEffector}. Other than immutability ribose places
  * no constraints on effector implementation. Most effector implementations
  * are light weight, tightly focused and single threaded. A parallel array
  * of derivative objects can be allocated and instantiated along with the
@@ -104,11 +104,11 @@ import com.characterforming.ribose.base.TargetBindingException;
  * @param <T> the effector target type
  * @param <P> the effector parameter type, constructible from byte[][] (eg new P(byte[][]))
  * @see IEffector
- * @see BaseParameterizedEffector
+ * @see BaseParametricEffector
  */
-public interface IParameterizedEffector<T extends ITarget, P> extends IEffector<T> {
+public interface IParametricEffector<T extends ITarget, P> extends IEffector<T> {
 	/**
-	 * Parameterized effector invocation receives the index of the <b>P</b>
+	 * Parametric effector invocation receives the index of the <b>P</b>
 	 * instance to apply for the invocation. Normally implementation will return
 	 * {@code IEffector.RTX_NONE}, which has no effect. In some cases a signal may
 	 * be encoded in the return value using {@code IEffector.signal(sig)}, where
@@ -147,14 +147,14 @@ public interface IParameterizedEffector<T extends ITarget, P> extends IEffector<
 	 * (generic parameter type is difficult to obtain by reflection).
 	 *
 	 * @return a printable string representing the effector's parameter object type.
-	 * This is implemented in {@link BaseParameterizedEffector} but may be overriden
+	 * This is implemented in {@link BaseParametricEffector} but may be overriden
 	 * by subclasses.
 	 */
 	String showParameterType();
 
 	/**
 	 * Render tokens for a parameter object in a printable format, to support
-	 * decompilation. This is implemented in {@link BaseParameterizedEffector}
+	 * decompilation. This is implemented in {@link BaseParametricEffector}
 	 * but may be overriden by subclasses.
 	 *
 	 * @param parameterIndex the parameter index

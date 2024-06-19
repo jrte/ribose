@@ -505,7 +505,7 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 								transitionMatrix[inputOrdinal][rteState][1] = 1;
 							else if (chain.isEffector())
 								transitionMatrix[inputOrdinal][rteState][1] = effectVector[0];
-							else if (chain.isParameterizedEffector())
+							else if (chain.isParametricEffector())
 								transitionMatrix[inputOrdinal][rteState][1] = Transducer.action(-1 * effectVector[0], effectVector[1]);
 							else
 								transitionMatrix[inputOrdinal][rteState][1] = -1 * this.effectorVectorMap.computeIfAbsent(

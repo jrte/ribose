@@ -35,13 +35,13 @@ import java.util.concurrent.atomic.AtomicReferenceArray;
 import java.util.logging.Level;
 
 import com.characterforming.ribose.IEffector;
-import com.characterforming.ribose.IParameterizedEffector;
+import com.characterforming.ribose.IParametricEffector;
 import com.characterforming.ribose.IModel;
 import com.characterforming.ribose.ITarget;
 import com.characterforming.ribose.ITransduction;
 import com.characterforming.ribose.ITransductor;
 import com.characterforming.ribose.ITransductor.Metrics;
-import com.characterforming.ribose.base.BaseParameterizedEffector;
+import com.characterforming.ribose.base.BaseParametricEffector;
 import com.characterforming.ribose.base.Bytes;
 import com.characterforming.ribose.base.Codec;
 import com.characterforming.ribose.base.DomainErrorException;
@@ -104,12 +104,12 @@ public final class ModelLoader extends Model implements IModel {
 				} catch (EffectorException e) {
 					throw new ModelException(e);
 				}
-				if (super.proxyEffectors[i] instanceof IParameterizedEffector<?, ?> proxyEffector) {
-					if (boundFx[i] instanceof BaseParameterizedEffector<?, ?> boundEffector)
+				if (super.proxyEffectors[i] instanceof IParametricEffector<?, ?> proxyEffector) {
+					if (boundFx[i] instanceof BaseParametricEffector<?, ?> boundEffector)
 						boundEffector.setParameters(proxyEffector);
 					else
 						throw new ModelException(String.format(
-							"Target effector '%s' implementation must extend BaseParameterizedEffector<?, ?>", proxyEffector.getClass().getName()));
+							"Target effector '%s' implementation must extend BaseParametricEffector<?, ?>", proxyEffector.getClass().getName()));
 				}
 			}
 			trex.setEffectors(boundFx);
@@ -267,7 +267,7 @@ public final class ModelLoader extends Model implements IModel {
 				System.out.printf("%1$d %2$d -> %3$d", from, equivalent, to);
 				if (effect >= 0x10000) {
 					int effectorOrdinal = Transducer.effector(effect);
-					if (super.proxyEffectors[effectorOrdinal] instanceof BaseParameterizedEffector<?, ?> effector) {
+					if (super.proxyEffectors[effectorOrdinal] instanceof BaseParametricEffector<?, ?> effector) {
 						int parameterOrdinal = Transducer.parameter(effect);
 						System.out.printf(" %s[", effectorNames[effectorOrdinal]);
 						System.out.printf(" %s ]", effector.showParameterTokens(parameterOrdinal));
@@ -282,7 +282,7 @@ public final class ModelLoader extends Model implements IModel {
 							System.out.printf(" %s", effectorNames[effectorVectors[index++]]);
 						else {
 							int effectorOrdinal = -1 * effectorVectors[index++];
-							if (super.proxyEffectors[effectorOrdinal] instanceof BaseParameterizedEffector<?,?> effector) {
+							if (super.proxyEffectors[effectorOrdinal] instanceof BaseParametricEffector<?,?> effector) {
 								int parameterOrdinal = Transducer.parameter(effectorVectors[index++]);
 								System.out.printf(" %s[", effectorNames[effectorOrdinal]);
 								System.out.printf(" %s ]", effector.showParameterTokens(parameterOrdinal));

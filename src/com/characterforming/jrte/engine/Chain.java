@@ -46,7 +46,7 @@ final class Chain {
 		&& this.effectVector[1] == 0;
 	}
 
-	boolean isParameterizedEffector() {
+	boolean isParametricEffector() {
 		return this.effectVector.length == 3
 		&& this.effectVector[0] < 0
 		&& this.effectVector[2] == 0;

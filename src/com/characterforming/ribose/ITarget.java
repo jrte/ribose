@@ -25,13 +25,13 @@ import com.characterforming.ribose.base.TargetBindingException;
 
 /**
  * Interface for transduction target classes, which express {@link IEffector}
- * and {@link IParameterizedEffector} instances that are invoked from runtime
+ * and {@link IParametricEffector} instances that are invoked from runtime
  * transductions. The runtime {@code Transductor} class, which encapsulates
  * ribose transductions, implements {@code ITarget} and provides the base ribose
  * effectors that are accessible to all transducers. These are listed in the
  * {@link ITransductor} documentation. The {@link SimpleTarget} class exposes
  * <i>only</i> the {@code Transductor} effectors and is included to support
- * simple models that do not require specialized effectors. Specialized 
+ * simple models that do not require specialized effectors. Specialized
  * {@code ITarget} implementations may supplement these with additional
  * effectors.
  * <br><br>
@@ -39,7 +39,7 @@ import com.characterforming.ribose.base.TargetBindingException;
  * with no arguments. This is used to instantiate proxy instances to enumerate
  * effectors and precompile effector parameters. A proxy target instantiates
  * an array of proxy effectors that are used only for parameter precompilation.
- * See the {@link IParameterizedEffector} documentation for more information
+ * See the {@link IParametricEffector} documentation for more information
  * regarding the effector parameter binding protocol. At runtime, a live target
  * instance is bound to a transductor and the binding persists for the lifetime
  * of the transductor. Live runtime targets are instantiated externally and
@@ -63,7 +63,7 @@ import com.characterforming.ribose.base.TargetBindingException;
  * <br><br>
  * For example, a validation model containing a collection of transducers that
  * syntactically recognize domain artifacts would be bound to a target expressing
- * effectors to support semantic validation. The validation patterns and target, 
+ * effectors to support semantic validation. The validation patterns and target,
  * supplied by the service provider, can then be combined with specialized models
  * in receiving domains to obtain composite models that include provider validation
  * and consumer reception patterns, targets and effectors. With some ginr magic

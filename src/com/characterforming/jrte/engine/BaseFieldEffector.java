@@ -23,17 +23,17 @@ package com.characterforming.jrte.engine;
 import java.nio.charset.CharacterCodingException;
 
 import com.characterforming.ribose.IToken;
-import com.characterforming.ribose.base.BaseParameterizedEffector;
+import com.characterforming.ribose.base.BaseParametricEffector;
 import com.characterforming.ribose.base.TargetBindingException;
 
 /**
- * Base class for parameterized field effectors, which are invoked with
+ * Base class for parametric field effectors, which are invoked with
  * field name parameters. The setParamater(int, charset, byte[][]), invoke(), and
  * invoke(int) methods must be implemented by subclasses.
  *
  * @author Kim Briggs
  */
-abstract class BaseFieldEffector extends BaseParameterizedEffector<Transductor, Integer> {
+abstract class BaseFieldEffector extends BaseParametricEffector<Transductor, Integer> {
 	/**
 	 * Constructor
 	 *
@@ -45,12 +45,12 @@ abstract class BaseFieldEffector extends BaseParameterizedEffector<Transductor, 
 		super(transductor, name);
 	}
 
-	@Override // @see com.characterforming.ribose.IParameterizedEffector#allocateParameters(int)
+	@Override // @see com.characterforming.ribose.IParametricEffector#allocateParameters(int)
 	public Integer[] allocateParameters(int parameterCount) {
 		return new Integer[parameterCount];
 	}
 
-	@Override // IParameterizedEffector#compileParameter(IToken[])
+	@Override // IParametricEffector#compileParameter(IToken[])
 	public Integer compileParameter(final IToken[] parameterList) throws TargetBindingException {
 		if (parameterList.length != 1) {
 			throw new TargetBindingException(String.format("%1$s.%2$s[]: effector accepts exactly one parameter",

@@ -109,7 +109,7 @@ import com.characterforming.ribose.base.Signal;
  * <br><br>
  * The {@code signal[`!signal`]} effector injects a signal for immediate transduction on
  * the next transition. Effectors may inject a signal by returning from {@link IEffector#invoke()}
- * or {@link IParameterizedEffector#invoke(int)} a signal ordinal encoded with
+ * or {@link IParametricEffector#invoke(int)} a signal ordinal encoded with
  * {@link IEffector#signal(int)}. This can be used to effect backflow of information
  * from the target to the transductor; for example,
  * <br><pre>(nl, isThatSo[`!true` `!false`]) ((true, yep) | (false, nope))</pre>

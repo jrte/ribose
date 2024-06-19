@@ -47,9 +47,9 @@ import com.characterforming.ribose.base.Bytes;
  * non-literal tokens types.
  * <br><br>
  * Arrays of {@code IToken} objects, corresponding to effector parameters, are conveyed
- * to proxy parameterized effectors for parameter precompilation. The proxy effector
+ * to proxy parametric effectors for parameter precompilation. The proxy effector
  * constructs from each {@code IToken[]} array an indexed instance of its generic parameter
- * type <b>P</b>. See the {@link IParameterizedEffector} documentation for more information
+ * type <b>P</b>. See the {@link IParametricEffector} documentation for more information
  * regarding effector parameter compilation.
  *
  * @author Kim Briggs
