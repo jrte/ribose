@@ -99,6 +99,14 @@ public interface IOutput {
 	boolean isProxy();
 
 	/**
+	 * Check whether a specific transducer is running
+	 *
+	 * @param transducerName the UTF-8 encoding of the transducer name
+	 * @return true if the transducer is running
+	 */
+	boolean isTransducerRunning(String transducerName);
+
+	/**
 	 * Get a localized field ordinal from an effector parameter token. This method may
 	 * be called by proxy effectors during paramter compilation. The localized ordinal
 	 * is the offset to the field in the transducer stack frame.

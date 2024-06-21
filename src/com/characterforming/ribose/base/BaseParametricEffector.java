@@ -68,15 +68,6 @@ public abstract class BaseParametricEffector<T extends ITarget, P> extends BaseE
 		super(target, name);
 	}
 
-	@Override // @see com.characterforming.ribose.base.IParametricEffector#nvoke(int)
-	public abstract int invoke(int parameterIndex) throws EffectorException;
-
-	@Override // @see com.characterforming.ribose.base.IParametricEffector#allocateParameters(int)
-	public abstract P[] allocateParameters(int parameterCount);
-
-	@Override // @see com.characterforming.ribose.base.IParametricEffector#compileParameter(IToken[])
-	public abstract P compileParameter(IToken[] parameterTokens) throws TargetBindingException;
-
 	@Override
 	public String showParameterType() {
 		return this.parameters != null && this.parameters.length > 0

@@ -127,6 +127,16 @@ public interface IEffector<T extends ITarget> {
 	throws EffectorException;
 
 	/**
+	 * Check whether this is a proxy effector, instantiated in the model for parameter
+	 * compilation. Proxy effectors do not receive {@link #setOutput(IOutput)} and are
+	 * passivated, losing target access through {@link #getTarget()}, after compilation
+	 * is complete.
+	 *
+	 * @return true if this is a proxy effector
+	 */
+	boolean isProxy();
+
+	/**
 	 * This method is invoked at runtime when triggered by an input transition. Normally
 	 * implementation will return {@code IEffector.RTX_NONE}, which has no effect. In some
 	 * cases a signal may be encoded in the return value using {@code IEffector.signal(sig)},

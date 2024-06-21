@@ -67,6 +67,8 @@ public class BaseEffector<T extends ITarget> implements IEffector<T> {
 	 */
 	@Override // @see com.characterforming.ribose.base.IEffector#nvoke()
 	public int invoke() throws EffectorException {
+		assert !this.isProxy()
+		: String.format("Proxy effector '%1$s' cannot receive invoke()", this.name);
 		return IEffector.RTX_NONE;
 	}
 
@@ -81,6 +83,11 @@ public class BaseEffector<T extends ITarget> implements IEffector<T> {
 	public void setOutput(IOutput output)
 	throws EffectorException {
 		this.output = output;
+	}
+
+	@Override // @see com.characterforming.ribose.base.IEffector#isProxy()
+	public boolean isProxy() {
+		return this.output == null;
 	}
 
 	@Override // @see com.characterforming.ribose.base.IEffector#getName()
@@ -100,7 +107,8 @@ public class BaseEffector<T extends ITarget> implements IEffector<T> {
 
 	@Override // com.characterforming.ribose.IEffector#passivate()
 	public void passivate() {
+		assert this.isProxy()
+		: String.format("Live effector '%1$s' cannot receive passivate()", this.name);
 		this.target = null;
-		this.output = null;
 	}
 }

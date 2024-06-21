@@ -22,17 +22,20 @@ package com.characterforming.ribose.base;
 import java.lang.reflect.Field;
 
 /***
- * Maps transducer fields to Java primitive fields expressed by an
- * effector that subclasses {@link BaseReceptorEffectore {@code
- * fieldIndex} parameter indicates the offset to the field within the
- * transductor stack frame. {@code Receptor} instances are instantiated
- * and used internally and should not be used directly by application code.
- * The {@code defaultValue} parameter is supplied by the initial value of
- * the field in the receptor effector.
+ * Maps transducer fields to Java primitive fields expressed by an effector that
+ * subclasses {@link BaseReceptorEffectore}. The {@code defaultValue} parameter
+ * is supplied by the initial value of the field in the receptor effector.
+ * <ul>
+ * <li><i>type:</i> ({@link FieldType}) Java primitive type, byte[] or char[] array</li>
+ * <li><i>field:</i> ({@link Field}) the subclass field, reflected back</li>
+ * <li><i>defaultValue:</i> (Object) default field value, applied to {@code field} on reset</li>
+ * <li><i>fieldIndex:</i> (int) ofset to field value in transducer stack frame</li>
+ * </ul>
  */
 record Receiver(FieldType type, Field field, Object defaultValue, int fieldIndex) {
+
 	/** Enumeration of receiver field types */
-	public enum FieldType {
+	enum FieldType {
 		/** Unknown type */
 		UNKNOWN,
 		/** boolean type */
@@ -57,5 +60,11 @@ record Receiver(FieldType type, Field field, Object defaultValue, int fieldIndex
 		FLOAT,
 		/** double type */
 		DOUBLE
+	}
+
+	@Override
+	public String toString() {
+		return String.format("%1$s %2$s: field index=%3$d, default=%4$s",
+			type.toString(), field.getName(), fieldIndex, defaultValue);
 	}
 }

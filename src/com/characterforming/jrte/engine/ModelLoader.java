@@ -283,7 +283,7 @@ public final class ModelLoader extends Model implements IModel {
 						else {
 							int effectorOrdinal = -1 * effectorVectors[index++];
 							if (super.proxyEffectors[effectorOrdinal] instanceof BaseParametricEffector<?,?> effector) {
-								int parameterOrdinal = Transducer.parameter(effectorVectors[index++]);
+								int parameterOrdinal = effectorVectors[index++];
 								System.out.printf(" %s[", effectorNames[effectorOrdinal]);
 								System.out.printf(" %s ]", effector.showParameterTokens(parameterOrdinal));
 							}

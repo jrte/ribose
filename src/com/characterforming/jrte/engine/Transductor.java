@@ -228,6 +228,11 @@ public final class Transductor implements ITransductor, ITransduction, IOutput {
 			throw new EffectorException("Not valid for proxy transductor");
 	}
 
+	@Override
+	public boolean isTransducerRunning(String transducerName) {
+		return this.transducerStack.peek().transducer.getName().equals(transducerName);
+	}
+
 	@Override // @see com.characterforming.ribose.IOutput#asString(int, String)
 	public String asString(int fieldOrdinal, String defaultValue) throws EffectorException {
 		if (!this.isProxy) {
@@ -415,7 +420,9 @@ public final class Transductor implements ITransductor, ITransduction, IOutput {
 
 	@Override // @see com.characterforming.ribose.IOutput#isProxy()
 	public boolean isProxy() {
-		return this.isProxy;
+		if (this.effectors != null && this.effectors[0] != null)
+			return this.effectors[0].isProxy();
+		return true;
 	}
 
 	@Override // @see com.characterforming.ribose.IOutput#rtcLogger()
@@ -558,38 +565,39 @@ I:			do {
 					}
 
 					int action = NIL;
-S:				do {
-						switch (this.matchMode) {
-						// trap runs in (nil* paste*)* effector space
-						case MATCH_NONE:
+S:				do
+						if (this.matchMode == MATCH_NONE)
 							do {
 								final long transition = transitionMatrix[state + inputFilter[token]];
 								last = state; state = Transducer.state(transition);
 								action = Transducer.action(transition);
-								if (action == PASTE)
-									this.selection.paste((byte)token);
-								else if (action != NIL)
-									break S;
-								token = input.position < input.limit ? input.array[input.position++] & 0xff : -1;
-							} while (token >= 0);
-							break;
-						// absorb self-referencing (msum,mscan) or sequential (mproduct) transitions with nil effect
-						case MATCH_SUM:
-							token = sumTrap(input, token);
-							break;
-						case MATCH_PRODUCT:
-							token = productTrap(input, token);
-							break;
-						case MATCH_SCAN:
-							token = scanTrap(input, token);
-							break;
-						default:
-							assert false;
-							break;
+								if (action != NIL) {
+									if (action == PASTE)
+										this.selection.paste((byte)token);
+									else if (action == SELECT) {
+										this.selected = Model.ANONYMOUS_FIELD_ORDINAL;
+										this.selection = this.transducerStack.value(this.selected);
+									}
+									else break S;
+								}
+								if (input.position < input.limit)
+									token = input.array[input.position++] & 0xff;
+								else
+									continue I;
+							} while (true);
+						else {
+							if (this.matchMode == MATCH_SCAN)
+								token = scanTrap(input, token);
+							else if (this.matchMode == MATCH_SUM)
+								token = sumTrap(input, token);
+							else if (this.matchMode == MATCH_PRODUCT)
+								token = productTrap(input, token);
+							else
+								assert false;
+							if (token < 0)
+								continue I;
 						}
-					} while (token >= 0);
-					if (token < 0)
-						continue I;
+					while (true);
 
 					// effect action and check for transducer or input stack adjustment
 					int aftereffects = IEffector.RTX_NONE;
@@ -712,17 +720,17 @@ S:				do {
 	// invoke a scalar effector or vector of effectors and record side effects on transducer and input stacks
 	private int effect(int action, int token, int[] effectorVector)
 	throws IOException, EffectorException {
-		assert action < 0;
-		int index = 0 - action;
 		int aftereffects = IEffector.RTX_NONE;
+		int index = 0 - action;
+		assert index > 0;
 E:	do {
 			action = effectorVector[index++];
-			if (action < 0 ) {
+			if (action > 0 )
+				aftereffects |= this.effect(action, token);
+			else if (action < 0) {
 				if (this.effectors[0 - action] instanceof IParametricEffector<?,?> e)
 					aftereffects |= e.invoke(effectorVector[index++]);
 				else assert false;
-			} else if (action != NUL) {
-				aftereffects |= this.effect(action, token);
 			} else
 				break E;
 		} while (true);

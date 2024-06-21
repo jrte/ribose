@@ -76,7 +76,9 @@ public class FileRunner {
 		long byteLength = (int)f.length();
 		assert byteLength < Integer.MAX_VALUE;
 		if (byteLength <= 0 || byteLength > Integer.MAX_VALUE) {
-			System.out.println(String.format("Input file is empty or way too big: %s", inputPath));
+			System.out.println(String.format(
+				"Input file is empty or way too big: %1$s (%2$d bytes)",
+					inputPath, byteLength));
 			System.exit(1);
 		}
 		int exitCode = 1;

@@ -20,8 +20,8 @@ while [[ ! "$1" =~ ^(--tsv|[0-9]+) ]]; do
 	vmargs="$vmargs $1";
 	shift
 	if (($#==0)); then
-		echo "Usage: bench [--tsv] <iteration-count> <model-path> <transducer> <input-path>"
-		echo "Use --tsv for tab-delimited output per etc/benchmarks/ribose.ods"
+		echo "Usage: bench [--tsv] <iteration-count> <model-path> <input-path> <transducer>..."
+		echo "Use --tsv for tab-delimited output"
 		exit 0
 	fi
 done
@@ -32,7 +32,7 @@ if [[ "$1" == "--tsv" ]]; then
 fi
 if (($#<4)); then
 	echo "Usage: bench [--tsv] <iteration-count> <model-path> <input-path> <transducer>..."
-	echo "Use --tsv for tab-delimited output per etc/benchmarks/ribose.ods"
+	echo "Use --tsv for tab-delimited output"
 	exit 1
 fi
 n=$1

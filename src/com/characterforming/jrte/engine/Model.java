@@ -50,7 +50,6 @@ import com.characterforming.ribose.base.BaseParametricEffector;
 import com.characterforming.ribose.base.Bytes;
 import com.characterforming.ribose.base.Codec;
 import com.characterforming.ribose.base.CompilationException;
-import com.characterforming.ribose.base.EffectorException;
 import com.characterforming.ribose.base.ModelException;
 import com.characterforming.ribose.base.Signal;
 
@@ -371,8 +370,8 @@ sealed class Model permits ModelCompiler, ModelLoader {
 		for (Map.Entry<Bytes, Integer> m : this.transducerOrdinalMap.entrySet())
 			transducerIndex[m.getValue()] = m.getKey();
 		for (int transducerOrdinal = 0; transducerOrdinal < transducerIndex.length; transducerOrdinal++) {
-			mapWriter.printf("%1$6d transducer %2$s%n", transducerOrdinal,
-				transducerIndex[transducerOrdinal].asString());
+			mapWriter.printf("%1$6d transducer %2$s @ offset %3$d%n", transducerOrdinal,
+				transducerIndex[transducerOrdinal].asString(), this.transducerOffsetIndex[transducerOrdinal]);
 			Map<Bytes, Integer> fieldMap = this.transducerFieldMaps.get(transducerOrdinal);
 			Bytes[] fields = new Bytes[fieldMap.size()];
 			for (Entry<Bytes, Integer> e : fieldMap.entrySet())
@@ -429,12 +428,11 @@ sealed class Model permits ModelCompiler, ModelLoader {
 		return checked;
 	}
 
-	protected Argument[][] compileModelParameters(List<String> errors) throws EffectorException {
+	protected Argument[][] compileModelParameters(List<String> errors) {
 		Argument[][] effectorArguments = new Argument[this.proxyEffectors.length][];
 		final Map<Bytes, Integer> effectorMap = this.getEffectorOrdinalMap();
 		for (int effectorOrdinal = 0; effectorOrdinal < this.proxyEffectors.length; effectorOrdinal++) {
 			HashMap<Argument, Integer> parametersMap = this.effectorParametersMaps.get(effectorOrdinal);
-			this.proxyEffectors[effectorOrdinal].setOutput(this.proxyTransductor);
 			if (this.proxyEffectors[effectorOrdinal] instanceof BaseParametricEffector<?,?> parametricEffector) {
 				if (parametersMap != null) {
 					assert parametersMap != null: String.format("Effector parameters map is null for %1$s effector",

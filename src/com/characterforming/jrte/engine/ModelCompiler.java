@@ -80,7 +80,6 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 	private int[][][] kernelMatrix;
 	private int transition;
 
-
 	record Transition (int from, int to, int tape, Bytes symbol, boolean isFinal) {}
 
 	record Header (int version, int tapes, int transitions, int states, int symbols) {}
@@ -90,7 +89,8 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 		public int version = -1, tapes = -1, transitions = -1, states = -1, symbols = -1;
 
 		HeaderEffector(ModelCompiler compiler) throws CharacterCodingException {
-			super(compiler, "header");
+			super(compiler, "header", "Automaton",
+				new String[] { "version", "tapes", "transitions", "states", "symbols" });
 			super.setEffector(this);
 		}
 
@@ -99,6 +99,7 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 			int rtx = super.invoke(parameterIndex);
 			super.getTarget().putHeader(new Header(
 				this.version, this.tapes, this.transitions, this.states, this.symbols));
+			super.resetReceivers(parameterIndex);
 			return rtx;
 		}
 	}
@@ -109,7 +110,8 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 		public byte[] symbol = Bytes.EMPTY_BYTES;
 
 		TransitionEffector(ModelCompiler compiler) throws CharacterCodingException {
-			super(compiler, "transition");
+			super(compiler, "transition", "Automaton",
+				new String[] { "from","to","tape", "length","symbol" });
 			super.setEffector(this);
 		}
 
@@ -119,6 +121,7 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 			boolean isFinal = this.to == 1 && this.tape == 0 && this.symbol.length == 0;
 			ModelCompiler.this.putTransition(new Transition(
 				this.from, this.to, this.tape, new Bytes(this.symbol), isFinal));
+			super.resetReceivers(parameterIndex);
 			return rtx;
 		}
 	}
@@ -409,8 +412,8 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 		final int fieldCount = super.getFieldCount(this.transducerOrdinal);
 		double sparsity = 100 * (1 - ((double)nTransitions / (double)(nStates * nInputs)));
 		String info = String.format(
-			"%1$21s %2$5d input classes %3$5d states %4$5d transitions; %5$5d fields; (%6$.0f%% nul)",
-			this.getTransducerName()+":", nInputs, nStates, transitionCount, fieldCount, sparsity);
+			"%1$21s: %2$5d input classes %3$5d states %4$5d transitions; %5$5d fields; (%6$.0f%% nul)",
+				this.getTransducerName(), nInputs, nStates, transitionCount, fieldCount, sparsity);
 		super.rtcLogger.log(Level.INFO, () -> info);
 		System.out.println(info);
 	}
@@ -545,11 +548,10 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 		: "Invalid tape number for chain(InrTransition) : " + transition.toString();
 		if (transition.isFinal)
 			return null;
-		boolean fail = false;
-		int effectorOrdinal = -1;
-		int effectorPos = 0, parameterPos = 0;
-		byte[][] parameterList = new byte[8][];
-		int[] effectorVector = new int[8];
+		int errorCount = this.errors.size();
+		int effectorOrdinal = -1, effectorPos = 0, parameterPos = 0;
+		byte[][] parameterList = new byte[16][];
+		int[] effectorVector = new int[16];
 		ArrayList<Transition> outT = null;
 		for (
 			outT = this.getTransitions(transition.to);
@@ -557,8 +559,7 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 			outT = this.getTransitions(outT.get(0).to)
 		) {
 			final Transition t = outT.get(0);
-			switch (t.tape) {
-			case 1:
+			if (t.tape == 1) {
 				if ((effectorPos + 3) >= effectorVector.length)
 					effectorVector = Arrays.copyOf(effectorVector, effectorVector.length > 4 ? (effectorVector.length * 3) >> 1 : 5);
 				if (effectorOrdinal >= 0 && parameterPos > 0) {
@@ -574,27 +575,20 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 				effectorOrdinal = super.getEffectorOrdinal(effectorSymbol);
 				if (effectorOrdinal >= 0)
 					effectorVector[effectorPos++] = effectorOrdinal;
-				else {
+				else
 					this.addError(String.format("%1$s: Unrecognized effector '%2$s'",
 						this.getTransducerName(), effectorSymbol.toString()));
-					fail = true;
-				}
 				parameterPos = 0;
-				break;
-			case 2:
+			} else if (t.tape == 2) {
 				if (effectorOrdinal >= 0) {
 					if (parameterPos >= parameterList.length)
 						parameterList = Arrays.copyOf(parameterList, parameterList.length > 4 ? (parameterList.length * 3) >> 1 : 5);
 					parameterList[parameterPos] = t.symbol.bytes();
 					++parameterPos;
 				}
-				break;
-			default:
+			} else
 				this.addError(String.format("%1$s: Invalid tape number %2$d (tape 1 or 2 expected)",
 					this.getTransducerName(), t.tape));
-				fail = true;
-				break;
-			}
 		}
 		int outS = -1;
 		if (outT == null || outT.isEmpty() || outT.get(0).isFinal)
@@ -605,9 +599,8 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 			assert outT.size() > 1;
 			this.addError(String.format(AMBIGUOUS_STATE_MESSAGE,
 				this.getTransducerName(), outT.get(0).from));
-			fail = true;
 		}
-		if (!fail) {
+		if (this.errors.size() == errorCount) {
 			assert effectorVector.length > (effectorPos + 2);
 			assert effectorPos == 0 || effectorOrdinal == effectorVector[effectorPos - 1];
 			assert parameterPos == 0 || effectorPos > 0;
@@ -621,8 +614,9 @@ public final class ModelCompiler extends Model implements ITarget, AutoCloseable
 			assert effectorVector.length >= effectorPos;
 			if (effectorVector.length > effectorPos)
 				effectorVector = Arrays.copyOf(effectorVector, effectorPos);
+			return new Chain(effectorVector, outS);
 		}
-		return fail? null : new Chain(effectorVector, outS);
+		return null;
 	}
 
 	private Integer[] getInrStates() {

@@ -77,17 +77,17 @@ final class Transducer {
 
 	// encode effector and paramter ordinals in action commponent of transition matrix cell
 	static int action(int effect, int parameter) {
-		return  (effect << 16) | parameter;
+		return  ((parameter + 1) << 16) | effect;
 	}
 
 	// decode effector ordinal from action commponent of transition matrix cell
 	static int effector(int action) {
-		return action >>> 16;
+		return action & 0xffff;
 	}
 
 	// decode parameter ordinal from action commponent of transition matrix cell
 	static int parameter(int action) {
-		return action & 0xffff;
+		return (action >>> 16) - 1;
 	}
 
 	// decode signal from RTX_SIGNAL code from an effector

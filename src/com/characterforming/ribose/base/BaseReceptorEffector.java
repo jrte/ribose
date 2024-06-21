@@ -26,6 +26,7 @@ import java.nio.charset.CharacterCodingException;
 import com.characterforming.ribose.IEffector;
 import com.characterforming.ribose.ITarget;
 import com.characterforming.ribose.IToken;
+import com.characterforming.ribose.IOutput;
 
 /**
  * Base class for receptor effectors, which map transducer fields to Java receiver fields
@@ -39,15 +40,14 @@ import com.characterforming.ribose.IToken;
  * method; subclasses may override this with their own {@code invoke()} implementation.
  * <br><br>
  * A receptor effector can have only one parametric form, which lists the transducer
- * fields to be received. It can be called from any transducer that expresses the same
- * fields, but the same fields must be supplied in each case. Subclass receiver fields
- * must be {@code public} and may be of any primitive Java type or a {@code byte[]} or
- * {@code char[]} array. When the receptor effector is invoked it calls {@link
- * BaseReceptorEffector#invoke(int)}, which overwrites the receiver fields in the
- * effector with the converted value from the respective transducer fields, or with
- * the default value if a transducer field is empty. The effector immediately dispatches
- * the receiver field values into the target. The receiver field values are then stale
- * and should not be used outside the scope of the effector's {@code #invoke()} method.
+ * fields to be received, and can only be called from the transducer that expresses those
+ * fields. Subclass receiver fields must be {@code public} and may be of any primitive
+ * Java type or a {@code byte[]} or {@code char[]} array. When the receptor effector s
+ * invoked it calls {@link BaseReceptorEffector#invoke(int)}, which overwrites the
+ * receiver fields in the effector with the converted value from the respective transducer
+ * fields, or with the default value if a transducer field is empty. The effector immediately
+ * dispatches the receiver field values into the target. The receiver field values are then
+ * stale and should not be used outside the scope of the effector's {@code #invoke()} method.
  * <br><br>
  * The subclass effector must call {@link setEffector(BaseReceptorEffector)} from
  * its constructor after calling the constructor for this base class.
@@ -61,8 +61,9 @@ import com.characterforming.ribose.IToken;
  *   public int version = -1, tapes = -1, transitions = -1, states = -1, symbols = -1;
  *
  *   HeaderEffector(ModelCompiler compiler) throws CharacterCodingException {
- *     // compiler is the effector's target (super.getTarget())
- *     super(compiler, "header");
+ *     // compiler is the effector's target, automaton is the name of the transducer
+ *     super(compiler, "header", "automaton",
+ *       new String[] { "version", "tapes", "transitions", "states", "symbols" });
  *     // superclass uses reflection to identify receiver fields and default values
  *     super.setEffector(this);
  *   }
@@ -83,16 +84,26 @@ import com.characterforming.ribose.IToken;
 public abstract class BaseReceptorEffector<T extends ITarget> extends BaseParametricEffector<T, Receiver[]> {
 
 	private BaseReceptorEffector<T> effector;
+	private byte[][] receptorFieldNames;
+	private final String transducerName;
 
 	/**
 	 * Constructor
 	 *
 	 * @param target the transductor target bound to the effector
 	 * @param effectorName the effector name
+	 * @param transducerName the name of the transducer the subclass is bound to
+	 * @param receiverFieldNames enumerates subclass receiver fields
 	 * @throws CharacterCodingException if the effector name can not be encoded
 	 */
-	protected BaseReceptorEffector(final T target, final String effectorName) throws CharacterCodingException {
+	protected BaseReceptorEffector(T target, String effectorName, String transducerName, String[] receiverFieldNames)
+	throws CharacterCodingException {
 		super(target, effectorName);
+		this.transducerName = transducerName;
+		this.receptorFieldNames = new byte[receiverFieldNames.length][];
+		for (int i = 0; i < receiverFieldNames.length; i++)
+			this.receptorFieldNames[i] = Codec.encode(receiverFieldNames[i]).bytes();
+		this.effector = null;
 	}
 
 	/**
@@ -108,42 +119,48 @@ public abstract class BaseReceptorEffector<T extends ITarget> extends BaseParame
 
 	@Override // @see com.characterforming.ribose.IParametricEffector#invoke(int)
 	public int invoke(int parameter) throws EffectorException {
-		assert parameter == 0;
-		for (Receiver r : super.parameters[0]) {
+		assert parameter == 0 && super.parameters.length == 1;
+		assert super.output.isTransducerRunning(this.transducerName);
+		for (Receiver r : super.parameters[parameter]) {
 			try {
+				final Field fld = r.field();
+				final int idx = r.fieldIndex();
+				final Object def = r.defaultValue();
+				final IEffector<?> eff = this.effector;
+				final IOutput out =  super.output;
 				switch (r.type()) {
 					case BOOLEAN:
-						r.field().setBoolean(this.effector, super.output.asBoolean(r.fieldIndex(), (Boolean)r.defaultValue()));
+						fld.setBoolean(eff, out.asBoolean(idx, (boolean)def));
 						break;
 					case BYTE:
-						r.field().setByte(this.effector, super.output.asByte(r.fieldIndex(), (Byte)r.defaultValue()));
+						fld.setByte(eff, out.asByte(idx, (byte)def));
 						break;
 					case BYTES:
-						r.field().set(this.effector, super.output.asBytes(r.fieldIndex(), (byte[])r.defaultValue()));
+						fld.set(eff, out.asBytes(idx, (byte[])def));
 						break;
 					case CHAR:
-						r.field().setChar(this.effector, super.output.asChar(r.fieldIndex(), (Character)r.defaultValue()));
+						fld.setChar(eff, out.asChar(idx, (char)def));
 						break;
 					case CHARS:
-						r.field().set(this.effector, super.output.asChars(r.fieldIndex(), (char[])r.defaultValue()));
+						fld.set(eff, out.asChars(idx, (char[])def));
 						break;
 					case STRING:
-						r.field().set(this.effector, super.output.asString(r.fieldIndex(), (String)r.defaultValue()));
+						fld.set(eff, out.asString(idx, (String)def));
 						break;
 					case SHORT:
-						r.field().setShort(this.effector, super.output.asShort(r.fieldIndex(), (Short)r.defaultValue()));
+						fld.setShort(eff, out.asShort(idx, (short)def));
 						break;
 					case INT:
-						r.field().setInt(this.effector, super.output.asInteger(r.fieldIndex(), (Integer)r.defaultValue()));
+						fld.setInt(eff, out.asInteger(idx, (int)def));
 						break;
 					case LONG:
-						r.field().setLong(this.effector, super.output.asLong(r.fieldIndex(), (Long)r.defaultValue()));
+						fld.setLong(eff, out.asLong(idx, (long)def));
 						break;
 					case DOUBLE:
-						r.field().setDouble(this.effector, super.output.asDouble(r.fieldIndex(), (Double)r.defaultValue()));
+						fld.setDouble(eff, out.asDouble(idx, (double)def));
 						break;
 					case FLOAT:
-						r.field().set(this.effector, super.output.asFloat(r.fieldIndex(), (Float)r.defaultValue()));
+						fld.setFloat(eff, out.asFloat(idx, (float)def));
 						break;
 					default:
 						throw new EffectorException(String.format(
@@ -171,7 +188,7 @@ public abstract class BaseReceptorEffector<T extends ITarget> extends BaseParame
 				"%1$s.%2$s[]: receptor effector field list cannot be overridden",
 					super.target.getName(), super.getName()));
 		int receiver = 0;
-		Receiver[] receivers = super.parameters[0] = new Receiver[parameterList.length];
+		Receiver[] receivers = new Receiver[parameterList.length];
 		for (IToken token : parameterList)
 			if (token.isField()) {
 				String fieldName = "?";
@@ -197,33 +214,51 @@ public abstract class BaseReceptorEffector<T extends ITarget> extends BaseParame
 		return receivers;
 	}
 
+	/***
+	* Reset receiver fields to default (initial) values after dispatching received
+	* values in {@link #invoke(int)}.
+	*
+	* @param parameterIndex identifies a subset of fields to reset
+	* @throws EffectorException if the field is inaccessible
+	*/
+	protected void resetReceivers(int parameterIndex) throws EffectorException {
+		for (Receiver r : this.parameters[parameterIndex])
+			try {
+				r.field().set(this.effector, r.defaultValue());
+			} catch (IllegalArgumentException | IllegalAccessException e) {
+				throw new EffectorException(String.format(
+					"%1$s.%2$s: unable to reset field",
+						this.getName(), r.field().getName()));
+			}
+	}
+
 	private Receiver newFieldReceiver(Field field, int fieldOrdinal) throws TargetBindingException {
 		Class<?> type = field.getType();
 		try {
 			if (!type.isArray()) {
-				if (type.equals(boolean.class))
+				if (boolean.class.equals(type))
 					return new Receiver(Receiver.FieldType.BOOLEAN, field, field.getBoolean(this.effector), fieldOrdinal);
-				if (type.equals(byte.class))
+				if (byte.class.equals(type))
 					return new Receiver(Receiver.FieldType.BYTE, field, field.getByte(this.effector), fieldOrdinal);
-				if (type.equals(char.class))
+				if (char.class.equals(type))
 					return new Receiver(Receiver.FieldType.CHAR, field, field.getChar(this.effector), fieldOrdinal);
-				if (type.equals(String.class))
+				if (String.class.equals(type))
 					return new Receiver(Receiver.FieldType.STRING, field, field.get(this.effector), fieldOrdinal);
-				if (type.equals(short.class))
+				if (short.class.equals(type))
 					return new Receiver(Receiver.FieldType.SHORT, field, field.getShort(this.effector), fieldOrdinal);
-				if (type.equals(int.class))
+				if (int.class.equals(type))
 					return new Receiver(Receiver.FieldType.INT, field, field.getInt(this.effector), fieldOrdinal);
-				if (type.equals(long.class))
+				if (long.class.equals(type))
 					return new Receiver(Receiver.FieldType.LONG, field, field.getLong(this.effector), fieldOrdinal);
-				if (type.equals(float.class))
+				if (float.class.equals(type))
 					return new Receiver(Receiver.FieldType.FLOAT, field, field.getFloat(this.effector), fieldOrdinal);
-				if (type.equals(double.class))
+				if (double.class.equals(type))
 					return new Receiver(Receiver.FieldType.DOUBLE, field, field.getDouble(this.effector), fieldOrdinal);
 			} else {
 				Class<?> elementType = type.getComponentType();
-				if (elementType.equals(byte.class))
+				if (byte.class.equals(elementType))
 					return new Receiver(Receiver.FieldType.BYTES, field, field.get(this.effector), fieldOrdinal);
-				if (elementType.equals(char.class))
+				if (char.class.equals(elementType))
 					return new Receiver(Receiver.FieldType.CHARS, field, field.get(this.effector), fieldOrdinal);
 			}
 		} catch (IllegalArgumentException | IllegalAccessException e) {
